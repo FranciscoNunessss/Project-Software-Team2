@@ -36,6 +36,7 @@ class Candidate(BaseModel):
 
 
 class Decision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     analysis_id: str
     candidate_id: str
 

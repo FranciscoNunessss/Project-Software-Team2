@@ -477,7 +477,7 @@ function ProgressScreen() {
         </section>
         <Card className="data-card">
           <p className="eyebrow">Privacy controls</p><h2>My data</h2>
-          <p>We store tier recommendations, your choices, and session dates. Never task text or topic history.</p>
+          <p>No tier choices or session data are stored in this prototype; persistent progress and data controls are design previews.</p>
           <div className="data-actions">
             <Button variant="secondary"><Icon name="eye" size={16} />See</Button>
             <Button variant="secondary"><Icon name="download" size={16} />Export</Button>

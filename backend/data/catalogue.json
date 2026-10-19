@@ -1,0 +1,10 @@
+{
+  "version": "demo-2026-10-19.1",
+  "source": "Team prototype fixtures; no real model capability or price claims",
+  "observed_on": "2026-10-19",
+  "models": [
+    {"id": "demo-small", "name": "Illustrative small tier", "capacity": 1, "capabilities": ["text"]},
+    {"id": "demo-balanced", "name": "Illustrative balanced tier", "capacity": 2, "capabilities": ["text", "code"]},
+    {"id": "demo-advanced", "name": "Illustrative advanced tier", "capacity": 3, "capabilities": ["text", "code", "vision"]}
+  ]
+}

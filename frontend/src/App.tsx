@@ -517,7 +517,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('assistant')
   const [dark, setDark] = useState(() => window.localStorage.getItem('adaptai-theme') === 'dark')
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
   }, [screen])
   const toggleTheme = () => {
     setDark((current) => {

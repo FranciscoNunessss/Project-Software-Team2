@@ -71,16 +71,51 @@ class FakeProvider:
         )
 
 
-def test_external_consent_and_semantic_workflow():
+@pytest.mark.parametrize("provider_id", ["openai", "groq"])
+def test_external_consent_and_semantic_workflow(provider_id):
     provider = FakeProvider()
-    client = TestClient(create_app(Settings(_env_file=None), {"openai": provider}))
-    body = {"task": "Sensitive task", "provider": "openai"}
+    client = TestClient(create_app(Settings(_env_file=None), {provider_id: provider}))
+    body = {"task": "Sensitive task", "provider": provider_id}
     assert client.post("/api/analyze", json=body).status_code == 403
     assert provider.calls == 0
     response = client.post("/api/analyze", json={**body, "allow_external": True})
     assert response.json()["mode"] == "semantic"
     assert response.json()["recommendation"]["id"] == "demo-advanced"
     assert provider.calls == 1
+
+
+def test_groq_configuration_is_public_but_credentials_are_not():
+    client = TestClient(create_app(Settings(_env_file=None, groq_api_key="private-test-key")))
+    response = client.get("/api/providers")
+    assert "private-test-key" not in response.text
+    groq = next(item for item in response.json() if item["id"] == "groq")
+    assert groq == {
+        "id": "groq",
+        "label": "Groq",
+        "model": "openai/gpt-oss-20b",
+        "enabled": True,
+        "external": True,
+    }
+
+
+def test_invalid_profile_is_rejected():
+    class Malformed:
+        async def assess(self, task):
+            return {
+                "profile": {
+                    "reasoning": 99,
+                    "context": 1,
+                    "ambiguity": 1,
+                    "explanation": "Untrusted provider output",
+                }
+            }
+
+    client = TestClient(create_app(Settings(_env_file=None), {"groq": Malformed()}))
+    response = client.post(
+        "/api/analyze", json={"task": "Test", "provider": "groq", "allow_external": True}
+    )
+    assert response.status_code == 502
+    assert response.json() == {"detail": "invalid_provider_output"}
 
 
 @pytest.mark.parametrize(

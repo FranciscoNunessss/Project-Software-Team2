@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 class AnalysisRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     task: str = Field(min_length=1, max_length=8000)
-    provider: Literal["demo", "openai", "ollama"] = "demo"
+    provider: Literal["demo", "openai", "groq", "ollama"] = "demo"
     allow_external: bool = False
     required_capabilities: list[Literal["text", "code", "vision"]] = Field(
         default_factory=lambda: ["text"]
@@ -50,6 +50,7 @@ class AnalysisResult(BaseModel):
     id: str
     mode: Literal["demonstration", "semantic"]
     provider: str
+    assessment_model: str | None
     profile: Profile
     recommendation: Candidate
     alternatives: list[Candidate]

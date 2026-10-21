@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="ADAPTAI_", env_file=".env", extra="ignore")
     openai_model: str = ""
     openai_api_key: SecretStr = SecretStr("")
+    groq_model: str = "openai/gpt-oss-20b"
+    groq_api_key: SecretStr = SecretStr("")
     ollama_model: str = ""
     timeout_seconds: float = Field(default=30, gt=0, le=120)
 
@@ -49,17 +51,22 @@ class LangChainProvider:
         from langsmith import tracing_context
         from pydantic import ValidationError
 
-        if self.provider == "openai":
+        if self.provider in {"openai", "groq"}:
             from langchain_openai import ChatOpenAI
 
+            is_groq = self.provider == "groq"
             model = ChatOpenAI(
-                model=self.settings.openai_model,
-                api_key=self.settings.openai_api_key.get_secret_value(),
+                model=self.settings.groq_model if is_groq else self.settings.openai_model,
+                api_key=(
+                    self.settings.groq_api_key if is_groq else self.settings.openai_api_key
+                ).get_secret_value(),
+                base_url="https://api.groq.com/openai/v1" if is_groq else None,
                 max_retries=0,
                 timeout=self.settings.timeout_seconds,
-                max_tokens=1000,
+                max_tokens=2048,
+                use_responses_api=False,
             )
-        else:
+        elif self.provider == "ollama":
             from langchain_ollama import ChatOllama
 
             model = ChatOllama(
@@ -67,6 +74,8 @@ class LangChainProvider:
                 base_url="http://127.0.0.1:11434",
                 num_predict=1000,
             )
+        else:
+            raise ProviderFailure("unsupported_provider")
         prompt = [
             (
                 "system",
@@ -76,10 +85,13 @@ class LangChainProvider:
             ),
             ("human", task),
         ]
+        structured_options = {"include_raw": True}
+        if self.provider == "groq":
+            structured_options.update(method="json_schema", strict=True)
         try:
             with tracing_context(enabled=False):
                 result = await asyncio.wait_for(
-                    model.with_structured_output(Profile, include_raw=True).ainvoke(prompt),
+                    model.with_structured_output(Profile, **structured_options).ainvoke(prompt),
                     timeout=self.settings.timeout_seconds,
                 )
             if result.get("parsing_error") or result.get("parsed") is None:
@@ -107,5 +119,7 @@ class LangChainProvider:
                 401: "provider_authentication",
                 403: "provider_authentication",
                 429: "provider_rate_limit",
+                400: "provider_unsupported_request",
+                404: "provider_model_unavailable",
             }.get(status, "provider_unavailable")
             raise ProviderFailure(code) from exc

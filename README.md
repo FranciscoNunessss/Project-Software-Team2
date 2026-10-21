@@ -25,8 +25,8 @@ uv add --dev <package>
 uv lock --check
 
 # Check Python code
-uv run python -m ruff check backend
-uv run python -m ruff format --check backend
+uv run python -m ruff check backend scripts
+uv run python -m ruff format --check backend scripts
 
 # Run tests
 uv run python -m pytest -q
@@ -80,18 +80,48 @@ design previews. Production reverse proxy and deployment are not configured.
 ## Configure assessment providers
 
 Copy `.env.example` to `.env` in the repository root. Keep credentials out of Git.
-Set `ADAPTAI_OPENAI_MODEL` and `ADAPTAI_OPENAI_API_KEY` to enable OpenAI, or
+For **Groq**, set `ADAPTAI_GROQ_API_KEY` and `ADAPTAI_GROQ_MODEL` (the example uses
+`openai/gpt-oss-20b`, hosted by Groq). The adapter uses LangChain's OpenAI-compatible
+client against the fixed Groq endpoint `https://api.groq.com/openai/v1`, with strict
+JSON schema output and backend validation. This uses a Groq key, not an OpenAI key.
+See [Groq compatibility](https://console.groq.com/docs/openai) and
+[structured output support](https://console.groq.com/docs/structured-outputs).
+Model availability and account quotas must be verified with your account.
+
+Alternatively, set `ADAPTAI_OPENAI_MODEL` and `ADAPTAI_OPENAI_API_KEY` to enable OpenAI, or
 `ADAPTAI_OLLAMA_MODEL` to enable a model already installed in a running local
 Ollama service at `127.0.0.1:11434`. Restart after changing configuration.
 Choose a model that supports structured output. Arbitrary OpenAI-compatible
 endpoints are not implemented in this increment.
 
 `GET /api/providers` lists configuration availability, not verified connectivity or
-model compatibility. Calling OpenAI also requires `allow_external: true` for each
+model compatibility. Calling OpenAI or Groq also requires `allow_external: true` for each
 analysis. There is no automatic cross-provider fallback or retry. Timeouts default
 to 30 seconds. Provider errors return sanitised codes, never upstream messages.
-The adapters have **not yet been verified against real services**; tests use fakes
-and incur no API charges.
+The frontend selects Groq when it is configured, but requires explicit consent before
+sending any task. Results display the actual assessment model and token usage when
+available. Provider failures never silently fall back to demonstration mode.
+
+Automated tests use fakes and a mock HTTP transport; they incur no API charges and
+do not establish live account connectivity. After setting a valid key, explicitly run
+the live smoke test from the repository root (uses a synthetic task and provider quota):
+
+```powershell
+uv run python scripts/check_llm.py --provider groq
+```
+
+It prints model identity, latency and token counts on success, or a sanitised error
+code on failure. `provider_authentication` means the provider rejected the credential:
+replace it in `.env` and restart the backend. Never share keys in chat or commit `.env`.
+The live test and UI still use the illustrative recommendation catalogue; a successful
+LLM call does not validate ranking quality or complete the remaining four dimensions.
+
+Live verification on 21 October 2026 succeeded with Groq's `openai/gpt-oss-20b`:
+the API returned a validated semantic assessment with actual token usage. The supplied
+frontend was tested through its development proxy, including external-processing
+consent, displaying the assessment and confirming an alternative tier. One initial
+request was rejected by the provider; subsequent requests succeeded. This is a local
+integration smoke test, not a reliability benchmark or an assessment-quality evaluation.
 
 Assessment providers and recommended catalogue entries are separate concepts.
 The LLM assesses the task; Python filters and ranks catalogue entries. It does not

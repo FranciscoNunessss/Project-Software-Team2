@@ -20,10 +20,24 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
     enabled = {
         "demo": True,
         "openai": bool(settings.openai_model and settings.openai_api_key.get_secret_value()),
+        "groq": bool(settings.groq_model and settings.groq_api_key.get_secret_value()),
         "ollama": bool(settings.ollama_model),
     }
     enabled.update({key: True for key in (overrides or {})})
     choices: OrderedDict[str, list[str]] = OrderedDict()
+    labels = {
+        "demo": "Demonstration · local heuristic",
+        "openai": "OpenAI",
+        "groq": "Groq",
+        "ollama": "Ollama · local",
+    }
+    models = {
+        "demo": None,
+        "openai": settings.openai_model,
+        "groq": settings.groq_model,
+        "ollama": settings.ollama_model,
+    }
+    external_providers = {"openai", "groq"}
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, _exc: RequestValidationError):
@@ -36,7 +50,13 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
     @app.get("/api/providers")
     def list_providers():
         return [
-            {"id": key, "enabled": value, "external": key == "openai"}
+            {
+                "id": key,
+                "label": labels[key],
+                "model": models[key],
+                "enabled": value,
+                "external": key in external_providers,
+            }
             for key, value in enabled.items()
         ]
 
@@ -48,7 +68,7 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
     async def analyse(body: AnalysisRequest):
         if not enabled.get(body.provider):
             raise HTTPException(409, "provider_not_configured")
-        if body.provider == "openai" and not body.allow_external:
+        if body.provider in external_providers and not body.allow_external:
             raise HTTPException(403, "external_processing_requires_consent")
         provider = providers.get(body.provider) or LangChainProvider(body.provider, settings)
         started = perf_counter()
@@ -68,6 +88,7 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
             "id": identifier,
             "mode": "demonstration" if body.provider == "demo" else "semantic",
             "provider": body.provider,
+            "assessment_model": models[body.provider],
             "profile": state["profile"],
             "recommendation": candidates[0],
             "alternatives": candidates[1:],

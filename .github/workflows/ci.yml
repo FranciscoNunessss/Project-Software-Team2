@@ -11,8 +11,8 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --locked
-      - run: uv run python -m ruff check backend
-      - run: uv run python -m ruff format --check backend
+      - run: uv run python -m ruff check backend scripts
+      - run: uv run python -m ruff format --check backend scripts
       - run: uv run python -m pytest -q
   frontend:
     runs-on: ubuntu-latest

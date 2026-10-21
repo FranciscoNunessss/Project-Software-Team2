@@ -297,7 +297,10 @@ function AssistantScreen() {
   const active = useRef<AbortController | null>(null)
   useEffect(() => {
     const controller = new AbortController()
-    api<Provider[]>('providers', undefined, controller.signal).then(setProviders)
+    api<Provider[]>('providers', undefined, controller.signal).then(items => {
+      setProviders(items)
+      if (items.some(item => item.id === 'groq' && item.enabled)) setProvider('groq')
+    })
       .catch(() => { if (!controller.signal.aborted) setError('Cannot reach the backend. Start the API and refresh.') })
     return () => { controller.abort(); active.current?.abort() }
   }, [])
@@ -322,6 +325,8 @@ function AssistantScreen() {
     } finally { window.clearTimeout(timeout) }
   }
   const candidates = analysis ? [analysis.recommendation, ...analysis.alternatives] : []
+  const selectedProvider = providers.find(item => item.id === provider)
+  const requiresConsent = selectedProvider?.external === true
   const confirm = async () => {
     const selected = candidates.find(candidate => tierOf(candidate) === tier)
     if (!analysis || !selected) return
@@ -361,7 +366,7 @@ function AssistantScreen() {
           <span className="muted">Text only · {task.length}/8,000 characters</span>
           <div className="composer-actions">
             <span>Be specific about the outcome</span>
-            <Button onClick={analyse} disabled={state === 'loading' || saving || !task.trim() || (provider === 'openai' && !consent)}>
+            <Button onClick={analyse} disabled={state === 'loading' || saving || !task.trim() || (requiresConsent && !consent)}>
               {state === 'loading' ? 'Analysing…' : 'Analyse'} <Icon name="arrow" size={17} />
             </Button>
           </div>
@@ -373,10 +378,11 @@ function AssistantScreen() {
           }}>
             <option value="demo">Demonstration · local heuristic</option>
             {providers.filter(item => item.id !== 'demo').map(item => <option key={item.id} value={item.id} disabled={!item.enabled}>
-              {item.id === 'openai' ? 'OpenAI' : 'Ollama · local'}{item.enabled ? '' : ' · not configured'}
+              {item.label}{item.enabled ? '' : ' · not configured'}
             </option>)}
           </select>
-          {provider === 'openai' && <label className="consent"><input type="checkbox" checked={consent} disabled={state === 'loading'} onChange={event => setConsent(event.target.checked)} />I allow this task to be sent to the configured OpenAI model.</label>}
+          {requiresConsent && <label className="consent"><input type="checkbox" checked={consent} disabled={state === 'loading'} onChange={event => setConsent(event.target.checked)} />I allow this task to be sent to {selectedProvider?.label} for assessment.</label>}
+          {selectedProvider?.model && <p className="muted">Assessment model: {selectedProvider.model}</p>}
           <p className="muted">{provider === 'demo' ? 'Demo uses word count and provisional values, not semantic AI assessment.' : 'Semantic assessment is uncalibrated. Provider availability depends on server configuration.'}</p>
         </div>
       </section>
@@ -388,7 +394,7 @@ function AssistantScreen() {
         <>
           <div className="results-heading">
             <h2>Recommendation</h2>
-            <span>{analysis.mode} · {analysis.latency_ms} ms</span>
+            <span>{analysis.mode} · {analysis.provider} · {analysis.latency_ms} ms</span>
           </div>
           <div className="result-grid">
             <ProfileCard analysis={analysis} />
@@ -407,6 +413,7 @@ function AssistantScreen() {
           {analysis.warnings.map(warning => <p className="confidence-note" key={warning}>{warning}</p>)}
           <p className="privacy">No raw task text is persisted. Choices are acknowledged without permanent storage.</p>
           <p className="muted">{analysis.confidence_basis} · Catalogue {analysis.catalogue_version} · Policy {analysis.policy_version}</p>
+          {analysis.assessment_model && <p className="muted">Assessed by {analysis.assessment_model} · {analysis.usage?.total_tokens === undefined ? 'Token usage unavailable' : `${analysis.usage.total_tokens} tokens`}</p>}
         </>
       )}
     </main>

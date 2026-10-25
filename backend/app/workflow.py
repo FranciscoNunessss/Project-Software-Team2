@@ -4,6 +4,7 @@ from typing import TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
+from app.assessment import assessment_advice, capacity_target, required_capabilities
 from app.models import AnalysisRequest, Assessment, Candidate, Profile
 from app.providers import AssessmentProvider, ProviderFailure
 
@@ -16,6 +17,9 @@ class State(TypedDict, total=False):
     candidates: list[Candidate]
     rationale: str
     usage: dict[str, int] | None
+    clarification_questions: list[str]
+    guidance: list[str]
+    recommendation_provisional: bool
 
 
 def rank(profile: Profile, required: list[str]) -> list[Candidate]:
@@ -24,7 +28,7 @@ def rank(profile: Profile, required: list[str]) -> list[Candidate]:
         for item in CATALOGUE["models"]
         if set(required) <= set(item["capabilities"])
     ]
-    target = max(profile.reasoning, profile.context, profile.ambiguity)
+    target = capacity_target(profile)
     return sorted(
         eligible,
         key=lambda item: (
@@ -41,19 +45,35 @@ def build_workflow(provider: AssessmentProvider):
         return {"profile": assessment.profile, "usage": assessment.usage}
 
     def match(state: State):
-        candidates = rank(state["profile"], state["request"].required_capabilities)
+        profile = state["profile"]
+        required = required_capabilities(profile, state["request"].required_capabilities)
+        candidates = rank(profile, required)
         if not candidates:
             raise ProviderFailure("no_eligible_candidate")
-        target = max(
-            state["profile"].reasoning, state["profile"].context, state["profile"].ambiguity
+        target = capacity_target(profile)
+        questions, guidance, provisional = assessment_advice(profile)
+        requirements = ", ".join(required) or "none"
+        uncertainty_note = (
+            "Some capacity requirements are undetermined; the middle tier is provisional. "
+            if profile.reasoning.score is None or profile.context.score is None
+            else ""
         )
-        required = ", ".join(state["request"].required_capabilities) or "none"
         return {
             "candidates": candidates,
+            "clarification_questions": questions,
+            "guidance": guidance,
+            "recommendation_provisional": provisional,
             "rationale": (
-                f"Required capabilities: {required}. "
-                f"Maximum assessed dimension: {target}/3. Prototype policy selects the closest "
-                "sufficient catalogue tier, then lists other eligible options."
+                f"Required capabilities: {requirements}. "
+                f"Assessed reasoning/context capacity: {target}/3. "
+                + uncertainty_note
+                + "This is the closest sufficient eligible tier. Review domain references, "
+                "consequences of error and tool access separately. "
+                + (
+                    "Recommendation is provisional; review uncertainty and clarification prompts."
+                    if provisional
+                    else "Qualitative confidence remains uncalibrated."
+                )
             ),
         }
 

@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from langsmith import tracing_context
 from pydantic import ValidationError
 
+from app.assessment import POLICY_VERSION, PROFILE_VERSION
 from app.models import AnalysisRequest, AnalysisResult, Decision
 from app.providers import DemonstrationProvider, LangChainProvider, ProviderFailure, Settings
 from app.workflow import CATALOGUE, build_workflow
@@ -93,6 +94,10 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
             "provider": body.provider,
             "assessment_model": models[body.provider],
             "profile": state["profile"],
+            "profile_version": PROFILE_VERSION,
+            "recommendation_provisional": state["recommendation_provisional"],
+            "clarification_questions": state["clarification_questions"],
+            "guidance": state["guidance"],
             "recommendation": candidates[0],
             "alternatives": candidates[1:],
             "rationale": state["rationale"],
@@ -101,7 +106,7 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
                 "Assessment and ranking policy have not been calibrated or validated.",
             ],
             "catalogue_version": CATALOGUE["version"],
-            "policy_version": "prototype-1",
+            "policy_version": POLICY_VERSION,
             "latency_ms": round((perf_counter() - started) * 1000),
             "confidence_basis": "Uncalibrated heuristic"
             if body.provider == "demo"

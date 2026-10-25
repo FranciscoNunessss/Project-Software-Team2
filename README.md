@@ -57,7 +57,8 @@ needed for demonstration mode. Example request to `POST /api/analyze`:
 }
 ```
 
-The demo uses word count as an unvalidated size proxy, with provisional ambiguity.
+The demo uses word count as a low-confidence context-size proxy. Semantic dimensions
+and execution modality remain explicitly undetermined; its recommendation is provisional.
 It is **not semantic AI assessment**. The catalogue contains illustrative tiers,
 not verified real models. It has no real prices or performance claims.
 
@@ -72,8 +73,11 @@ pnpm dev --host 127.0.0.1
 Open [the frontend](http://127.0.0.1:8443). The Vite development server proxies `/api`
 to `127.0.0.1:8000`. `pnpm build` checks TypeScript and creates the production assets.
 The Assistant starts empty, fetches configured providers, displays actual API results
-and confirms eligible selections. Scores use the backend's 1–3 scale, not the mock's
-invented percentages; the four remaining dimensions are explicitly unimplemented.
+and confirms eligible selections. The semantic profile now covers reasoning, context,
+ambiguity, domain specificity, risk and tool need, with categorical execution modality.
+Every dimension includes evidence and qualitative, uncalibrated confidence; unknown
+values display as “Not determined”. Clarification prompts invite editing and re-analysis
+without blocking eligible selections. The rubric is in `backend/prompts/assessment-v2.txt`; the API migration is described in the "Seven-dimension prototype" section below.
 Document uploads, persistent progress, privacy controls and team aggregation remain
 design previews. Production reverse proxy and deployment are not configured.
 
@@ -164,7 +168,8 @@ It prints model identity, latency and token counts on success, or a sanitised er
 code on failure. `provider_authentication` means the provider rejected the credential:
 replace it in `.env` and restart the backend. Never share keys in chat or commit `.env`.
 The live test and UI still use the illustrative recommendation catalogue; a successful
-LLM call does not validate ranking quality or complete the remaining four dimensions.
+LLM call does not validate ranking quality. That smoke test predates the seven-dimension
+profile contract; provider compatibility with `profile-2` has not been verified live.
 
 Live verification on 21 October 2026 succeeded with Groq's `openai/gpt-oss-20b`:
 the API returned a validated semantic assessment with actual token usage. The supplied
@@ -203,9 +208,25 @@ unknown or consumed analysis (404). The frontend should let the user explicitly
 retry or choose another provider. The supplied frontend uses a development proxy for
 `/api`; production origins and deployment remain to be agreed.
 
+## Seven-dimension prototype
+
+The response identifies `profile_version: profile-2` and `policy_version: prototype-2`.
+This changes scalar profile fields into objects: read `profile.reasoning.score`,
+`.confidence` and `.evidence`. Backend, frontend and test fixtures must migrate together.
+The versioned assessor instructions live in `backend/prompts/assessment-v2.txt`.
+
+Ranking uses reasoning/context for provisional capacity and derives hard modality
+requirements before capability filtering. Risk, domain, ambiguity and tool need do
+not automatically imply a larger model. They inform guidance and clarification instead.
+Unknown requirements or low confidence mark the result provisional. The current
+illustrative catalogue cannot satisfy audio/video requirements or verify tool support.
+This policy is experimental and awaits team/AO review and independent task evaluation.
+The contract tests run in CI; human quality evals and their regression gate remain outstanding.
+
 ## Architecture and limits
 
-`backend/app/models.py` owns domain contracts; `providers.py` implements the provider
+`backend/app/models.py` owns domain contracts; `assessment.py` owns the provisional
+profile policy and prompt version; `providers.py` implements the provider
 boundary; `workflow.py` assembles the explicit assess → match graph; `main.py` exposes
 the API. Ranking favours sufficient capacity, then the closest tier, after hard
 capability filtering. `backend/data/catalogue.json` records version and provenance.

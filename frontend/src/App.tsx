@@ -135,6 +135,9 @@ function ProfileCard({ analysis }: { analysis: Analysis }) {
     { label: 'Reasoning depth', value: analysis.profile.reasoning },
     { label: 'Context demand', value: analysis.profile.context },
     { label: 'Ambiguity', value: analysis.profile.ambiguity },
+    { label: 'Domain specificity', value: analysis.profile.domain },
+    { label: 'Risk of error', value: analysis.profile.risk },
+    { label: 'Tool / integration need', value: analysis.profile.tools },
   ]
   return (
     <Card className="profile-card">
@@ -152,19 +155,30 @@ function ProfileCard({ analysis }: { analysis: Analysis }) {
           <div className="profile-row" key={item.label}>
             <div className="profile-label">
               <span>{item.label}</span>
-              <span className="info-tip" tabIndex={0} aria-label={`${item.label}: ${analysis.profile.explanation}`}>
+              <span className="info-tip" tabIndex={0} aria-label={`${item.label}: ${item.value.evidence}`}>
                 <Icon name="info" size={14} />
-                <span role="tooltip">{analysis.profile.explanation}</span>
+                <span role="tooltip">{item.value.evidence}</span>
               </span>
             </div>
-            <div className="bar-track" role="meter" aria-label={item.label} aria-valuemin={0} aria-valuemax={3} aria-valuenow={item.value}>
-              <span className="bar-fill" style={{ width: `${item.value / 3 * 100}%` }} />
-            </div>
+            {item.value.score === null ? <span className="muted">Not determined</span> : (
+              <div className="bar-track" role="meter" aria-label={item.label} aria-valuemin={1} aria-valuemax={3} aria-valuenow={item.value.score} aria-valuetext={['Low', 'Medium', 'High'][item.value.score - 1]}>
+                <span className="bar-fill" style={{ width: `${item.value.score / 3 * 100}%` }} />
+              </div>
+            )}
+            <p className="muted">{item.value.score === null ? '' : `${['Low', 'Medium', 'High'][item.value.score - 1]} · `}Confidence: {item.value.confidence}</p>
+            <p className="muted">{item.value.evidence}</p>
           </div>
         ))}
       </div>
       <p className="confidence-note">{analysis.profile.explanation}</p>
-      <p className="muted">Scale: 1 low · 2 medium · 3 high. Domain, risk, tools and modality scores are not implemented yet.</p>
+      <div className="profile-row">
+        <strong>Required modalities</strong>
+        <span>{analysis.profile.modality.required?.join(', ') ?? 'Not determined'}</span>
+        <p className="muted">Confidence: {analysis.profile.modality.confidence}</p>
+        <p className="muted">{analysis.profile.modality.evidence}</p>
+      </div>
+      <p className="muted">Scale: 1 low · 2 medium · 3 high. Modality describes execution requirements; this form accepts text only.</p>
+      <p className="muted">Confidence labels are qualitative and uncalibrated.</p>
     </Card>
   )
 }
@@ -385,7 +399,7 @@ function AssistantScreen() {
           </select>
           {requiresConsent && <label className="consent"><input type="checkbox" checked={consent} disabled={state === 'loading'} onChange={event => setConsent(event.target.checked)} />I allow this task to be sent to {selectedProvider?.label} for assessment.</label>}
           {selectedProvider?.model && <p className="muted">Assessment model: {selectedProvider.model}</p>}
-          <p className="muted">{provider === 'demo' ? 'Demo uses word count and provisional values, not semantic AI assessment.' : 'Semantic assessment is uncalibrated. Provider availability depends on server configuration.'}</p>
+          <p className="muted">{provider === 'demo' ? 'Demo uses a word-count size proxy. Semantic dimensions remain undetermined.' : 'Semantic assessment is uncalibrated. Provider availability depends on server configuration.'}</p>
         </div>
       </section>
 
@@ -395,9 +409,22 @@ function AssistantScreen() {
       {state === 'result' && analysis && (
         <>
           <div className="results-heading">
-            <h2>Recommendation</h2>
+            <h2>{analysis.recommendation_provisional ? 'Provisional recommendation' : 'Recommendation'}</h2>
             <span>{analysis.mode} · {analysis.provider} · {analysis.latency_ms} ms</span>
           </div>
+          {analysis.clarification_questions.length > 0 && (
+            <Card className="assessment-advice">
+              <h3>Clarification suggested</h3>
+              <p>Add the relevant details to your task above and analyse it again. You can still choose an eligible tier.</p>
+              <ul>{analysis.clarification_questions.map(question => <li key={question}>{question}</li>)}</ul>
+            </Card>
+          )}
+          {analysis.guidance.length > 0 && (
+            <Card className="assessment-advice">
+              <h3>Assessment guidance</h3>
+              <ul>{analysis.guidance.map(item => <li key={item}>{item}</li>)}</ul>
+            </Card>
+          )}
           <div className="result-grid">
             <ProfileCard analysis={analysis} />
             <TierCard analysis={analysis} />
@@ -414,7 +441,7 @@ function AssistantScreen() {
           {saved && <p role="status">Choice acknowledged for this session. No task execution or persistent learning is performed.</p>}
           {analysis.warnings.map(warning => <p className="confidence-note" key={warning}>{warning}</p>)}
           <p className="privacy">No raw task text is persisted. Choices are acknowledged without permanent storage.</p>
-          <p className="muted">{analysis.confidence_basis} · Catalogue {analysis.catalogue_version} · Policy {analysis.policy_version}</p>
+          <p className="muted">{analysis.confidence_basis} · Profile {analysis.profile_version} · Catalogue {analysis.catalogue_version} · Policy {analysis.policy_version}</p>
           {analysis.assessment_model && <p className="muted">Assessed by {analysis.assessment_model} · {analysis.usage?.total_tokens === undefined ? 'Token usage unavailable' : `${analysis.usage.total_tokens} tokens`}</p>}
         </>
       )}

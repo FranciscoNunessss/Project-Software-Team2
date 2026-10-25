@@ -4,6 +4,7 @@ from app.models import Assessment, Profile
 from app.providers import ProviderFailure, Settings
 from app.workflow import rank
 from fastapi.testclient import TestClient
+from profile_samples import profile_data
 
 
 @pytest.fixture
@@ -41,10 +42,7 @@ def test_capability_filter_precedes_ranking(client):
     ).json()
     assert result["recommendation"]["id"] == "demo-advanced"
     assert result["alternatives"] == []
-    assert (
-        rank(Profile(reasoning=3, context=1, ambiguity=1, explanation="Test"), ["unsupported"])
-        == []
-    )
+    assert rank(Profile.model_validate(profile_data(reasoning=3)), ["unsupported"]) == []
 
 
 def test_unconfigured_provider(client):
@@ -66,9 +64,7 @@ class FakeProvider:
 
     async def assess(self, task):
         self.calls += 1
-        return Assessment(
-            profile=Profile(reasoning=3, context=2, ambiguity=1, explanation="Multiple constraints")
-        )
+        return Assessment(profile=Profile.model_validate(profile_data(reasoning=3, context=2)))
 
 
 @pytest.mark.parametrize("provider_id", ["openai", "groq", "claude"])

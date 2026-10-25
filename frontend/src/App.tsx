@@ -313,7 +313,9 @@ function AssistantScreen() {
     const controller = new AbortController()
     api<Provider[]>('providers', undefined, controller.signal).then(items => {
       setProviders(items)
-      if (items.some(item => item.id === 'groq' && item.enabled)) setProvider('groq')
+      const configured = items.find(item => item.id === 'groq' && item.enabled)
+        ?? items.find(item => item.id !== 'demo' && item.enabled)
+      if (configured) setProvider(configured.id)
     })
       .catch(() => { if (!controller.signal.aborted) setError('Cannot reach the backend. Start the API and refresh.') })
     return () => { controller.abort(); active.current?.abort() }

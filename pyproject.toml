@@ -13,11 +13,13 @@ dependencies = [
     "langgraph>=1,<2",
     "langchain-openai>=1,<2",
     "langchain-ollama>=1,<2",
+    "langchain-anthropic>=1,<2",
 ]
 
 [dependency-groups]
 dev = [
     "httpx>=0.28,<1",
+    "httpx2>=2,<3",
     "pytest>=8,<10",
     "pytest-asyncio>=1,<2",
     "ruff>=0.12,<1",

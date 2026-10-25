@@ -77,7 +77,7 @@ and confirms eligible selections. The semantic profile now covers reasoning, con
 ambiguity, domain specificity, risk and tool need, with categorical execution modality.
 Every dimension includes evidence and qualitative, uncalibrated confidence; unknown
 values display as “Not determined”. Clarification prompts invite editing and re-analysis
-without blocking eligible selections. See [the rubric and API migration](docs/assessment-profile.md).
+without blocking eligible selections. The rubric is in `backend/prompts/assessment-v2.txt`; the API migration is described in the "Seven-dimension prototype" section below.
 Document uploads, persistent progress, privacy controls and team aggregation remain
 design previews. Production reverse proxy and deployment are not configured.
 

@@ -71,7 +71,7 @@ class FakeProvider:
         )
 
 
-@pytest.mark.parametrize("provider_id", ["openai", "groq"])
+@pytest.mark.parametrize("provider_id", ["openai", "groq", "claude"])
 def test_external_consent_and_semantic_workflow(provider_id):
     provider = FakeProvider()
     client = TestClient(create_app(Settings(_env_file=None), {provider_id: provider}))
@@ -96,6 +96,40 @@ def test_groq_configuration_is_public_but_credentials_are_not():
         "enabled": True,
         "external": True,
     }
+
+
+@pytest.mark.parametrize(
+    ("provider_id", "model_field", "key_field", "label"),
+    [
+        ("openai", "openai_model", "openai_api_key", "OpenAI"),
+        ("claude", "claude_model", "anthropic_api_key", "Claude · Anthropic"),
+    ],
+)
+def test_new_provider_configuration(provider_id, model_field, key_field, label):
+    for configuration, expected in [
+        ({}, False),
+        ({model_field: "configured-model"}, False),
+        ({key_field: "private-test-key"}, False),
+        ({model_field: "configured-model", key_field: "private-test-key"}, True),
+    ]:
+        client = TestClient(create_app(Settings(_env_file=None, **configuration)))
+        response = client.get("/api/providers")
+        assert "private-test-key" not in response.text
+        provider = next(item for item in response.json() if item["id"] == provider_id)
+        assert provider == {
+            "id": provider_id,
+            "label": label,
+            "model": configuration.get(model_field, ""),
+            "enabled": expected,
+            "external": True,
+        }
+        if not expected:
+            assert (
+                client.post(
+                    "/api/analyze", json={"task": "Test", "provider": provider_id}
+                ).status_code
+                == 409
+            )
 
 
 def test_invalid_profile_is_rejected():

@@ -94,9 +94,59 @@ Ollama service at `127.0.0.1:11434`. Restart after changing configuration.
 Choose a model that supports structured output. Arbitrary OpenAI-compatible
 endpoints are not implemented in this increment.
 
+### OpenAI and Claude
+
+The same assessment contract supports OpenAI models, including Codex models, and
+Claude models through Anthropic's Messages API. Each configured provider
+appears in the existing frontend provider selector; changing provider clears the
+external-processing consent. Models are configured on the backend rather than
+hard-coded in the workflow.
+
+| Provider ID | Model setting | Credential setting |
+| --- | --- | --- |
+| `openai` | `ADAPTAI_OPENAI_MODEL` | `ADAPTAI_OPENAI_API_KEY` |
+| `claude` | `ADAPTAI_CLAUDE_MODEL` | `ADAPTAI_ANTHROPIC_API_KEY` |
+| `groq` | `ADAPTAI_GROQ_MODEL` | `ADAPTAI_GROQ_API_KEY` |
+| `ollama` | `ADAPTAI_OLLAMA_MODEL` | Local runtime |
+
+Set the model IDs available to your provider account in `.env`, with the appropriate
+API keys, then restart the backend. OpenAI and Claude remain disabled until both the
+model and key are present. Neither integration reads Codex CLI/Claude Code login
+sessions or subscription credentials. Keep all keys on the backend.
+
+OpenAI uses Chat Completions by default. For models requiring the Responses API,
+including Codex models, set `ADAPTAI_OPENAI_USE_RESPONSES_API=true` and put the model
+ID in `ADAPTAI_OPENAI_MODEL`. They use the same `openai` provider and selector entry.
+The Responses path uses strict JSON schema output with storage disabled (`store=false`).
+Claude uses native JSON schema output, so choose a Claude model supporting that
+feature. Both adapters validate the resulting profile with Pydantic and normalise
+usage, invalid responses, refusals, timeouts, authentication and quota errors into
+the existing API contract. There is no silent fallback or automatic retry. These
+providers assess the task; they do not execute it or modify the model catalogue.
+
+Compatibility references: [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs?api-mode=responses),
+[Claude structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs)
+and [LangChain ChatAnthropic](https://docs.langchain.com/oss/python/integrations/chat/anthropic).
+Availability and model quality must be checked with the selected account and evals.
+
+The OpenAI Responses and Claude tests exercise the real SDK request/response formats through
+mock HTTP transports, including malformed output, refusals, authentication errors,
+timeouts and rate limits. They do not call the services or prove live connectivity.
+After configuring an account, the explicit smoke-test commands are:
+
+```powershell
+uv run python scripts/check_llm.py --provider openai
+uv run python scripts/check_llm.py --provider claude
+```
+
+These commands send a synthetic task and consume provider quota. No live Codex or
+Claude call was performed while implementing this integration. Implementation and
+tests were AI-assisted; human review and live verification remain to be recorded.
+
 `GET /api/providers` lists configuration availability, not verified connectivity or
 model compatibility. Calling OpenAI or Groq also requires `allow_external: true` for each
-analysis. There is no automatic cross-provider fallback or retry. Timeouts default
+analysis. This consent also applies to Claude. There is no automatic cross-provider
+fallback or retry. Timeouts default
 to 30 seconds. Provider errors return sanitised codes, never upstream messages.
 The frontend selects Groq when it is configured, but requires explicit consent before
 sending any task. Results display the actual assessment model and token usage when

@@ -13,7 +13,9 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--provider", choices=["groq", "openai", "ollama"], default="groq")
+    parser.add_argument(
+        "--provider", choices=["groq", "openai", "claude", "ollama"], default="groq"
+    )
     args = parser.parse_args()
     client = TestClient(create_app())
     response = client.post(

@@ -20,6 +20,7 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
     enabled = {
         "demo": True,
         "openai": bool(settings.openai_model and settings.openai_api_key.get_secret_value()),
+        "claude": bool(settings.claude_model and settings.anthropic_api_key.get_secret_value()),
         "groq": bool(settings.groq_model and settings.groq_api_key.get_secret_value()),
         "ollama": bool(settings.ollama_model),
     }
@@ -28,16 +29,18 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
     labels = {
         "demo": "Demonstration · local heuristic",
         "openai": "OpenAI",
+        "claude": "Claude · Anthropic",
         "groq": "Groq",
         "ollama": "Ollama · local",
     }
     models = {
         "demo": None,
         "openai": settings.openai_model,
+        "claude": settings.claude_model,
         "groq": settings.groq_model,
         "ollama": settings.ollama_model,
     }
-    external_providers = {"openai", "groq"}
+    external_providers = {"openai", "claude", "groq"}
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, _exc: RequestValidationError):

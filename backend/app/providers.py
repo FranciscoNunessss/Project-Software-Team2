@@ -1,4 +1,5 @@
 import asyncio
+from json import JSONDecodeError
 from typing import Protocol
 
 from pydantic import Field, SecretStr
@@ -11,6 +12,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="ADAPTAI_", env_file=".env", extra="ignore")
     openai_model: str = ""
     openai_api_key: SecretStr = SecretStr("")
+    openai_use_responses_api: bool = False
+    claude_model: str = ""
+    anthropic_api_key: SecretStr = SecretStr("")
     groq_model: str = "openai/gpt-oss-20b"
     groq_api_key: SecretStr = SecretStr("")
     ollama_model: str = ""
@@ -47,10 +51,13 @@ class LangChainProvider:
         self.settings = settings
 
     async def assess(self, task: str) -> Assessment:
+        from anthropic import APITimeoutError as AnthropicTimeoutError
         from langchain_core.exceptions import OutputParserException
         from langsmith import tracing_context
+        from openai import APITimeoutError as OpenAITimeoutError
         from pydantic import ValidationError
 
+        use_responses = self.provider == "openai" and self.settings.openai_use_responses_api
         if self.provider in {"openai", "groq"}:
             from langchain_openai import ChatOpenAI
 
@@ -63,8 +70,19 @@ class LangChainProvider:
                 base_url="https://api.groq.com/openai/v1" if is_groq else None,
                 max_retries=0,
                 timeout=self.settings.timeout_seconds,
+                max_tokens=4096 if use_responses else 2048,
+                use_responses_api=use_responses,
+                **({"store": False, "reasoning_effort": "low"} if use_responses else {}),
+            )
+        elif self.provider == "claude":
+            from langchain_anthropic import ChatAnthropic
+
+            model = ChatAnthropic(
+                model=self.settings.claude_model,
+                api_key=self.settings.anthropic_api_key.get_secret_value(),
                 max_tokens=2048,
-                use_responses_api=False,
+                max_retries=0,
+                timeout=self.settings.timeout_seconds,
             )
         elif self.provider == "ollama":
             from langchain_ollama import ChatOllama
@@ -86,8 +104,10 @@ class LangChainProvider:
             ("human", task),
         ]
         structured_options = {"include_raw": True}
-        if self.provider == "groq":
+        if self.provider == "groq" or use_responses:
             structured_options.update(method="json_schema", strict=True)
+        elif self.provider == "claude":
+            structured_options.update(method="json_schema")
         try:
             with tracing_context(enabled=False):
                 result = await asyncio.wait_for(
@@ -109,9 +129,9 @@ class LangChainProvider:
             return Assessment(profile=Profile.model_validate(result["parsed"]), usage=usage)
         except ProviderFailure:
             raise
-        except TimeoutError as exc:
+        except (TimeoutError, OpenAITimeoutError, AnthropicTimeoutError) as exc:
             raise ProviderFailure("provider_timeout") from exc
-        except (ValidationError, OutputParserException) as exc:
+        except (ValidationError, OutputParserException, JSONDecodeError) as exc:
             raise ProviderFailure("invalid_provider_output") from exc
         except Exception as exc:
             status = getattr(exc, "status_code", None)

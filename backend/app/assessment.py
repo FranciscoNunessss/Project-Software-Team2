@@ -1,0 +1,59 @@
+"""Provisional profile policy. Confidence is qualitative and uncalibrated."""
+
+from pathlib import Path
+
+from app.models import Profile
+
+PROFILE_VERSION = "profile-2"
+POLICY_VERSION = "prototype-2"
+ASSESSMENT_PROMPT = (Path(__file__).parent.parent / "prompts" / "assessment-v2.txt").read_text(
+    encoding="utf-8"
+)
+
+
+def capacity_target(profile: Profile) -> int:
+    # A middle-tier placeholder is explicit when either capacity dimension is unknown.
+    return max(
+        profile.reasoning.score if profile.reasoning.score is not None else 2,
+        profile.context.score if profile.context.score is not None else 2,
+    )
+
+
+def required_capabilities(profile: Profile, requested: list[str]) -> list[str]:
+    modalities = profile.modality.required or []
+    return sorted(set(requested) | {"vision" if item == "image" else item for item in modalities})
+
+
+def assessment_advice(profile: Profile) -> tuple[list[str], list[str], bool]:
+    questions = []
+    guidance = []
+    if profile.ambiguity.score is None or profile.ambiguity.score == 3:
+        questions.append("What outcome and constraints would make the result correct?")
+    if profile.reasoning.score is None or profile.context.score is None:
+        questions.append("What steps, source material and dependencies must the task cover?")
+    if profile.modality.required is None:
+        questions.append("Does completing the task require text, images, audio or video?")
+    if profile.domain.score is not None and profile.domain.score >= 2:
+        guidance.append(
+            "Use authoritative domain references; model size alone does not ensure expertise."
+        )
+    if profile.risk.score == 3:
+        guidance.append("Arrange human verification before acting on a consequential result.")
+    if profile.tools.score is not None and profile.tools.score >= 2:
+        guidance.append(
+            "Verify access to the required data, tools and integrations. This prototype does not "
+            "execute tools or verify tool support in the illustrative catalogue."
+        )
+    dimensions = (
+        profile.reasoning,
+        profile.context,
+        profile.ambiguity,
+        profile.domain,
+        profile.risk,
+        profile.tools,
+        profile.modality,
+    )
+    provisional = bool(questions) or any(
+        dimension.confidence in {"low", "undetermined"} for dimension in dimensions
+    )
+    return questions, guidance, provisional

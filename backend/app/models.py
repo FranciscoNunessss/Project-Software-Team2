@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class AnalysisRequest(BaseModel):
@@ -20,11 +20,55 @@ class AnalysisRequest(BaseModel):
         return value.strip()
 
 
+Confidence = Literal["low", "medium", "high", "undetermined"]
+
+
+class Evidence(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    confidence: Confidence
+    evidence: str = Field(min_length=1, max_length=240)
+
+    @field_validator("evidence")
+    @classmethod
+    def meaningful_evidence(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Evidence must not be blank")
+        return value.strip()
+
+
+class Dimension(Evidence):
+    score: int | None = Field(ge=1, le=3)
+
+    @model_validator(mode="after")
+    def consistent_uncertainty(self):
+        if (self.score is None) != (self.confidence == "undetermined"):
+            raise ValueError("Unknown scores require undetermined confidence and vice versa")
+        return self
+
+
+class Modality(Evidence):
+    required: list[Literal["text", "image", "audio", "video"]] | None = Field(
+        min_length=1, max_length=4
+    )
+
+    @model_validator(mode="after")
+    def consistent_modalities(self):
+        if (self.required is None) != (self.confidence == "undetermined"):
+            raise ValueError("Unknown modalities require undetermined confidence and vice versa")
+        if self.required is not None and len(set(self.required)) != len(self.required):
+            raise ValueError("Modalities must be distinct")
+        return self
+
+
 class Profile(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
-    reasoning: int = Field(ge=1, le=3)
-    context: int = Field(ge=1, le=3)
-    ambiguity: int = Field(ge=1, le=3)
+    reasoning: Dimension
+    context: Dimension
+    ambiguity: Dimension
+    domain: Dimension
+    risk: Dimension
+    tools: Dimension
+    modality: Modality
     explanation: str = Field(min_length=1, max_length=1200)
 
 
@@ -52,6 +96,10 @@ class AnalysisResult(BaseModel):
     provider: str
     assessment_model: str | None
     profile: Profile
+    profile_version: str
+    recommendation_provisional: bool
+    clarification_questions: list[str]
+    guidance: list[str]
     recommendation: Candidate
     alternatives: list[Candidate]
     rationale: str

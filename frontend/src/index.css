@@ -74,7 +74,11 @@ h1 { margin-bottom: 10px; font-size: clamp(28px, 2.4vw, 38px); line-height: 1.1;
 .results-heading { display: flex; justify-content: space-between; align-items: baseline; margin: 34px 2px 14px; }
 .results-heading h2 { font-size: 15px; margin: 0; color: #343434; }
 .results-heading > span { color: #949494; font-size: 11px; }
-.result-grid { display: grid; grid-template-columns: 1.15fr .9fr .9fr; gap: 14px; position: relative; }
+.result-grid { display: grid; grid-template-columns: 1.15fr .9fr .9fr; gap: 14px; position: relative; align-items: start; }
+.assessment-advice { padding: 20px 22px; margin-bottom: 14px; }
+.assessment-advice h3 { font-weight: 600; margin-bottom: 8px; }
+.assessment-advice ul { list-style: disc; padding-left: 20px; margin-top: 10px; }
+.assessment-advice li + li { margin-top: 6px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 8px 24px rgba(47,47,47,.045); }
 .result-grid .card { min-height: 390px; padding: 22px; }
 .card h2 { margin: 0; color: #2a2a2a; font-size: 18px; letter-spacing: -.02em; }

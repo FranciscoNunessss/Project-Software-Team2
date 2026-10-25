@@ -1,13 +1,29 @@
 export type Tier = 'Small' | 'Medium' | 'Large'
 export type Candidate = { id: string; name: string; capacity: number; capabilities: string[] }
 export type Provider = { id: string; label: string; model: string | null; enabled: boolean; external: boolean }
+export type Confidence = 'low' | 'medium' | 'high' | 'undetermined'
+export type Dimension = { score: 1 | 2 | 3 | null; confidence: Confidence; evidence: string }
+export type Profile = {
+  reasoning: Dimension
+  context: Dimension
+  ambiguity: Dimension
+  domain: Dimension
+  risk: Dimension
+  tools: Dimension
+  modality: { required: ('text' | 'image' | 'audio' | 'video')[] | null; confidence: Confidence; evidence: string }
+  explanation: string
+}
 export type Analysis = {
   id: string
   mode: 'demonstration' | 'semantic'
   provider: string
   assessment_model: string | null
   usage: { input_tokens?: number; output_tokens?: number; total_tokens?: number } | null
-  profile: { reasoning: number; context: number; ambiguity: number; explanation: string }
+  profile: Profile
+  profile_version: string
+  recommendation_provisional: boolean
+  clarification_questions: string[]
+  guidance: string[]
   recommendation: Candidate
   alternatives: Candidate[]
   rationale: string
@@ -30,6 +46,7 @@ const errorMessages: Record<string, string> = {
   provider_model_unavailable: 'The configured model is unavailable. Check the model ID and account access.',
   provider_unsupported_request: 'The configured model does not support this request. Check structured output compatibility.',
   provider_unavailable: 'The assessment provider is unavailable. Check the connection or try again later.',
+  no_eligible_candidate: 'No catalogue model meets the required capabilities. Review the task requirements or update the catalogue.',
 }
 export async function api<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`/api/${path}`, {

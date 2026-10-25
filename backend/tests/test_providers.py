@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import httpx
 import httpx2
 import pytest
+from app.assessment import ASSESSMENT_PROMPT
 from app.models import Profile
 from app.providers import LangChainProvider, ProviderFailure, Settings
 from profile_samples import profile_data
@@ -196,19 +197,14 @@ async def test_openai_responses_and_claude_wire_contracts(monkeypatch, provider_
             assert request.headers["x-api-key"] == "fake-anthropic"
             assert body["output_config"]["format"]["type"] == "json_schema"
             assert body["max_tokens"] == 2048
-            assert "Assess the user's task" in body["system"]
+            assert body["system"] == ASSESSMENT_PROMPT
             assert not body.get("tools")
         if scenario in status_codes:
             return transport_api.Response(
                 status_codes[scenario],
                 json={"type": "error", "error": {"type": "api_error", "message": "Private task"}},
             )
-        profile = {
-            "reasoning": 99 if scenario == "invalid" else 2,
-            "context": 1,
-            "ambiguity": 2,
-            "explanation": "Synthetic evidence",
-        }
+        profile = profile_data(reasoning=99 if scenario == "invalid" else 2, ambiguity=2)
         output_text = (
             json.dumps(profile)
             if scenario not in {"malformed_json", "refusal"}
@@ -275,7 +271,7 @@ async def test_openai_responses_and_claude_wire_contracts(monkeypatch, provider_
         )
         if scenario == "valid":
             result = await provider.assess("Private task")
-            assert result.profile.reasoning == 2
+            assert result.profile.model_dump() == profile_data(reasoning=2, ambiguity=2)
             assert result.usage == {"input_tokens": 20, "output_tokens": 10, "total_tokens": 30}
         else:
             expected = {

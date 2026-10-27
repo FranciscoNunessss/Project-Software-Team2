@@ -30,11 +30,32 @@ uv run python -m ruff format --check backend scripts
 
 # Run tests
 uv run python -m pytest -q
+
+# Run tests with core-logic coverage (fails below 80%)
+uv run python -m pytest -q --cov --cov-report=term-missing --cov-fail-under=80
 ```
 
 uv manages the virtual environment automatically; manual activation and
 `pip install` are not part of the project workflow. Upgrade packages deliberately
 with `uv lock --upgrade-package <package>`, then run the relevant checks.
+
+### Core-logic coverage
+
+Construction §3 sets a minimum of **80%** coverage for the core logic (complexity assessment
+and recommendation) and no target for interface or glue code. The coverage command above
+prints the measured percentage and the uncovered line numbers, and exits with a failure
+status when coverage is below 80%. CI runs the same command, preceded by `uv lock --check`.
+
+The measured scope is configured in `pyproject.toml` (`[tool.coverage.*]`):
+
+- `backend/app/assessment.py`: profile policy, capacity target, capability and advice rules.
+- `backend/app/workflow.py`: candidate ranking and the assess → match workflow.
+- `backend/app/models.py`: the assessment domain models (`Evidence`, `Dimension`, `Modality`,
+  `Profile`, `Candidate`, `Assessment`). The HTTP contracts `AnalysisRequest`, `Decision` and
+  `AnalysisResult` are interface code and are excluded.
+
+`main.py`, `providers.py` and `scripts/` are interface/glue code and are not measured.
+Do not widen the exclusions to raise the percentage; add tests instead.
 
 ## Run locally
 

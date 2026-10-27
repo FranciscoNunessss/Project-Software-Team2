@@ -22,6 +22,7 @@ dev = [
     "httpx2>=2,<3",
     "pytest>=8,<10",
     "pytest-asyncio>=1,<2",
+    "pytest-cov>=6,<8",
     "ruff>=0.12,<1",
 ]
 
@@ -32,6 +33,26 @@ package = false
 testpaths = ["backend/tests"]
 pythonpath = ["backend"]
 asyncio_mode = "auto"
+
+# Core-logic coverage (Construction §3): complexity assessment and recommendation only.
+# Interface and glue code (main.py, providers.py, scripts) is deliberately out of scope.
+[tool.coverage.run]
+include = [
+    "backend/app/assessment.py",
+    "backend/app/workflow.py",
+    "backend/app/models.py",
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = false
+# models.py also holds the HTTP request/response contracts, which are interface code.
+# The assessment domain models (Evidence, Dimension, Modality, Profile, Candidate,
+# Assessment) remain measured. Excluding a class line excludes its whole body.
+exclude_also = [
+    "^class (AnalysisRequest|Decision|AnalysisResult)\\b",
+]
 
 [tool.ruff]
 target-version = "py312"

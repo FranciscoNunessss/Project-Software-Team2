@@ -10,10 +10,12 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+      - run: uv lock --check
       - run: uv sync --locked
       - run: uv run python -m ruff check backend scripts
       - run: uv run python -m ruff format --check backend scripts
-      - run: uv run python -m pytest -q
+      - name: Tests with core-logic coverage (minimum 80%)
+        run: uv run python -m pytest -q --cov --cov-report=term-missing --cov-fail-under=80
   frontend:
     runs-on: ubuntu-latest
     defaults:

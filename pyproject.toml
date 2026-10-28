@@ -33,6 +33,7 @@ package = false
 testpaths = ["backend/tests"]
 pythonpath = ["backend"]
 asyncio_mode = "auto"
+markers = ["acceptance: externally observable requirement scenarios (ATDD)"]
 
 # Core-logic coverage (Construction §3): complexity assessment and recommendation only.
 # Interface and glue code (main.py, providers.py, scripts) is deliberately out of scope.

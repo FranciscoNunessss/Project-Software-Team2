@@ -35,6 +35,18 @@ uv run python -m pytest -q
 uv run python -m pytest -q --cov --cov-report=term-missing --cov-fail-under=80
 ```
 
+The frontend browser acceptance tests run with `cd frontend; pnpm test:e2e`. They cover the
+complete Assistant interaction (task submission, profile and recommendation display, tier
+override, and confirmation) and verify external assessment stays blocked until explicit consent.
+The default browser tests use synthetic API responses. An optional live Groq browser journey
+uses a synthetic task and requires `RUN_LIVE_GROQ=1` plus a backend API key set securely in the
+process environment; it consumes provider quota and stays skipped in CI. CI installs Chromium
+and runs the default tests after the production build.
+
+Requirement acceptance scenarios (ATDD) are distinguished from code coverage and M1 human
+evaluation in [11 Requirements Acceptance and M1](https://docs.google.com/document/d/1Zdhf_EpzBgSYFGunjiaxwVUkdM4bFL1aOXZMCSzJWHc/edit) (shared Drive, 04-Construction-Transition).
+Run their API-level suite with `uv run python -m pytest -q -m acceptance`.
+
 uv manages the virtual environment automatically; manual activation and
 `pip install` are not part of the project workflow. Upgrade packages deliberately
 with `uv lock --upgrade-package <package>`, then run the relevant checks.
@@ -56,6 +68,12 @@ The measured scope is configured in `pyproject.toml` (`[tool.coverage.*]`):
 
 `main.py`, `providers.py` and `scripts/` are interface/glue code and are not measured.
 Do not widen the exclusions to raise the percentage; add tests instead.
+
+The 80% figure is code coverage for core logic. It does not measure recommendation correctness.
+M1 remains a separate human-labelled quality evaluation: the current strategy targets at least
+16 acceptable recommendations out of 20. There is no valid project M1 score until the proposed
+protocol, task set, blind labels, reviewers, and rubric are approved; synthetic fixtures cannot
+stand in for them. See the requirement and M1 evaluation note for the scoring tool.
 
 ## Run locally
 
@@ -101,6 +119,12 @@ values display as “Not determined”. Clarification prompts invite editing and
 without blocking eligible selections. The rubric is in `backend/prompts/assessment-v2.txt`; the API migration is described in the "Seven-dimension prototype" section below.
 Document uploads, persistent progress, privacy controls and team aggregation remain
 design previews. Production reverse proxy and deployment are not configured.
+
+The current tier override only records an eligible choice for the active analysis and
+acknowledges it in memory. It does not execute the task, route it to a model for the chosen
+tier, persist the choice, or update progress. The UI states this limitation; model execution
+and persistent learning require a separate increment with a verified model catalogue and an
+approved storage/privacy design.
 
 ## Configure assessment providers
 

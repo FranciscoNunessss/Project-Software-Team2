@@ -14,6 +14,8 @@ jobs:
       - run: uv sync --locked
       - run: uv run python -m ruff check backend scripts
       - run: uv run python -m ruff format --check backend scripts
+      - name: Requirement acceptance scenarios (ATDD)
+        run: uv run python -m pytest -q -m acceptance
       - name: Tests with core-logic coverage (minimum 80%)
         run: uv run python -m pytest -q --cov --cov-report=term-missing --cov-fail-under=80
   frontend:
@@ -33,3 +35,5 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e

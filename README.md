@@ -46,7 +46,8 @@ uv run python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 
 ```
 
 Open [interactive API documentation](http://127.0.0.1:8000/docs). No credentials are
-needed for demonstration mode. Example request to `POST /api/analyze`:
+needed for demonstration mode. Create a local account in the frontend before analysing.
+Example authenticated request to `POST /api/analyze`:
 
 ```json
 {
@@ -78,8 +79,9 @@ ambiguity, domain specificity, risk and tool need, with categorical execution mo
 Every dimension includes evidence and qualitative, uncalibrated confidence; unknown
 values display as “Not determined”. Clarification prompts invite editing and re-analysis
 without blocking eligible selections. The rubric is in `backend/prompts/assessment-v2.txt`; the API migration is described in the "Seven-dimension prototype" section below.
-Document uploads, persistent progress, privacy controls and team aggregation remain
-design previews. Production reverse proxy and deployment are not configured.
+Accounts, persistent session history, context and confirmed choices are implemented.
+Document uploads, progress charts, exports and team aggregation remain design previews.
+Production reverse proxy and deployment are not configured.
 
 ## Configure assessment providers
 
@@ -190,21 +192,32 @@ execute the task or generate catalogue facts.
 | `GET /api/providers` | Provider IDs, availability and external destination flag |
 | `GET /api/catalogue` | Versioned illustrative catalogue and provenance |
 | `POST /api/analyze` | Profile, recommendation, alternatives, reasons and versions |
-| `POST /api/decisions` | Acknowledge `analysis_id` and eligible `candidate_id` |
+| `POST /api/decisions` | Persist `analysis_id` and eligible `candidate_id` for the signed-in owner |
+| `POST /api/auth/register`, `POST /api/auth/login` | Create account / sign in with email and password |
+| `GET /api/auth/me`, `POST /api/auth/logout` | Current user / revoke current login |
+| `GET /api/sessions`, `POST /api/sessions` | List / create the current user's sessions |
+| `GET /api/sessions/{id}` | Session context and saved analysis history |
+| `PATCH /api/sessions/{id}`, `DELETE /api/sessions/{id}` | Update context/title / delete session and history |
 
 The generated `/openapi.json` specifies request and analysis response schemas. Tasks
 must be nonblank and at most 8,000 characters. Required capabilities can be `text`,
 `code`, and `vision`; these describe catalogue requirements, **not uploaded inputs**.
 Only text inputs are supported. Unknown fields and capabilities are rejected.
 
-For selection, use the analysis response's `id` as `analysis_id`. Acknowledgement is
-transient and consumes the analysis ID. Only candidate IDs for the latest 256 analyses
-are retained in process memory. No decisions or raw tasks are persisted. Restarting
-clears this state; run one local worker for this prototype.
+Sign in before calling analyses, decisions or sessions. Registration and login accept
+`email` and `password` (12–128 characters); responses set an HttpOnly, SameSite=Lax
+cookie. The browser sends it through the existing same-origin `/api` proxy.
+For selection, use the analysis response's `id` as `analysis_id`. Choices persist;
+repeating the same choice is idempotent, and changing a confirmed choice returns 409.
+An analysis response includes `session_id`; omit it on input to create a new session,
+or supply an owned session ID to append an assessment. Cross-account IDs return 404.
+Session lists and history accept `limit` (1–100, default 100) and `offset` (default 0).
+The frontend displays the latest 100 sessions and first 100 analyses per session.
 
 Errors include unconfigured provider (409), external consent required (403), invalid
 input (422), provider timeout/authentication/rate limit/invalid output (502), and
-unknown or consumed analysis (404). The frontend should let the user explicitly
+unknown analysis/session (404), missing or expired login (401), and conflicting choice
+(409). The frontend should let the user explicitly
 retry or choose another provider. The supplied frontend uses a development proxy for
 `/api`; production origins and deployment remain to be agreed.
 
@@ -231,8 +244,13 @@ boundary; `workflow.py` assembles the explicit assess → match graph; `main.py`
 the API. Ranking favours sufficient capacity, then the closest tier, after hard
 capability filtering. `backend/data/catalogue.json` records version and provenance.
 
-Raw tasks exist transiently during a request. No checkpoints, prompt logs or tracing
-are configured; LangSmith tracing is disabled around graph/provider calls.
+Raw tasks, explicit session context, analysis results, usage, versions, timestamps and
+confirmed choices are now saved in SQLite. Each analysis keeps a snapshot of the
+context used for that assessment. Context (up to 4,000 characters) is prepended to the
+task when assessing; historical tasks are available to the owner but are not implicitly
+resent to providers. External-processing consent covers the task and context.
+No workflow checkpoints or tracing are configured; LangSmith tracing is disabled
+around graph/provider calls.
 Provider-side retention follows the selected service's policy. Actual token usage
 is returned when supplied, otherwise null; cost stays null until verified pricing
 is implemented. Latency is measured locally per analysis.
@@ -243,8 +261,40 @@ timeouts. CI runs the checks above. These checks do not establish assessment acc
 
 Next: validate real providers with agreed models/access,
 replace catalogue fixtures with sourced data, and calibrate against human-reviewed
-tasks. Authentication, persistent feedback, deployment, streaming, automatic fallback
-and autonomous agents are outside this increment.
+tasks. Deployment, progress analytics, streaming, automatic fallback and autonomous
+agents are outside this increment.
+
+## Database and accounts
+
+The default database is `backend/data/adaptai.sqlite3`; it is created automatically
+with schema version 1 and is ignored by Git, including WAL/SHM files. Configure an
+absolute `ADAPTAI_DATABASE_PATH` when running from another directory. No additional
+database server or dependency is required. SQLite enforces foreign keys, uses WAL
+and short transactions, and persists independently of application workers. Use a
+local persistent disk; a database on ephemeral storage will disappear on redeploy.
+Avoid putting the live database on a network or cloud-synchronised filesystem;
+for this OneDrive checkout, set the path to an unsynchronised local data directory.
+
+Passwords use salted scrypt hashes. Only SHA-256 hashes of random login tokens are
+stored; login sessions expire after `ADAPTAI_SESSION_DAYS` (default 7). Logout revokes
+the current token. Set `ADAPTAI_BROWSER_ORIGIN` to the exact frontend origin (default
+`http://127.0.0.1:8443`); cookie-authenticated browser writes from other origins are
+rejected. For HTTPS deployment, set `ADAPTAI_COOKIE_SECURE=true`. Add deployment-level
+login rate limits before public exposure; email verification and password recovery
+are not implemented. Private API responses use `Cache-Control: no-store`.
+
+The Assistant provides account registration, sign-in/out, session selection, editable
+context, saved analyses and cascading session deletion. Sessions belong to an account;
+there is no shared global history. Updating session context affects future assessments.
+Deleting a session deletes its analyses and decisions from the active database.
+Backups retain their own copies; manage their access and retention separately.
+
+To back up, stop all backend workers and copy the database file to protected storage,
+then restart. To restore, stop all workers and restore the backup to the configured
+path, then restart. Do not copy just the main file while writers are active in WAL mode.
+Schema migrations run automatically on startup; newer unknown schema versions fail
+explicitly. Back up before deploying future migrations. PostgreSQL and cross-host
+database deployment are not configured in this increment.
 
 Decisions: [ADR-007](https://docs.google.com/document/d/1nYv2V3qVu7JhkedKD31n-TyjsXwVnYHe5CZAvsG-JfI/edit)
 and [ADR-008](https://docs.google.com/document/d/14OXD4V0bvVtcoSMAqIJptNDTzpt6bDBlLk7qlKJZ4BU/edit).

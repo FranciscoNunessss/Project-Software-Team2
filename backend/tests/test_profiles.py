@@ -14,6 +14,13 @@ def analyse(data, **request):
             return Assessment(profile=Profile.model_validate(data))
 
     client = TestClient(create_app(Settings(_env_file=None), {"ollama": Assessor()}))
+    assert (
+        client.post(
+            "/api/auth/register",
+            json={"email": "profiles@example.com", "password": "test-password-123"},
+        ).status_code
+        == 201
+    )
     return client.post(
         "/api/analyze", json={"task": "Synthetic task", "provider": "ollama", **request}
     )

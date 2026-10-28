@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     groq_api_key: SecretStr = SecretStr("")
     ollama_model: str = ""
     timeout_seconds: float = Field(default=30, gt=0, le=120)
+    database_path: str = "backend/data/adaptai.sqlite3"
+    session_days: int = Field(default=7, ge=1, le=30)
+    cookie_secure: bool = False
+    browser_origin: str = "http://127.0.0.1:8443"
 
 
 class AssessmentProvider(Protocol):

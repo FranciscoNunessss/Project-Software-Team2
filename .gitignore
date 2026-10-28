@@ -12,4 +12,25 @@ htmlcov/
 node_modules/
 dist/
 *.log
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+# Local databases, SQLite sidecars and database backups
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3-journal
+*.db.bak
+*.sqlite.bak
+*.sqlite3.bak
+*.db.backup
+*.sqlite.backup
+*.sqlite3.backup
+backups/
+# Private keys and local certificates
+*.pem
+*.key
+*.p12
+*.pfx
 .DS_Store

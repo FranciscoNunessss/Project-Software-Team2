@@ -1,6 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap');
 @import 'tailwindcss';
 
+.account-form, .session-controls { display: grid; gap: 1rem; }
+.account-form label { display: grid; gap: .5rem; }
+.account-form input, .session-controls select, .session-controls textarea {
+  padding: .75rem; border: 1px solid #a1a1aa; border-radius: .5rem;
+  background: transparent; color: inherit;
+}
+.account-bar { display: flex; align-items: center; gap: 1rem; padding-block: 1rem; }
+
 :root {
   font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
   color: #222222;

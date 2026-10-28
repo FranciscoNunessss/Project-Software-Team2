@@ -8,6 +8,7 @@ class AnalysisRequest(BaseModel):
     task: str = Field(min_length=1, max_length=8000)
     provider: Literal["demo", "openai", "claude", "groq", "ollama"] = "demo"
     allow_external: bool = False
+    session_id: str | None = Field(default=None, max_length=36)
     required_capabilities: list[Literal["text", "code", "vision"]] = Field(
         default_factory=lambda: ["text"]
     )
@@ -92,6 +93,7 @@ class Assessment(BaseModel):
 
 class AnalysisResult(BaseModel):
     id: str
+    session_id: str
     mode: Literal["demonstration", "semantic"]
     provider: str
     assessment_model: str | None

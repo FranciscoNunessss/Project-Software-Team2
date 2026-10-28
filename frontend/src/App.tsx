@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { api, tierOf, type Analysis, type Provider, type Tier } from './api'
+import { Account } from './Account'
+
+type SavedSession = { id: string; title: string; context: string }
+type HistoryItem = { request: { task: string }; result: Analysis; candidate_id: string | null }
 
 type Screen = 'assistant' | 'progress' | 'team'
 type ResultState = 'empty' | 'loading' | 'result'
@@ -277,7 +281,7 @@ function Override({
           <h2>Override</h2>
           {applied && <span className="applied-badge"><Icon name="check" size={13} />Applied</span>}
         </div>
-        <p>You always choose. Selections are not persisted in this increment.</p>
+        <p>You always choose. Confirmed selections are saved to your account.</p>
       </div>
       <div className="segments" role="group" aria-label="Choose a model tier">
         {(['Small', 'Medium', 'Large'] as Tier[]).map((item) => (
@@ -298,6 +302,11 @@ function Override({
 }
 
 function AssistantScreen() {
+  const [sessions, setSessions] = useState<SavedSession[]>([])
+  const [sessionId, setSessionId] = useState('')
+  const [context, setContext] = useState('')
+  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [historyBusy, setHistoryBusy] = useState(false)
   const [task, setTask] = useState(sampleTask)
   const [state, setState] = useState<ResultState>('empty')
   const [tier, setTier] = useState<Tier>('Large')
@@ -309,6 +318,43 @@ function AssistantScreen() {
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const active = useRef<AbortController | null>(null)
+  const historyRequest = useRef<AbortController | null>(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    api<SavedSession[]>('sessions', undefined, controller.signal).then(setSessions)
+      .catch(() => { if (!controller.signal.aborted) setError('Could not load sessions. Refresh to retry.') })
+    return () => { controller.abort(); historyRequest.current?.abort() }
+  }, [])
+  const openSession = async (id: string) => {
+    historyRequest.current?.abort()
+    setSessionId(id); setAnalysis(undefined); setState('empty'); setSaved(false); setConsent(false)
+    setHistory([]); setContext(''); setError(''); setTask('')
+    if (!id) { setHistoryBusy(false); return }
+    const controller = new AbortController()
+    historyRequest.current = controller
+    setHistoryBusy(true)
+    try {
+      const session = await api<SavedSession & { analyses: HistoryItem[] }>(`sessions/${id}`, undefined, controller.signal)
+      if (!controller.signal.aborted) { setContext(session.context); setHistory(session.analyses) }
+    } catch (failure) { if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : 'Could not load history') }
+    finally { if (!controller.signal.aborted) setHistoryBusy(false) }
+  }
+  const restore = (item: HistoryItem) => {
+    setTask(item.request.task); setAnalysis(item.result); setState('result')
+    setProvider(item.result.provider)
+    const candidates = [item.result.recommendation, ...item.result.alternatives]
+    setTier(tierOf(candidates.find(candidate => candidate.id === item.candidate_id) ?? item.result.recommendation))
+    setSaved(item.candidate_id !== null); setConsent(false)
+  }
+  const deleteSession = async () => {
+    setHistoryBusy(true); setError('')
+    try {
+      await api(`sessions/${sessionId}`, undefined, undefined, 'DELETE')
+      setSessions(items => items.filter(item => item.id !== sessionId))
+      await openSession('')
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Delete failed') }
+    finally { setHistoryBusy(false) }
+  }
   useEffect(() => {
     const controller = new AbortController()
     api<Provider[]>('providers', undefined, controller.signal).then(items => {
@@ -329,11 +375,20 @@ function AssistantScreen() {
     const timeout = window.setTimeout(() => controller.abort(), 45000)
     setState('loading'); setAnalysis(undefined); setError(''); setSaved(false)
     try {
+      let id = sessionId
+      if (!id) {
+        const session = await api<SavedSession>('sessions', { title: task.slice(0, 120), context }, controller.signal)
+        id = session.id; setSessionId(id); setSessions(items => [session, ...items])
+      } else {
+        const title = sessions.find(item => item.id === id)?.title ?? 'Session'
+        await api(`sessions/${id}`, { title, context }, controller.signal, 'PATCH')
+      }
       const result = await api<Analysis>('analyze', {
-        task, provider, allow_external: consent, required_capabilities: ['text'],
+        task, provider, session_id: id, allow_external: consent, required_capabilities: ['text'],
       }, controller.signal)
       if (active.current !== controller) return
       setAnalysis(result); setTier(tierOf(result.recommendation)); setState('result')
+      setHistory(items => [...items, { request: { task }, result, candidate_id: null }])
     } catch (failure) {
       if (active.current !== controller) return
       setError(controller.signal.aborted ? 'Analysis cancelled or timed out. Please retry.' : failure instanceof Error ? failure.message : 'Analysis failed')
@@ -350,6 +405,7 @@ function AssistantScreen() {
     try {
       await api('decisions', { analysis_id: analysis.id, candidate_id: selected.id })
       setSaved(true)
+      setHistory(items => items.map(item => item.result.id === analysis.id ? { ...item, candidate_id: selected.id } : item))
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Selection failed') }
     finally { setSaving(false) }
   }
@@ -365,6 +421,19 @@ function AssistantScreen() {
         <span className="step-label">Research prototype</span>
       </div>
 
+      <section className="card session-controls">
+        <label htmlFor="saved-session">Your sessions (most recent 100)</label>
+        <select id="saved-session" value={sessionId} disabled={state === 'loading' || saving || historyBusy} onChange={event => void openSession(event.target.value)}>
+          <option value="">New session</option>
+          {sessions.map(session => <option key={session.id} value={session.id}>{session.title}</option>)}
+        </select>
+        <label htmlFor="session-context">Context for this session</label>
+        <textarea id="session-context" maxLength={4000} value={context} disabled={state === 'loading' || saving || historyBusy} onChange={event => { setContext(event.target.value); setConsent(false) }} placeholder="Audience, preferences and constraints to include in each assessment." />
+        <p className="muted">Context is saved when you analyse. External assessment sends this context together with your task, with your consent.</p>
+        {sessionId && <Button variant="danger" disabled={state === 'loading' || saving || historyBusy} onClick={deleteSession}>Delete this session and its history</Button>}
+        {historyBusy && <p role="status">Loading session…</p>}
+        {history.length > 0 && <details><summary>Saved analyses ({history.length}; first 100)</summary><ul>{history.map(item => <li key={item.result.id}><button disabled={state === 'loading' || saving || historyBusy} onClick={() => restore(item)}>{item.request.task.slice(0, 100)}{item.candidate_id ? ' · Choice saved' : ''}</button></li>)}</ul></details>}
+      </section>
       <section className="composer" aria-labelledby="task-label">
         <label id="task-label" htmlFor="task">Describe your task</label>
         <textarea
@@ -382,7 +451,7 @@ function AssistantScreen() {
           <span className="muted">Text only · {task.length}/8,000 characters</span>
           <div className="composer-actions">
             <span>Be specific about the outcome</span>
-            <Button onClick={analyse} disabled={state === 'loading' || saving || !task.trim() || (requiresConsent && !consent)}>
+            <Button onClick={analyse} disabled={state === 'loading' || saving || historyBusy || !task.trim() || (requiresConsent && !consent)}>
               {state === 'loading' ? 'Analysing…' : 'Analyse'} <Icon name="arrow" size={17} />
             </Button>
           </div>
@@ -397,7 +466,7 @@ function AssistantScreen() {
               {item.label}{item.enabled ? '' : ' · not configured'}
             </option>)}
           </select>
-          {requiresConsent && <label className="consent"><input type="checkbox" checked={consent} disabled={state === 'loading'} onChange={event => setConsent(event.target.checked)} />I allow this task to be sent to {selectedProvider?.label} for assessment.</label>}
+          {requiresConsent && <label className="consent"><input type="checkbox" checked={consent} disabled={state === 'loading'} onChange={event => setConsent(event.target.checked)} />I allow this task and session context to be sent to {selectedProvider?.label} for assessment.</label>}
           {selectedProvider?.model && <p className="muted">Assessment model: {selectedProvider.model}</p>}
           <p className="muted">{provider === 'demo' ? 'Demo uses a word-count size proxy. Semantic dimensions remain undetermined.' : 'Semantic assessment is uncalibrated. Provider availability depends on server configuration.'}</p>
         </div>
@@ -438,9 +507,9 @@ function AssistantScreen() {
             disabled={saving || saved}
           />
           <Button onClick={confirm} disabled={saving || saved}>{saved ? 'Choice acknowledged' : saving ? 'Confirming…' : 'Confirm choice'}</Button>
-          {saved && <p role="status">Choice acknowledged for this session. No task execution or persistent learning is performed.</p>}
+          {saved && <p role="status">Choice saved to your account. No task execution is performed.</p>}
           {analysis.warnings.map(warning => <p className="confidence-note" key={warning}>{warning}</p>)}
-          <p className="privacy">No raw task text is persisted. Choices are acknowledged without permanent storage.</p>
+          <p className="privacy">Task text, session context, assessments and confirmed choices are stored in your account. Delete a session above to remove its history.</p>
           <p className="muted">{analysis.confidence_basis} · Profile {analysis.profile_version} · Catalogue {analysis.catalogue_version} · Policy {analysis.policy_version}</p>
           {analysis.assessment_model && <p className="muted">Assessed by {analysis.assessment_model} · {analysis.usage?.total_tokens === undefined ? 'Token usage unavailable' : `${analysis.usage.total_tokens} tokens`}</p>}
         </>
@@ -513,7 +582,7 @@ function ProgressScreen() {
         </section>
         <Card className="data-card">
           <p className="eyebrow">Privacy controls</p><h2>My data</h2>
-          <p>No tier choices or session data are stored in this prototype; persistent progress and data controls are design previews.</p>
+          <p>Session history and tier choices are saved to your account. View and delete sessions in Assistant. These progress charts and export controls remain design previews.</p>
           <div className="data-actions">
             <Button variant="secondary"><Icon name="eye" size={16} />See</Button>
             <Button variant="secondary"><Icon name="download" size={16} />Export</Button>
@@ -565,9 +634,11 @@ export default function App() {
   return (
     <div className={dark ? 'app theme-dark' : 'app'}>
       <Header screen={screen} onNavigate={setScreen} dark={dark} onToggleTheme={toggleTheme} />
+      <Account>
       {screen === 'assistant' && <AssistantScreen />}
       {screen === 'progress' && <ProgressScreen />}
       {screen === 'team' && <TeamScreen />}
+      </Account>
       <footer><span>AdaptAI</span><p>Clearer choices. Better AI judgement.</p><button>Privacy</button><button>How it works</button></footer>
     </div>
   )

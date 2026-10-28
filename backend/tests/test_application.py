@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 from app.main import create_app
 from app.models import Assessment, Profile
@@ -7,9 +9,19 @@ from fastapi.testclient import TestClient
 from profile_samples import profile_data
 
 
+def authenticated_client(app):
+    client = TestClient(app)
+    response = client.post(
+        "/api/auth/register",
+        json={"email": f"{uuid4()}@example.com", "password": "test-password-123"},
+    )
+    assert response.status_code == 201
+    return client
+
+
 @pytest.fixture
 def client():
-    return TestClient(create_app(Settings(_env_file=None)))
+    return authenticated_client(create_app(Settings(_env_file=None)))
 
 
 def test_end_to_end_demo_and_override(client):
@@ -21,8 +33,8 @@ def test_end_to_end_demo_and_override(client):
     assert result["recommendation"]["id"] == "demo-balanced"
     alternative = result["alternatives"][0]["id"]
     decision = {"analysis_id": result["id"], "candidate_id": alternative}
-    assert client.post("/api/decisions", json=decision).json()["persistence"] == "none"
-    assert client.post("/api/decisions", json=decision).status_code == 404
+    assert client.post("/api/decisions", json=decision).json()["persistence"] == "database"
+    assert client.post("/api/decisions", json=decision).status_code == 200
 
 
 @pytest.mark.parametrize("task", ["", "   ", "x" * 8001])
@@ -70,7 +82,7 @@ class FakeProvider:
 @pytest.mark.parametrize("provider_id", ["openai", "groq", "claude"])
 def test_external_consent_and_semantic_workflow(provider_id):
     provider = FakeProvider()
-    client = TestClient(create_app(Settings(_env_file=None), {provider_id: provider}))
+    client = authenticated_client(create_app(Settings(_env_file=None), {provider_id: provider}))
     body = {"task": "Sensitive task", "provider": provider_id}
     assert client.post("/api/analyze", json=body).status_code == 403
     assert provider.calls == 0
@@ -81,7 +93,9 @@ def test_external_consent_and_semantic_workflow(provider_id):
 
 
 def test_groq_configuration_is_public_but_credentials_are_not():
-    client = TestClient(create_app(Settings(_env_file=None, groq_api_key="private-test-key")))
+    client = authenticated_client(
+        create_app(Settings(_env_file=None, groq_api_key="private-test-key"))
+    )
     response = client.get("/api/providers")
     assert "private-test-key" not in response.text
     groq = next(item for item in response.json() if item["id"] == "groq")
@@ -108,7 +122,7 @@ def test_new_provider_configuration(provider_id, model_field, key_field, label):
         ({key_field: "private-test-key"}, False),
         ({model_field: "configured-model", key_field: "private-test-key"}, True),
     ]:
-        client = TestClient(create_app(Settings(_env_file=None, **configuration)))
+        client = authenticated_client(create_app(Settings(_env_file=None, **configuration)))
         response = client.get("/api/providers")
         assert "private-test-key" not in response.text
         provider = next(item for item in response.json() if item["id"] == provider_id)
@@ -140,7 +154,7 @@ def test_invalid_profile_is_rejected():
                 }
             }
 
-    client = TestClient(create_app(Settings(_env_file=None), {"groq": Malformed()}))
+    client = authenticated_client(create_app(Settings(_env_file=None), {"groq": Malformed()}))
     response = client.post(
         "/api/analyze", json={"task": "Test", "provider": "groq", "allow_external": True}
     )
@@ -162,7 +176,7 @@ def test_failures_do_not_silently_fallback(code):
         async def assess(self, task):
             raise ProviderFailure(code)
 
-    client = TestClient(create_app(Settings(_env_file=None), {"ollama": Broken()}))
+    client = authenticated_client(create_app(Settings(_env_file=None), {"ollama": Broken()}))
     response = client.post("/api/analyze", json={"task": "Private", "provider": "ollama"})
     assert response.status_code == 502
     assert response.json() == {"detail": code}

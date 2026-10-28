@@ -15,6 +15,7 @@ export type Profile = {
 }
 export type Analysis = {
   id: string
+  session_id: string
   mode: 'demonstration' | 'semantic'
   provider: string
   assessment_model: string | null
@@ -48,9 +49,10 @@ const errorMessages: Record<string, string> = {
   provider_unavailable: 'The assessment provider is unavailable. Check the connection or try again later.',
   no_eligible_candidate: 'No catalogue model meets the required capabilities. Review the task requirements or update the catalogue.',
 }
-export async function api<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+export async function api<T>(path: string, body?: unknown, signal?: AbortSignal, method?: string): Promise<T> {
   const response = await fetch(`/api/${path}`, {
-    method: body === undefined ? 'GET' : 'POST',
+    method: method ?? (body === undefined ? 'GET' : 'POST'),
+    credentials: 'same-origin',
     headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
     signal: signal ?? AbortSignal.timeout(45000),

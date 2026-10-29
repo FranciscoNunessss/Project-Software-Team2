@@ -511,6 +511,7 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
                 "recommendation_provisional": state["recommendation_provisional"],
                 "clarification_questions": state["clarification_questions"],
                 "guidance": state["guidance"],
+                "tips": state["tips"],
                 "recommendation": candidates[0],
                 "alternatives": candidates[1:],
                 "rationale": state["rationale"],

@@ -93,6 +93,14 @@ class Change(BaseModel):
     evidence: str
 
 
+class Tip(BaseModel):
+    """A rubric tip for one dimension, or a general tip when dimension is None."""
+
+    model_config = ConfigDict(extra="forbid")
+    dimension: DimensionName | None
+    text: str = Field(min_length=1)
+
+
 class Candidate(BaseModel):
     id: str
     name: str
@@ -126,6 +134,7 @@ class AnalysisResult(BaseModel):
     recommendation_provisional: bool
     clarification_questions: list[str]
     guidance: list[str]
+    tips: list[Tip] = []
     recommendation: Candidate
     alternatives: list[Candidate]
     rationale: str

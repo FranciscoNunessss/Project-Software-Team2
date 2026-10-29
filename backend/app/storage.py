@@ -33,6 +33,7 @@ def history_result(result: dict) -> dict:
             {key: change[key] for key in ("dimension", "before", "after")}
             for change in result["changes"]
         ]
+    safe["tips"] = []
     return safe
 
 

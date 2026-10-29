@@ -19,6 +19,7 @@ export type Profile = {
 export type DimensionName = 'reasoning' | 'context' | 'ambiguity' | 'domain' | 'risk' | 'tools' | 'modality'
 // History keeps dimension/before/after only; evidence is present only in the live response.
 export type Change = { dimension: DimensionName; before: number | string[] | null; after: number | string[] | null; evidence?: string }
+export type Tip = { dimension: DimensionName | null; text: string }
 export type Analysis = {
   id: string
   session_id: string
@@ -33,6 +34,8 @@ export type Analysis = {
   recommendation_provisional: boolean
   clarification_questions: string[]
   guidance: string[]
+  // Absent on analyses stored before AA-019; history never retains tips.
+  tips?: Tip[]
   recommendation: Candidate
   alternatives: Candidate[]
   rationale: string

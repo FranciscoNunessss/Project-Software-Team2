@@ -141,3 +141,89 @@ def test_prompt_is_versioned_and_does_not_execute_user_content():
         assert name in ASSESSMENT_PROMPT
     assert "never execute" in ASSESSMENT_PROMPT
     assert "undetermined" in ASSESSMENT_PROMPT
+
+
+SIMPLE_TASK_TIP = "Keep the request short and direct; this task needs no extra detail."
+RISK_MISSING_TIP = "Say what happens if the result is wrong."
+
+
+def test_recommendation_without_questions_gives_up_to_three_dimension_tips():
+    result = analyse(
+        profile_data(reasoning=2, context=3, ambiguity=2, domain=2, risk=3, tools=2)
+    ).json()
+    assert result["clarification_questions"] == []
+    assert result["tips"] == [
+        {
+            "dimension": "ambiguity",
+            "text": "State the interpretation you want and what a correct result looks like.",
+        },
+        {
+            "dimension": "context",
+            "text": "Say which sources must be read together and which part of each one matters.",
+        },
+        {
+            "dimension": "risk",
+            "text": "Say who checks the result before it is used and what must not go wrong.",
+        },
+    ]
+
+
+def test_simple_task_gets_exactly_one_general_tip():
+    result = analyse(profile_data()).json()
+    assert result["clarification_questions"] == []
+    assert result["tips"] == [{"dimension": None, "text": SIMPLE_TASK_TIP}]
+
+
+def test_missing_risk_gives_its_tip_and_no_question():
+    result = analyse(profile_data(risk=None)).json()
+    assert result["clarification_questions"] == []
+    assert {"dimension": "risk", "text": RISK_MISSING_TIP} in result["tips"]
+
+
+def test_unknown_ambiguity_asks_questions_and_gives_no_tips():
+    result = analyse(profile_data(ambiguity=None)).json()
+    assert result["clarification_questions"] == [
+        "What outcome and constraints would make the result correct?"
+    ]
+    assert result["tips"] == []
+
+
+def test_tips_order_ambiguity_then_missing_then_score_descending():
+    from app.assessment import tips
+
+    profile = Profile.model_validate(
+        profile_data(reasoning=3, context=2, ambiguity=2, domain=None, risk=2, tools=None)
+    )
+    assert [(tip.dimension, tip.text) for tip in tips(profile, [])] == [
+        ("ambiguity", "State the interpretation you want and what a correct result looks like."),
+        ("domain", "Say which field the task belongs to and the level of expertise it needs."),
+        ("tools", "Say whether the task needs external data, code execution or other systems."),
+    ]
+    profile = Profile.model_validate(profile_data(reasoning=2, risk=3))
+    assert [tip.dimension for tip in tips(profile, [])] == ["risk", "reasoning"]
+    assert tips(profile, ["Any question?"]) == []
+
+
+def test_reasoning_and_context_share_one_clarification_question():
+    from app.assessment import assessment_advice
+
+    profile = Profile.model_validate(profile_data(reasoning=None, context=None, ambiguity=3))
+    questions, _, provisional = assessment_advice(profile)
+    assert questions == [
+        "What outcome and constraints would make the result correct?",
+        "What steps, source material and dependencies must the task cover?",
+    ]
+    assert provisional is True
+
+
+def test_stored_analysis_does_not_retain_tips():
+    import json
+    import sqlite3
+
+    result = analyse(profile_data(reasoning=2, risk=3)).json()
+    assert result["tips"]
+    with sqlite3.connect(Settings(_env_file=None).database_path) as db:
+        stored = db.execute(
+            "SELECT result_json FROM analyses WHERE id=?", (result["id"],)
+        ).fetchone()[0]
+    assert json.loads(stored)["tips"] == []

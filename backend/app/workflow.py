@@ -9,8 +9,9 @@ from app.assessment import (
     capacity_target,
     completeness,
     required_capabilities,
+    tips,
 )
-from app.models import AnalysisRequest, Assessment, Candidate, Profile
+from app.models import AnalysisRequest, Assessment, Candidate, Profile, Tip
 from app.providers import AssessmentProvider, ProviderFailure
 
 CATALOGUE = json.loads((Path(__file__).parent.parent / "data/catalogue.json").read_text())
@@ -24,6 +25,7 @@ class State(TypedDict, total=False):
     usage: dict[str, int] | None
     clarification_questions: list[str]
     guidance: list[str]
+    tips: list[Tip]
     recommendation_provisional: bool
     completeness: int
 
@@ -68,6 +70,7 @@ def build_workflow(provider: AssessmentProvider):
             "candidates": candidates,
             "clarification_questions": questions,
             "guidance": guidance,
+            "tips": tips(profile, questions),
             "recommendation_provisional": provisional,
             "completeness": completeness(profile, provisional),
             "rationale": (

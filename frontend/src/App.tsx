@@ -7,6 +7,7 @@ import { ProgressScreen } from './Progress'
 import { ProfileScreen } from './Profile'
 import { LLMConfigScreen } from './LLMConfig'
 import { ModelPicker } from './ModelPicker'
+import { TipsCard } from './TipsCard'
 
 type Screen = 'assistant' | 'progress' | 'profile' | 'llm'
 type ResultState = 'empty' | 'loading' | 'result'
@@ -210,28 +211,6 @@ function TierCard({ analysis }: { analysis: Analysis }) {
         <h3>Why this tier</h3>
         <p>{analysis.rationale}</p>
         <p className="muted">Capabilities: {analysis.recommendation.capabilities.join(', ')}</p>
-      </div>
-    </Card>
-  )
-}
-
-function TipsCard() {
-  const tips = [
-    ['Frame the outcome', 'State the result you need and how it will be used.'],
-    ['Add useful context', 'Describe constraints, audience and the impact of an error.'],
-    ['Review with intent', 'Compare eligible options; these prototype tiers are illustrative.'],
-  ]
-  return (
-    <Card className="tips-card">
-      <p className="eyebrow">Practical guidance</p>
-      <h2>How to use it</h2>
-      <div className="tips-list">
-        {tips.map(([title, text], index) => (
-          <div className="tip" key={title}>
-            <span className="tip-number">0{index + 1}</span>
-            <div><h3>{title}</h3><p>{text}</p></div>
-          </div>
-        ))}
       </div>
     </Card>
   )
@@ -462,7 +441,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
           <div className="result-grid">
             <ProfileCard analysis={analysis} />
             <TierCard analysis={analysis} />
-            <TipsCard />
+            <TipsCard analysis={analysis} />
           </div>
           <Override
             tier={tier}

@@ -244,7 +244,7 @@ point `ACTIVE` at it and run the core eval; never edit a registered file.
 
 ## Seven-dimension prototype
 
-The response identifies `profile_version: profile-2` and `policy_version: prototype-2`.
+The response identifies `profile_version: profile-2`, `policy_version: prototype-3` and `rubric_version`; re-analyses that send `previous_analysis_id` also return `completeness` and `changes`.
 This changes scalar profile fields into objects: read `profile.reasoning.score`,
 `.confidence` and `.evidence`. Backend, frontend and test fixtures must migrate together.
 The assessor instructions are generated from the active rubric version (see "Rubric").

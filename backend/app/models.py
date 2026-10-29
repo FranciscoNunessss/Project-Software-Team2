@@ -53,10 +53,11 @@ class Dimension(Evidence):
         return self
 
 
+ModalityName = Literal["text", "image", "audio", "video"]
+
+
 class Modality(Evidence):
-    required: list[Literal["text", "image", "audio", "video"]] | None = Field(
-        min_length=1, max_length=4
-    )
+    required: list[ModalityName] | None = Field(min_length=1, max_length=4)
 
     @model_validator(mode="after")
     def consistent_modalities(self):

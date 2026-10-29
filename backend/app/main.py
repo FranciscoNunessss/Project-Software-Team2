@@ -17,7 +17,7 @@ from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
 from app.prompt_builder import active_rubric, public_rubric
 from app.providers import DemonstrationProvider, LangChainProvider, ProviderFailure, Settings
-from app.storage import Storage, history_result
+from app.storage import Storage, history_result, stored_result
 from app.workflow import CATALOGUE, build_workflow
 
 
@@ -181,7 +181,7 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
             return [
                 {
                     "request": {},
-                    "result": json.loads(row["result_json"]),
+                    "result": stored_result(row["result_json"]),
                     "candidate_id": None,
                     "created_at": row["created_at"],
                     "session_title": row["title"],

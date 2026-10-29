@@ -7,6 +7,14 @@ from pathlib import Path
 from uuid import uuid4
 
 
+def stored_result(result_json: str) -> dict:
+    """A stored analysis as returned by the API; fills fields added after it was stored."""
+    result = json.loads(result_json)
+    # Analyses stored before ADR-009 used the prompt that rubric-2.0 reproduces.
+    result.setdefault("rubric_version", "rubric-2.0")
+    return result
+
+
 def history_result(result: dict) -> dict:
     """Retain a validated profile without free text that could reconstruct a task."""
     safe = dict(result)
@@ -208,7 +216,7 @@ class Storage:
             return [
                 {
                     "request": json.loads(row["request_json"]),
-                    "result": json.loads(row["result_json"]),
+                    "result": stored_result(row["result_json"]),
                     "candidate_id": row["candidate_id"],
                     "created_at": row["created_at"],
                     "conversation": None

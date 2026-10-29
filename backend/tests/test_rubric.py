@@ -69,6 +69,9 @@ def test_registered_files_are_unchanged_and_active_version_is_registered():
         (lambda data: data.update(version=""), "version"),
         (lambda data: data["dimensions"][1]["levels"].update({"2": "renamed level"}), "level 2"),
         (lambda data: data["dimensions"][2].update(clarify_question=None), "clarify"),
+        (lambda data: data["dimensions"][2].update(clarify_order=None), "clarify_order"),
+        (lambda data: data["dimensions"][2].update(clarify_when={}), "exactly one"),
+        (lambda data: data["modality"].update(clarify_question=None), "modality"),
     ],
 )
 def test_invalid_rubric_fails_with_an_error_naming_the_problem(tmp_path, mutate, message):
@@ -81,9 +84,57 @@ def test_modified_registered_file_is_refused(tmp_path):
     root = tmp_path / "rubric"
     shutil.copytree(RUBRIC_DIR, root)
     path = root / "versions" / "rubric-2.0.json"
-    path.write_text(path.read_text(encoding="utf-8").replace("Specialised", "Special"))
+    path.write_text(
+        path.read_text(encoding="utf-8").replace("Specialised", "Special"), encoding="utf-8"
+    )
     with pytest.raises(RubricError, match="sha256"):
         load_rubric(root=root)
+
+
+@pytest.mark.parametrize(
+    ("damage", "message"),
+    [
+        (lambda root: (root / "ACTIVE").unlink(), "unreadable"),
+        (lambda root: (root / "versions" / "rubric-2.0.json").unlink(), "missing"),
+        (lambda root: (root / "versions.json").write_text("{", encoding="utf-8"), "unreadable"),
+    ],
+)
+def test_missing_or_unreadable_rubric_files_are_refused(tmp_path, damage, message):
+    root = tmp_path / "rubric"
+    shutil.copytree(RUBRIC_DIR, root)
+    damage(root)
+    with pytest.raises(RubricError, match=message):
+        load_rubric(root=root)
+
+
+def test_invalid_json_in_a_version_file_is_refused(tmp_path):
+    root = copy_rubric(tmp_path, lambda data: None)
+    path = root / "versions" / "rubric-2.0.json"
+    path.write_text("{not json", encoding="utf-8")
+    registry = {"rubric-2.0": hashlib.sha256(path.read_bytes()).hexdigest()}
+    (root / "versions.json").write_text(json.dumps(registry), encoding="utf-8")
+    with pytest.raises(RubricError, match="rubric-2.0"):
+        load_rubric(root=root)
+
+
+def test_backend_does_not_start_with_a_broken_rubric(tmp_path):
+    root = tmp_path / "rubric"
+    shutil.copytree(RUBRIC_DIR, root)
+    (root / "ACTIVE").write_text("rubric-9.9\n", encoding="utf-8")
+    code = (
+        "import app.prompt_builder as pb, pathlib, sys; "
+        f"pb.RUBRIC_DIR = pathlib.Path({str(root)!r}); "
+        "pb.load_rubric.__defaults__ = (None, pb.RUBRIC_DIR); "
+        "import app.main"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        cwd=REPO / "backend",
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "RubricError" in result.stderr and "not registered" in result.stderr
 
 
 def test_unregistered_active_version_is_refused(tmp_path):
@@ -119,6 +170,17 @@ def test_analysis_reports_rubric_version():
     response = analyse(profile_data())
     assert response.status_code == 200
     assert response.json()["rubric_version"] == "rubric-2.0"
+
+
+def test_analyses_stored_before_the_rubric_report_rubric_2_0(tmp_path):
+    from app.storage import stored_result
+
+    old = {"id": "x", "profile_version": "profile-2"}
+    assert stored_result(json.dumps(old))["rubric_version"] == "rubric-2.0"
+    assert (
+        stored_result(json.dumps({**old, "rubric_version": "rubric-2.1"}))["rubric_version"]
+        == "rubric-2.1"
+    )
 
 
 def test_render_rubric_script_prints_markdown():

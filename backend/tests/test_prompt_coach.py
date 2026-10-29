@@ -1,11 +1,14 @@
 import json
+import logging
+import unicodedata
 from uuid import uuid4
 
 import pytest
+from app import prompt_coach
 from app.main import create_app
 from app.models import Assessment, Profile
 from app.prompt_builder import active_rubric
-from app.prompt_coach import CoachLLMOutput, ground, select_targets
+from app.prompt_coach import CoachLLMOutput, ground, introduces_facts, select_targets
 from app.providers import ProviderFailure, Settings
 from fastapi.testclient import TestClient
 from profile_samples import profile_data
@@ -80,7 +83,7 @@ def register(app):
     return client
 
 
-def build(profile=None, provider="groq", settings=None):
+def build(profile=None, provider="groq", settings=None, factory=FakeCoach, personal=False):
     class Assessor:
         async def assess(self, task):
             return Assessment(profile=Profile.model_validate(profile or uncertain_profile()))
@@ -88,12 +91,15 @@ def build(profile=None, provider="groq", settings=None):
     app = create_app(
         settings or Settings(_env_file=None, prompt_coach_enabled=True),
         overrides={"groq": Assessor(), "ollama": Assessor()},
-        prompt_coach_options={"model_factory": FakeCoach},
+        prompt_coach_options={"model_factory": factory} if factory else None,
     )
     client = register(app)
-    response = client.post(
-        "/api/analyze", json={"task": TASK, "provider": provider, "allow_external": True}
-    )
+    request = {"task": TASK, "provider": provider, "allow_external": True}
+    if personal:
+        created = client.post("/api/llm-configs", json=PERSONAL)
+        assert created.status_code == 201
+        request["configuration_id"] = created.json()["id"]
+    response = client.post("/api/analyze", json=request)
     assert response.status_code == 200
     return app, client, response.json()["id"]
 
@@ -108,6 +114,14 @@ def coach(client, analysis_id, mode="tips", task=TASK, allow_external=True):
             "allow_external": allow_external,
         },
     )
+
+
+PERSONAL = {
+    "label": "Personal Groq",
+    "provider": "groq",
+    "model": "personal-model",
+    "api_key": "personal-test-key",
+}
 
 
 def walk(node):
@@ -128,6 +142,8 @@ def test_llm_schema_requires_every_property_and_has_no_event_id():
         assert sorted(node["required"]) == sorted(node["properties"])
         assert node["additionalProperties"] is False
     assert "event_id" not in json.dumps(schema)
+    # Docstrings would reach the model as schema descriptions.
+    assert not [node for node in walk(schema) if "description" in node]
 
 
 def test_targets_follow_priority_and_limit():
@@ -361,3 +377,158 @@ def test_nothing_is_written_to_the_database():
     assert coach(client, analysis_id).status_code == 200
     after = [[tuple(row) for row in rows] for rows in snapshot().values()]
     assert before == after
+
+
+def test_rewrite_that_adds_facts_is_refused():
+    rewrite = "Summarise in 500 words per https://evil.test [audience?]"
+    FakeCoach.result = output([suggestion()], rewrite=rewrite)
+    _, client, analysis_id = build()
+    body = coach(client, analysis_id, mode="rewrite").json()
+    assert body["rewrite"] is None and body["dropped"] == 1
+
+
+@pytest.mark.parametrize(
+    "invented",
+    [
+        "log in at evil.example/login",
+        "see hxxps://evil[.]test",
+        "visit evil(dot)example",
+        "write to name at domain dot com",
+        "write to name[at]corp[.]org",
+    ],
+)
+def test_defanged_and_bare_facts_are_detected(invented):
+    assert introduces_facts(invented, TASK)
+    assert not introduces_facts("for the board of directors", TASK)
+
+
+@pytest.mark.parametrize(
+    "rewrite", ["Write it. [see](https://x.test)", "Write it. [ab]", "Write it."]
+)
+def test_markdown_links_and_short_brackets_are_not_placeholders(rewrite):
+    grounded = ground(output([suggestion()], rewrite=rewrite), TASK, ["ambiguity"], "rewrite")
+    assert grounded["rewrite"] is None and grounded["dropped"] == 1
+
+
+@pytest.mark.parametrize("field", ["title", "rationale"])
+def test_suggestion_text_with_new_facts_is_dropped(field):
+    grounded = ground(
+        output([suggestion(**{field: "Email boss@acme.test"})]), TASK, ["ambiguity"], "tips"
+    )
+    assert grounded["suggestions"] == [] and grounded["dropped"] == 1
+
+
+def test_open_questions_are_grounded_and_capped():
+    grounded = ground(
+        output(
+            [suggestion()],
+            open_questions=["Is 2027 the deadline?", "Who reads it? " + "x" * 300, "  "],
+        ),
+        TASK,
+        ["ambiguity"],
+        "tips",
+    )
+    assert grounded["dropped"] == 1
+    assert len(grounded["open_questions"]) == 1
+    assert len(grounded["open_questions"][0]) == 200
+
+
+@pytest.mark.parametrize("quote", ["th", "...", " , "])
+def test_short_or_letterless_quote_becomes_tip(quote):
+    task = "th ... , the board"
+    grounded = ground(
+        output([suggestion(kind="edit", quote=quote, replacement="the board")]),
+        task,
+        ["ambiguity"],
+        "edits",
+    )
+    assert grounded["suggestions"][0]["kind"] == "tip"
+    assert grounded["suggestions"][0]["quote"] is None
+
+
+def test_quote_is_matched_in_nfc():
+    decomposed = unicodedata.normalize("NFD", "Resume the café notes for the board.")
+    composed_quote = unicodedata.normalize("NFC", "the café notes")
+    assert composed_quote not in decomposed
+    FakeCoach.result = output(
+        [suggestion(kind="edit", quote=composed_quote, replacement="the café minutes")]
+    )
+    _, client, analysis_id = build()
+    item = coach(client, analysis_id, mode="edits", task=decomposed).json()["suggestions"][0]
+    assert item["kind"] == "edit" and item["quote"] == composed_quote
+
+
+def test_fallback_never_carries_a_rewrite():
+    FakeCoach.result = output(
+        [suggestion(dimension="tools")], rewrite="Write a summary for [which audience?]"
+    )
+    _, client, analysis_id = build()
+    body = coach(client, analysis_id, mode="rewrite").json()
+    assert body["fallback"] is True and body["rewrite"] is None
+    assert body["dropped"] == 2
+
+
+def test_tips_mode_nulls_quote_and_replacement():
+    FakeCoach.result = output(
+        [suggestion(kind="tip", quote="the board", replacement="the directors")]
+    )
+    _, client, analysis_id = build()
+    item = coach(client, analysis_id, mode="tips").json()["suggestions"][0]
+    assert item["kind"] == "tip" and item["quote"] is None and item["replacement"] is None
+
+
+def test_default_model_uses_structured_call_with_coach_role(monkeypatch):
+    calls = []
+
+    async def fake_structured_call(provider, settings, schema, system, human, role):
+        calls.append({"provider": provider, "model": settings.groq_model, "schema": schema})
+        calls[-1]["role"] = role
+        return output([suggestion()]), {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2}
+
+    monkeypatch.setattr(prompt_coach, "structured_call", fake_structured_call)
+    app, client, analysis_id = build(factory=None)
+    assert app.state.prompt_coach["model_factory"] is prompt_coach.CoachModel
+    body = coach(client, analysis_id).json()
+    assert body["fallback"] is False
+    assert calls == [
+        {
+            "provider": "groq",
+            "model": "openai/gpt-oss-20b",
+            "schema": CoachLLMOutput,
+            "role": "coach",
+        }
+    ]
+
+
+def test_personal_configuration_is_used_again():
+    _, client, analysis_id = build(personal=True)
+    assert coach(client, analysis_id).json()["fallback"] is False
+    assert len(FakeCoach.calls) == 1
+
+
+@pytest.mark.parametrize("change", ["delete", "disable"])
+def test_personal_configuration_deleted_or_disabled_is_a_conflict(change):
+    _, client, analysis_id = build(personal=True)
+    identifier = client.get("/api/llm-configs").json()[0]["id"]
+    if change == "delete":
+        assert client.delete(f"/api/llm-configs/{identifier}").status_code == 200
+    else:
+        update = {**PERSONAL, "enabled": False}
+        update.pop("api_key")
+        assert client.put(f"/api/llm-configs/{identifier}", json=update).status_code == 200
+    response = coach(client, analysis_id)
+    assert response.status_code == 409
+    assert response.json() == {"detail": "model_configuration_changed"}
+    assert FakeCoach.calls == []
+
+
+@pytest.mark.parametrize("failure", [None, ProviderFailure("provider_timeout")])
+def test_task_text_never_reaches_the_logs(caplog, failure):
+    marker = "Confidential marker 7f3a: summarise the merger memo for the board."
+    if failure:
+        FakeCoach.result = failure
+    _, client, analysis_id = build()
+    with caplog.at_level(logging.DEBUG):
+        for mode in ("tips", "edits", "rewrite"):
+            assert coach(client, analysis_id, mode=mode, task=marker).status_code == 200
+    assert "7f3a" not in caplog.text and "merger memo" not in caplog.text

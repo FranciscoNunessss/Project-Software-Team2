@@ -9,6 +9,14 @@ this file (with its tests) must leave the core application working; see README,
 ``PRAGMA user_version``: any table it needs is created with ``CREATE TABLE IF NOT EXISTS``,
 outside the core migrations, so the core still starts after the module is removed.
 
+The task text is normalised to Unicode NFC on input; returned quotes are NFC as well, so a
+client applies edits to the NFC form of its text.
+
+Grounding limitation (accepted): ``introduces_facts`` detects new numbers, URLs, bare
+domains, emails and their defanged or spelled-out forms ("hxxp", "[.]", "(dot)",
+"name at domain dot com"). It cannot detect invented names or dates written in words
+("Maria", "next Tuesday"); the human-read check of evaluation M7 covers those.
+
 ``POST /api/prompt-coach`` suggests how to improve a task text for the dimensions a stored
 analysis of the same user left uncertain. Privacy: the task, the suggestions and the rewrite
 are never logged, traced or stored; nothing is written to the database.
@@ -16,6 +24,7 @@ are never logged, traced or stored; nothing is written to the database.
 
 import json
 import re
+import unicodedata
 from collections.abc import Callable
 from types import SimpleNamespace
 from typing import Any, Literal, TypedDict
@@ -51,12 +60,13 @@ class PromptCoachRequest(BaseModel):
     def non_blank(cls, value: str) -> str:
         if not value.strip():
             raise ValueError("Enter a task")
-        return value
+        # Quotes are matched against NFC text, so a client's NFD text still matches.
+        return unicodedata.normalize("NFC", value)
 
 
+# One suggestion. Every field is required (no defaults) for strict json_schema output.
+# Comments, not docstrings: a docstring would become a schema description sent to the model.
 class Suggestion(BaseModel):
-    """One suggestion. Every field is required (no defaults) for strict json_schema output."""
-
     model_config = ConfigDict(extra="forbid", strict=True)
     dimension: CoachDimension
     kind: Literal["question", "tip", "edit"]
@@ -67,9 +77,8 @@ class Suggestion(BaseModel):
     expected_effect: ExpectedEffect
 
 
+# The only schema sent to the model.
 class CoachLLMOutput(BaseModel):
-    """The only schema sent to the model."""
-
     model_config = ConfigDict(extra="forbid", strict=True)
     suggestions: list[Suggestion] = Field(min_length=1, max_length=5)
     rewrite: str | None = Field(max_length=8000)
@@ -213,39 +222,66 @@ def fallback_suggestions(targets: list[dict]) -> list[dict]:
 
 # --- ground (pure) ------------------------------------------------------------------------------
 
-_URL = re.compile(r"(?:https?://|www\.)[^\s<>\"')\]]+", re.IGNORECASE)
+_DEFANG = [
+    (re.compile(r"\bhxxp(s?)", re.IGNORECASE), r"http\1"),
+    (re.compile(r"\s*(?:\[\.\]|\(\.\)|\{\.\}|\[dot\]|\(dot\)|\{dot\})\s*", re.IGNORECASE), "."),
+    (re.compile(r"\s*(?:\[at\]|\(at\)|\{at\}|\[@\]|\(@\))\s*", re.IGNORECASE), "@"),
+    # Spelled-out separators only between word characters and a TLD-like word.
+    (re.compile(r"(?<=\w)\s+dot\s+(?=[a-z]{2,}\b)", re.IGNORECASE), "."),
+    (re.compile(r"(?<=[\w.+-])\s+at\s+(?=[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}\b)", re.IGNORECASE), "@"),
+]
+_SCHEME = re.compile(r"\b(?:https?|ftp)://(?:www\.)?|\bwww\.", re.IGNORECASE)
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+_HOST = re.compile(r"\b(?:[\w-]+\.)+[a-z]{2,}\b(?:/[^\s<>\"')\]]*)?", re.IGNORECASE)
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
-_PLACEHOLDER = re.compile(r"\[[^\[\]\n]+\]")
+# A placeholder is [...] with at least 3 characters inside, not a markdown link [text](url).
+_PLACEHOLDER = re.compile(r"\[[^\[\]\n]{3,}\](?!\()")
+MAX_OPEN_QUESTION = 200
 
 
 def _facts(text: str) -> set[str]:
-    urls = {match.rstrip(".,;:!?").lower() for match in _URL.findall(text)}
-    emails = {match.lower() for match in _EMAIL.findall(text)}
-    return urls | emails | set(_NUMBER.findall(text))
+    """URLs, bare domains, emails and numbers in ``text``, after undoing common defanging."""
+    text = unicodedata.normalize("NFKC", text).lower()
+    for pattern, replacement in _DEFANG:
+        text = pattern.sub(replacement, text)
+    text = _SCHEME.sub("", text)
+    emails = set(_EMAIL.findall(text))
+    hosts = {match.rstrip(".,;:!?/") for match in _HOST.findall(text)}
+    return emails | hosts | set(_NUMBER.findall(text))
 
 
-def introduces_facts(replacement: str, original: str) -> bool:
-    """True when ``replacement`` has a URL, email or number that ``original`` does not."""
-    return not _facts(replacement) <= _facts(original)
+def introduces_facts(text: str, original: str) -> bool:
+    """True when ``text`` has a URL, domain, email or number that ``original`` does not."""
+    return not _facts(text) <= _facts(original)
+
+
+def _valid_quote(quote: str | None) -> bool:
+    return bool(quote) and len(quote) >= 3 and any(char.isalpha() for char in quote)
 
 
 def ground(output: dict, task: str, targets: list[str], mode: Mode) -> dict:
-    """Keep the model output inside the contract; count every suggestion or rewrite dropped."""
+    """Keep the model output inside the contract; count every suggestion, rewrite or
+    open question dropped."""
+    task = unicodedata.normalize("NFC", task)
     dropped = 0
     suggestions = []
     for raw in output["suggestions"]:
         item = dict(raw)
-        if item["dimension"] not in targets:
+        if item["dimension"] not in targets or any(
+            introduces_facts(item[field], task) for field in ("title", "rationale")
+        ):
             dropped += 1
             continue
         if item["kind"] == "edit" and mode == "edits":
-            quote, replacement = item["quote"], item["replacement"]
-            if not quote or replacement is None or task.count(quote) != 1:
+            quote = unicodedata.normalize("NFC", item["quote"]) if item["quote"] else None
+            replacement = item["replacement"]
+            if not _valid_quote(quote) or replacement is None or task.count(quote) != 1:
                 item.update(kind="tip", quote=None, replacement=None)
             elif introduces_facts(replacement, task):
                 dropped += 1
                 continue
+            else:
+                item["quote"] = quote
         else:
             if item["kind"] == "edit":
                 item["kind"] = "tip"
@@ -253,15 +289,25 @@ def ground(output: dict, task: str, targets: list[str], mode: Mode) -> dict:
         suggestions.append(item)
     rewrite = output["rewrite"]
     if rewrite is not None and (
-        mode != "rewrite" or (targets and not _PLACEHOLDER.search(rewrite))
+        mode != "rewrite"
+        or (targets and not _PLACEHOLDER.search(rewrite))
+        or introduces_facts(rewrite, task)
     ):
         rewrite = None
         dropped += 1
-    questions = [text.strip() for text in output["open_questions"] if text.strip()][:3]
+    questions = []
+    for text in output["open_questions"]:
+        text = text.strip()[:MAX_OPEN_QUESTION]
+        if not text:
+            continue
+        if introduces_facts(text, task):
+            dropped += 1
+            continue
+        questions.append(text)
     return {
         "suggestions": suggestions,
         "rewrite": rewrite,
-        "open_questions": questions,
+        "open_questions": questions[:3],
         "dropped": dropped,
     }
 
@@ -374,14 +420,16 @@ def build_coach_graph(
             state["request"].mode,
         )
         fallback = not grounded["suggestions"]
+        # A fallback never carries a rewrite: it would rest on suggestions that were dropped.
+        rewrite = None if fallback else grounded["rewrite"]
         return {
             "response": CoachResponse(
                 status="ok",
                 suggestions=grounded["suggestions"] or fallback_suggestions(targets),
-                rewrite=grounded["rewrite"],
+                rewrite=rewrite,
                 open_questions=grounded["open_questions"],
                 fallback=fallback,
-                dropped=grounded["dropped"],
+                dropped=grounded["dropped"] + (grounded["rewrite"] is not None and fallback),
             )
         }
 

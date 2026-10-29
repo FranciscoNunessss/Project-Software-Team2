@@ -303,6 +303,8 @@ async def test_groq_coach_structured_contract_and_invalid_output(monkeypatch):
         def __init__(self, **options):
             assert options["base_url"] == "https://api.groq.com/openai/v1"
             assert options["max_retries"] == 0
+            assert "temperature" not in options
+            assert options["max_tokens"] == 1600
 
         def with_structured_output(self, schema, **options):
             assert schema is CoachingReport and options["strict"] is True

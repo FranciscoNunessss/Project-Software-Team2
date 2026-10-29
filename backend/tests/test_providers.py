@@ -371,6 +371,36 @@ async def test_structured_call_maps_every_status_through_single_table(monkeypatc
     assert len(invocations) == 1
 
 
+async def test_structured_call_rejects_unknown_role_before_any_call(monkeypatch):
+    from app import providers
+
+    constructions, invocations = [], []
+    monkeypatch.setattr(_TARGETS["groq"], _fake_model(constructions, invocations))
+    with pytest.raises(ProviderFailure) as failure:
+        await providers.structured_call(
+            "groq", _structured_settings(), Profile, "system", "Private task", "planner"
+        )
+    assert failure.value.code == "unsupported_provider"
+    assert constructions == [] and invocations == []
+
+
+async def test_structured_call_failures_do_not_chain_provider_errors(monkeypatch):
+    from app import providers
+
+    monkeypatch.setattr(providers, "_TEMPERATURE_REFUSED", set())
+    constructions, invocations = [], []
+    monkeypatch.setattr(
+        _TARGETS["groq"], _fake_model(constructions, invocations, lambda kwargs, n: 400)
+    )
+    for role in ("assessment", "coach"):
+        with pytest.raises(ProviderFailure) as failure:
+            await providers.structured_call(
+                "groq", _structured_settings(), Profile, "system", "Private task", role
+            )
+        assert failure.value.__cause__ is None
+        assert failure.value.__suppress_context__ is True
+
+
 def test_error_table_maps_timeouts_and_invalid_output():
     from app.providers import provider_error_code
     from langchain_core.exceptions import OutputParserException

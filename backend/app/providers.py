@@ -90,7 +90,9 @@ _STATUS_CODES = {
     404: "provider_model_unavailable",
 }
 
-# (provider, model) pairs that answered HTTP 400 to a request carrying a temperature.
+# (provider, model) pairs that answered HTTP 400 to a request carrying a temperature and then
+# succeeded without one. Per process and best effort: unbounded but tiny (one entry per
+# configured model); concurrent first requests may each pay one retry before it is filled.
 _TEMPERATURE_REFUSED: set[tuple[str, str]] = set()
 
 
@@ -209,9 +211,14 @@ async def structured_call(
 ) -> tuple[dict, dict[str, int] | None]:
     """Run one structured-output call and return ``(parsed, usage)``.
 
-    Every failure surfaces as ``ProviderFailure`` with a code from ``provider_error_code``.
+    Every failure surfaces as ``ProviderFailure`` with a code from ``provider_error_code``,
+    raised ``from None`` so no provider response body is ever chained.
+
+    Any HTTP 400 on a request that carried a temperature triggers exactly one retry without
+    it (worst case 2x ``timeout_seconds``). If that retry succeeds, temperature is disabled
+    for that (provider, model) for the rest of the process.
     """
-    if provider not in {"openai", "groq", "claude", "ollama"}:
+    if provider not in {"openai", "groq", "claude", "ollama"} or role not in ROLE_PARAMETERS:
         raise ProviderFailure("unsupported_provider")
     parameters = ROLE_PARAMETERS[role]
     use_responses = provider == "openai" and settings.openai_use_responses_api
@@ -223,12 +230,12 @@ async def structured_call(
         return await _invoke(provider, settings, schema, prompt, max_tokens, temperature)
     except Exception as exc:
         if temperature is None or getattr(exc, "status_code", None) != 400:
-            raise ProviderFailure(provider_error_code(exc)) from exc
+            raise ProviderFailure(provider_error_code(exc)) from None
     # The model rejected the request while a temperature was set: retry once without it.
     try:
         result = await _invoke(provider, settings, schema, prompt, max_tokens, None)
     except Exception as exc:
-        raise ProviderFailure(provider_error_code(exc)) from exc
+        raise ProviderFailure(provider_error_code(exc)) from None
     _TEMPERATURE_REFUSED.add(key)
     return result
 

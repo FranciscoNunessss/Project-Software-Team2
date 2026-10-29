@@ -15,7 +15,7 @@ class AnalysisRequest(BaseModel):
     use_personal_context: bool | None = None
     task_context: str = Field(default="", max_length=4000)
     session_id: str | None = Field(default=None, max_length=36)
-    previous_analysis_id: str | None = Field(default=None, max_length=36)
+    previous_analysis_id: str | None = Field(default=None, min_length=1, max_length=36)
     required_capabilities: list[Literal["text", "code", "vision"]] = Field(
         default_factory=lambda: ["text"]
     )

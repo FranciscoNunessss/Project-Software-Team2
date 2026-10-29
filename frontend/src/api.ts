@@ -45,6 +45,8 @@ export type Analysis = {
   completeness?: number | null
   changes?: Change[]
 }
+// Keep in sync with backend/app/assessment.py PROFILE_VERSION.
+export const PROFILE_VERSION = 'profile-2'
 export type SavedSession = { id: string; title: string; context: string; created_at: string; analysis_count?:number; choice_count?:number }
 export type HistoryItem = { request: { task?: string; session_context?: string; personal_context?: string }; result: Analysis; candidate_id: string | null; created_at: string; conversation?: {task:string;task_context:string;response:Analysis}|null }
 export type Resume = { sessionId: string; analysis?: HistoryItem }
@@ -83,7 +85,11 @@ const errorMessages: Record<string, string> = {
   previous_analysis_requires_session: 'Re-analysis needs its saved session. Start a new task and try again.',
   previous_analysis_other_session: 'The previous analysis belongs to another session. Start a new task and try again.',
   previous_analysis_incompatible: 'The previous analysis used an older profile version. Start a new task to compare from here.',
+  analysis_not_found: 'This analysis no longer exists, possibly because its history was deleted. Analyse the task again to continue.',
   no_eligible_candidate: 'No catalogue model meets the required capabilities. Review the task requirements or update the catalogue.',
+}
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number, readonly detail?: string) { super(message); this.name = 'ApiError' }
 }
 export async function api<T>(path: string, body?: unknown, signal?: AbortSignal, method?: string): Promise<T> {
   const response = await fetch(`/api/${path}`, {
@@ -95,9 +101,8 @@ export async function api<T>(path: string, body?: unknown, signal?: AbortSignal,
   })
   if (!response.ok) {
     const failure = await response.json().catch(() => ({}))
-    throw new Error(typeof failure.detail === 'string'
-      ? errorMessages[failure.detail] ?? failure.detail.replace(/_/g, ' ')
-      : 'Request failed')
+    const detail = typeof failure.detail === 'string' ? failure.detail : undefined
+    throw new ApiError(detail ? errorMessages[detail] ?? detail.replace(/_/g, ' ') : 'Request failed', response.status, detail)
   }
   return response.json()
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { api, tierOf, notifyProgressChange, type Analysis, type LLMOption, type LLMOptions, type Tier, type SavedSession, type Resume } from './api'
+import { api, ApiError, PROFILE_VERSION, tierOf, notifyProgressChange, type Analysis, type LLMOption, type LLMOptions, type Tier, type SavedSession, type Resume } from './api'
 import { Account } from './Account'
 import { AnalysisChanges } from './AnalysisChanges'
 
@@ -305,6 +305,8 @@ function Override({
   )
 }
 
+const staleAnalysisErrors = new Set(['previous_analysis_incompatible', 'previous_analysis_other_session', 'analysis_not_found'])
+
 function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null; onConfigureModels: () => void }) {
   const [session, setSession] = useState<SavedSession>()
   const [sessionId, setSessionId] = useState('')
@@ -329,7 +331,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
     const controller = new AbortController()
     setHistoryBusy(true)
     api<SavedSession>(`sessions/${resume.sessionId}`, undefined, controller.signal).then(saved => {
-      setSession(saved); setSessionId(saved.id); setContext(''); setLastAnalysisId(resume.analysis?.result.id)
+      setSession(saved); setSessionId(saved.id); setContext(''); setLastAnalysisId(resume.analysis?.result.profile_version === PROFILE_VERSION ? resume.analysis.result.id : undefined)
       if (resume.analysis) {
         const item = resume.analysis
         setTask(item.conversation?.task??'');setContext(item.conversation?.task_context??'');setAnalysis(item.conversation?.response??item.result); setState('result')
@@ -374,6 +376,8 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
       setAnalysis(result);setSessionId(result.session_id);setLastAnalysisId(result.id);setTier(tierOf(result.recommendation));setState('result');notifyProgressChange()
     } catch (failure) {
       if (active.current !== controller) return
+      // A stale previous analysis cannot be compared; drop it so the user's next try starts fresh.
+      if (failure instanceof ApiError && staleAnalysisErrors.has(failure.detail ?? '')) setLastAnalysisId(undefined)
       setError(controller.signal.aborted ? 'Analysis cancelled or timed out. Please retry.' : failure instanceof Error ? failure.message : 'Analysis failed')
       setState('empty')
     } finally { window.clearTimeout(timeout) }

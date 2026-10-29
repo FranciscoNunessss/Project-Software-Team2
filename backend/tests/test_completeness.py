@@ -204,3 +204,7 @@ def test_previous_analysis_id_is_bounded():
     session = client.post("/api/sessions", json={}).json()
     response = post(client, session_id=session["id"], previous_analysis_id="x" * 37)
     assert response.status_code == 422
+    empty = post(client, session_id=session["id"], previous_analysis_id="")
+    assert empty.status_code == 422
+    assert empty.json() == {"detail": "Invalid request fields"}
+    assert assessor.calls == 0

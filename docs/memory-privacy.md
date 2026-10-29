@@ -95,6 +95,24 @@ version; these checks run before any provider call. A re-analysis is assessed wi
 conversation excerpts (numeric usage metadata is kept). No schema migration is needed; analyses
 stored earlier have no completeness or changes.
 
+29 October 2026: Educator completeness series and snapshot extensions
+
+The Educator (Groq coaching) snapshot now also contains `completeness_series`: one integer
+per session, oldest first (at most the latest 50 sessions), being the completeness of the first
+analysis of that session. It is always recomputed from the stored derived profile values
+(scores, required modalities, confidence) and `recommendation_provisional` with the current
+policy, so analyses stored before completeness existed are included and stored completeness
+values are not trusted. With fewer than five values the snapshot adds `insufficient_history`.
+The series contains numbers only. (Since 30 October the only text the Educator can receive is
+the opted-in `conversation_excerpts`; extensions and the series never carry text.)
+
+Optional modules can register a snapshot extension. Its aggregates appear under `extensions`
+and must be numbers or aggregates only, never text; size metrics never unlock the prompting
+assessment, which still needs opted-in excerpts (ADR-009); its note is appended to the Educator
+system prompt. Without registered extensions nothing is added. Extension data and the prompt
+take part in the cache fingerprint, so registering, changing or removing an extension marks
+saved guidance stale. No schema migration is needed.
+
 30 October 2026: the version-2 coaching contract generates pattern explanations, next actions
 and learning lessons in the same per-user report. It uses the same bounded derived metadata,
 plus server-computed sample counts; it adds no task storage or additional provider destination.

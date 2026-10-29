@@ -1,7 +1,15 @@
 import json
 
 import pytest
-from app.coaching import CoachingReport, GroqCoach, snapshot
+from app.coaching import (
+    SIZE_METRICS_SENTENCE,
+    TREND_SENTENCE,
+    CoachingReport,
+    GroqCoach,
+    register_snapshot_extension,
+    snapshot,
+    unregister_snapshot_extension,
+)
 from app.main import create_app
 from app.providers import ProviderFailure, Settings
 from fastapi.testclient import TestClient
@@ -406,3 +414,149 @@ def test_coaching_contract_rejects_missing_patterns_and_invented_prompt_detectio
     incorrect["patterns"]["prompting"]["status"] = "detected"
     with pytest.raises(ValidationError):
         CoachingReport.model_validate(incorrect)
+
+
+DIMENSIONS = ("reasoning", "context", "ambiguity", "domain", "risk", "tools", "modality")
+
+
+def user_of(client):
+    return client.get("/api/auth/me").json()["id"]
+
+
+def store_profile(app, analysis_id, determined, *, stored_completeness=None):
+    """Rewrite a stored analysis so its first ``determined`` dimensions are known."""
+    with app.state.storage.connect() as db:
+        result = json.loads(
+            db.execute("SELECT result_json FROM analyses WHERE id=?", (analysis_id,)).fetchone()[0]
+        )
+        for index, name in enumerate(DIMENSIONS):
+            known = index < determined
+            value = result["profile"][name]
+            value["confidence"] = "high" if known else "undetermined"
+            if name == "modality":
+                value["required"] = ["text"] if known else None
+            else:
+                value["score"] = 1 if known else None
+        result["recommendation_provisional"] = determined < len(DIMENSIONS)
+        if stored_completeness is None:
+            result.pop("completeness", None)  # As stored before A3.
+        else:
+            result["completeness"] = stored_completeness
+        db.execute(
+            "UPDATE analyses SET result_json=? WHERE id=?", (json.dumps(result), analysis_id)
+        )
+
+
+def sessions_with_rising_completeness(app, client, count):
+    for determined in range(count):
+        first = analyze(client)
+        store_profile(app, first["id"], determined + 1, stored_completeness=0)
+        # A later analysis in the same session does not enter the series.
+        response = client.post(
+            "/api/analyze",
+            json={"task": "PRIVATE_TASK_SENTINEL", "session_id": first["session_id"]},
+        )
+        assert response.status_code == 200
+
+
+def test_completeness_series_follows_sessions_and_prompt_asks_for_trend(monkeypatch):
+    prompts = []
+
+    async def fake_call(provider, settings, schema, system, human, role):
+        prompts.append((system, human))
+        return REPORT, None
+
+    monkeypatch.setattr("app.coaching.structured_call", fake_call)
+    app = create_app(Settings(_env_file=None, groq_api_key="synthetic-key"))
+    client = account(app)
+    sessions_with_rising_completeness(app, client, 6)
+    _, metadata = snapshot(app.state.storage, user_of(client))
+    series = metadata["completeness_series"]
+    assert len(series) == 6 and series == sorted(series) and len(set(series)) == 6
+    assert 0 not in series  # Stored values are never trusted.
+    assert "insufficient_history" not in metadata and "extensions" not in metadata
+    body = {"allow_external": True, "expected_model": app.state.settings.groq_model}
+    assert client.post("/api/progress/coaching", json=body).status_code == 200
+    system, human = prompts[-1]
+    assert TREND_SENTENCE.strip() in system and SIZE_METRICS_SENTENCE.strip() not in system
+    assert json.loads(human)["completeness_series"] == series
+
+
+def test_completeness_series_recomputes_analyses_without_stored_value():
+    app = create_app(Settings(_env_file=None))
+    client = account(app)
+    first = analyze(client)
+    store_profile(app, first["id"], 7)
+    _, metadata = snapshot(app.state.storage, user_of(client))
+    assert metadata["completeness_series"] == [100]
+    assert metadata["insufficient_history"] is True
+
+
+def test_four_sessions_are_insufficient_history():
+    app = create_app(Settings(_env_file=None))
+    client = account(app)
+    sessions_with_rising_completeness(app, client, 4)
+    _, metadata = snapshot(app.state.storage, user_of(client))
+    assert len(metadata["completeness_series"]) == 4
+    assert metadata["insufficient_history"] is True
+
+
+def test_snapshot_extension_data_prompt_note_and_unregistering(monkeypatch):
+    prompts = []
+
+    async def fake_call(provider, settings, schema, system, human, role):
+        prompts.append(system)
+        return REPORT, None
+
+    monkeypatch.setattr("app.coaching.structured_call", fake_call)
+    app = create_app(Settings(_env_file=None, groq_api_key="synthetic-key"))
+    client = account(app)
+    analyze(client)
+    store, user_id = app.state.storage, user_of(client)
+    plain_fingerprint, plain = snapshot(store, user_id)
+    seen = []
+
+    def data(store_arg, user_arg):
+        seen.append(user_arg)
+        return {"mean_tokens": 120, "samples": 1}
+
+    register_snapshot_extension("sizes", data, lambda: "Sizes are token-count aggregates.")
+    try:
+        fingerprint, metadata = snapshot(store, user_id)
+        assert metadata["extensions"] == {"sizes": {"mean_tokens": 120, "samples": 1}}
+        assert seen[-1] == user_id and fingerprint != plain_fingerprint
+        body = {"allow_external": True, "expected_model": app.state.settings.groq_model}
+        assert client.post("/api/progress/coaching", json=body).status_code == 200
+        assert "Sizes are token-count aggregates." in prompts[-1]
+        assert SIZE_METRICS_SENTENCE.strip() not in prompts[-1]
+        register_snapshot_extension(
+            "sizes", data, lambda: "Sizes are token-count aggregates.", provides_size_metrics=True
+        )
+        sized_fingerprint, _ = snapshot(store, user_id)
+        assert sized_fingerprint != fingerprint  # The prompt change refreshes the cache.
+        assert client.get("/api/progress/coaching").json()["saved"]["stale"] is True
+        assert client.post("/api/progress/coaching", json=body).status_code == 200
+        # ADR-009 S3: size metrics never unlock prompting.status, only excerpts do.
+        assert SIZE_METRICS_SENTENCE.strip() in prompts[-1]
+        assert "prompting.status MUST be not_assessed" in prompts[-1]
+    finally:
+        unregister_snapshot_extension("sizes")
+    assert snapshot(store, user_id) == (plain_fingerprint, plain)
+
+
+def test_snapshot_contains_no_task_free_text():
+    app = create_app(Settings(_env_file=None))
+    client = account(app)
+    sessions_with_rising_completeness(app, client, 2)
+    _, metadata = snapshot(app.state.storage, user_of(client))
+    text = json.dumps(metadata)
+    for forbidden in (
+        "PRIVATE_TASK_SENTINEL",
+        "evidence",
+        "explanation",
+        "rationale",
+        "not retained",
+        "Not retained",
+    ):
+        assert forbidden not in text
+    assert all(isinstance(value, int) for value in metadata["completeness_series"])

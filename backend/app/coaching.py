@@ -6,9 +6,11 @@ import json
 from typing import Literal
 
 from fastapi import BackgroundTasks, HTTPException
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.accounts import AuthenticatedUser
+from app.assessment import completeness
+from app.models import Profile
 from app.providers import ProviderFailure, structured_call
 
 COACHING_POLICY_VERSION = "progress-3"
@@ -52,7 +54,18 @@ class CoachingRequest(BaseModel):
     expected_model: str = Field(min_length=1, max_length=200)
 
 
-EDUCATOR_PROMPT = (
+TREND_SENTENCE = (
+    "When completeness_series has at least 5 points, describe the completeness trend "
+    "across sessions; when insufficient_history is true, say there is not enough "
+    "history yet to describe a completeness trend. "
+)
+# ADR-009 (decision S3): numeric size metrics from optional modules never unlock
+# prompting.status; only opted-in conversation_excerpts do (PR #12 rule, enforced below).
+SIZE_METRICS_SENTENCE = (
+    "Size metrics under extensions describe description length only; they never change "
+    "prompting.status, which still requires conversation_excerpts. "
+)
+EDUCATOR_PROMPT_START = (
     "You are AdaptAI's learning coach. Use ONLY supplied usage metadata and "
     "explicitly opted-in excerpts to write ALL dashboard coaching: a summary, "
     "personalised "
@@ -104,10 +117,77 @@ EDUCATOR_PROMPT = (
     "Assistant/My progress, not proposals for new features. "
     "When choices are missing or the sample is small, acknowledge it and propose "
     "an evidence-gathering next step rather than inventing a behavioural pattern. "
+)
+EDUCATOR_PROMPT_END = (
     "Explain data "
     "limitations briefly. Suggest concrete next actions grounded in counts, "
     "dimensions and choice patterns; never execute tasks. Respond in English."
 )
+EDUCATOR_PROMPT = EDUCATOR_PROMPT_START + TREND_SENTENCE + EDUCATOR_PROMPT_END
+MIN_TREND_SESSIONS = 5
+SERIES_LIMIT = 50
+
+# Optional modules register here; the core never imports them.
+_extensions = {}
+
+
+def register_snapshot_extension(name, data_fn, prompt_note_fn, *, provides_size_metrics=False):
+    """Add derived aggregates to the Educator snapshot and a note to its system prompt.
+
+    ``data_fn(store, user_id)`` must return a dict of numbers/aggregates only (no task text);
+    ``prompt_note_fn()`` returns a sentence appended to the Educator system prompt.
+    """
+    _extensions[name] = (data_fn, prompt_note_fn, provides_size_metrics)
+
+
+def unregister_snapshot_extension(name):
+    _extensions.pop(name, None)
+
+
+def educator_prompt():
+    sizes = any(provides for _, _, provides in _extensions.values())
+    prompt = (
+        EDUCATOR_PROMPT_START
+        + TREND_SENTENCE
+        + (SIZE_METRICS_SENTENCE if sizes else "")
+        + EDUCATOR_PROMPT_END
+    )
+    notes = [note_fn().strip() for _, note_fn, _ in _extensions.values()]
+    return " ".join([prompt, *(note for note in notes if note)])
+
+
+def _recomputed_completeness(result):
+    # Always recomputed with the current policy: stored values may predate it or be absent.
+    profile = {
+        key: {
+            field: value[field] for field in ("score", "required", "confidence") if field in value
+        }
+        | {"evidence": "Not retained."}
+        for key, value in result["profile"].items()
+        if isinstance(value, dict)
+    }
+    try:
+        parsed = Profile.model_validate({**profile, "explanation": "Not retained."})
+    except ValidationError:
+        return None
+    return completeness(parsed, bool(result.get("recommendation_provisional", True)))
+
+
+def completeness_series(store, user_id):
+    """Completeness of the first analysis of each session, oldest session first."""
+    with store.connect() as db:
+        rows = db.execute(
+            """SELECT * FROM (
+                 SELECT s.created_at AS session_created, s.rowid AS session_row,
+                   (SELECT a.result_json FROM analyses a WHERE a.session_id=s.id
+                    ORDER BY a.created_at,a.rowid LIMIT 1) AS first_result
+                 FROM sessions s WHERE s.user_id=?
+                 ORDER BY s.created_at DESC,s.rowid DESC
+               ) WHERE first_result IS NOT NULL LIMIT ?""",
+            (user_id, SERIES_LIMIT),
+        ).fetchall()
+    values = (_recomputed_completeness(json.loads(row["first_result"])) for row in reversed(rows))
+    return [value for value in values if value is not None]
 
 
 def snapshot(store, user_id):
@@ -157,17 +237,6 @@ def snapshot(store, user_id):
         ).fetchone()
     if not permissions or not all(permissions):
         conversations = []
-    fingerprint = hashlib.sha256(
-        json.dumps(
-            {
-                "version": COACHING_POLICY_VERSION,
-                "records": records,
-                "text_permissions": list(permissions) if permissions else [0, 0],
-                "conversations": conversations,
-            },
-            sort_keys=True,
-        ).encode()
-    ).hexdigest()
     metadata = [{key: value for key, value in record.items() if key != "id"} for record in records]
     confirmed = [row for row in metadata if row["chosen_capacity"] is not None]
     metrics = {
@@ -182,13 +251,31 @@ def snapshot(store, user_id):
         ),
         "matches": sum(row["chosen_capacity"] == row["recommended_capacity"] for row in confirmed),
     }
-    return fingerprint, {
+    series = completeness_series(store, user_id)
+    result = {
         "sample_size": len(metadata),
         "sample_limit": 50,
         "metrics": metrics,
         "assessments": metadata,
         "conversation_excerpts": conversations,
+        "completeness_series": series,
     }
+    if len(series) < MIN_TREND_SESSIONS:
+        result["insufficient_history"] = True
+    if _extensions:
+        result["extensions"] = {
+            name: data_fn(store, user_id) for name, (data_fn, _, _) in _extensions.items()
+        }
+    # The prompt is included so registering or removing an extension refreshes the cache.
+    source = {
+        "version": COACHING_POLICY_VERSION,
+        "records": records,
+        "text_permissions": list(permissions) if permissions else [0, 0],
+        "metadata": result,
+        "prompt": educator_prompt(),
+    }
+    fingerprint = hashlib.sha256(json.dumps(source, sort_keys=True).encode()).hexdigest()
+    return fingerprint, result
 
 
 class GroqCoach:
@@ -200,7 +287,7 @@ class GroqCoach:
             "groq",
             self.settings,
             CoachingReport,
-            EDUCATOR_PROMPT,
+            educator_prompt(),
             json.dumps(metadata),
             "educator",
         )

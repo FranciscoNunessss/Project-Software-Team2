@@ -12,7 +12,7 @@ const LABELS: Record<DimensionName, string> = {
 
 // Tips come from the active rubric (AA-019). Clarification questions are listed in the
 // "Clarification suggested" card above the results, so this card only points to them.
-export function TipsCard({ analysis }: { analysis: Analysis }) {
+export function TipsCard({ analysis, fromHistory = false }: { analysis: Analysis; fromHistory?: boolean }) {
   const tips = analysis.tips ?? []
   const questions = analysis.clarification_questions.length
   return (
@@ -33,7 +33,7 @@ export function TipsCard({ analysis }: { analysis: Analysis }) {
           </div>
         ) : tips.length === 0 ? (
           <div className="tip">
-            <div><p>No tips for this analysis.</p></div>
+            <div><p>{fromHistory ? 'Tips are not kept in history; analyse again to see them.' : 'No tips for this analysis.'}</p></div>
           </div>
         ) : (
           tips.map((tip, index) => (

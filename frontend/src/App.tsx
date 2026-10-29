@@ -295,6 +295,8 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
   const [state, setState] = useState<ResultState>('empty')
   const [tier, setTier] = useState<Tier>('Large')
   const [analysis, setAnalysis] = useState<Analysis>()
+  // True when the shown analysis was opened from history, which never stores tips.
+  const [fromHistory, setFromHistory] = useState(false)
   // Survives edits to the task text; cleared only by New task or a session change.
   const [lastAnalysisId, setLastAnalysisId] = useState<string>()
   const [providers, setProviders] = useState<LLMOption[]>([])
@@ -313,7 +315,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
       setSession(saved); setSessionId(saved.id); setContext(''); setLastAnalysisId(resume.analysis?.result.profile_version === PROFILE_VERSION ? resume.analysis.result.id : undefined)
       if (resume.analysis) {
         const item = resume.analysis
-        setTask(item.conversation?.task??'');setContext(item.conversation?.task_context??'');setAnalysis(item.conversation?.response??item.result); setState('result')
+        setTask(item.conversation?.task??'');setContext(item.conversation?.task_context??'');setAnalysis(item.conversation?.response??item.result); setFromHistory(!item.conversation); setState('result')
         setProvider('auto')
         const candidates = [item.result.recommendation, ...item.result.alternatives]
         setTier(tierOf(candidates.find(candidate => candidate.id === item.candidate_id) ?? item.result.recommendation))
@@ -352,7 +354,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
         previous_analysis_id: sessionId && lastAnalysisId ? lastAnalysisId : undefined, allow_external: requiresConsent, required_capabilities: ['text'],
       }, controller.signal)
       if (active.current !== controller) return
-      setAnalysis(result);setSessionId(result.session_id);setLastAnalysisId(result.id);setTier(tierOf(result.recommendation));setState('result');notifyProgressChange()
+      setAnalysis(result);setFromHistory(false);setSessionId(result.session_id);setLastAnalysisId(result.id);setTier(tierOf(result.recommendation));setState('result');notifyProgressChange()
     } catch (failure) {
       if (active.current !== controller) return
       // A stale previous analysis cannot be compared; drop it so the user's next try starts fresh.
@@ -441,7 +443,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
           <div className="result-grid">
             <ProfileCard analysis={analysis} />
             <TierCard analysis={analysis} />
-            <TipsCard analysis={analysis} />
+            <TipsCard analysis={analysis} fromHistory={fromHistory} />
           </div>
           <Override
             tier={tier}

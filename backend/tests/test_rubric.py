@@ -72,6 +72,14 @@ def test_registered_files_are_unchanged_and_active_version_is_registered():
         (lambda data: data["dimensions"][2].update(clarify_order=None), "clarify_order"),
         (lambda data: data["dimensions"][2].update(clarify_when={}), "exactly one"),
         (lambda data: data["modality"].update(clarify_question=None), "modality"),
+        (
+            lambda data: data["dimensions"][2].update(clarify_when={"required_unknown": True}),
+            "ambiguity clarify_when must use score_in",
+        ),
+        (
+            lambda data: data["modality"].update(clarify_when={"score_in": [None]}),
+            "modality clarify_when must use required_unknown",
+        ),
     ],
 )
 def test_invalid_rubric_fails_with_an_error_naming_the_problem(tmp_path, mutate, message):

@@ -53,12 +53,14 @@ def tips(profile: Profile, questions: list[str]) -> list[Tip]:
     rubric = active_rubric()
     names = [item.name for item in rubric.dimensions]
     scores = {name: getattr(profile, name).score for name in names}
+    # The simple-task rule lives in code because the rubric files are immutable per version.
+    # It applies only when every scored dimension is known and at its lowest level (so a
+    # high risk or domain never gets "needs no extra detail") and modality is known.
     if (
         None not in scores.values()
-        and profile.modality.required is not None
-        and scores["reasoning"] <= 1
-        and scores["context"] <= 1
+        and all(score <= 1 for score in scores.values())
         and scores["ambiguity"] == 1
+        and profile.modality.required is not None
     ):
         return [Tip(dimension=None, text=rubric.general_tips.simple_task)]
     ordered = sorted(

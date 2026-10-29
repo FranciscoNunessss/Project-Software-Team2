@@ -8,7 +8,7 @@ from profile_samples import profile_data
 from pydantic import ValidationError
 
 
-def analyse(data, **request):
+def client_for_profile(data):
     class Assessor:
         async def assess(self, task):
             return Assessment(profile=Profile.model_validate(data))
@@ -21,7 +21,11 @@ def analyse(data, **request):
         ).status_code
         == 201
     )
-    return client.post(
+    return client
+
+
+def analyse(data, **request):
+    return client_for_profile(data).post(
         "/api/analyze", json={"task": "Synthetic task", "provider": "ollama", **request}
     )
 
@@ -174,6 +178,24 @@ def test_simple_task_gets_exactly_one_general_tip():
     assert result["tips"] == [{"dimension": None, "text": SIMPLE_TASK_TIP}]
 
 
+@pytest.mark.parametrize("dimension", ["risk", "domain"])
+def test_high_risk_or_domain_never_gets_the_simple_task_tip(dimension):
+    result = analyse(profile_data(**{dimension: 3})).json()
+    assert result["clarification_questions"] == []
+    assert {"dimension": None, "text": SIMPLE_TASK_TIP} not in result["tips"]
+    assert [tip["dimension"] for tip in result["tips"]][0] == dimension
+
+
+def test_high_risk_gets_the_risk_tip_not_the_simple_tip():
+    result = analyse(profile_data(risk=3)).json()
+    assert result["tips"] == [
+        {
+            "dimension": "risk",
+            "text": "Say who checks the result before it is used and what must not go wrong.",
+        }
+    ]
+
+
 def test_missing_risk_gives_its_tip_and_no_question():
     result = analyse(profile_data(risk=None)).json()
     assert result["clarification_questions"] == []
@@ -218,11 +240,13 @@ def test_reasoning_and_context_share_one_clarification_question():
 
 def test_stored_analysis_does_not_retain_tips():
     import json
-    import sqlite3
 
-    result = analyse(profile_data(reasoning=2, risk=3)).json()
+    client = client_for_profile(profile_data(reasoning=2, risk=3))
+    result = client.post(
+        "/api/analyze", json={"task": "Synthetic task", "provider": "ollama"}
+    ).json()
     assert result["tips"]
-    with sqlite3.connect(Settings(_env_file=None).database_path) as db:
+    with client.app.state.storage.connect() as db:
         stored = db.execute(
             "SELECT result_json FROM analyses WHERE id=?", (result["id"],)
         ).fetchone()[0]

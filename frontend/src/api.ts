@@ -50,6 +50,28 @@ export type Analysis = {
 }
 // Keep in sync with backend/app/assessment.py PROFILE_VERSION.
 export const PROFILE_VERSION = 'profile-2'
+
+// Optional Prompt Coach (ADR-009, AA-019 B3). Mirrors backend CoachResponse.
+export type Features = { prompt_coach: boolean }
+export type CoachMode = 'tips' | 'edits' | 'rewrite'
+export type CoachSuggestion = {
+  dimension: DimensionName
+  kind: 'question' | 'tip' | 'edit'
+  title: string
+  rationale: string
+  quote: string | null
+  replacement: string | null
+  expected_effect: 'lower_ambiguity' | 'determine_dimension' | 'raise_confidence' | 'reduce_words'
+}
+export type CoachResponse = {
+  status: 'ok' | 'nothing_to_improve'
+  suggestions: CoachSuggestion[]
+  rewrite: string | null
+  open_questions: string[]
+  fallback: boolean
+  dropped: number
+  event_id: string | null
+}
 export type SavedSession = { id: string; title: string; context: string; created_at: string; analysis_count?:number; choice_count?:number }
 export type HistoryItem = { request: { task?: string; session_context?: string; personal_context?: string }; result: Analysis; candidate_id: string | null; created_at: string; conversation?: {task:string;task_context:string;response:Analysis}|null }
 export type Resume = { sessionId: string; analysis?: HistoryItem }
@@ -108,4 +130,14 @@ export async function api<T>(path: string, body?: unknown, signal?: AbortSignal,
     throw new ApiError(detail ? errorMessages[detail] ?? detail.replace(/_/g, ' ') : 'Request failed', response.status, detail)
   }
   return response.json()
+}
+
+export function getFeatures(signal?: AbortSignal): Promise<Features> {
+  return api<Features>('features', undefined, signal)
+}
+export function promptCoach(
+  body: { analysis_id: string; task: string; mode: CoachMode; allow_external: boolean },
+  signal?: AbortSignal,
+): Promise<CoachResponse> {
+  return api<CoachResponse>('prompt-coach', body, signal)
 }

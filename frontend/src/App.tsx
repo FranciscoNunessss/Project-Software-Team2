@@ -8,6 +8,7 @@ import { ProfileScreen } from './Profile'
 import { LLMConfigScreen } from './LLMConfig'
 import { ModelPicker } from './ModelPicker'
 import { TipsCard } from './TipsCard'
+import { PromptCoachTips } from './PromptCoachTips'
 
 type Screen = 'assistant' | 'progress' | 'profile' | 'llm'
 type ResultState = 'empty' | 'loading' | 'result'
@@ -445,6 +446,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
             <TierCard analysis={analysis} />
             <TipsCard analysis={analysis} fromHistory={fromHistory} />
           </div>
+          <PromptCoachTips analysis={analysis} task={task} />
           <Override
             tier={tier}
             recommended={tierOf(analysis.recommendation)}

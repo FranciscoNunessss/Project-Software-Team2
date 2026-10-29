@@ -121,6 +121,37 @@ def test_user_isolation():
     )
 
 
+def test_clearing_history_during_analysis_does_not_resurrect_it():
+    app = None
+
+    class Provider:
+        async def assess(self, task):
+            with app.state.storage.connect() as db:
+                db.execute("DELETE FROM sessions")
+            return Assessment(profile=Profile.model_validate(profile_data()))
+
+    app = create_app(Settings(_env_file=None), {"groq": Provider()})
+    client = TestClient(app)
+    account(client)
+    response = client.post(
+        "/api/analyze", json={"task": "Test", "provider": "groq", "allow_external": True}
+    )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "session_not_found"
+    with app.state.storage.connect() as db:
+        assert db.execute("SELECT count(*) FROM sessions").fetchone()[0] == 0
+        assert db.execute("SELECT count(*) FROM analyses").fetchone()[0] == 0
+
+
+def test_failed_analysis_leaves_no_empty_session():
+    client = TestClient(create_app(Settings(_env_file=None)))
+    account(client)
+    response = client.post("/api/analyze", json={"task": "Test", "expected_provider": "openai"})
+    assert response.status_code == 409
+    assert response.json()["detail"] == "model_configuration_changed"
+    assert client.get("/api/sessions").json() == []
+
+
 def test_context_consent_and_updates():
     tasks = []
 

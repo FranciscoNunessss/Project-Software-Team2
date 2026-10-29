@@ -11,10 +11,11 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.accounts import AuthenticatedUser, check_origin
 from app.accounts import router as accounts_router
-from app.assessment import POLICY_VERSION, PROFILE_VERSION
+from app.assessment import POLICY_VERSION, PROFILE_VERSION, RUBRIC_VERSION
 from app.coaching import install_coaching
 from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
+from app.prompt_builder import active_rubric, public_rubric
 from app.providers import DemonstrationProvider, LangChainProvider, ProviderFailure, Settings
 from app.storage import Storage, history_result
 from app.workflow import CATALOGUE, build_workflow
@@ -112,6 +113,10 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
     @app.get("/api/catalogue")
     def catalogue():
         return CATALOGUE
+
+    @app.get("/api/rubric")
+    def rubric():
+        return public_rubric(active_rubric())
 
     @app.post("/api/sessions", status_code=201)
     def create_session(body: SessionInput, user: AuthenticatedUser):
@@ -472,6 +477,7 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
                 else "manual",
                 "profile": state["profile"],
                 "profile_version": PROFILE_VERSION,
+                "rubric_version": RUBRIC_VERSION,
                 "recommendation_provisional": state["recommendation_provisional"],
                 "clarification_questions": state["clarification_questions"],
                 "guidance": state["guidance"],

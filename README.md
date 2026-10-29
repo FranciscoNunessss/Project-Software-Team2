@@ -78,7 +78,7 @@ and confirms eligible selections. The semantic profile now covers reasoning, con
 ambiguity, domain specificity, risk and tool need, with categorical execution modality.
 Every dimension includes evidence and qualitative, uncalibrated confidence; unknown
 values display as “Not determined”. Clarification prompts invite editing and re-analysis
-without blocking eligible selections. The rubric is in `backend/prompts/assessment-v2.txt`; the API migration is described in the "Seven-dimension prototype" section below.
+without blocking eligible selections. The rubric is versioned data in `backend/rubric/` (see "Rubric" below); the API migration is described in the "Seven-dimension prototype" section below.
 Accounts, persistent session history, context and confirmed choices are implemented.
 My progress shows real saved history, counts and recommendation agreement.
 The original progress dashboard uses actual per-session agreement and capacity comparison counts.
@@ -228,12 +228,26 @@ unknown analysis/session (404), missing or expired login (401), and conflicting 
 retry or choose another provider. The supplied frontend uses a development proxy for
 `/api`; production origins and deployment remain to be agreed.
 
+## Rubric
+
+The assessment rubric is data (ADR-009). Each version is an immutable JSON file in
+`backend/rubric/versions/`; `backend/rubric/ACTIVE` names the version in use and
+`backend/rubric/versions.json` records the sha256 of every version file. The backend
+refuses to start if the active version is missing, invalid, unregistered or modified.
+`backend/app/prompt_builder.py` generates the assessment prompt from it; `rubric-2.0`
+reproduces the former `assessment-v2.txt` prompt byte for byte (fixture in
+`backend/tests/fixtures/`). Each response carries `rubric_version`, and
+`GET /api/rubric` returns the dimensions, definitions and levels (never tips or
+Prompt Coach focus). To change the rubric, add a new version file, register its hash,
+point `ACTIVE` at it and run the core eval; never edit a registered file.
+`uv run python scripts/render_rubric.py` prints the active rubric as Markdown.
+
 ## Seven-dimension prototype
 
 The response identifies `profile_version: profile-2` and `policy_version: prototype-2`.
 This changes scalar profile fields into objects: read `profile.reasoning.score`,
 `.confidence` and `.evidence`. Backend, frontend and test fixtures must migrate together.
-The versioned assessor instructions live in `backend/prompts/assessment-v2.txt`.
+The assessor instructions are generated from the active rubric version (see "Rubric").
 
 Ranking uses reasoning/context for provisional capacity and derives hard modality
 requirements before capability filtering. Risk, domain, ambiguity and tool need do

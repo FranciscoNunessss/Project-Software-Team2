@@ -107,6 +107,8 @@ class AnalysisResult(BaseModel):
     assessment_model: str | None
     profile: Profile
     profile_version: str
+    # Analyses stored before the rubric became data used the prompt that rubric-2.0 reproduces.
+    rubric_version: str = "rubric-2.0"
     recommendation_provisional: bool
     clarification_questions: list[str]
     guidance: list[str]

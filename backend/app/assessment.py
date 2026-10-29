@@ -1,14 +1,14 @@
 """Provisional profile policy. Confidence is qualitative and uncalibrated."""
 
-from pathlib import Path
-
 from app.models import Profile
+from app.prompt_builder import active_rubric, build_assessment_prompt
 
 PROFILE_VERSION = "profile-2"
 POLICY_VERSION = "prototype-2"
-ASSESSMENT_PROMPT = (Path(__file__).parent.parent / "prompts" / "assessment-v2.txt").read_text(
-    encoding="utf-8"
-)
+# Generated from the active rubric version (ADR-009); the backend refuses to start if the
+# rubric files are invalid or do not match backend/rubric/versions.json.
+RUBRIC_VERSION = active_rubric().version
+ASSESSMENT_PROMPT = build_assessment_prompt(active_rubric())
 
 
 def capacity_target(profile: Profile) -> int:

@@ -36,7 +36,11 @@ class PersonalContext(BaseModel):
     conversation_memory_enabled: bool | None = None
 
 
-def create_app(settings: Settings | None = None, overrides: dict | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    overrides: dict | None = None,
+    prompt_coach_options: dict | None = None,
+) -> FastAPI:
     settings = settings or Settings()
     app = FastAPI(title="AdaptAI", version="0.1.0", dependencies=[Depends(check_origin)])
     store = Storage(settings.database_path)
@@ -57,6 +61,7 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
                 "/api/progress",
                 "/api/context",
                 "/api/llm-",
+                "/api/prompt-coach",
             )
         ):
             response.headers["Cache-Control"] = "no-store"
@@ -88,6 +93,20 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
         "ollama": settings.ollama_model,
     }
     external_providers = {"openai", "claude", "groq"}
+    # Optional Prompt Coach (ADR-009): the only core touch point besides /api/features.
+    if settings.prompt_coach_enabled:
+        from app.prompt_coach import install_prompt_coach
+
+        install_prompt_coach(
+            app,
+            store,
+            settings,
+            configurations=configurations,
+            enabled=enabled,
+            external_providers=external_providers,
+            providers=providers,
+            **(prompt_coach_options or {}),
+        )
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, _exc: RequestValidationError):
@@ -109,6 +128,10 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
             }
             for key, value in enabled.items()
         ]
+
+    @app.get("/api/features")
+    def features():
+        return {"prompt_coach": settings.prompt_coach_enabled}
 
     @app.get("/api/catalogue")
     def catalogue():

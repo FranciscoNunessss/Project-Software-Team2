@@ -242,6 +242,38 @@ Prompt Coach focus). To change the rubric, add a new version file, register its 
 point `ACTIVE` at it and run the core eval; never edit a registered file.
 `uv run python scripts/render_rubric.py` prints the active rubric as Markdown.
 
+## Prompt Coach (optional)
+
+The Prompt Coach is an optional module (ADR-009) that the client has not approved. It
+is switched off by default: `ADAPTAI_PROMPT_COACH_ENABLED=false`. Only when the flag is
+`true` does `create_app` import `backend/app/prompt_coach.py` (a late import inside a
+single `if` block) and call `install_prompt_coach`; no other core file imports it, and
+`backend/tests/test_features.py` enforces that. `GET /api/features` (public) returns
+`{"prompt_coach": true|false}` so the frontend can show or hide the Coach. Tests of the
+module carry the `prompt_coach` pytest marker. CI runs the backend with the flag in both
+states and a `removal-drill` job that deletes the module, runs
+`pytest -m "not prompt_coach"` and starts the app over a database that still contains a
+`prompt_coach_events` table.
+
+To remove the Prompt Coach (some of these files are added by later cards; skip those
+that do not exist yet):
+
+1. Keep `ADAPTAI_PROMPT_COACH_ENABLED=false`.
+2. Delete `backend/app/prompt_coach.py`, `backend/tests/test_prompt_coach*.py`,
+   `scripts/check_prompt_coach.py`, `extension/`, `frontend/src/PromptCoachTips.tsx`,
+   `e2e/extension.spec.ts` and the Coach steps in `e2e/assistant.spec.ts`.
+3. Remove the touch points: in `backend/app/main.py` the late import, the
+   `if settings.prompt_coach_enabled:` block and the `prompt_coach_options` parameter;
+   `Settings.prompt_coach_enabled` in `providers.py`; `prompt_coach` in `/api/features`
+   (or keep it returning `false`); `/api/prompt-coach` in the no-store path list; the
+   `prompt_coach` marker in `pyproject.toml`; the `collect_ignore_glob` line in
+   `backend/tests/conftest.py`; the `true` matrix leg and the `removal-drill` job in
+   `.github/workflows/ci.yml`; the mounting line in `App.tsx`; `prompt_coach_options`
+   in `e2e/server.py`; the call in `Progress.tsx` and the sentence in `Profile.tsx`.
+4. Optionally run `DROP TABLE IF EXISTS prompt_coach_events` on the SQLite database
+   (the core ignores the table if it stays).
+5. Run the full backend suite, `pnpm build` and the e2e tests.
+
 ## Seven-dimension prototype
 
 The response identifies `profile_version: profile-2`, `policy_version: prototype-3` and `rubric_version`; re-analyses that send `previous_analysis_id` also return `completeness` and `changes`.

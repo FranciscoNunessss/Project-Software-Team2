@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     session_days: int = Field(default=7, ge=1, le=30)
     cookie_secure: bool = False
     browser_origin: str = "http://127.0.0.1:8443"
+    prompt_coach_enabled: bool = False
 
 
 class AssessmentProvider(Protocol):

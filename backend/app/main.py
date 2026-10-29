@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.accounts import AuthenticatedUser, check_origin
 from app.accounts import router as accounts_router
-from app.assessment import POLICY_VERSION, PROFILE_VERSION, RUBRIC_VERSION
+from app.assessment import POLICY_VERSION, PROFILE_VERSION, RUBRIC_VERSION, explain_changes
 from app.coaching import install_coaching
 from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
@@ -387,8 +387,29 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
             db.execute("DELETE FROM coaching_reports WHERE user_id=?", (user["id"],))
         return {"status": "deleted"}
 
+    def previous_profile(user: dict, body: AnalysisRequest, session: dict) -> dict | None:
+        """The stored profile a re-analysis is compared with, checked before any provider call."""
+        if not body.previous_analysis_id:
+            return None
+        with store.connect() as db:
+            row = db.execute(
+                "SELECT a.session_id,a.result_json FROM analyses a "
+                "JOIN sessions s ON s.id=a.session_id WHERE a.id=? AND s.user_id=?",
+                (body.previous_analysis_id, user["id"]),
+            ).fetchone()
+        if not row:
+            raise HTTPException(404, "analysis_not_found")
+        if row["session_id"] != session["id"]:
+            raise HTTPException(422, "previous_analysis_other_session")
+        previous = json.loads(row["result_json"])
+        if previous.get("profile_version") != PROFILE_VERSION:
+            raise HTTPException(422, "previous_analysis_incompatible")
+        return previous["profile"]
+
     @app.post("/api/analyze", response_model=AnalysisResult)
     async def analyse(body: AnalysisRequest, user: AuthenticatedUser, background: BackgroundTasks):
+        if body.previous_analysis_id and not body.session_id:
+            raise HTTPException(422, "previous_analysis_requires_session")
         session = (
             owned_session(user, body.session_id)
             if body.session_id
@@ -413,6 +434,7 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
         background: BackgroundTasks,
         session: dict[str, object],
     ):
+        previous = previous_profile(user, body, session)
         actual_provider, actual_settings, actual_model, configuration_id = configurations.resolve(
             user["id"], body, enabled
         )
@@ -496,6 +518,11 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
                 else "Uncalibrated model assessment",
                 "usage": state.get("usage"),
                 "observed_cost": None,
+                "previous_analysis_id": body.previous_analysis_id,
+                "completeness": state["completeness"],
+                "changes": explain_changes(previous, state["profile"])
+                if previous is not None
+                else [],
             }
         )
         try:

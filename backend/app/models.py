@@ -15,6 +15,7 @@ class AnalysisRequest(BaseModel):
     use_personal_context: bool | None = None
     task_context: str = Field(default="", max_length=4000)
     session_id: str | None = Field(default=None, max_length=36)
+    previous_analysis_id: str | None = Field(default=None, max_length=36)
     required_capabilities: list[Literal["text", "code", "vision"]] = Field(
         default_factory=lambda: ["text"]
     )
@@ -80,6 +81,18 @@ class Profile(BaseModel):
     explanation: str = Field(min_length=1, max_length=1200)
 
 
+DimensionName = Literal["reasoning", "context", "ambiguity", "domain", "risk", "tools", "modality"]
+
+
+class Change(BaseModel):
+    """A dimension whose value differs from the previous analysis in the same session."""
+
+    dimension: DimensionName
+    before: int | list[str] | None
+    after: int | list[str] | None
+    evidence: str
+
+
 class Candidate(BaseModel):
     id: str
     name: str
@@ -123,3 +136,7 @@ class AnalysisResult(BaseModel):
     confidence_basis: str
     usage: dict[str, int] | None
     observed_cost: float | None
+    previous_analysis_id: str | None = None
+    # None only for analyses stored before completeness was introduced (prototype-3).
+    completeness: int | None = Field(default=None, ge=0, le=100)
+    changes: list[Change] = []

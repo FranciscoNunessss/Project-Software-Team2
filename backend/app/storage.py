@@ -27,6 +27,12 @@ def history_result(result: dict) -> dict:
     safe["rationale"] = "Original explanation is not retained in history."
     safe["guidance"] = []
     safe["clarification_questions"] = []
+    if "changes" in result:
+        # Evidence of a change is task-derived text: returned once, never stored.
+        safe["changes"] = [
+            {key: change[key] for key in ("dimension", "before", "after")}
+            for change in result["changes"]
+        ]
     return safe
 
 

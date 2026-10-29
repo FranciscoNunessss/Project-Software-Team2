@@ -16,6 +16,9 @@ export type Profile = {
   modality: { required: ('text' | 'image' | 'audio' | 'video')[] | null; confidence: Confidence; evidence: string }
   explanation: string
 }
+export type DimensionName = 'reasoning' | 'context' | 'ambiguity' | 'domain' | 'risk' | 'tools' | 'modality'
+// History keeps dimension/before/after only; evidence is present only in the live response.
+export type Change = { dimension: DimensionName; before: number | string[] | null; after: number | string[] | null; evidence?: string }
 export type Analysis = {
   id: string
   session_id: string
@@ -38,6 +41,9 @@ export type Analysis = {
   latency_ms: number
   catalogue_version: string
   policy_version: string
+  previous_analysis_id?: string | null
+  completeness?: number | null
+  changes?: Change[]
 }
 export type SavedSession = { id: string; title: string; context: string; created_at: string; analysis_count?:number; choice_count?:number }
 export type HistoryItem = { request: { task?: string; session_context?: string; personal_context?: string }; result: Analysis; candidate_id: string | null; created_at: string; conversation?: {task:string;task_context:string;response:Analysis}|null }
@@ -74,6 +80,9 @@ const errorMessages: Record<string, string> = {
   provider_model_unavailable: 'The configured model is unavailable. Check the model ID and account access.',
   provider_unsupported_request: 'The configured model does not support this request. Check structured output compatibility.',
   provider_unavailable: 'The assessment provider is unavailable. Check the connection or try again later.',
+  previous_analysis_requires_session: 'Re-analysis needs its saved session. Start a new task and try again.',
+  previous_analysis_other_session: 'The previous analysis belongs to another session. Start a new task and try again.',
+  previous_analysis_incompatible: 'The previous analysis used an older profile version. Start a new task to compare from here.',
   no_eligible_candidate: 'No catalogue model meets the required capabilities. Review the task requirements or update the catalogue.',
 }
 export async function api<T>(path: string, body?: unknown, signal?: AbortSignal, method?: string): Promise<T> {

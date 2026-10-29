@@ -4,7 +4,12 @@ from typing import TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from app.assessment import assessment_advice, capacity_target, required_capabilities
+from app.assessment import (
+    assessment_advice,
+    capacity_target,
+    completeness,
+    required_capabilities,
+)
 from app.models import AnalysisRequest, Assessment, Candidate, Profile
 from app.providers import AssessmentProvider, ProviderFailure
 
@@ -20,6 +25,7 @@ class State(TypedDict, total=False):
     clarification_questions: list[str]
     guidance: list[str]
     recommendation_provisional: bool
+    completeness: int
 
 
 def rank(profile: Profile, required: list[str]) -> list[Candidate]:
@@ -63,6 +69,7 @@ def build_workflow(provider: AssessmentProvider):
             "clarification_questions": questions,
             "guidance": guidance,
             "recommendation_provisional": provisional,
+            "completeness": completeness(profile, provisional),
             "rationale": (
                 f"Required capabilities: {requirements}. "
                 f"Assessed reasoning/context capacity: {target}/3. "

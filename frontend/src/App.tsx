@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { api, tierOf, notifyProgressChange, type Analysis, type LLMOption, type LLMOptions, type Tier, type SavedSession, type Resume } from './api'
 import { Account } from './Account'
+import { AnalysisChanges } from './AnalysisChanges'
 
 import { ProgressScreen } from './Progress'
 import { ProfileScreen } from './Profile'
@@ -54,6 +55,7 @@ function Button({
   disabled,
   className = '',
   ariaLabel,
+  dataAnalyseButton,
 }: {
   children: ReactNode
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -61,11 +63,13 @@ function Button({
   disabled?: boolean
   className?: string
   ariaLabel?: string
+  dataAnalyseButton?: boolean
 }) {
   return (
     <button
       type="button"
       aria-label={ariaLabel}
+      data-analyse-button={dataAnalyseButton ? '' : undefined}
       disabled={disabled}
       onClick={onClick}
       className={`button button-${variant} ${className}`}
@@ -310,6 +314,8 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
   const [state, setState] = useState<ResultState>('empty')
   const [tier, setTier] = useState<Tier>('Large')
   const [analysis, setAnalysis] = useState<Analysis>()
+  // Survives edits to the task text; cleared only by New task or a session change.
+  const [lastAnalysisId, setLastAnalysisId] = useState<string>()
   const [providers, setProviders] = useState<LLMOption[]>([])
   const [autoId, setAutoId] = useState<string|null>(null)
   const [modelsLoading, setModelsLoading] = useState(true)
@@ -323,7 +329,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
     const controller = new AbortController()
     setHistoryBusy(true)
     api<SavedSession>(`sessions/${resume.sessionId}`, undefined, controller.signal).then(saved => {
-      setSession(saved); setSessionId(saved.id); setContext('')
+      setSession(saved); setSessionId(saved.id); setContext(''); setLastAnalysisId(resume.analysis?.result.id)
       if (resume.analysis) {
         const item = resume.analysis
         setTask(item.conversation?.task??'');setContext(item.conversation?.task_context??'');setAnalysis(item.conversation?.response??item.result); setState('result')
@@ -337,7 +343,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
     return () => controller.abort()
   }, [resume])
   const newTask = () => {
-    setSession(undefined); setSessionId(''); setContext(''); setTask('')
+    setSession(undefined); setSessionId(''); setContext(''); setTask(''); setLastAnalysisId(undefined)
     setAnalysis(undefined); setState('empty'); setSaved(false); setError('')
   }
   useEffect(() => {
@@ -361,10 +367,11 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
         task, provider: 'auto', configuration_id: provider === 'auto' ? undefined : provider,
         expected_configuration_id: selectedProvider?.id, expected_provider: selectedProvider?.provider,
         expected_model: selectedProvider?.model ?? undefined,
-        task_context: context, session_id: sessionId || undefined, allow_external: requiresConsent, required_capabilities: ['text'],
+        task_context: context, session_id: sessionId || undefined,
+        previous_analysis_id: sessionId && lastAnalysisId ? lastAnalysisId : undefined, allow_external: requiresConsent, required_capabilities: ['text'],
       }, controller.signal)
       if (active.current !== controller) return
-      setAnalysis(result);setSessionId(result.session_id);setTier(tierOf(result.recommendation));setState('result');notifyProgressChange()
+      setAnalysis(result);setSessionId(result.session_id);setLastAnalysisId(result.id);setTier(tierOf(result.recommendation));setState('result');notifyProgressChange()
     } catch (failure) {
       if (active.current !== controller) return
       setError(controller.signal.aborted ? 'Analysis cancelled or timed out. Please retry.' : failure instanceof Error ? failure.message : 'Analysis failed')
@@ -398,10 +405,11 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
 
       {sessionId && <div className="active-session"><span>Saved automatically in My progress{session ? ` · ${session.title}` : ''}</span><Button variant="secondary" disabled={state === 'loading' || saving || historyBusy} onClick={newTask}>New task</Button></div>}
       {historyBusy && <p role="status">Opening your saved work…</p>}
-      <section className="composer" aria-labelledby="task-label">
+      <section className="composer" aria-labelledby="task-label" data-analysis-id={lastAnalysisId ?? ""} data-session-id={sessionId ?? ""}>
         <label id="task-label" htmlFor="task">Describe your task</label>
         <textarea
           id="task"
+          data-task-input
           value={task}
           maxLength={8000}
           disabled={state === 'loading' || saving}
@@ -415,7 +423,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
         <div className="composer-footer">
           <ModelPicker options={providers} value={provider} autoId={autoId} loading={modelsLoading} disabled={state === 'loading' || saving || historyBusy} onChange={value => {setProvider(value);setAnalysis(undefined);setState('empty');setSaved(false)}} onConfigure={onConfigureModels} />
           <div className="composer-actions">
-            <Button onClick={analyse} disabled={state === 'loading' || saving || historyBusy || modelsLoading || !selectedProvider || !task.trim()}>
+            <Button dataAnalyseButton onClick={analyse} disabled={state === 'loading' || saving || historyBusy || modelsLoading || !selectedProvider || !task.trim()}>
               {state === 'loading' ? 'Analysing…' : 'Analyse'} <Icon name="arrow" size={17} />
             </Button>
           </div>
@@ -446,6 +454,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
               <ul>{analysis.guidance.map(item => <li key={item}>{item}</li>)}</ul>
             </Card>
           )}
+          <AnalysisChanges analysis={analysis} />
           <div className="result-grid">
             <ProfileCard analysis={analysis} />
             <TierCard analysis={analysis} />

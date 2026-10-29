@@ -79,6 +79,20 @@ requests and prevents saving an automatic response already in flight; it cannot 
 already sent. Failures do not automatically repeat for unchanged history. Manual generation
 remains available as an explicit action. Cached guidance and usage-deletion controls are unchanged.
 
+29 October 2026: Completeness and explained changes (policy prototype-3)
+
+Each analysis now returns a `completeness` value (0 to 100, derived from how many profile
+dimensions are determined and confident, the ambiguity score and whether the result is
+provisional) and, on a re-analysis in the same session, `previous_analysis_id` and a list of
+`changes` for the dimensions whose value differs from that previous analysis. History stores
+`completeness`, `previous_analysis_id` and `changes` with only the dimension name and its
+before and after values. The evidence of each change is task-derived text: it is returned in
+the analysis response but never stored in analyses or history, so later reads of a session show
+changes without evidence. (Since 30 October it may also be kept inside the full AI response in
+`conversation_content`, only when the user enabled "Save task text and AI responses".) The previous analysis must belong to the same account and session and use the
+current profile version; these checks run before any provider call. No schema migration is
+needed; analyses stored earlier have no completeness or changes.
+
 30 October 2026: the version-2 coaching contract generates pattern explanations, next actions
 and learning lessons in the same per-user report. It uses the same bounded derived metadata,
 plus server-computed sample counts; it adds no task storage or additional provider destination.

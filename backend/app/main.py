@@ -347,7 +347,30 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
 
     @app.post("/api/analyze", response_model=AnalysisResult)
     async def analyse(body: AnalysisRequest, user: AuthenticatedUser, background: BackgroundTasks):
-        session = owned_session(user, body.session_id) if body.session_id else None
+        session = (
+            owned_session(user, body.session_id)
+            if body.session_id
+            else store.create_session(user["id"], body.task[:120], "")
+        )
+        created_session = body.session_id is None
+        try:
+            return await run_analysis(body, user, background, session)
+        except BaseException:
+            if created_session:
+                with store.connect() as db:
+                    db.execute(
+                        "DELETE FROM sessions WHERE id=? AND user_id=? AND NOT EXISTS "
+                        "(SELECT 1 FROM analyses WHERE session_id=sessions.id)",
+                        (session["id"], user["id"]),
+                    )
+            raise
+
+    async def run_analysis(
+        body: AnalysisRequest,
+        user: AuthenticatedUser,
+        background: BackgroundTasks,
+        session: dict[str, object],
+    ):
         actual_provider, actual_settings, actual_model, configuration_id = configurations.resolve(
             user["id"], body, enabled
         )
@@ -392,8 +415,6 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
             raise HTTPException(502, "invalid_provider_output") from None
         candidates = state["candidates"]
         identifier = str(uuid4())
-        if session is None:
-            session = store.create_session(user["id"], body.task[:120], "")
         result = AnalysisResult.model_validate(
             {
                 "id": identifier,

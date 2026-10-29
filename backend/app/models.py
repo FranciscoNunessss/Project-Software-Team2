@@ -6,8 +6,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 class AnalysisRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     task: str = Field(min_length=1, max_length=8000)
-    provider: Literal["demo", "openai", "claude", "groq", "ollama"] = "demo"
+    provider: Literal["auto", "demo", "openai", "claude", "groq", "ollama"] = "demo"
+    configuration_id: str | None = Field(default=None, min_length=1, max_length=64)
+    expected_configuration_id: str | None = Field(default=None, max_length=64)
+    expected_provider: Literal["demo", "openai", "claude", "groq", "ollama"] | None = None
+    expected_model: str | None = Field(default=None, max_length=200)
     allow_external: bool = False
+    use_personal_context: bool | None = None
+    task_context: str = Field(default="", max_length=4000)
     session_id: str | None = Field(default=None, max_length=36)
     required_capabilities: list[Literal["text", "code", "vision"]] = Field(
         default_factory=lambda: ["text"]
@@ -93,6 +99,8 @@ class Assessment(BaseModel):
 
 class AnalysisResult(BaseModel):
     id: str
+    configuration_id: str | None = None
+    selection_mode: Literal["auto", "manual"] = "manual"
     session_id: str
     mode: Literal["demonstration", "semantic"]
     provider: str

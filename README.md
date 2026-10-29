@@ -3,7 +3,7 @@
 First backend increment: task → complexity profile → capability filtering → explained
 recommendation → user selection or override. Python 3.12, uv, FastAPI, LangChain and
 an explicit LangGraph workflow. The team's React mock retains its design and its
-Assistant screen now calls the backend. Progress and team screens remain labelled design previews.
+Assistant screen now calls the backend. My progress uses saved metadata; Profile manages preferences and optional memory.
 
 ## Python tooling
 
@@ -80,7 +80,10 @@ Every dimension includes evidence and qualitative, uncalibrated confidence; unkn
 values display as “Not determined”. Clarification prompts invite editing and re-analysis
 without blocking eligible selections. The rubric is in `backend/prompts/assessment-v2.txt`; the API migration is described in the "Seven-dimension prototype" section below.
 Accounts, persistent session history, context and confirmed choices are implemented.
-Document uploads, progress charts, exports and team aggregation remain design previews.
+My progress shows real saved history, counts and recommendation agreement.
+The original progress dashboard uses actual per-session agreement and capacity comparison counts.
+My data exports the account's context and paginated session history as a local JSON file.
+Groq coaching uses derived metadata, on request or automatically when enabled in Profile. Prompt-quality detection and team aggregation remain unimplemented.
 Production reverse proxy and deployment are not configured.
 
 ## Configure assessment providers
@@ -154,8 +157,8 @@ model compatibility. Calling OpenAI or Groq also requires `allow_external: true`
 analysis. This consent also applies to Claude. There is no automatic cross-provider
 fallback or retry. Timeouts default
 to 30 seconds. Provider errors return sanitised codes, never upstream messages.
-The frontend selects Groq when it is configured, but requires explicit consent before
-sending any task. Results display the actual assessment model and token usage when
+The frontend uses project Groq in Auto mode. The Analyse action sends the task to the
+displayed destination, with an adjacent disclosure; no separate Allow checkbox is needed. Results display the actual assessment model and token usage when
 available. Provider failures never silently fall back to demonstration mode.
 
 Automated tests use fakes and a mock HTTP transport; they incur no API charges and
@@ -189,6 +192,10 @@ execute the task or generate catalogue facts.
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /api/health` | Process health |
+| `GET /api/progress` | Current user session, analysis, choice and match counts |
+| `GET /api/progress/dashboard` | Last six sessions with choices and capacity comparison counts |
+| `GET /api/context`, `PUT /api/context` | Read/save account preferences and memory settings |
+| `DELETE /api/context/memory` | Clear learned metadata memory without deleting progress |
 | `GET /api/providers` | Provider IDs, availability and external destination flag |
 | `GET /api/catalogue` | Versioned illustrative catalogue and provenance |
 | `POST /api/analyze` | Profile, recommendation, alternatives, reasons and versions |
@@ -196,8 +203,8 @@ execute the task or generate catalogue facts.
 | `POST /api/auth/register`, `POST /api/auth/login` | Create account / sign in with email and password |
 | `GET /api/auth/me`, `POST /api/auth/logout` | Current user / revoke current login |
 | `GET /api/sessions`, `POST /api/sessions` | List / create the current user's sessions |
-| `GET /api/sessions/{id}` | Session context and saved analysis history |
-| `PATCH /api/sessions/{id}`, `DELETE /api/sessions/{id}` | Update context/title / delete session and history |
+| `GET /api/sessions/{id}` | Saved assessment metadata and choices |
+| `PATCH /api/sessions/{id}`, `DELETE /api/sessions/{id}` | Compatibility no-op / delete session and history |
 
 The generated `/openapi.json` specifies request and analysis response schemas. Tasks
 must be nonblank and at most 8,000 characters. Required capabilities can be `text`,
@@ -212,7 +219,7 @@ repeating the same choice is idempotent, and changing a confirmed choice returns
 An analysis response includes `session_id`; omit it on input to create a new session,
 or supply an owned session ID to append an assessment. Cross-account IDs return 404.
 Session lists and history accept `limit` (1–100, default 100) and `offset` (default 0).
-The frontend displays the latest 100 sessions and first 100 analyses per session.
+My progress loads sessions and analyses in pages of 20, with load-more controls.
 
 Errors include unconfigured provider (409), external consent required (403), invalid
 input (422), provider timeout/authentication/rate limit/invalid output (502), and
@@ -244,11 +251,11 @@ boundary; `workflow.py` assembles the explicit assess → match graph; `main.py`
 the API. Ranking favours sufficient capacity, then the closest tier, after hard
 capability filtering. `backend/data/catalogue.json` records version and provenance.
 
-Raw tasks, explicit session context, analysis results, usage, versions, timestamps and
-confirmed choices are now saved in SQLite. Each analysis keeps a snapshot of the
-context used for that assessment. Context (up to 4,000 characters) is prepended to the
-task when assessing; historical tasks are available to the owner but are not implicitly
-resent to providers. External-processing consent covers the task and context.
+Raw task text, task-specific context, provider evidence and free-text explanations are
+transient. Saved history contains derived profile values with fixed placeholder evidence,
+recommended/eligible tiers, confirmed choices, versions, timing and provider metadata.
+Titles are generated from session IDs. Manually entered profile preferences are a separate,
+explicit account setting. External processing requires consent for the task and enabled memory.
 No workflow checkpoints or tracing are configured; LangSmith tracing is disabled
 around graph/provider calls.
 Provider-side retention follows the selected service's policy. Actual token usage
@@ -261,13 +268,13 @@ timeouts. CI runs the checks above. These checks do not establish assessment acc
 
 Next: validate real providers with agreed models/access,
 replace catalogue fixtures with sourced data, and calibrate against human-reviewed
-tasks. Deployment, progress analytics, streaming, automatic fallback and autonomous
+tasks. Deployment, trend analytics, streaming, automatic fallback and autonomous
 agents are outside this increment.
 
 ## Database and accounts
 
 The default database is `backend/data/adaptai.sqlite3`; it is created automatically
-with schema version 1 and is ignored by Git, including WAL/SHM files. Configure an
+with schema version 6 (legacy databases with sessions require explicit privacy migration) and is ignored by Git, including WAL/SHM files. Configure an
 absolute `ADAPTAI_DATABASE_PATH` when running from another directory. No additional
 database server or dependency is required. SQLite enforces foreign keys, uses WAL
 and short transactions, and persists independently of application workers. Use a
@@ -283,16 +290,20 @@ rejected. For HTTPS deployment, set `ADAPTAI_COOKIE_SECURE=true`. Add deployment
 login rate limits before public exposure; email verification and password recovery
 are not implemented. Private API responses use `Cache-Control: no-store`.
 
-The Assistant provides account registration, sign-in/out, session selection, editable
-context, saved analyses and cascading session deletion. Sessions belong to an account;
-there is no shared global history. Updating session context affects future assessments.
+The app provides account registration and sign-in/out. Assistant focuses on the task and Auto/manual model selection; memory follows Profile settings. My progress preserves the dashboard and contains paginated
+metadata history, counts, agreement, JSON export and session deletion. Historical assessment
+profiles can be viewed; original task text and explanations cannot be recovered.
+Profile & settings replaces the future Team view entry. It manages manually saved preferences,
+independent save/use memory toggles, a preview of recent learned metadata and explicit clearing.
+There is no shared global history or team aggregation in this increment.
 Deleting a session deletes its analyses and decisions from the active database.
 Backups retain their own copies; manage their access and retention separately.
 
 To back up, stop all backend workers and copy the database file to protected storage,
 then restart. To restore, stop all workers and restore the backup to the configured
 path, then restart. Do not copy just the main file while writers are active in WAL mode.
-Schema migrations run automatically on startup; newer unknown schema versions fail
+Non-destructive schema migrations run on startup; legacy text removal requires
+`uv run python scripts/migrate_privacy.py --remove-legacy-task-content` with backend workers stopped; newer unknown schema versions fail
 explicitly. Back up before deploying future migrations. PostgreSQL and cross-host
 database deployment are not configured in this increment.
 
@@ -303,3 +314,147 @@ and [ADR-008](https://docs.google.com/document/d/14OXD4V0bvVtcoSMAqIJptNDTzpt6bD
 
 Follow [GIT_WORKFLOW.md](GIT_WORKFLOW.md): feature branches target `develop`;
 protected branches are changed through reviewed pull requests.
+
+### Personal context and the progress dashboard
+
+My progress preserves the original chart, pattern cards, learning suggestions and My data layout.
+Chart values come from confirmed choices in the last six sessions with decisions.
+Capacity comparisons count larger/smaller choices against the illustrative recommendation;
+they do not establish model quality. Empty states replace fictional numbers. Prompt inflation
+is explicitly unassessed; the Generate guidance action creates personalised Groq advice from derived metadata.
+
+Both account memory flags default to false. `save_enabled` controls whether new analyses and
+choices update learned memory; disabling it keeps existing memory. `use_enabled` allows using
+preferences and the latest 20 learned metadata entries; the Assistant follows this setting automatically. API clients can explicitly opt out with
+`use_personal_context=false`. No raw task is learned. Metadata used as memory is labelled as
+past assessments, not new task requirements. It does not train a model or automatically call Groq.
+Preferences (up to 4,000 characters) are saved independently in Profile. The API accepts
+transient `task_context` for clients needing additional instructions, without persisting it.
+Clearing learned memory leaves preferences and progress intact; delete sessions in My progress
+to remove their assessments, choices and associated memory. Export contains the account settings,
+recent memory and paginated metadata history, never task text.
+
+Schema v3 removes raw requests, task-derived titles, session context and provider free text from
+legacy v1/v2 history while preserving IDs, scores and choices. This removal is irreversible in
+the active database. Old backups or synced filesystem versions may retain previous content;
+they are outside the migration's scope. See [the local privacy decision draft](docs/memory-privacy.md).
+
+## Personal LLM configuration
+
+LLM config sits below Profile. Each authenticated user can create multiple named OpenAI,
+Claude, Groq or Ollama model configurations, edit/replace credentials, enable/disable models,
+remove configurations and explicitly test connectivity. Saving does
+not call a provider. Test connection sends one synthetic assessment and may consume quota.
+Model IDs are user-supplied; saved configuration is not evidence of provider access or schema
+compatibility. OpenAI configurations expose the existing Responses API switch for compatible
+models, including Codex; no subscription or CLI credentials are read.
+
+The Assistant offers Auto or an enabled personal/server model. Auto always selects the
+project's server Groq configuration. Optional personal models are selected manually and do
+not replace the project default. If project Groq is unavailable, Auto returns an explicit
+configuration error; it never silently selects a personal model or demo.
+The actual provider, model, configuration ID and selection mode appear in the result. Failures
+never trigger silent fallback. Intelligent task routing, capability-based routing across these
+assessment models and custom endpoints remain future work. Assessment-provider selection is
+separate from the versioned catalogue's recommended task-execution tier.
+
+API: `GET/POST /api/llm-configs`, `PUT/DELETE /api/llm-configs/{id}`,
+`POST /api/llm-configs/{id}/test`, `GET /api/llm-options`. All require authentication and
+private no-store responses. `/api/analyze` accepts `provider: auto` and optional `configuration_id`.
+Legacy provider IDs remain supported. External destinations still require explicit consent,
+even if Auto selects the destination. Ollama refers to localhost on the backend machine;
+API requests cannot specify arbitrary URLs or endpoints.
+
+Personal API keys are encrypted with authenticated [Fernet encryption](https://cryptography.io/en/latest/fernet/)
+and bound to the user and configuration IDs. They are never returned by list, edit or test
+responses. API responses expose only `has_key`. Leaving a key blank on edit retains it only
+when the provider is unchanged; replacing a provider requires its own credential. Ollama
+needs no API key in this increment.
+
+The master encryption key is created on the first credential save at the database path with
+suffix `.credentials.key`, or at `ADAPTAI_CREDENTIALS_KEY_PATH` when explicitly configured.
+The key file is ignored by Git. Keep it outside cloud sync with user-restricted filesystem
+access. Back up the database and matching key securely; losing the key makes stored provider
+credentials unusable. A missing key is not silently regenerated when encrypted entries exist.
+The database and key together allow decryption; this is local encryption at rest, not protection
+from someone with full access to the backend host. Production needs managed secret storage,
+access controls, rate limits and HTTPS (`ADAPTAI_COOKIE_SECURE=true`). Automated verification uses mocks; a separate live Groq coaching smoke test is recorded below.
+
+### Provider cards and optional connection dialogs
+
+LLM config presents Groq, Claude, OpenAI/Codex and Ollama as status cards. A native modal
+dialog opens for provider details and credentials, with keyboard focus containment, Escape
+and Close controls. No model form is shown on the page by default. Personal model creation
+is optional. Cards report saved/enabled configuration, not verified live connectivity.
+Groq's card displays only the read-only server configuration; its credential remains in
+backend settings. The other dialogs show existing personal models, server models if present,
+and optional add/edit forms. Ollama needs no API key in the local integration.
+
+The legacy API field `is_default` is retained for compatibility but no longer controls Auto.
+Older personal Groq records are not deleted and remain manually selectable through the
+Assistant/API. The Groq card itself does not offer personal credential configuration.
+My progress still computes dashboard aggregates deterministically from saved metadata.
+The dashboard is deterministic; Groq guidance is generated only through its explicit action.
+
+## Progress workflow and coaching
+
+Every successful analysis is saved before any tier choice. My progress immediately shows
+analysis counts, activity by session, and a paginated list of pending choices. Confirm an
+eligible tier in Assistant or directly in My progress to update agreement, over/under-capacity
+counts and learned choice metadata. Pending choices are never assumed to match a recommendation.
+The chart offers Activity and Recommendation match views. Opening saved history automatically
+opens a session; session cards show dates, analysis counts and confirmed-choice counts.
+
+Progress refreshes on entry, window focus, visibility changes, same-origin tab notifications,
+explicit Refresh and local confirmations/deletions. Failed analyses no longer create empty
+sessions from the frontend. Existing empty legacy sessions can be reviewed/deleted normally.
+
+Analyse itself is the explicit action to send the displayed task to the displayed provider;
+the adjacent notice explains the destination and Profile-controlled memory. The checkbox is
+removed. API clients still require `allow_external=true` for external destinations. Expected
+configuration/provider/model fields prevent an unexpected destination change after rendering.
+No change to the underlying external-processing gate is made.
+
+`GET /api/progress/pending` is paginated; `GET /api/progress/activity` returns recent session
+counts. `GET /api/progress/coaching` reads the cached report and background-job status. When automatic
+coaching is enabled, it also schedules a missing or stale report (for example after a server restart).
+`POST /api/progress/coaching` requires `allow_external=true` and the displayed `expected_model`.
+It sends only derived score/confidence/modality and tier-choice metadata for the latest 50
+analyses to project Groq. No raw tasks, profile preferences, task titles or analysis IDs are
+sent. Advice uses validated structured output and is saved per account. Freshness is checked
+against the metadata fingerprint and model; unchanged reports are reused without another call.
+New analyses/choices make a report stale. Upstream failures are sanitised and do not replace
+an existing report. A history change during generation rejects the result instead of saving it.
+
+Profile has an independent, initially disabled `coaching_auto_enabled` setting. Enabling it
+authorises project Groq to process existing and future derived usage metadata automatically.
+Updates run after successful analyses and confirmed choices, outside the response body. Per-user
+generation is serialised; fresh reports are reused. Changes during generation are coalesced with
+up to three snapshots. A failed snapshot is not retried on every page load or status poll; manual
+retry or a new history revision can retry it. Disabling the setting stops future automatic calls
+and prevents saving an automatic response that was already in flight. Existing suggestions remain.
+The UI polls only while a job is running. Automatic jobs are local-process background tasks,
+not a durable queue; a later dashboard read resumes stale work after a restart.
+
+The browser remembers the selected navigation page across refreshes. Only the page identifier
+is stored in localStorage; task text, results and credentials are not stored there.
+
+My data exports settings, metadata history and saved coaching as JSON. Delete opens a separate
+confirmation before removing all usage history, learned memory and coaching. Account credentials,
+personal preferences and LLM configurations remain. Individual-session deletion also invalidates
+cached coaching so it cannot retain advice about deleted sessions.
+
+Schema v5 adds the per-user coaching cache; v6 adds the disabled automatic-coaching preference.
+Neither migration removes existing data.
+Prompt inflation/quality remains unassessed because raw prompts are not retained and no validated
+quality comparison exists. Neither agreement nor Groq-generated advice proves model quality.
+
+For an explicit live, quota-consuming smoke test using synthetic metadata only:
+
+```powershell
+uv run python scripts/check_coaching.py --live
+```
+
+On 29 October 2026 this succeeded with project Groq `openai/gpt-oss-20b`, returning two validated
+suggestions for three synthetic records. No real user history was sent during that test.
+This establishes integration connectivity and contract compatibility, not coaching accuracy.

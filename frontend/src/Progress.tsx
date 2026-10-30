@@ -160,7 +160,7 @@ export function ProgressScreen({ onResume }: { onResume: (resume: Resume) => voi
     {deleteAll&&<section className="card delete-history-confirmation" role="alert" aria-labelledby="delete-history-title"><h2 id="delete-history-title">Delete all usage history?</h2><p>This permanently removes your sessions, assessments, choices, learned memory and generated coaching. Your account, saved preferences and LLM configurations remain. Export your data first if you want a copy.</p><div className="history-actions"><button className="button button-danger" disabled={busy} onClick={()=>void clearAll()}>Delete all usage history permanently</button><button className="button button-secondary" disabled={busy} onClick={()=>setDeleteAll(false)}>Cancel</button></div></section>}
     <details className="progress-history" ref={historySection} onToggle={event=>{if(event.currentTarget.open&&!selected&&!busy&&sessions[0])void open(sessions[0].id)}}><summary>Saved history · {summary?.sessions ?? 0} sessions</summary>
     <div className="section-heading"><div><p className="eyebrow">Saved work</p><h2>Session history</h2></div></div>
-    {!loading && sessions.length === 0 && !error && <section className="card history-empty"><IconPlaceholder /><h2>Your history starts here</h2><p>Analyse a task in Assistant. Its derived profile and confirmed choice will appear here. Task text is not retained.</p></section>}
+    {!loading && sessions.length === 0 && !error && <section className="card history-empty"><IconPlaceholder /><h2>Your history starts here</h2><p>Analyse a task in Assistant. Its profile and confirmed choice will appear here. Conversation text is saved only with permission in Profile.</p></section>}
     <div className="history-layout">
       <div className="history-sessions">{sessions.map(session => <button key={session.id} className={`card history-session ${selected?.id === session.id ? 'is-selected' : ''}`} disabled={busy} onClick={() => void open(session.id)}><strong>Session · {dateLabel(session.created_at)}</strong><span>{session.analysis_count??0} analyses · {session.choice_count??0} choices confirmed</span><span>{selected?.id === session.id ? 'Viewing session' : 'View history →'}</span></button>)}{moreSessions && <button className="button button-secondary" disabled={busy} onClick={() => void loadMore(false)}>Load more sessions</button>}</div>
       {selected && <section className="card history-detail" aria-labelledby="session-title">
@@ -174,7 +174,7 @@ export function ProgressScreen({ onResume }: { onResume: (resume: Resume) => voi
       {busy && <p role="status">Loading…</p>}
     </div>
     </details>
-    <p className="confidence-note">Matching a recommendation measures agreement with this prototype, not the quality of your decision. Groq guidance uses only derived metadata and remains advice to review.</p>
+    <p className="confidence-note">Matching a recommendation measures agreement with this prototype, not the quality of your decision. Groq guidance follows your Profile permissions, may include opted-in conversation excerpts, and remains advice to review.</p>
   </main>
 }
 

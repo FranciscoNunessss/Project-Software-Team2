@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { api } from './api'
 import { CoachingPanel } from './CoachingPanel'
+import { useCoaching } from './coaching'
 
 export type Summary = { sessions: number; analyses: number; choices: number; matches: number }
 type Point = { session_id: string; title: string; created_at: string; rate: number; choices: number; matches: number }
@@ -13,6 +14,11 @@ export function ProgressDashboard({ summary, onHistory, onExport, onDeleteAll, b
   const [error, setError] = useState('')
   const [activity,setActivity]=useState<Activity[]>([])
   const [chartMode,setChartMode]=useState<'activity'|'match'>('activity')
+  const coaching = useCoaching(summary)
+  const aiPatterns = coaching.saved?.report.patterns
+  const suggestions = coaching.saved?.report.suggestions ?? []
+  const promptSamples=coaching.saved?.source?.conversation_samples??0
+  const promptStatus=aiPatterns?.prompting.status==='possible_pattern'?'Possible pattern':aiPatterns?.prompting.status==='no_clear_pattern'?'No clear pattern':'Not assessed'
   useEffect(() => {
     const controller = new AbortController()
     Promise.all([api<Dashboard>('progress/dashboard', undefined, controller.signal),api<Activity[]>('progress/activity',undefined,controller.signal)]).then(([dashboard,counts])=>{setData(dashboard);setActivity(counts);setError('')})
@@ -26,9 +32,9 @@ export function ProgressDashboard({ summary, onHistory, onExport, onDeleteAll, b
   const coordinates = points.map((point, i) => [points.length === 1 ? 450 : 20 + i * 860 / (points.length - 1), 200 - point.rate * 1.8])
   const line = coordinates.map(([x,y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(' ')
   const patterns = [
-    {title:'Over-provisioning', count:data?.over, text:'confirmed choices used a larger tier than recommended.', advice:'Review whether extra capacity is needed for the task. The catalogue is illustrative; a larger tier does not establish better quality.'},
-    {title:'Under-provisioning', count:data?.under, text:'confirmed choices used a smaller tier than recommended.', advice:'Review the task requirements and uncertainty before choosing less capacity.'},
-    {title:'Inflated prompting', count:undefined, text:'Prompt quality and unnecessary context cannot be inferred from length alone.', advice:'Keep relevant constraints and the intended outcome. Personalised analysis of prompting is not implemented yet.'},
+    {title:'Over-provisioning', count:data?.over, text:'confirmed choices used a larger tier than recommended.', insight:aiPatterns?.over_provisioning},
+    {title:'Under-provisioning', count:data?.under, text:'confirmed choices used a smaller tier than recommended.', insight:aiPatterns?.under_provisioning},
+    {title:'Inflated prompting', count:undefined, text:promptSamples?`Provisional review of ${promptSamples} opted-in conversation excerpts.`:'No opted-in text samples were available for this report.', insight:aiPatterns?.prompting},
   ]
   return <>
     <div className="intro progress-intro"><div><p className="eyebrow">My progress</p><h1>Your judgement over time</h1><p>Understand your model choices and keep the context that helps personalise your experience.</p></div><div className="metric"><strong>{rate}</strong><span>match rate</span><em>{summary ? `${summary.matches} matches · ${summary.choices} confirmed choices` : 'Loading your choices…'}</em></div></div>
@@ -40,11 +46,12 @@ export function ProgressDashboard({ summary, onHistory, onExport, onDeleteAll, b
     </section>
     {pending>0&&pendingContent}
     <div className="section-heading"><div><p className="eyebrow">Patterns</p><h2>What your choices reveal</h2></div><p>Based on {summary?.choices ?? 0} confirmed choices</p></div>
-    <div className="pattern-grid">{patterns.map(pattern => <section className="card pattern-card" key={pattern.title}><div className="pattern-top"><span className="pattern-icon" aria-hidden="true">✦</span><span className="pattern-status neutral">{pattern.count === undefined ? 'Not assessed' : summary?.choices ? `${pattern.count} choices` : 'Not enough data'}</span></div><h3>{pattern.title}</h3><p>{pattern.count === undefined ? pattern.text : summary?.choices ? `${pattern.count} ${pattern.text}` : 'Confirm model choices to start seeing your history here.'}</p><div className="next-time"><strong>Next time try…</strong><span>{pattern.advice}</span></div></section>)}</div>
-    <CoachingPanel revision={summary} analyses={summary?.analyses??0} />
+    <p className="insight-source" role="status">{coaching.saved ? `Groq-generated advice · up to 50 recent assessments · ${coaching.saved.stale ? 'Earlier guidance, update available' : new Date(coaching.saved.updated_at).toLocaleString()}` : coaching.waiting}</p>
+    <div className="pattern-grid">{patterns.map(pattern => <section className={`card pattern-card${coaching.saved?.stale ? ' insight-stale' : ''}`} key={pattern.title}><div className="pattern-top"><span className="pattern-icon" aria-hidden="true">✦</span><span className="pattern-status neutral">{pattern.title === 'Inflated prompting' ? promptStatus : pattern.count === undefined ? 'Loading…' : summary?.choices ? `${pattern.count} choices` : 'Not enough data'}</span></div><h3>{pattern.title}</h3><p>{pattern.title === 'Inflated prompting' ? pattern.text : pattern.count === undefined ? 'Loading saved choices…' : `${pattern.count} ${pattern.text}`}</p>{pattern.insight ? <><p className="pattern-ai-explanation"><span className="ai-caption">Groq insight</span>{pattern.insight.explanation}</p><div className="next-time"><strong>Next time try…</strong><span>{pattern.insight.action}</span></div></> : <p className="insight-placeholder">{coaching.waiting}</p>}</section>)}</div>
+    <CoachingPanel coaching={coaching} analyses={summary?.analyses??0} />
     <div className="lower-grid">
       <section className="lessons"><div className="section-heading compact"><div><p className="eyebrow">Learning suggestions</p><h2>Build your model judgement</h2></div></div>
-        {[{title:'When “more capable” is just more expensive',copy:'Check the capabilities required by the task.',body:'Start with the outcome, required modalities and tools. Compare eligible tiers and review the uncertainty before choosing. This prototype cannot establish price or real-world quality.'},{title:'Context is not the same as complexity',copy:'Separate how much a model must read from how deeply it must reason.',body:'State the audience, important constraints and relevant source material. More words do not necessarily require deeper reasoning. These are general tips; the Groq guidance above uses your actual metadata.'}].map(lesson => <article className="card lesson" key={lesson.title}><span className="lesson-icon" aria-hidden="true">↗</span><div><h3>{lesson.title}</h3><p>{lesson.copy}</p><details><summary>Read guidance</summary><p>{lesson.body}</p></details></div></article>)}
+        {suggestions.length > 0 ? <><p className="insight-source">Personalised by Groq{coaching.saved?.stale ? ' · earlier guidance, update available' : ''}</p>{suggestions.map((lesson,index) => <article className="card lesson" key={`${coaching.saved?.updated_at}-${index}`}><span className="lesson-icon" aria-hidden="true">↗</span><div><h3>{lesson.title}</h3><p>{lesson.explanation}</p><details><summary>Read guidance</summary><p>{lesson.action}</p></details></div></article>)}</> : <div className="card lessons-empty"><p>{coaching.waiting}</p></div>}
       </section>
       <section className="card data-card"><p className="eyebrow">Privacy controls</p><h2>My data</h2><p>{summary?.sessions ?? 0} sessions · {summary?.analyses ?? 0} analyses · {summary?.choices ?? 0} choices saved to your account.</p><p>Review saved profile metadata and choices, or delete individual sessions below.</p><div className="data-actions"><button className="button button-secondary" disabled={busy} onClick={onHistory}>See</button><button className="button button-secondary" disabled={busy} onClick={onExport}>Export</button><button className="button button-danger" disabled={busy} onClick={onDeleteAll}>Delete…</button></div></section>
     </div>

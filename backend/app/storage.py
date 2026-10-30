@@ -29,7 +29,7 @@ class Storage:
         with self.connect() as db:
             db.execute("PRAGMA journal_mode=WAL")
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 6:
+            if version > 7:
                 raise RuntimeError("Database schema is newer than this application")
             if version in {1, 2} and not allow_legacy_redaction:
                 records = db.execute("SELECT count(*) FROM sessions").fetchone()[0]
@@ -153,6 +153,20 @@ class Storage:
                     PRAGMA user_version=6;
                     COMMIT;
                 """)
+            if version < 7:
+                db.executescript("""
+                    BEGIN IMMEDIATE;
+                    ALTER TABLE user_context ADD COLUMN
+                        conversation_memory_enabled INTEGER NOT NULL DEFAULT 0;
+                    CREATE TABLE IF NOT EXISTS conversation_content (
+                        analysis_id TEXT PRIMARY KEY REFERENCES analyses(id) ON DELETE CASCADE,
+                        task TEXT NOT NULL, task_context TEXT NOT NULL,
+                        response_json TEXT NOT NULL
+                    );
+                    ALTER TABLE coaching_reports ADD COLUMN source_json TEXT NOT NULL DEFAULT '{}';
+                    PRAGMA user_version=7;
+                    COMMIT;
+                """)
 
     @contextmanager
     def connect(self):
@@ -184,9 +198,10 @@ class Storage:
     def history(self, user_id: str, session_id: str, limit: int, offset: int):
         with self.connect() as db:
             rows = db.execute(
-                """SELECT a.*, d.candidate_id FROM analyses a
+                """SELECT a.*, d.candidate_id,c.task,c.task_context,c.response_json FROM analyses a
                    JOIN sessions s ON s.id=a.session_id
                    LEFT JOIN decisions d ON d.analysis_id=a.id
+                   LEFT JOIN conversation_content c ON c.analysis_id=a.id
                    WHERE s.user_id=? AND s.id=? ORDER BY a.created_at, a.rowid LIMIT ? OFFSET ?""",
                 (user_id, session_id, limit, offset),
             ).fetchall()
@@ -196,6 +211,35 @@ class Storage:
                     "result": json.loads(row["result_json"]),
                     "candidate_id": row["candidate_id"],
                     "created_at": row["created_at"],
+                    "conversation": None
+                    if row["task"] is None
+                    else {
+                        "task": row["task"],
+                        "task_context": row["task_context"],
+                        "response": json.loads(row["response_json"]),
+                    },
                 }
                 for row in rows
             ]
+
+    def conversation_samples(self, user_id: str):
+        """Bounded excerpts, only while both explicit text consent and memory use are on."""
+        with self.connect() as db:
+            rows = db.execute(
+                """SELECT c.task,c.task_context,c.response_json FROM conversation_content c
+                   JOIN analyses a ON a.id=c.analysis_id JOIN sessions s ON s.id=a.session_id
+                   JOIN user_context u ON u.user_id=s.user_id
+                   WHERE s.user_id=? AND u.conversation_memory_enabled=1 AND u.use_enabled=1
+                   ORDER BY a.created_at DESC,a.rowid DESC LIMIT 5""",
+                (user_id,),
+            ).fetchall()
+        return [
+            {
+                "task": row["task"][:3000],
+                "task_context": row["task_context"][:500],
+                "response_excerpt": json.dumps(json.loads(row["response_json"]).get("profile", {}))[
+                    :1000
+                ],
+            }
+            for row in rows
+        ]

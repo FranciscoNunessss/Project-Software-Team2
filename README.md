@@ -251,8 +251,8 @@ boundary; `workflow.py` assembles the explicit assess → match graph; `main.py`
 the API. Ranking favours sufficient capacity, then the closest tier, after hard
 capability filtering. `backend/data/catalogue.json` records version and provenance.
 
-Raw task text, task-specific context, provider evidence and free-text explanations are
-transient. Saved history contains derived profile values with fixed placeholder evidence,
+By default, task text, task-specific context, provider evidence and free-text explanations are
+transient. Explicit conversation-storage consent adds a separate owner-only text record as described below. Saved history contains derived profile values with fixed placeholder evidence,
 recommended/eligible tiers, confirmed choices, versions, timing and provider metadata.
 Titles are generated from session IDs. Manually entered profile preferences are a separate,
 explicit account setting. External processing requires consent for the task and enabled memory.
@@ -274,7 +274,7 @@ agents are outside this increment.
 ## Database and accounts
 
 The default database is `backend/data/adaptai.sqlite3`; it is created automatically
-with schema version 6 (legacy databases with sessions require explicit privacy migration) and is ignored by Git, including WAL/SHM files. Configure an
+with schema version 7 (legacy databases with sessions require explicit privacy migration) and is ignored by Git, including WAL/SHM files. Configure an
 absolute `ADAPTAI_DATABASE_PATH` when running from another directory. No additional
 database server or dependency is required. SQLite enforces foreign keys, uses WAL
 and short transactions, and persists independently of application workers. Use a
@@ -292,7 +292,7 @@ are not implemented. Private API responses use `Cache-Control: no-store`.
 
 The app provides account registration and sign-in/out. Assistant focuses on the task and Auto/manual model selection; memory follows Profile settings. My progress preserves the dashboard and contains paginated
 metadata history, counts, agreement, JSON export and session deletion. Historical assessment
-profiles can be viewed; original task text and explanations cannot be recovered.
+profiles can be viewed. Original text is available only for analyses recorded after explicit conversation-storage consent; older discarded text cannot be recovered.
 Profile & settings replaces the future Team view entry. It manages manually saved preferences,
 independent save/use memory toggles, a preview of recent learned metadata and explicit clearing.
 There is no shared global history or team aggregation in this increment.
@@ -321,18 +321,18 @@ My progress preserves the original chart, pattern cards, learning suggestions an
 Chart values come from confirmed choices in the last six sessions with decisions.
 Capacity comparisons count larger/smaller choices against the illustrative recommendation;
 they do not establish model quality. Empty states replace fictional numbers. Prompt inflation
-is explicitly unassessed; the Generate guidance action creates personalised Groq advice from derived metadata.
+is unassessed without opted-in text. Personalised Groq advice updates automatically when enabled in Profile.
 
 Both account memory flags default to false. `save_enabled` controls whether new analyses and
 choices update learned memory; disabling it keeps existing memory. `use_enabled` allows using
 preferences and the latest 20 learned metadata entries; the Assistant follows this setting automatically. API clients can explicitly opt out with
-`use_personal_context=false`. No raw task is learned. Metadata used as memory is labelled as
+`use_personal_context=false`. Derived memory does not retain raw task text; conversation text has a separate opt-in. Metadata used as memory is labelled as
 past assessments, not new task requirements. It does not train a model or automatically call Groq.
 Preferences (up to 4,000 characters) are saved independently in Profile. The API accepts
-transient `task_context` for clients needing additional instructions, without persisting it.
+`task_context` for additional instructions; it remains transient unless conversation storage is enabled.
 Clearing learned memory leaves preferences and progress intact; delete sessions in My progress
 to remove their assessments, choices and associated memory. Export contains the account settings,
-recent memory and paginated metadata history, never task text.
+recent memory and paginated history. Text is present only in explicitly opted-in conversation records.
 
 Schema v3 removes raw requests, task-derived titles, session context and provider free text from
 legacy v1/v2 history while preserving IDs, scores and choices. This removal is irreversible in
@@ -398,6 +398,43 @@ The dashboard is deterministic; Groq guidance is generated only through its expl
 
 ## Progress workflow and coaching
 
+### Automatic suggestions in the dashboard
+
+My progress has no generate/update/retry button for coaching. The Profile setting controls
+automatic suggestions; the dashboard shows plain status text for loading, updating, up-to-date,
+disabled and unavailable states. With automation disabled, saved guidance remains visible and
+the UI directs the user to Profile. No manual coaching POST is issued by the frontend. The
+existing consent-gated POST remains available to API clients for compatibility and testing.
+Transient/provider errors do not trigger a quota-consuming poll loop: a new analysis or confirmed
+choice permits a fresh automatic attempt. Settings and history stay accessible on failure.
+
+### Optional conversation text (schema v7, 30 October 2026)
+
+The user requested an explicit exception to metadata-only retention. Existing accounts and new
+accounts keep `conversation_memory_enabled=false`. Enabling the separate Profile switch saves
+new user task text, task context and full assessment responses in `conversation_content`; the
+numeric analysis record stays sanitised. Consent is re-read after provider completion before
+writing text. Old discarded prompts cannot be reconstructed. This is persistence/context reuse,
+not model training. It extends the local implementation and does not mark the privacy ADR accepted.
+
+Reusing text requires BOTH `conversation_memory_enabled` and `use_enabled`. The Assistant and
+Groq coaching receive at most five recent opted-in excerpts: up to 3,000 characters of task,
+500 of context and 1,000 of the assessment profile per excerpt. The current analysis still needs
+the normal explicit external-processing action. Automatic Groq calls additionally require
+`coaching_auto_enabled`; otherwise coaching is manual. Historical text is treated as untrusted
+background, not instructions. Models are instructed not to quote identifying/sensitive material.
+
+Disabling text saving stops new retention and all reuse of existing text; disabling Use memory
+also prevents reuse. Both changes invalidate cached coaching so text-derived guidance is not
+retained after revocation. An in-flight response is rejected if source content or permissions
+change. Existing conversation records remain owner-viewable and deletable. My progress details
+and JSON exports include opted-in records; pending-choice cards do not include raw text.
+`DELETE /api/context/conversations` removes the owner's saved task/response text and coaching
+while preserving numeric history, choices and settings. Session/all-history deletion cascades to
+conversation content. Clearing learned numeric memory is separate and does not delete text.
+As with other SQLite data, exports/backups/OneDrive versions may retain copies; deletion does not
+promise forensic erasure. The database is ignored by Git; text is not placed in browser storage.
+
 Every successful analysis is saved before any tier choice. My progress immediately shows
 analysis counts, activity by session, and a paginated list of pending choices. Confirm an
 eligible tier in Assistant or directly in My progress to update agreement, over/under-capacity
@@ -420,11 +457,24 @@ counts. `GET /api/progress/coaching` reads the cached report and background-job 
 coaching is enabled, it also schedules a missing or stale report (for example after a server restart).
 `POST /api/progress/coaching` requires `allow_external=true` and the displayed `expected_model`.
 It sends only derived score/confidence/modality and tier-choice metadata for the latest 50
-analyses to project Groq. No raw tasks, profile preferences, task titles or analysis IDs are
-sent. Advice uses validated structured output and is saved per account. Freshness is checked
+analyses to project Groq. Up to five opted-in conversation excerpts are also sent only when
+conversation storage and Use memory are both enabled. Saved preferences, task titles and analysis IDs
+are excluded from coaching input. Advice uses validated structured output and is saved per account. Freshness is checked
 against the metadata fingerprint and model; unchanged reports are reused without another call.
 New analyses/choices make a report stale. Upstream failures are sanitised and do not replace
 an existing report. A history change during generation rejects the result instead of saving it.
+
+The version-3 coaching contract supplies every pattern explanation/next step and every learning
+lesson (title, explanation and practice action), as well as the summary. A shared frontend hook
+loads one report for all cards. There are no static coaching lessons or fallback advice; loading,
+opt-in and error states are labelled. All-history counters remain computed by the backend;
+AI interpretations use up to 50 recent profiles, with that scope shown beside the cards.
+The input includes computed sample metrics so pending choices never become matches/overrides.
+The prompt distinguishes task requirements from personal ability and does not infer price,
+model quality or actual tool usage. With no opted-in text, the backend requires prompting status
+`not_assessed`. With text, `possible_pattern` or `no_clear_pattern` may be returned as provisional
+AI interpretation of the bounded sample, not a verified quality measure. Existing reports remain stored
+but become stale when the coaching contract changes and are replaced on a successful update.
 
 Profile has an independent, initially disabled `coaching_auto_enabled` setting. Enabling it
 authorises project Groq to process existing and future derived usage metadata automatically.
@@ -445,9 +495,9 @@ personal preferences and LLM configurations remain. Individual-session deletion 
 cached coaching so it cannot retain advice about deleted sessions.
 
 Schema v5 adds the per-user coaching cache; v6 adds the disabled automatic-coaching preference.
-Neither migration removes existing data.
-Prompt inflation/quality remains unassessed because raw prompts are not retained and no validated
-quality comparison exists. Neither agreement nor Groq-generated advice proves model quality.
+Schema v7 adds optional conversation records, the disabled text-storage flag and report source
+counts. These migrations do not remove existing data.
+Prompt inflation remains unassessed without opted-in text; with text its AI assessment is explicitly provisional. No validated quality comparison exists. Neither agreement nor Groq-generated advice proves model quality.
 
 For an explicit live, quota-consuming smoke test using synthetic metadata only:
 
@@ -458,3 +508,11 @@ uv run python scripts/check_coaching.py --live
 On 29 October 2026 this succeeded with project Groq `openai/gpt-oss-20b`, returning two validated
 suggestions for three synthetic records. No real user history was sent during that test.
 This establishes integration connectivity and contract compatibility, not coaching accuracy.
+
+30 October 2026: the same synthetic smoke test passed for coaching contract version 2,
+returning all three pattern objects and three learning suggestions. No real user history was
+used in that smoke test.
+
+The contract-v3 smoke test also passed with `--live --with-conversations`: one synthetic
+conversation excerpt yielded all three patterns, three lessons and a provisional
+`possible_pattern` prompting status. No real conversation text was used in this smoke test.

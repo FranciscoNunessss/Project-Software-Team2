@@ -340,11 +340,13 @@ def test_schema_v1_migrates_without_losing_sessions(tmp_path):
         db.execute("DROP TABLE llm_configs")
         db.execute("DROP TABLE memory_entries")
         db.execute("DROP TABLE user_context")
+        db.execute("DROP TABLE conversation_content")
+        db.execute("DROP TABLE coaching_reports")
         db.execute("PRAGMA user_version=1")
     store = Storage(settings.database_path, allow_legacy_redaction=True)
     assert store.session(user["id"], saved["session_id"])["title"].startswith("Session ")
     with store.connect() as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 6
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 7
         assert db.execute("SELECT count(*) FROM user_context").fetchone()[0] == 0
 
 
@@ -452,6 +454,9 @@ def test_v2_migration_redacts_raw_content_preserving_decisions():
         db.execute("ALTER TABLE user_context DROP COLUMN save_enabled")
         db.execute("ALTER TABLE user_context DROP COLUMN use_enabled")
         db.execute("ALTER TABLE user_context DROP COLUMN coaching_auto_enabled")
+        db.execute("ALTER TABLE user_context DROP COLUMN conversation_memory_enabled")
+        db.execute("DROP TABLE conversation_content")
+        db.execute("DROP TABLE coaching_reports")
         db.execute("PRAGMA user_version=2")
     with pytest.raises(RuntimeError, match="explicit removal"):
         Storage(settings.database_path)

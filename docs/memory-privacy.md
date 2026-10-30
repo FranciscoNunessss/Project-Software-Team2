@@ -33,6 +33,10 @@ They can be edited or cleared by saving an empty value. AO/PO review is still ne
 for the preference fields, retention period and derived-memory use in the product
 baseline. No sensitive information should be requested as a preference.
 
+The historical metadata-only decisions below were extended by the user's explicit request on
+30 October for optional conversation storage. Current behaviour is described at the end of this
+file; existing metadata-only consents were not converted into task-text consent.
+
 Derived history also retains provider/version/usage diagnostics for reproducibility.
 This metadata set needs reconciliation with the specification's narrower list;
 the implementation must not be presented as formally accepted policy compliance.
@@ -74,3 +78,39 @@ change this separate permission. Disabling automatic coaching prevents future au
 requests and prevents saving an automatic response already in flight; it cannot recall a request
 already sent. Failures do not automatically repeat for unchanged history. Manual generation
 remains available as an explicit action. Cached guidance and usage-deletion controls are unchanged.
+
+30 October 2026: the version-2 coaching contract generates pattern explanations, next actions
+and learning lessons in the same per-user report. It uses the same bounded derived metadata,
+plus server-computed sample counts; it adds no task storage or additional provider destination.
+The prompt treats scores as task requirements rather than personal abilities. Prompt inflation
+is still unassessed: its generated explanation and exercise must acknowledge missing text, and
+the structured status permits only `not_assessed`. The contract version participates in cache
+freshness, so old summaries do not populate the expanded cards. Existing reports are retained
+until a valid update succeeds; generated prose remains advice, not verified conclusions.
+
+30 October 2026: explicitly opted-in conversation storage (schema v7, coaching contract v3).
+The user's request authorises an OPTIONAL exception to metadata-only retention. A separate
+initially disabled Profile switch explains that new task text, task context and full AI
+assessment responses are stored locally, may be reused with memory permission and may be sent
+to the chosen Assistant provider / project Groq. Saving is checked again after the assessment
+call. No discarded historical text is reconstructed. Numeric history remains sanitised.
+
+Both text permission and Use memory are required to include at most five bounded excerpts in
+Assistant/coaching input (3,000 task characters, 500 context characters and 1,000 profile
+characters each). Automatic Groq coaching additionally needs its own flag. The report records
+source sample counts. Prompting can be provisionally assessed only with these samples; without
+them the backend rejects any status other than `not_assessed`. Samples are untrusted content,
+not task instructions, and identifying quotations are discouraged in the model prompt.
+
+Revoking text permission stops new saving and reuse, while keeping previously stored records
+for owner review/export/deletion. Revoking use permission stops reuse. Both invalidate coaching;
+source fingerprints prevent in-flight generation from restoring a report after revocation or
+text deletion. A dedicated clear-text action deletes stored conversations and cached advice,
+leaving numeric history/settings intact. Session deletion cascades to text. Exports include
+opted-in records and may retain copies after deletion. Formal ADR acceptance is unchanged.
+
+The dashboard now displays automatic-coaching status instead of a manual generation button.
+The Profile opt-in is the user-facing control for suggestions. Turning it off leaves saved advice
+visible but stops new automatic calls. The existing explicit-consent POST remains an API-only
+capability; the frontend does not use it. Failure messages explain that new history can trigger
+another attempt, rather than directing the user to a removed retry button.

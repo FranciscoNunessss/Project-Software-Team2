@@ -15,7 +15,12 @@ from app.providers import ProviderFailure, Settings  # noqa: E402
 async def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live", action="store_true", required=True)
-    parser.parse_args()
+    parser.add_argument(
+        "--with-conversations",
+        action="store_true",
+        help="Include synthetic opted-in text to check provisional prompt analysis",
+    )
+    args = parser.parse_args()
     settings = Settings()
     if not settings.groq_model or not settings.groq_api_key.get_secret_value():
         print(json.dumps({"status": "failed", "error": "project_default_not_configured"}))
@@ -23,6 +28,24 @@ async def main():
     metadata = {
         "sample_size": 3,
         "sample_limit": 50,
+        "conversation_excerpts": [
+            {
+                "task": "Summarise this public release note in three bullets for a new teammate. "
+                "Keep each bullet short. Keep each bullet short. Keep each bullet short.",
+                "task_context": "Audience: a new teammate. No sensitive information.",
+                "response_excerpt": "A task requiring basic text summarisation.",
+            }
+        ]
+        if args.with_conversations
+        else [],
+        "metrics": {
+            "analyses": 3,
+            "confirmed_choices": 2,
+            "pending_choices": 1,
+            "larger_than_recommended": 1,
+            "smaller_than_recommended": 0,
+            "matches": 1,
+        },
         "assessments": [
             {
                 "mode": "semantic",
@@ -44,6 +67,10 @@ async def main():
                 "status": "ok",
                 "model": settings.groq_model,
                 "suggestions": len(report.suggestions),
+                "patterns": list(report.patterns.model_dump()),
+                "schema_version": report.schema_version,
+                "prompting_status": report.patterns.prompting.status,
+                "conversation_samples": len(metadata["conversation_excerpts"]),
                 "input": "synthetic metadata",
             }
         )

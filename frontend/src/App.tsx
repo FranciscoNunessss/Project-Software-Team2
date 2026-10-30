@@ -5,12 +5,10 @@ import { Account } from './Account'
 import { ProgressScreen } from './Progress'
 import { ProfileScreen } from './Profile'
 import { LLMConfigScreen } from './LLMConfig'
+import { ModelPicker } from './ModelPicker'
 
 type Screen = 'assistant' | 'progress' | 'profile' | 'llm'
 type ResultState = 'empty' | 'loading' | 'result'
-
-const sampleTask =
-  'Review a 20-page supplier contract, identify unusual liability clauses, and summarise the risks for a non-legal audience.'
 
 function Icon({
   name,
@@ -303,12 +301,12 @@ function Override({
   )
 }
 
-function AssistantScreen({ resume }: { resume: Resume | null }) {
+function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null; onConfigureModels: () => void }) {
   const [session, setSession] = useState<SavedSession>()
   const [sessionId, setSessionId] = useState('')
   const [context, setContext] = useState('')
   const [historyBusy, setHistoryBusy] = useState(false)
-  const [task, setTask] = useState(sampleTask)
+  const [task, setTask] = useState('')
   const [state, setState] = useState<ResultState>('empty')
   const [tier, setTier] = useState<Tier>('Large')
   const [analysis, setAnalysis] = useState<Analysis>()
@@ -328,7 +326,7 @@ function AssistantScreen({ resume }: { resume: Resume | null }) {
       setSession(saved); setSessionId(saved.id); setContext('')
       if (resume.analysis) {
         const item = resume.analysis
-        setTask(''); setAnalysis(item.result); setState('result')
+        setTask(item.conversation?.task??'');setContext(item.conversation?.task_context??'');setAnalysis(item.conversation?.response??item.result); setState('result')
         setProvider('auto')
         const candidates = [item.result.recommendation, ...item.result.alternatives]
         setTier(tierOf(candidates.find(candidate => candidate.id === item.candidate_id) ?? item.result.recommendation))
@@ -411,33 +409,20 @@ function AssistantScreen({ resume }: { resume: Resume | null }) {
             setTask(event.target.value)
             setState('empty'); setAnalysis(undefined); setSaved(false)
           }}
-          placeholder="For example: Compare three CRM proposals and recommend one for a 25-person sales team…"
+          placeholder="Describe what you need to do…"
         />
 
         <div className="composer-footer">
-          <span className="muted">Text only · {task.length}/8,000 characters</span>
+          <ModelPicker options={providers} value={provider} autoId={autoId} loading={modelsLoading} disabled={state === 'loading' || saving || historyBusy} onChange={value => {setProvider(value);setAnalysis(undefined);setState('empty');setSaved(false)}} onConfigure={onConfigureModels} />
           <div className="composer-actions">
-            <span>Be specific about the outcome</span>
             <Button onClick={analyse} disabled={state === 'loading' || saving || historyBusy || modelsLoading || !selectedProvider || !task.trim()}>
               {state === 'loading' ? 'Analysing…' : 'Analyse'} <Icon name="arrow" size={17} />
             </Button>
           </div>
         </div>
-        <div className="api-controls">
-          <label htmlFor="assessment-provider">Assessment model</label>
-          <select id="assessment-provider" value={provider} disabled={modelsLoading || state === 'loading' || saving} onChange={event => {
-            setProvider(event.target.value);setAnalysis(undefined);setState('empty');setSaved(false)
-          }}>
-            <option value="auto" disabled={!autoId}>Auto{selectedProvider && provider === 'auto' ? ` · ${selectedProvider.model || selectedProvider.label}` : ''}</option>
-            {providers.map(item => <option key={item.id} value={item.id}>{item.label}{item.model ? ` · ${item.model}` : ''}{item.source === 'server' ? ' · server' : ''}</option>)}
-          </select>
-          {requiresConsent && <p className="processing-notice">Selecting <strong>Analyse</strong> sends this task and memory enabled in Profile to <strong>{selectedProvider?.provider}</strong>. Task text is not retained in your history.</p>}
-
-          {provider === 'auto' && <p className="muted">Auto uses the project Groq model. Intelligent task routing is not implemented yet.</p>}
-          <p className="muted">Models and API keys are managed in LLM config. Memory follows your Profile settings.</p>
-
-        </div>
+        <p className="composer-meta muted">Text only · {task.length}/8,000 characters</p>
       </section>
+      {requiresConsent && <p className="processing-notice assistant-processing-notice">Selecting <strong>Analyse</strong> sends this task and memory enabled in Profile to <strong>{selectedProvider?.provider}</strong>. Task text is saved only with your conversation-storage permission in Profile.</p>}
 
       {error && <p className="api-error" role="alert">{error}</p>}
       {state === 'empty' && <EmptyResult />}
@@ -476,7 +461,7 @@ function AssistantScreen({ resume }: { resume: Resume | null }) {
           <div className="choice-confirmation"><p>Choose a tier above, then confirm it to update your progress. Analysing alone does not record a model choice.</p><Button onClick={confirm} disabled={saving || saved}>{saved ? 'Choice saved to My progress' : saving ? 'Saving…' : 'Confirm choice & update progress'}</Button></div>
           {saved && <p role="status">Choice saved to your account. No task execution is performed.</p>}
           {analysis.warnings.map(warning => <p className="confidence-note" key={warning}>{warning}</p>)}
-          <p className="privacy">Only derived profile metadata and choices are retained. Task text and task context are not stored. Manage and delete saved sessions in My progress.</p>
+          <p className="privacy">Profile metadata and choices are saved. Task text, context and AI responses are additionally saved only with explicit conversation-storage permission in Profile. Manage and delete saved sessions in My progress.</p>
           <p className="muted">{analysis.confidence_basis} · Profile {analysis.profile_version} · Catalogue {analysis.catalogue_version} · Policy {analysis.policy_version}</p>
           {analysis.assessment_model && <p className="muted">Assessed by {analysis.assessment_model} · {analysis.usage?.total_tokens === undefined ? 'Token usage unavailable' : `${analysis.usage.total_tokens} tokens`}</p>}
         </>
@@ -510,7 +495,7 @@ export default function App() {
   return (
     <div className={dark ? 'app theme-dark' : 'app'}>
       <Account dark={dark} onToggleTheme={toggleTheme} header={<Header screen={screen} onNavigate={navigate} dark={dark} onToggleTheme={toggleTheme} />}>
-      {screen === 'assistant' && <AssistantScreen resume={resume} />}
+      {screen === 'assistant' && <AssistantScreen resume={resume} onConfigureModels={() => navigate('llm')} />}
       {screen === 'progress' && <ProgressScreen onResume={saved => { setResume(saved); setScreen('assistant') }} />}
       {screen === 'profile' && <ProfileScreen />}
       {screen === 'llm' && <LLMConfigScreen />}

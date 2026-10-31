@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "AdaptAI Prompt Coach",
+  "version": "0.1.0",
+  "description": "Optional AdaptAI module (ADR-009): suggestions on the AdaptAI task field to describe a task better before re-analysing it.",
+  "content_scripts": [
+    {
+      "matches": ["http://127.0.0.1/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

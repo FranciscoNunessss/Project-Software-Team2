@@ -5,7 +5,9 @@ The core does not depend on this file.
 
 ``app.main.create_app`` imports this module late, only when the flag is true. Deleting
 this file (with its tests) must leave the core application working; see README,
-"Prompt Coach (optional)", for the removal procedure.
+"Prompt Coach (optional)", for the removal procedure. This module must never change
+``PRAGMA user_version``: any table it needs is created with ``CREATE TABLE IF NOT EXISTS``,
+outside the core migrations, so the core still starts after the module is removed.
 """  # noqa: E501
 
 from collections.abc import Callable

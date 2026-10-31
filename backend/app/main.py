@@ -93,20 +93,6 @@ def create_app(
         "ollama": settings.ollama_model,
     }
     external_providers = {"openai", "claude", "groq"}
-    # Optional Prompt Coach (ADR-009): the only core touch point besides /api/features.
-    if settings.prompt_coach_enabled:
-        from app.prompt_coach import install_prompt_coach
-
-        install_prompt_coach(
-            app,
-            store,
-            settings,
-            configurations=configurations,
-            enabled=enabled,
-            external_providers=external_providers,
-            providers=providers,
-            **(prompt_coach_options or {}),
-        )
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, _exc: RequestValidationError):
@@ -645,6 +631,22 @@ def create_app(
             "candidate_id": body.candidate_id,
             "persistence": "database",
         }
+
+    # Optional Prompt Coach (ADR-009), mounted after every core route so it can never shadow
+    # one. It is the only core touch point besides /api/features.
+    if settings.prompt_coach_enabled:
+        from app.prompt_coach import install_prompt_coach
+
+        install_prompt_coach(
+            app,
+            store,
+            settings,
+            configurations=configurations,
+            enabled=enabled,
+            external_providers=external_providers,
+            providers=providers,
+            **(prompt_coach_options or {}),
+        )
 
     return app
 

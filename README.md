@@ -252,8 +252,14 @@ single `if` block) and call `install_prompt_coach`; no other core file imports i
 `{"prompt_coach": true|false}` so the frontend can show or hide the Coach. Tests of the
 module carry the `prompt_coach` pytest marker. CI runs the backend with the flag in both
 states and a `removal-drill` job that deletes the module, runs
-`pytest -m "not prompt_coach"` and starts the app over a database that still contains a
-`prompt_coach_events` table.
+`pytest -m "not prompt_coach"`, migrates a real database, adds a leftover
+`prompt_coach_events` table and restarts the app over it, checking that
+`PRAGMA user_version` is unchanged. The module must therefore never change
+`PRAGMA user_version`: its tables are created with `CREATE TABLE IF NOT EXISTS`,
+outside the core migrations. The Coach is mounted after every core route, so it can
+never shadow one. Branch protection should require the checks
+"backend (prompt_coach=false)", "backend (prompt_coach=true)" and "removal-drill"
+instead of "backend".
 
 To remove the Prompt Coach (some of these files are added by later cards; skip those
 that do not exist yet):

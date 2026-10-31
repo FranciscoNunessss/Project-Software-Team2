@@ -4,6 +4,7 @@ permissions:
   contents: read
 jobs:
   backend:
+    name: backend (prompt_coach=${{ matrix.prompt_coach }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -36,27 +37,32 @@ jobs:
           rm -f backend/app/prompt_coach.py backend/tests/test_prompt_coach*.py
           scripts/check_prompt_coach.py
       - run: uv run python -m pytest -q -m "not prompt_coach"
-      - name: Start over a database that still has Prompt Coach data
+      - name: Restart over a real database that still has Prompt Coach data
         env:
           ADAPTAI_DATABASE_PATH: ${{ runner.temp }}/drill.sqlite3
           ADAPTAI_CREDENTIALS_KEY_PATH: ${{ runner.temp }}/drill.key
+        working-directory: backend
         run: |
           uv run python - <<'PY'
           import os
           import sqlite3
 
-          with sqlite3.connect(os.environ["ADAPTAI_DATABASE_PATH"]) as db:
-              db.execute("CREATE TABLE prompt_coach_events (id TEXT PRIMARY KEY, payload TEXT)")
-              db.execute("INSERT INTO prompt_coach_events VALUES ('drill', '{}')")
-          PY
-          cd backend
-          uv run python - <<'PY'
           from app.main import create_app
           from fastapi.testclient import TestClient
 
-          response = TestClient(create_app()).get("/api/health")
-          assert response.status_code == 200, response.text
-          print("health", response.json())
+          path = os.environ["ADAPTAI_DATABASE_PATH"]
+          # 1. The core migrates a fresh database to its current schema.
+          assert TestClient(create_app()).get("/api/health").status_code == 200
+          with sqlite3.connect(path) as db:
+              version = db.execute("PRAGMA user_version").fetchone()[0]
+              # 2. Leftover Prompt Coach data, as after removing the module.
+              db.execute("CREATE TABLE prompt_coach_events (id TEXT PRIMARY KEY, payload TEXT)")
+              db.execute("INSERT INTO prompt_coach_events VALUES ('drill', '{}')")
+          # 3. The core restarts over it and the schema version is untouched.
+          assert TestClient(create_app()).get("/api/health").status_code == 200
+          with sqlite3.connect(path) as db:
+              assert db.execute("PRAGMA user_version").fetchone()[0] == version
+          print("removal drill ok, user_version", version)
           PY
   frontend:
     runs-on: ubuntu-latest

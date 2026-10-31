@@ -224,7 +224,7 @@ class Storage:
                     else {
                         "task": row["task"],
                         "task_context": row["task_context"],
-                        "response": json.loads(row["response_json"]),
+                        "response": stored_result(row["response_json"]),
                     },
                 }
                 for row in rows

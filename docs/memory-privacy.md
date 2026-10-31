@@ -148,3 +148,13 @@ The Profile opt-in is the user-facing control for suggestions. Turning it off le
 visible but stops new automatic calls. The existing explicit-consent POST remains an API-only
 capability; the frontend does not use it. Failure messages explain that new history can trigger
 another attempt, rather than directing the user to a removed retry button.
+
+31 October 2026: optional Prompt Coach (ADR-009, off by default)
+
+When `ADAPTAI_PROMPT_COACH_ENABLED` is true, `POST /api/prompt-coach` sends the task text the
+user is editing, and the dimensions of one of that user's stored analyses, to the same provider
+and model as that analysis, only when the user clicks and only with per-request consent for an
+external provider. Nothing it receives or returns is stored, logged or traced: not the task, the
+suggestions, quotes, replacements, rewrite or open questions, whatever the memory and
+conversation-saving settings are. If the user applies a suggestion and analyses again, that new
+task follows the ordinary rules above (stored as text only with "Save task text and AI responses").

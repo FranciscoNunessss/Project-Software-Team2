@@ -34,6 +34,7 @@
     sessionId: '',
     analysedText: null,
     destination: null, // { provider, model, external }
+    uncertain: [], // What the analysis left uncertain, from data already loaded; no model call.
     result: null, // CoachResponse
     view: 'list', // 'list' | 'rewrite'
     busy: false,
@@ -65,6 +66,27 @@
       found.push({ title: 'Phone or ID number in the task', detail: 'Replace personal numbers with a placeholder before analysing.' })
     }
     return found
+  }
+
+  // Mirrors select_targets in backend/app/prompt_coach.py (priority order, MAX_TARGETS = 4) so
+  // the bubble can count what the Coach would work on without sending the task anywhere.
+  const SCORED = ['reasoning', 'context', 'ambiguity', 'domain', 'risk', 'tools']
+  function openDimensions(profile) {
+    if (!profile) return []
+    const found = []
+    SCORED.forEach((name, order) => {
+      const { score = null, confidence } = profile[name] || {}
+      const unknown = score === null
+      let rank
+      if (name === 'ambiguity' && (unknown || score === 2 || score === 3 || confidence === 'low')) rank = 0
+      else if (unknown || confidence === 'undetermined') rank = 1
+      else if (confidence === 'low') rank = 2
+      else return
+      found.push([rank, order, name])
+    })
+    if (!profile.modality || profile.modality.required == null) found.push([1, SCORED.length, 'modality'])
+    found.sort((a, b) => a[0] - b[0] || a[1] - b[1])
+    return found.slice(0, 4).map(entry => entry[2])
   }
 
   function setFieldValue(value) {
@@ -174,6 +196,7 @@
 
   async function loadDestination() {
     state.destination = null
+    state.uncertain = []
     if (!state.sessionId || !state.analysisId) return
     try {
       const session = await api(`/api/sessions/${encodeURIComponent(state.sessionId)}`)
@@ -181,6 +204,7 @@
       if (item) {
         const provider = item.result.provider
         state.destination = { provider, model: item.result.assessment_model, external: EXTERNAL.has(provider) }
+        state.uncertain = openDimensions(item.result.profile)
       }
     } catch { state.destination = null }
     render()
@@ -198,6 +222,7 @@
     state.error = ''
     state.applied = false
     state.answers = {}
+    state.uncertain = []
     void loadDestination()
     render()
   }
@@ -296,6 +321,12 @@
       const where = state.destination
         ? `<b>${esc(state.destination.provider)}${state.destination.model ? ` · ${esc(state.destination.model)}` : ''}</b>`
         : 'the model of this analysis'
+      if (current() && state.uncertain.length) {
+        const names = state.uncertain.map(name => DIMENSIONS[name] || name).join(', ')
+        parts.push(`<div class="card"><span class="kicker">From this analysis</span>
+          <span class="title">${state.uncertain.length} ${state.uncertain.length === 1 ? 'dimension' : 'dimensions'} left uncertain</span>
+          <p class="detail">${esc(names)}. Get suggestions to see how to describe them.</p></div>`)
+      }
       parts.push(`<p class="note">Asking sends this task to ${where}${state.destination && !state.destination.external ? ' (local)' : ''}. Nothing is saved.</p>`)
       return parts.join('')
     }
@@ -309,6 +340,8 @@
     return parts.join('')
   }
 
+  const current = () => Boolean(state.analysisId) && (state.analysedText === null || text() === state.analysedText)
+
   function render() {
     if (!state.field || !state.field.isConnected) {
       bubble.hidden = true
@@ -316,7 +349,10 @@
       return
     }
     host.classList.toggle('dark', Boolean(document.querySelector('.app.theme-dark')))
-    const pending = localChecks(text()).length + (state.result ? state.result.suggestions.length : 0)
+    // After an analysis the bubble counts what it left uncertain (or the suggestions, once asked);
+    // the count disappears as soon as the text no longer matches the analysed task.
+    const fromAnalysis = state.result ? state.result.suggestions.length : current() ? state.uncertain.length : 0
+    const pending = localChecks(text()).length + fromAnalysis
     bubble.hidden = false
     bubble.innerHTML = pending ? `<span class="dot" aria-hidden="true"></span>${pending}` : '✦'
     bubble.setAttribute('aria-label', pending ? `AdaptAI Prompt Coach: ${pending} suggestions` : 'AdaptAI Prompt Coach')

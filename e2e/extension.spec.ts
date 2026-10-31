@@ -71,6 +71,33 @@ test('bubble → suggestions → apply and answer → re-analysis shows what cha
   await expect(page.getByText('100/100')).toBeVisible()
 })
 
+test('after an analysis the bubble counts what it left uncertain without calling the Coach', async () => {
+  const page = await context.newPage()
+  const coachCalls: string[] = []
+  page.on('request', request => {
+    if (request.url().endsWith('/api/prompt-coach')) coachCalls.push(request.url())
+  })
+  await signUp(page)
+  const bubble = coach(page).locator('.bubble')
+  await analyse(page, VAGUE)
+  // FakeAssessor: ambiguity 3, context and risk unknown, reasoning low confidence.
+  await expect(bubble).toHaveText('4')
+  await expect(bubble).toHaveAttribute('aria-label', 'AdaptAI Prompt Coach: 4 suggestions')
+  await bubble.click()
+  const panel = coach(page).locator('.panel')
+  await expect(panel).toContainText('4 dimensions left uncertain')
+  await expect(panel).toContainText('Ambiguity, Context, Risk, Reasoning')
+  expect(coachCalls).toHaveLength(0)
+
+  // Editing the task makes the analysis stale: the count goes away until the next analysis.
+  await page.keyboard.press('Escape')
+  await page.locator('[data-task-input]').fill(`${VAGUE} For the board.`)
+  await expect(bubble).toHaveText('✦')
+  await analyse(page, 'Write a one-page summary of the report for the board. The risk: rework before the meeting.')
+  await expect(bubble).toHaveText('✦') // Nothing left uncertain.
+  expect(coachCalls).toHaveLength(0)
+})
+
 test('a suggested rewrite is shown as a diff and applied only on click', async () => {
   const page = await context.newPage()
   await signUp(page)

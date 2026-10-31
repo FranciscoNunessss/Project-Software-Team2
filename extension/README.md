@@ -20,6 +20,7 @@ sends nothing.
 | Step | What happens |
 |---|---|
 | Write the task and select **Analyse** | The app analyses it as usual |
+| Look at the bubble | After the analysis it shows how many dimensions were left uncertain (no model is called; it disappears when you edit the text) |
 | Select the bubble | The panel names where the task would be sent (the model of that analysis) |
 | **Get suggestions** | Sends the task once to that model; suggestions name the dimension they improve |
 | **Apply** on an edit | Replaces the quoted words in the task field |

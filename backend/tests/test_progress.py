@@ -671,3 +671,21 @@ def test_sessions_with_an_invalid_stored_profile_are_skipped():
     assert metadata["skipped_sessions"] == 1
     assert len(metadata["completeness_series"]) == 4
     assert metadata["insufficient_history"] is True
+
+
+def test_opted_in_excerpts_are_the_only_text_in_the_snapshot():
+    app = create_app(Settings(_env_file=None))
+    client = account(app)
+    client.put("/api/context", json={"use_enabled": True, "conversation_memory_enabled": True})
+    register_snapshot_extension("numbers", lambda *_: {"n": 2}, lambda: "")
+    try:
+        analyze(client)
+        response = client.post("/api/analyze", json={"task": "OPTED_IN_SENTINEL"})
+        assert response.status_code == 200
+        _, metadata = snapshot(app.state.storage, user_of(client))
+    finally:
+        unregister_snapshot_extension("numbers")
+    assert "OPTED_IN_SENTINEL" in json.dumps(metadata["conversation_excerpts"])
+    rest = {key: value for key, value in metadata.items() if key != "conversation_excerpts"}
+    assert "OPTED_IN_SENTINEL" not in json.dumps(rest)
+    assert metadata["extensions"] == {"numbers": {"n": 2}}

@@ -143,6 +143,8 @@ def register_snapshot_extension(name, data_fn, prompt_note_fn, *, provides_size_
     omits the extension from both the snapshot and the prompt. ``prompt_note_fn()``
     returns a sentence appended to the Educator system prompt; it must be deterministic
     (same text on every call) because the prompt enters the cache fingerprint.
+    ``provides_size_metrics`` only adds a sentence saying such metrics never unlock the
+    prompting assessment (ADR-009, decision S3); that still needs opted-in excerpts.
     """
     _extensions[name] = (data_fn, prompt_note_fn, provides_size_metrics)
 

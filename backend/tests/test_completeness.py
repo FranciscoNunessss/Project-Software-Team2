@@ -128,7 +128,7 @@ def test_reanalysis_explains_changed_dimensions_only():
     )
 
 
-def test_stored_changes_drop_evidence():
+def test_analyses_and_history_store_changes_without_evidence():
     assessor = Scripted(profile_data(risk=None), profile_data(risk=3))
     client = client_for(assessor)
     before = post(client).json()
@@ -142,6 +142,43 @@ def test_stored_changes_drop_evidence():
     assert stored["previous_analysis_id"] == before["id"]
     history = client.get(f"/api/sessions/{before['session_id']}").json()
     assert history["analyses"][1]["result"]["changes"] == stored["changes"]
+
+
+def test_change_evidence_is_kept_only_in_opted_in_conversations():
+    assessor = Scripted(profile_data(risk=None), profile_data(risk=3))
+    client = client_for(assessor)
+    client.put("/api/context", json={"conversation_memory_enabled": True})
+    before = post(client).json()
+    after = post(client, session_id=before["session_id"], previous_analysis_id=before["id"]).json()
+    evidence = after["changes"][0]["evidence"]
+    with client.app.state.storage.connect() as db:
+        result = db.execute(
+            "SELECT result_json FROM analyses WHERE id=?", (after["id"],)
+        ).fetchone()
+        saved = db.execute(
+            "SELECT response_json FROM conversation_content WHERE analysis_id=?", (after["id"],)
+        ).fetchone()
+    assert evidence not in result["result_json"]
+    assert json.loads(saved["response_json"])["changes"][0]["evidence"] == evidence
+
+
+def test_reanalysis_is_assessed_without_past_conversation_excerpts():
+    assessor = Scripted(profile_data(risk=None), profile_data(risk=3), profile_data(risk=3))
+    seen = []
+    original = assessor.assess
+
+    async def recording(task):
+        seen.append(task)
+        return await original(task)
+
+    assessor.assess = recording
+    client = client_for(assessor)
+    client.put("/api/context", json={"use_enabled": True, "conversation_memory_enabled": True})
+    first = post(client).json()
+    post(client, session_id=first["session_id"])
+    post(client, session_id=first["session_id"], previous_analysis_id=first["id"])
+    assert "conversation excerpts" in seen[1]
+    assert "conversation excerpts" not in seen[2]
 
 
 def test_previous_analysis_requires_session():

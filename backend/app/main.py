@@ -464,7 +464,15 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
                 "Usage metadata (previous assessments, not task requirements):\n"
                 + json.dumps(preferences["memory"])
             )
-        if use_memory and preferences["conversation_memory_enabled"]:
+        # A re-analysis is compared with its previous analysis, so it is assessed without past
+        # conversation excerpts: otherwise old tasks could change the dimensions being compared.
+        # Numeric usage metadata (above) is kept: it carries no task content and the first
+        # analysis was assessed with it too.
+        if (
+            use_memory
+            and preferences["conversation_memory_enabled"]
+            and not body.previous_analysis_id
+        ):
             samples = store.conversation_samples(user["id"])
             if samples:
                 parts.append(

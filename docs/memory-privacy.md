@@ -89,9 +89,11 @@ provisional) and, on a re-analysis in the same session, `previous_analysis_id` a
 before and after values. The evidence of each change is task-derived text: it is returned in
 the analysis response but never stored in analyses or history, so later reads of a session show
 changes without evidence. (Since 30 October it may also be kept inside the full AI response in
-`conversation_content`, only when the user enabled "Save task text and AI responses".) The previous analysis must belong to the same account and session and use the
-current profile version; these checks run before any provider call. No schema migration is
-needed; analyses stored earlier have no completeness or changes.
+`conversation_content`, only when the user enabled "Save task text and AI responses".) The
+previous analysis must belong to the same account and session and use the current profile
+version; these checks run before any provider call. A re-analysis is assessed without past
+conversation excerpts (numeric usage metadata is kept). No schema migration is needed; analyses
+stored earlier have no completeness or changes.
 
 30 October 2026: the version-2 coaching contract generates pattern explanations, next actions
 and learning lessons in the same per-user report. It uses the same bounded derived metadata,

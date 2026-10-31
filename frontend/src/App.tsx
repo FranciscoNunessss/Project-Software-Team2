@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { api, tierOf, notifyProgressChange, type Analysis, type LLMOption, type LLMOptions, type Tier, type SavedSession, type Resume } from './api'
+import { api, ApiError, PROFILE_VERSION, tierOf, notifyProgressChange, type Analysis, type LLMOption, type LLMOptions, type Tier, type SavedSession, type Resume } from './api'
 import { Account } from './Account'
+import { AnalysisChanges } from './AnalysisChanges'
 
 import { ProgressScreen } from './Progress'
 import { ProfileScreen } from './Profile'
 import { LLMConfigScreen } from './LLMConfig'
 import { ModelPicker } from './ModelPicker'
+import { TipsCard } from './TipsCard'
+import { PromptCoachTips } from './PromptCoachTips'
 
 type Screen = 'assistant' | 'progress' | 'profile' | 'llm'
 type ResultState = 'empty' | 'loading' | 'result'
@@ -54,6 +57,7 @@ function Button({
   disabled,
   className = '',
   ariaLabel,
+  dataAnalyseButton,
 }: {
   children: ReactNode
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -61,11 +65,13 @@ function Button({
   disabled?: boolean
   className?: string
   ariaLabel?: string
+  dataAnalyseButton?: boolean
 }) {
   return (
     <button
       type="button"
       aria-label={ariaLabel}
+      data-analyse-button={dataAnalyseButton ? '' : undefined}
       disabled={disabled}
       onClick={onClick}
       className={`button button-${variant} ${className}`}
@@ -211,28 +217,6 @@ function TierCard({ analysis }: { analysis: Analysis }) {
   )
 }
 
-function TipsCard() {
-  const tips = [
-    ['Frame the outcome', 'State the result you need and how it will be used.'],
-    ['Add useful context', 'Describe constraints, audience and the impact of an error.'],
-    ['Review with intent', 'Compare eligible options; these prototype tiers are illustrative.'],
-  ]
-  return (
-    <Card className="tips-card">
-      <p className="eyebrow">Practical guidance</p>
-      <h2>How to use it</h2>
-      <div className="tips-list">
-        {tips.map(([title, text], index) => (
-          <div className="tip" key={title}>
-            <span className="tip-number">0{index + 1}</span>
-            <div><h3>{title}</h3><p>{text}</p></div>
-          </div>
-        ))}
-      </div>
-    </Card>
-  )
-}
-
 function EmptyResult() {
   return (
     <div className="empty-result">
@@ -301,6 +285,8 @@ function Override({
   )
 }
 
+const staleAnalysisErrors = new Set(['previous_analysis_incompatible', 'previous_analysis_other_session', 'analysis_not_found'])
+
 function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null; onConfigureModels: () => void }) {
   const [session, setSession] = useState<SavedSession>()
   const [sessionId, setSessionId] = useState('')
@@ -310,6 +296,10 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
   const [state, setState] = useState<ResultState>('empty')
   const [tier, setTier] = useState<Tier>('Large')
   const [analysis, setAnalysis] = useState<Analysis>()
+  // True when the shown analysis was opened from history, which never stores tips.
+  const [fromHistory, setFromHistory] = useState(false)
+  // Survives edits to the task text; cleared only by New task or a session change.
+  const [lastAnalysisId, setLastAnalysisId] = useState<string>()
   const [providers, setProviders] = useState<LLMOption[]>([])
   const [autoId, setAutoId] = useState<string|null>(null)
   const [modelsLoading, setModelsLoading] = useState(true)
@@ -323,10 +313,10 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
     const controller = new AbortController()
     setHistoryBusy(true)
     api<SavedSession>(`sessions/${resume.sessionId}`, undefined, controller.signal).then(saved => {
-      setSession(saved); setSessionId(saved.id); setContext('')
+      setSession(saved); setSessionId(saved.id); setContext(''); setLastAnalysisId(resume.analysis?.result.profile_version === PROFILE_VERSION ? resume.analysis.result.id : undefined)
       if (resume.analysis) {
         const item = resume.analysis
-        setTask(item.conversation?.task??'');setContext(item.conversation?.task_context??'');setAnalysis(item.conversation?.response??item.result); setState('result')
+        setTask(item.conversation?.task??'');setContext(item.conversation?.task_context??'');setAnalysis(item.conversation?.response??item.result); setFromHistory(!item.conversation); setState('result')
         setProvider('auto')
         const candidates = [item.result.recommendation, ...item.result.alternatives]
         setTier(tierOf(candidates.find(candidate => candidate.id === item.candidate_id) ?? item.result.recommendation))
@@ -337,7 +327,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
     return () => controller.abort()
   }, [resume])
   const newTask = () => {
-    setSession(undefined); setSessionId(''); setContext(''); setTask('')
+    setSession(undefined); setSessionId(''); setContext(''); setTask(''); setLastAnalysisId(undefined)
     setAnalysis(undefined); setState('empty'); setSaved(false); setError('')
   }
   useEffect(() => {
@@ -361,12 +351,15 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
         task, provider: 'auto', configuration_id: provider === 'auto' ? undefined : provider,
         expected_configuration_id: selectedProvider?.id, expected_provider: selectedProvider?.provider,
         expected_model: selectedProvider?.model ?? undefined,
-        task_context: context, session_id: sessionId || undefined, allow_external: requiresConsent, required_capabilities: ['text'],
+        task_context: context, session_id: sessionId || undefined,
+        previous_analysis_id: sessionId && lastAnalysisId ? lastAnalysisId : undefined, allow_external: requiresConsent, required_capabilities: ['text'],
       }, controller.signal)
       if (active.current !== controller) return
-      setAnalysis(result);setSessionId(result.session_id);setTier(tierOf(result.recommendation));setState('result');notifyProgressChange()
+      setAnalysis(result);setFromHistory(false);setSessionId(result.session_id);setLastAnalysisId(result.id);setTier(tierOf(result.recommendation));setState('result');notifyProgressChange()
     } catch (failure) {
       if (active.current !== controller) return
+      // A stale previous analysis cannot be compared; drop it so the user's next try starts fresh.
+      if (failure instanceof ApiError && staleAnalysisErrors.has(failure.detail ?? '')) setLastAnalysisId(undefined)
       setError(controller.signal.aborted ? 'Analysis cancelled or timed out. Please retry.' : failure instanceof Error ? failure.message : 'Analysis failed')
       setState('empty')
     } finally { window.clearTimeout(timeout) }
@@ -398,10 +391,11 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
 
       {sessionId && <div className="active-session"><span>Saved automatically in My progress{session ? ` · ${session.title}` : ''}</span><Button variant="secondary" disabled={state === 'loading' || saving || historyBusy} onClick={newTask}>New task</Button></div>}
       {historyBusy && <p role="status">Opening your saved work…</p>}
-      <section className="composer" aria-labelledby="task-label">
+      <section className="composer" aria-labelledby="task-label" data-analysis-id={lastAnalysisId ?? ""} data-session-id={sessionId ?? ""}>
         <label id="task-label" htmlFor="task">Describe your task</label>
         <textarea
           id="task"
+          data-task-input
           value={task}
           maxLength={8000}
           disabled={state === 'loading' || saving}
@@ -415,7 +409,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
         <div className="composer-footer">
           <ModelPicker options={providers} value={provider} autoId={autoId} loading={modelsLoading} disabled={state === 'loading' || saving || historyBusy} onChange={value => {setProvider(value);setAnalysis(undefined);setState('empty');setSaved(false)}} onConfigure={onConfigureModels} />
           <div className="composer-actions">
-            <Button onClick={analyse} disabled={state === 'loading' || saving || historyBusy || modelsLoading || !selectedProvider || !task.trim()}>
+            <Button dataAnalyseButton onClick={analyse} disabled={state === 'loading' || saving || historyBusy || modelsLoading || !selectedProvider || !task.trim()}>
               {state === 'loading' ? 'Analysing…' : 'Analyse'} <Icon name="arrow" size={17} />
             </Button>
           </div>
@@ -446,11 +440,13 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
               <ul>{analysis.guidance.map(item => <li key={item}>{item}</li>)}</ul>
             </Card>
           )}
+          <AnalysisChanges analysis={analysis} />
           <div className="result-grid">
             <ProfileCard analysis={analysis} />
             <TierCard analysis={analysis} />
-            <TipsCard />
+            <TipsCard analysis={analysis} fromHistory={fromHistory} />
           </div>
+          <PromptCoachTips analysis={analysis} task={task} />
           <Override
             tier={tier}
             recommended={tierOf(analysis.recommendation)}

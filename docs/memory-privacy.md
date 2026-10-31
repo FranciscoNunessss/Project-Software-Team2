@@ -79,6 +79,40 @@ requests and prevents saving an automatic response already in flight; it cannot 
 already sent. Failures do not automatically repeat for unchanged history. Manual generation
 remains available as an explicit action. Cached guidance and usage-deletion controls are unchanged.
 
+29 October 2026: Completeness and explained changes (policy prototype-3)
+
+Each analysis now returns a `completeness` value (0 to 100, derived from how many profile
+dimensions are determined and confident, the ambiguity score and whether the result is
+provisional) and, on a re-analysis in the same session, `previous_analysis_id` and a list of
+`changes` for the dimensions whose value differs from that previous analysis. History stores
+`completeness`, `previous_analysis_id` and `changes` with only the dimension name and its
+before and after values. The evidence of each change is task-derived text: it is returned in
+the analysis response but never stored in analyses or history, so later reads of a session show
+changes without evidence. (Since 30 October it may also be kept inside the full AI response in
+`conversation_content`, only when the user enabled "Save task text and AI responses".) The
+previous analysis must belong to the same account and session and use the current profile
+version; these checks run before any provider call. A re-analysis is assessed without past
+conversation excerpts (numeric usage metadata is kept). No schema migration is needed; analyses
+stored earlier have no completeness or changes.
+
+29 October 2026: Educator completeness series and snapshot extensions
+
+The Educator (Groq coaching) snapshot now also contains `completeness_series`: one integer
+per session, oldest first (at most the latest 50 sessions), being the completeness of the first
+analysis of that session. It is always recomputed from the stored derived profile values
+(scores, required modalities, confidence) and `recommendation_provisional` with the current
+policy, so analyses stored before completeness existed are included and stored completeness
+values are not trusted. With fewer than five values the snapshot adds `insufficient_history`.
+The series contains numbers only. (Since 30 October the only text the Educator can receive is
+the opted-in `conversation_excerpts`; extensions and the series never carry text.)
+
+Optional modules can register a snapshot extension. Its aggregates appear under `extensions`
+and must be numbers or aggregates only, never text; size metrics never unlock the prompting
+assessment, which still needs opted-in excerpts (ADR-009); its note is appended to the Educator
+system prompt. Without registered extensions nothing is added. Extension data and the prompt
+take part in the cache fingerprint, so registering, changing or removing an extension marks
+saved guidance stale. No schema migration is needed.
+
 30 October 2026: the version-2 coaching contract generates pattern explanations, next actions
 and learning lessons in the same per-user report. It uses the same bounded derived metadata,
 plus server-computed sample counts; it adds no task storage or additional provider destination.
@@ -114,3 +148,13 @@ The Profile opt-in is the user-facing control for suggestions. Turning it off le
 visible but stops new automatic calls. The existing explicit-consent POST remains an API-only
 capability; the frontend does not use it. Failure messages explain that new history can trigger
 another attempt, rather than directing the user to a removed retry button.
+
+31 October 2026: optional Prompt Coach (ADR-009, off by default)
+
+When `ADAPTAI_PROMPT_COACH_ENABLED` is true, `POST /api/prompt-coach` sends the task text the
+user is editing, and the dimensions of one of that user's stored analyses, to the same provider
+and model as that analysis, only when the user clicks and only with per-request consent for an
+external provider. Nothing it receives or returns is stored, logged or traced: not the task, the
+suggestions, quotes, replacements, rewrite or open questions, whatever the memory and
+conversation-saving settings are. If the user applies a suggestion and analyses again, that new
+task follows the ordinary rules above (stored as text only with "Save task text and AI responses").

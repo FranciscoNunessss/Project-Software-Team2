@@ -288,3 +288,220 @@ async def test_openai_responses_and_claude_wire_contracts(monkeypatch, provider_
             assert failure.value.code == expected
             assert "Private task" not in str(failure.value)
         assert len(calls) == 1
+
+
+def _structured_settings(**overrides):
+    values = {
+        "_env_file": None,
+        "openai_model": "test-openai",
+        "openai_api_key": "fake",
+        "claude_model": "test-claude",
+        "anthropic_api_key": "fake-anthropic",
+        "groq_model": "openai/gpt-oss-20b",
+        "groq_api_key": "fake-groq",
+        "ollama_model": "test-ollama",
+        "timeout_seconds": 0.5,
+    }
+    values.update(overrides)
+    return Settings(**values)
+
+
+def _fake_model(constructions, invocations, fail=lambda kwargs, attempt: None):
+    class FakeModel:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+            constructions.append(kwargs)
+
+        def with_structured_output(self, schema, **kwargs):
+            assert kwargs["include_raw"] is True
+            return self
+
+        async def ainvoke(self, messages):
+            invocations.append(messages)
+            status = fail(self.kwargs, len(invocations))
+            if status is not None:
+                error = RuntimeError("Private task must not escape")
+                error.status_code = status
+                raise error
+            return {
+                "parsed": profile_data(reasoning=2, ambiguity=2),
+                "parsing_error": None,
+                "raw": SimpleNamespace(usage_metadata={"total_tokens": 7}),
+            }
+
+    return FakeModel
+
+
+_TARGETS = {
+    "openai": "langchain_openai.ChatOpenAI",
+    "groq": "langchain_openai.ChatOpenAI",
+    "claude": "langchain_anthropic.ChatAnthropic",
+    "ollama": "langchain_ollama.ChatOllama",
+}
+
+
+@pytest.mark.parametrize(
+    ("status", "code"),
+    [
+        (400, "provider_unsupported_request"),
+        (401, "provider_authentication"),
+        (403, "provider_authentication"),
+        (404, "provider_model_unavailable"),
+        (429, "provider_rate_limit"),
+        (500, "provider_unavailable"),
+    ],
+)
+async def test_structured_call_maps_every_status_through_single_table(monkeypatch, status, code):
+    from app import providers
+
+    monkeypatch.setattr(providers, "_TEMPERATURE_REFUSED", set())
+    error = RuntimeError("status")
+    error.status_code = status
+    assert providers.provider_error_code(error) == code
+    constructions, invocations = [], []
+    monkeypatch.setattr(
+        _TARGETS["groq"], _fake_model(constructions, invocations, lambda kwargs, n: status)
+    )
+    with pytest.raises(ProviderFailure) as failure:
+        await providers.structured_call(
+            "groq", _structured_settings(), Profile, "system", "Private task", "assessment"
+        )
+    assert failure.value.code == code
+    assert "Private task" not in str(failure.value)
+    assert len(invocations) == 1
+
+
+async def test_structured_call_rejects_unknown_role_before_any_call(monkeypatch):
+    from app import providers
+
+    constructions, invocations = [], []
+    monkeypatch.setattr(_TARGETS["groq"], _fake_model(constructions, invocations))
+    with pytest.raises(ProviderFailure) as failure:
+        await providers.structured_call(
+            "groq", _structured_settings(), Profile, "system", "Private task", "planner"
+        )
+    assert failure.value.code == "unsupported_provider"
+    assert constructions == [] and invocations == []
+
+
+async def test_structured_call_failures_do_not_chain_provider_errors(monkeypatch):
+    from app import providers
+
+    monkeypatch.setattr(providers, "_TEMPERATURE_REFUSED", set())
+    constructions, invocations = [], []
+    monkeypatch.setattr(
+        _TARGETS["groq"], _fake_model(constructions, invocations, lambda kwargs, n: 400)
+    )
+    for role in ("assessment", "coach"):
+        with pytest.raises(ProviderFailure) as failure:
+            await providers.structured_call(
+                "groq", _structured_settings(), Profile, "system", "Private task", role
+            )
+        assert failure.value.__cause__ is None
+        assert failure.value.__suppress_context__ is True
+
+
+def test_error_table_maps_timeouts_and_invalid_output():
+    from app.providers import provider_error_code
+    from langchain_core.exceptions import OutputParserException
+
+    assert provider_error_code(TimeoutError()) == "provider_timeout"
+    assert provider_error_code(OutputParserException("bad")) == "invalid_provider_output"
+    assert provider_error_code(json.JSONDecodeError("bad", "", 0)) == "invalid_provider_output"
+    assert provider_error_code(RuntimeError("no status")) == "provider_unavailable"
+
+
+async def test_coach_temperature_falls_back_once_and_is_remembered(monkeypatch):
+    from app import providers
+
+    monkeypatch.setattr(providers, "_TEMPERATURE_REFUSED", set())
+    constructions, invocations = [], []
+    monkeypatch.setattr(
+        _TARGETS["groq"],
+        _fake_model(
+            constructions, invocations, lambda kwargs, n: 400 if "temperature" in kwargs else None
+        ),
+    )
+    settings = _structured_settings()
+    parsed, usage = await providers.structured_call(
+        "groq", settings, Profile, "system", "Private task", "coach"
+    )
+    assert parsed == profile_data(reasoning=2, ambiguity=2)
+    assert usage == {"total_tokens": 7}
+    assert constructions[0]["temperature"] == 0
+    assert "temperature" not in constructions[1]
+    assert constructions[0]["max_tokens"] == constructions[1]["max_tokens"] == 1600
+    assert len(invocations) == 2
+
+    await providers.structured_call("groq", settings, Profile, "system", "Private task", "coach")
+    assert "temperature" not in constructions[2]
+    assert len(constructions) == 3 and len(invocations) == 3
+
+
+async def test_temperature_retry_failure_is_mapped_normally(monkeypatch):
+    from app import providers
+
+    monkeypatch.setattr(providers, "_TEMPERATURE_REFUSED", set())
+    constructions, invocations = [], []
+    monkeypatch.setattr(
+        _TARGETS["groq"],
+        _fake_model(
+            constructions, invocations, lambda kwargs, n: 400 if "temperature" in kwargs else 429
+        ),
+    )
+    with pytest.raises(ProviderFailure) as failure:
+        await providers.structured_call(
+            "groq", _structured_settings(), Profile, "system", "Private task", "coach"
+        )
+    assert failure.value.code == "provider_rate_limit"
+    assert len(invocations) == 2
+
+
+async def test_responses_api_never_sends_temperature_for_coach(monkeypatch):
+    from app import providers
+
+    monkeypatch.setattr(providers, "_TEMPERATURE_REFUSED", set())
+    constructions, invocations = [], []
+    monkeypatch.setattr(_TARGETS["openai"], _fake_model(constructions, invocations))
+    await providers.structured_call(
+        "openai",
+        _structured_settings(openai_use_responses_api=True),
+        Profile,
+        "system",
+        "Private task",
+        "coach",
+    )
+    assert len(constructions) == 1
+    assert "temperature" not in constructions[0]
+    assert constructions[0]["use_responses_api"] is True
+    assert constructions[0]["store"] is False
+
+
+@pytest.mark.parametrize("provider", ["openai", "claude", "groq", "ollama"])
+@pytest.mark.parametrize("role", ["assessment", "educator"])
+async def test_roles_without_temperature_never_send_it(monkeypatch, provider, role):
+    from app import providers
+
+    monkeypatch.setattr(providers, "_TEMPERATURE_REFUSED", set())
+    constructions, invocations = [], []
+    monkeypatch.setattr(_TARGETS[provider], _fake_model(constructions, invocations))
+    await providers.structured_call(
+        provider, _structured_settings(), Profile, "system", "Private task", role
+    )
+    assert len(constructions) == 1
+    assert "temperature" not in constructions[0]
+    token_key = "num_predict" if provider == "ollama" else "max_tokens"
+    assert constructions[0][token_key] == {"assessment": 2048, "educator": 4096}[role]
+
+
+async def test_coach_sends_zero_temperature_when_accepted(monkeypatch):
+    from app import providers
+
+    monkeypatch.setattr(providers, "_TEMPERATURE_REFUSED", set())
+    constructions, invocations = [], []
+    monkeypatch.setattr(_TARGETS["claude"], _fake_model(constructions, invocations))
+    await providers.structured_call(
+        "claude", _structured_settings(), Profile, "system", "Private task", "coach"
+    )
+    assert constructions[0]["temperature"] == 0
+    assert len(invocations) == 1

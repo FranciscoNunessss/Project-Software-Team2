@@ -4,7 +4,14 @@ permissions:
   contents: read
 jobs:
   backend:
+    name: backend (prompt_coach=${{ matrix.prompt_coach }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        prompt_coach: ["false", "true"]
+    env:
+      ADAPTAI_PROMPT_COACH_ENABLED: ${{ matrix.prompt_coach }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -14,6 +21,49 @@ jobs:
       - run: uv run python -m ruff check backend scripts
       - run: uv run python -m ruff format --check backend scripts
       - run: uv run python -m pytest -q
+  removal-drill:
+    # Proves the optional Prompt Coach (ADR-009) can be deleted without touching the core.
+    runs-on: ubuntu-latest
+    env:
+      ADAPTAI_PROMPT_COACH_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Delete the Prompt Coach module
+        run: >-
+          rm -f backend/app/prompt_coach.py backend/tests/test_prompt_coach*.py
+          scripts/check_prompt_coach.py
+      - run: uv run python -m pytest -q -m "not prompt_coach"
+      - name: Restart over a real database that still has Prompt Coach data
+        env:
+          ADAPTAI_DATABASE_PATH: ${{ runner.temp }}/drill.sqlite3
+          ADAPTAI_CREDENTIALS_KEY_PATH: ${{ runner.temp }}/drill.key
+        working-directory: backend
+        run: |
+          uv run python - <<'PY'
+          import os
+          import sqlite3
+
+          from app.main import create_app
+          from fastapi.testclient import TestClient
+
+          path = os.environ["ADAPTAI_DATABASE_PATH"]
+          # 1. The core migrates a fresh database to its current schema.
+          assert TestClient(create_app()).get("/api/health").status_code == 200
+          with sqlite3.connect(path) as db:
+              version = db.execute("PRAGMA user_version").fetchone()[0]
+              # 2. Leftover Prompt Coach data, as after removing the module.
+              db.execute("CREATE TABLE prompt_coach_events (id TEXT PRIMARY KEY, payload TEXT)")
+              db.execute("INSERT INTO prompt_coach_events VALUES ('drill', '{}')")
+          # 3. The core restarts over it and the schema version is untouched.
+          assert TestClient(create_app()).get("/api/health").status_code == 200
+          with sqlite3.connect(path) as db:
+              assert db.execute("PRAGMA user_version").fetchone()[0] == version
+          print("removal drill ok, user_version", version)
+          PY
   frontend:
     runs-on: ubuntu-latest
     defaults:

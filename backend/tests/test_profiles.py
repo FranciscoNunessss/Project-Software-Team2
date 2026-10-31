@@ -238,7 +238,7 @@ def test_reasoning_and_context_share_one_clarification_question():
     assert provisional is True
 
 
-def test_stored_analysis_does_not_retain_tips():
+def test_analyses_result_json_does_not_retain_tips():
     import json
 
     client = client_for_profile(profile_data(reasoning=2, risk=3))
@@ -251,3 +251,22 @@ def test_stored_analysis_does_not_retain_tips():
             "SELECT result_json FROM analyses WHERE id=?", (result["id"],)
         ).fetchone()[0]
     assert json.loads(stored)["tips"] == []
+
+
+def test_tips_are_kept_only_in_opted_in_conversations():
+    import json
+
+    client = client_for_profile(profile_data(reasoning=2, risk=3))
+    client.put("/api/context", json={"conversation_memory_enabled": True})
+    result = client.post(
+        "/api/analyze", json={"task": "Synthetic task", "provider": "ollama"}
+    ).json()
+    with client.app.state.storage.connect() as db:
+        stored = db.execute(
+            "SELECT result_json FROM analyses WHERE id=?", (result["id"],)
+        ).fetchone()[0]
+        saved = db.execute(
+            "SELECT response_json FROM conversation_content WHERE analysis_id=?", (result["id"],)
+        ).fetchone()[0]
+    assert json.loads(stored)["tips"] == []
+    assert json.loads(saved)["tips"] == result["tips"]

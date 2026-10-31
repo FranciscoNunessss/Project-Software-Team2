@@ -33,7 +33,7 @@ export function TipsCard({ analysis, fromHistory = false }: { analysis: Analysis
           </div>
         ) : tips.length === 0 ? (
           <div className="tip">
-            <div><p>{fromHistory ? 'Tips are not kept in history; analyse again to see them.' : 'No tips for this analysis.'}</p></div>
+            <div><p>{fromHistory || analysis.tips === undefined ? 'Tips are kept in history only with “Save task text and AI responses” on in Profile; analyse again to see them.' : 'No tips for this analysis.'}</p></div>
           </div>
         ) : (
           tips.map((tip, index) => (

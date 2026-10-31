@@ -34,15 +34,22 @@ export function PromptCoachTips({ analysis, task }: { analysis: Analysis; task: 
     return () => controller.abort()
   }, [])
 
+  // The text this analysis was made from: the Coach only works on that exact text, because
+  // its suggestions refer to this analysis's dimensions.
+  const [analysedTask, setAnalysedTask] = useState(task)
+
   // A new analysis invalidates any earlier Coach result or in-flight request.
   useEffect(() => {
     setState({ kind: 'idle' })
+    setAnalysedTask(task)
     return () => { active.current?.abort(); active.current = null }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the analysis changes
   }, [analysis.id])
 
-  // The Coach needs the task text and the tips. A reopened analysis has both only when its
-  // conversation was saved with the user's consent (PR #12); otherwise the card stays hidden.
-  const current = analysis.tips !== undefined && task.trim().length > 0
+  // The Coach needs the analysed task text and the tips. A reopened analysis has the text only
+  // when its conversation was saved with the user's consent (PR #12); history stores tips as an
+  // empty list, so the empty task is what hides the card. Edited text needs a new analysis.
+  const current = Array.isArray(analysis.tips) && task.trim().length > 0 && task === analysedTask
   if (!enabled || !current) return null
 
   const local = analysis.provider === 'demo'

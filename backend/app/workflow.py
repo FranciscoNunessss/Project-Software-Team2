@@ -4,7 +4,14 @@ from typing import TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from app.assessment import assessment_advice, capacity_target, required_capabilities
+from app.assessment import (
+    GRADING,
+    SPREAD,
+    assessment_advice,
+    demand_estimate,
+    required_capabilities,
+    tier_fit,
+)
 from app.models import AnalysisRequest, Assessment, Candidate, Profile
 from app.providers import AssessmentProvider, ProviderFailure
 
@@ -20,23 +27,22 @@ class State(TypedDict, total=False):
     clarification_questions: list[str]
     guidance: list[str]
     recommendation_provisional: bool
+    grading: dict
 
 
 def rank(profile: Profile, required: list[str]) -> list[Candidate]:
-    eligible = [
-        Candidate.model_validate(item)
-        for item in CATALOGUE["models"]
-        if set(required) <= set(item["capabilities"])
-    ]
-    target = capacity_target(profile)
-    return sorted(
-        eligible,
-        key=lambda item: (
-            item.capacity < target,
-            abs(item.capacity - target),
-            item.id,
-        ),
-    )
+    demand, spread = demand_estimate(profile)
+    eligible = []
+    for item in CATALOGUE["models"]:
+        if not set(required) <= set(item["capabilities"]):
+            continue
+        sufficiency, fit = tier_fit(item["capacity"], demand, spread)
+        eligible.append(
+            Candidate.model_validate(
+                {**item, "sufficiency": round(sufficiency, 3), "fit": round(fit, 3)}
+            )
+        )
+    return sorted(eligible, key=lambda item: (-item.fit, item.capacity, item.id))
 
 
 def build_workflow(provider: AssessmentProvider):
@@ -50,7 +56,7 @@ def build_workflow(provider: AssessmentProvider):
         candidates = rank(profile, required)
         if not candidates:
             raise ProviderFailure("no_eligible_candidate")
-        target = capacity_target(profile)
+        demand, spread = demand_estimate(profile)
         questions, guidance, provisional = assessment_advice(profile)
         requirements = ", ".join(required) or "none"
         uncertainty_note = (
@@ -63,11 +69,19 @@ def build_workflow(provider: AssessmentProvider):
             "clarification_questions": questions,
             "guidance": guidance,
             "recommendation_provisional": provisional,
+            "grading": {
+                "demand": round(demand, 3),
+                "spread": round(spread, 3),
+                "parameters": {**GRADING, "spread_by_confidence": SPREAD},
+                "basis": "Uncalibrated estimate; not a probability",
+            },
             "rationale": (
                 f"Required capabilities: {requirements}. "
-                f"Assessed reasoning/context capacity: {target}/3. "
+                f"Estimated reasoning/context demand: {demand:.1f}/3 "
+                f"(uncertainty ±{spread:.1f}). "
                 + uncertainty_note
-                + "This is the closest sufficient eligible tier. Review domain references, "
+                + "This eligible tier has the highest estimated fit "
+                f"({round(candidates[0].fit * 100)}%). Review domain references, "
                 "consequences of error and tool access separately. "
                 + (
                     "Recommendation is provisional; review uncertainty and clarification prompts."

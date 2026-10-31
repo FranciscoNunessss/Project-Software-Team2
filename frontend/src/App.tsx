@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { api, tierOf, notifyProgressChange, type Analysis, type LLMOption, type LLMOptions, type Tier, type SavedSession, type Resume } from './api'
+import { api, tierOf, fitPercent, notifyProgressChange, type Analysis, type LLMOption, type LLMOptions, type Tier, type SavedSession, type Resume } from './api'
 import { Account } from './Account'
 
 import { ProgressScreen } from './Progress'
@@ -187,6 +187,32 @@ function ProfileCard({ analysis }: { analysis: Analysis }) {
   )
 }
 
+function FitBars({ analysis }: { analysis: Analysis }) {
+  const candidates = [analysis.recommendation, ...analysis.alternatives]
+  if (candidates.every(candidate => fitPercent(candidate) === null)) return null
+  return (
+    <div className="fit-bars">
+      <h3>Estimated fit per tier</h3>
+      {([1, 2, 3] as const).map(capacity => {
+        const candidate = candidates.find(item => item.capacity === capacity)
+        const tier = capacity === 1 ? 'Small' : capacity === 2 ? 'Medium' : 'Large'
+        const percent = candidate ? fitPercent(candidate) : null
+        const recommended = candidate?.id === analysis.recommendation.id
+        return (
+          <div className={`fit-row${recommended ? ' recommended' : ''}${candidate ? '' : ' ineligible'}`} key={capacity}>
+            <span>{tier}{recommended && <span className="sr-only"> (recommended)</span>}</span>
+            <div className="fit-track" role="meter" aria-label={`${tier} estimated fit`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent ?? 0} aria-valuetext={candidate ? `${percent}%` : 'Not eligible'}>
+              <div className="fit-fill" style={{ width: `${percent ?? 0}%` }} />
+            </div>
+            <strong>{candidate ? `${percent}%` : 'N/A'}</strong>
+          </div>
+        )
+      })}
+      <p className="muted">Estimated fit — uncalibrated, not a probability</p>
+    </div>
+  )
+}
+
 function TierCard({ analysis }: { analysis: Analysis }) {
   const tier = tierOf(analysis.recommendation)
   return (
@@ -202,6 +228,7 @@ function TierCard({ analysis }: { analysis: Analysis }) {
       <div className="cost-row">
         <span>Observed cost</span><strong>Unavailable</strong>
       </div>
+      <FitBars analysis={analysis} />
       <div className="why">
         <h3>Why this tier</h3>
         <p>{analysis.rationale}</p>

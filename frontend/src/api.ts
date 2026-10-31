@@ -1,5 +1,6 @@
 export type Tier = 'Small' | 'Medium' | 'Large'
-export type Candidate = { id: string; name: string; capacity: number; capabilities: string[] }
+export type Candidate = { id: string; name: string; capacity: number; capabilities: string[]; sufficiency?: number | null; fit?: number | null }
+export type Grading = { demand: number; spread: number; parameters: Record<string, unknown>; basis: string }
 export type Provider = { id: string; label: string; model: string | null; enabled: boolean; external: boolean }
 export type LLMOption = {id:string;label:string;provider:string;model:string|null;external:boolean;source:'server'|'personal'}
 export type LLMOptions = {options:LLMOption[];auto_configuration_id:string|null;auto_policy:string}
@@ -38,6 +39,7 @@ export type Analysis = {
   latency_ms: number
   catalogue_version: string
   policy_version: string
+  grading?: Grading | null
 }
 export type SavedSession = { id: string; title: string; context: string; created_at: string; analysis_count?:number; choice_count?:number }
 export type HistoryItem = { request: { task?: string; session_context?: string; personal_context?: string }; result: Analysis; candidate_id: string | null; created_at: string; conversation?: {task:string;task_context:string;response:Analysis}|null }
@@ -45,6 +47,9 @@ export type Resume = { sessionId: string; analysis?: HistoryItem }
 export type MemorySettings = {content:string; updated_at:string|null; save_enabled:boolean; use_enabled:boolean; coaching_auto_enabled:boolean; conversation_memory_enabled:boolean;saved_conversations:number; memory:{analysis_id:string; profile:Record<string,number|string[]|null>; recommended_capacity:number; chosen_capacity:number|null}[]}
 export function tierOf(candidate: Candidate): Tier {
   return candidate.capacity === 1 ? 'Small' : candidate.capacity === 2 ? 'Medium' : 'Large'
+}
+export function fitPercent(candidate: Candidate): number | null {
+  return typeof candidate.fit === 'number' ? Math.round(candidate.fit * 100) : null
 }
 export function notifyProgressChange() {
   window.dispatchEvent(new Event('adaptai-progress-updated'))

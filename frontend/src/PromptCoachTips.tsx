@@ -40,7 +40,8 @@ export function PromptCoachTips({ analysis, task }: { analysis: Analysis; task: 
     return () => { active.current?.abort(); active.current = null }
   }, [analysis.id])
 
-  // History analyses have no task text (it is never stored) and no tips; the Coach needs both.
+  // The Coach needs the task text and the tips. A reopened analysis has both only when its
+  // conversation was saved with the user's consent (PR #12); otherwise the card stays hidden.
   const current = analysis.tips !== undefined && task.trim().length > 0
   if (!enabled || !current) return null
 
@@ -79,7 +80,7 @@ export function PromptCoachTips({ analysis, task }: { analysis: Analysis; task: 
       {local ? (
         <p className="processing-notice">Selecting <strong>Improve with Prompt Coach</strong> uses the demonstration coach; the task text does not leave AdaptAI.</p>
       ) : (
-        <p className="processing-notice">Selecting <strong>Improve with Prompt Coach</strong> sends this task to <strong>{destination}</strong>. Task text is not retained in your history.</p>
+        <p className="processing-notice">Selecting <strong>Improve with Prompt Coach</strong> sends this task to <strong>{destination}</strong>. The Prompt Coach never saves the task it receives or its suggestions.</p>
       )}
       <button type="button" className="button button-secondary" data-prompt-coach-button disabled={state.kind === 'loading'} onClick={improve}>
         {state.kind === 'loading' ? 'Asking Prompt Coach…' : 'Improve with Prompt Coach'}

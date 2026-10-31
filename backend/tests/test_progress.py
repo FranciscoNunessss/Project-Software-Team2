@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from app import coaching as coaching_module
 from app.coaching import (
     SIZE_METRICS_SENTENCE,
     TREND_SENTENCE,
@@ -40,6 +41,12 @@ REPORT = {
         }
     ],
 }
+
+
+@pytest.fixture(autouse=True)
+def clear_snapshot_extensions():
+    yield
+    coaching_module._extensions.clear()
 
 
 def account(app, email="alice@example.com"):
@@ -560,3 +567,107 @@ def test_snapshot_contains_no_task_free_text():
     ):
         assert forbidden not in text
     assert all(isinstance(value, int) for value in metadata["completeness_series"])
+
+
+def coaching_prompts(monkeypatch):
+    prompts = []
+
+    async def fake_call(provider, settings, schema, system, human, role):
+        prompts.append((system, human))
+        return REPORT, None
+
+    monkeypatch.setattr("app.coaching.structured_call", fake_call)
+    return prompts
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        {"label": "PRIVATE_TASK_SENTINEL"},
+        {"nested": [{"tokens": 3}, "PRIVATE_TASK_SENTINEL"]},
+        "PRIVATE_TASK_SENTINEL",
+        [1, 2],
+        {"bytes": b"PRIVATE_TASK_SENTINEL"},
+    ],
+)
+def test_extension_returning_text_is_omitted(monkeypatch, value):
+    prompts = coaching_prompts(monkeypatch)
+    app = create_app(Settings(_env_file=None, groq_api_key="synthetic-key"))
+    client = account(app)
+    analyze(client)
+    store, user_id = app.state.storage, user_of(client)
+    plain = snapshot(store, user_id)
+    register_snapshot_extension("leaky", lambda *_: value, lambda: "LEAKY_NOTE")
+    register_snapshot_extension("sizes", lambda *_: {"mean": 1.5, "ok": True, "n": None}, str)
+    fingerprint, metadata = snapshot(store, user_id)
+    assert metadata["extensions"] == {"sizes": {"mean": 1.5, "ok": True, "n": None}}
+    assert "PRIVATE_TASK_SENTINEL" not in json.dumps(metadata)
+    unregister_snapshot_extension("sizes")
+    assert snapshot(store, user_id) == plain
+    body = {"allow_external": True, "expected_model": app.state.settings.groq_model}
+    assert client.post("/api/progress/coaching", json=body).status_code == 200
+    system, human = prompts[-1]
+    assert "LEAKY_NOTE" not in system and "PRIVATE_TASK_SENTINEL" not in human
+
+
+def test_raising_extension_never_breaks_coaching(monkeypatch):
+    prompts = coaching_prompts(monkeypatch)
+    app = create_app(Settings(_env_file=None, groq_api_key="synthetic-key"))
+    client = account(app)
+    analyze(client)
+    store, user_id = app.state.storage, user_of(client)
+    plain = snapshot(store, user_id)
+
+    def broken(*_):
+        raise RuntimeError("PRIVATE_TASK_SENTINEL")
+
+    def broken_note():
+        raise RuntimeError("note failed")
+
+    register_snapshot_extension("broken_data", broken, lambda: "BROKEN_DATA_NOTE")
+    register_snapshot_extension(
+        "broken_note", lambda *_: {"n": 1}, broken_note, provides_size_metrics=True
+    )
+    assert snapshot(store, user_id) == plain
+    body = {"allow_external": True, "expected_model": app.state.settings.groq_model}
+    assert client.post("/api/progress/coaching", json=body).status_code == 200
+    assert client.get("/api/progress/coaching").status_code == 200
+    system, human = prompts[-1]
+    assert "BROKEN_DATA_NOTE" not in system and SIZE_METRICS_SENTENCE.strip() not in system
+    assert "extensions" not in json.loads(human)
+
+
+def test_sessions_with_an_invalid_stored_profile_are_skipped():
+    app = create_app(Settings(_env_file=None))
+    client = account(app)
+    sessions_with_rising_completeness(app, client, 5)
+    _, metadata = snapshot(app.state.storage, user_of(client))
+    assert "skipped_sessions" not in metadata and "insufficient_history" not in metadata
+    broken = analyze(client)
+    with app.state.storage.connect() as db:
+        result = json.loads(
+            db.execute("SELECT result_json FROM analyses WHERE id=?", (broken["id"],)).fetchone()[0]
+        )
+        del result["profile"]["risk"]  # An incomplete stored profile.
+        db.execute(
+            "UPDATE analyses SET result_json=? WHERE id=?", (json.dumps(result), broken["id"])
+        )
+    _, metadata = snapshot(app.state.storage, user_of(client))
+    assert metadata["skipped_sessions"] == 1
+    assert len(metadata["completeness_series"]) == 5
+    assert "insufficient_history" not in metadata
+    with app.state.storage.connect() as db:
+        valid = db.execute(
+            "SELECT id FROM sessions WHERE id<>? ORDER BY rowid LIMIT 1", (broken["session_id"],)
+        ).fetchone()[0]
+        db.execute(
+            "DELETE FROM decisions WHERE analysis_id IN "
+            "(SELECT id FROM analyses WHERE session_id=?)",
+            (valid,),
+        )
+        db.execute("DELETE FROM analyses WHERE session_id=?", (valid,))
+    _, metadata = snapshot(app.state.storage, user_of(client))
+    # Four valid points plus a skipped session is still insufficient history.
+    assert metadata["skipped_sessions"] == 1
+    assert len(metadata["completeness_series"]) == 4
+    assert metadata["insufficient_history"] is True

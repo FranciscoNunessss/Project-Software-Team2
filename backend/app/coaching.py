@@ -3,6 +3,7 @@
 import asyncio
 import hashlib
 import json
+import logging
 from typing import Literal
 
 from fastapi import BackgroundTasks, HTTPException
@@ -31,6 +32,9 @@ class Patterns(BaseModel):
     over_provisioning: PatternAdvice
     under_provisioning: PatternAdvice
     prompting: PromptingAdvice
+
+
+logger = logging.getLogger(__name__)
 
 
 class Suggestion(BaseModel):
@@ -134,8 +138,11 @@ _extensions = {}
 def register_snapshot_extension(name, data_fn, prompt_note_fn, *, provides_size_metrics=False):
     """Add derived aggregates to the Educator snapshot and a note to its system prompt.
 
-    ``data_fn(store, user_id)`` must return a dict of numbers/aggregates only (no task text);
-    ``prompt_note_fn()`` returns a sentence appended to the Educator system prompt.
+    ``data_fn(store, user_id)`` must return a dict whose values are int, float, bool, None
+    or nested lists/dicts of those (no text of any kind); anything else, or an exception,
+    omits the extension from both the snapshot and the prompt. ``prompt_note_fn()``
+    returns a sentence appended to the Educator system prompt; it must be deterministic
+    (same text on every call) because the prompt enters the cache fingerprint.
     """
     _extensions[name] = (data_fn, prompt_note_fn, provides_size_metrics)
 
@@ -144,26 +151,79 @@ def unregister_snapshot_extension(name):
     _extensions.pop(name, None)
 
 
-def educator_prompt():
-    sizes = any(provides for _, _, provides in _extensions.values())
+def _is_aggregate(value, top=True):
+    if top and not isinstance(value, dict):
+        return False
+    if isinstance(value, dict):
+        return all(
+            isinstance(key, str) and _is_aggregate(item, False) for key, item in value.items()
+        )
+    if isinstance(value, list):
+        return all(_is_aggregate(item, False) for item in value)
+    return value is None or isinstance(value, (bool, int, float))
+
+
+def _note(name, note_fn):
+    try:
+        note = note_fn()
+    except Exception:
+        # Only the name is logged: an optional module must never break coaching.
+        logger.warning("snapshot extension %s omitted: prompt note failed", name)
+        return None
+    if not isinstance(note, str):
+        logger.warning("snapshot extension %s omitted: prompt note is not text", name)
+        return None
+    return note.strip()
+
+
+def _extension_data(store, user_id):
+    """Data of each extension whose data_fn and prompt_note_fn both succeed and are valid."""
+    data = {}
+    for name, (data_fn, note_fn, _) in list(_extensions.items()):
+        try:
+            value = data_fn(store, user_id)
+        except Exception:
+            logger.warning("snapshot extension %s omitted: data failed", name)
+            continue
+        if not _is_aggregate(value):
+            # The content is never logged: it may contain task text.
+            logger.warning("snapshot extension %s omitted: data is not numeric", name)
+            continue
+        if _note(name, note_fn) is None:
+            continue
+        data[name] = value
+    return data
+
+
+def educator_prompt(names=None):
+    """System prompt for the extensions in ``names`` (default: all registered)."""
+    active = {
+        name: entry
+        for name, entry in list(_extensions.items())
+        if names is None or name in set(names)
+    }
+    sizes = any(provides for _, _, provides in active.values())
     prompt = (
         EDUCATOR_PROMPT_START
         + TREND_SENTENCE
         + (SIZE_METRICS_SENTENCE if sizes else "")
         + EDUCATOR_PROMPT_END
     )
-    notes = [note_fn().strip() for _, note_fn, _ in _extensions.values()]
+    notes = [_note(name, note_fn) for name, (_, note_fn, _) in active.items()]
     return " ".join([prompt, *(note for note in notes if note)])
 
 
 def _recomputed_completeness(result):
     # Always recomputed with the current policy: stored values may predate it or be absent.
+    stored = result.get("profile")
+    if not isinstance(stored, dict):
+        return None
     profile = {
         key: {
             field: value[field] for field in ("score", "required", "confidence") if field in value
         }
         | {"evidence": "Not retained."}
-        for key, value in result["profile"].items()
+        for key, value in stored.items()
         if isinstance(value, dict)
     }
     try:
@@ -174,7 +234,11 @@ def _recomputed_completeness(result):
 
 
 def completeness_series(store, user_id):
-    """Completeness of the first analysis of each session, oldest session first."""
+    """Completeness of the first analysis of each session, oldest session first.
+
+    Returns ``(series, skipped)``: sessions whose stored profile cannot be validated are
+    left out of the series and counted in ``skipped``.
+    """
     with store.connect() as db:
         rows = db.execute(
             """SELECT * FROM (
@@ -186,8 +250,9 @@ def completeness_series(store, user_id):
                ) WHERE first_result IS NOT NULL LIMIT ?""",
             (user_id, SERIES_LIMIT),
         ).fetchall()
-    values = (_recomputed_completeness(json.loads(row["first_result"])) for row in reversed(rows))
-    return [value for value in values if value is not None]
+    values = [_recomputed_completeness(json.loads(row["first_result"])) for row in reversed(rows)]
+    series = [value for value in values if value is not None]
+    return series, len(values) - len(series)
 
 
 def snapshot(store, user_id):
@@ -251,7 +316,7 @@ def snapshot(store, user_id):
         ),
         "matches": sum(row["chosen_capacity"] == row["recommended_capacity"] for row in confirmed),
     }
-    series = completeness_series(store, user_id)
+    series, skipped = completeness_series(store, user_id)
     result = {
         "sample_size": len(metadata),
         "sample_limit": 50,
@@ -260,19 +325,22 @@ def snapshot(store, user_id):
         "conversation_excerpts": conversations,
         "completeness_series": series,
     }
+    if skipped:
+        result["skipped_sessions"] = skipped
+    # Only valid points count: skipped sessions never make the history sufficient.
     if len(series) < MIN_TREND_SESSIONS:
         result["insufficient_history"] = True
-    if _extensions:
-        result["extensions"] = {
-            name: data_fn(store, user_id) for name, (data_fn, _, _) in _extensions.items()
-        }
+    extensions = _extension_data(store, user_id)
+    if extensions:
+        result["extensions"] = extensions
     # The prompt is included so registering or removing an extension refreshes the cache.
+    prompt = educator_prompt(extensions)
     source = {
         "version": COACHING_POLICY_VERSION,
         "records": records,
         "text_permissions": list(permissions) if permissions else [0, 0],
         "metadata": result,
-        "prompt": educator_prompt(),
+        "prompt": prompt,
     }
     fingerprint = hashlib.sha256(json.dumps(source, sort_keys=True).encode()).hexdigest()
     return fingerprint, result
@@ -287,7 +355,8 @@ class GroqCoach:
             "groq",
             self.settings,
             CoachingReport,
-            educator_prompt(),
+            # Same extensions as the snapshot: a failed or invalid one is left out of both.
+            educator_prompt(metadata.get("extensions", {})),
             json.dumps(metadata),
             "educator",
         )

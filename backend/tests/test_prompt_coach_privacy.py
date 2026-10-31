@@ -5,8 +5,10 @@ Two markers (ADR-009 v0.2 persistence rules):
   opt in to "Save task text and AI responses": only then, and only in ``conversation_content``
   (and the owner's session read that returns it), may it be stored. Otherwise it is nowhere.
 - COACH_MARKER travels only in what the fake Coach model returns (replacement, rewrite, open
-  questions). It must never be stored, logged, printed or returned by a read endpoint, whatever
-  the user's settings are, including conversation saving.
+  questions). The Coach endpoint itself must never store, log, print or return it through a
+  read endpoint, whatever the user's settings are, including conversation saving. If the user
+  applies a suggestion and analyses again, that text becomes an ordinary task and follows the
+  task rule (see the last test).
 All 16 combinations of save, use, automatic coaching and conversation saving are covered.
 """
 
@@ -235,7 +237,32 @@ def test_coach_output_is_never_kept_and_task_text_only_with_consent(
     )
     assert choice.status_code == 200
 
+    stored_task = any(
+        table == "conversation_content" and TASK_MARKER in text
+        for table, _, text in database_text(app)
+    )
+    assert stored_task == saved_text
     assert_privacy(app, caplog, capsys, conversations_saved=saved_text)
+
+
+def test_applied_rewrite_becomes_an_ordinary_task(caplog, capsys):
+    """Coach text the user applies and analyses again is task text, under the task rule."""
+    caplog.set_level(logging.DEBUG)
+    app = make_app()
+    client = register(app)
+    client.put("/api/context", json={"conversation_memory_enabled": True})
+    analysis = analyse(client)
+    rewrite = client.post(
+        "/api/prompt-coach", json=coach_payload(analysis["id"], "rewrite", allow_external=True)
+    ).json()["rewrite"]
+    assert COACH_MARKER in rewrite
+    response = client.post(
+        "/api/analyze",
+        json={"task": rewrite, "provider": "groq", "allow_external": True},
+    )
+    assert response.status_code == 200
+    holders = {table for table, _, text in database_text(app) if COACH_MARKER in text}
+    assert holders == {"conversation_content"}
 
 
 def external_analysis(client, provider):

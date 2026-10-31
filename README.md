@@ -242,6 +242,21 @@ Prompt Coach focus). To change the rubric, add a new version file, register its 
 point `ACTIVE` at it and run the core eval; never edit a registered file.
 `uv run python scripts/render_rubric.py` prints the active rubric as Markdown.
 
+## End-to-end tests
+
+`e2e/` runs Playwright against the real backend and the Vite frontend, with deterministic
+fake models from `e2e/server.py` (temporary database, no API keys, no external calls):
+
+```bash
+cd e2e
+pnpm install
+pnpm exec playwright install chromium
+pnpm exec playwright test
+```
+
+The CI job `e2e` runs the same specs. `E2E_PROMPT_COACH=false` starts the test server with
+the Prompt Coach switched off.
+
 ## Prompt Coach (optional)
 
 The Prompt Coach is an optional module (ADR-009) that the client has not approved. It

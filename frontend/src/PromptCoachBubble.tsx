@@ -160,7 +160,9 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
   const uncertain = enabled && current && base ? uncertainDimensions(base.profile) : []
   const checks = localChecks(task)
   // An empty field is not counted: the bubble should not nag before the user has written.
-  const pending = (task.trim() ? checks.length : 0) + (result ? result.suggestions.length : uncertain.length)
+  // With the Coach off (or not installed) the bubble shows no count at all; the quick checks
+  // are still listed when the user opens it.
+  const pending = enabled ? (task.trim() ? checks.length : 0) + (result ? result.suggestions.length : uncertain.length) : 0
   const local = base?.provider === 'demo'
   const destination = base ? (base.model ? `${base.provider} · ${base.model}` : base.provider) : ''
 

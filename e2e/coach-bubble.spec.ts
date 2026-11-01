@@ -90,6 +90,7 @@ test('without the Prompt Coach module only quick checks run', async ({ page }) =
   const coachBodies = watchCoach(page)
   await signUp(page)
   await page.locator('[data-task-input]').fill('Email me at someone@example.com')
+  await expect(bubble(page)).toHaveText('✦') // No count when the Coach is off.
   await bubble(page).click()
   await expect(panel(page)).toContainText('Email address in the task')
   await expect(panel(page)).toContainText('The Prompt Coach is switched off')
@@ -113,8 +114,10 @@ test('each user switches the Prompt Coach on or off in Profile', async ({ page }
   await expect(toggle).not.toBeChecked()
 
   await page.locator('.nav-item', { hasText: 'Assistant' }).first().click()
+  await page.locator('[data-task-input]').fill('aegwe')
+  await expect(bubble(page)).toHaveText('✦') // No count, not even for quick checks: the Coach is off.
   await analyse(page, VAGUE)
-  await expect(bubble(page)).toHaveText('✦') // No count: the Coach is off for this user.
+  await expect(bubble(page)).toHaveText('✦')
   await expect(page.getByRole('button', { name: 'Improve with Prompt Coach' })).toHaveCount(0)
   await bubble(page).click()
   await expect(panel(page)).toContainText('You can switch it on in Profile')

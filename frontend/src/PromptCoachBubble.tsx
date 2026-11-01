@@ -128,14 +128,17 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
 
   useEffect(() => () => active.current?.abort(), [])
 
-  // The panel opens above the bubble, as tall as the space above it allows (below the
-  // mobile top bar). When there is too little room above, it opens below instead.
+  // The panel opens above the bubble, as tall as the space between the bubble and the header
+  // allows. When there is too little room above, it opens below instead.
   const bubbleRef = useRef<HTMLButtonElement>(null)
   const [place, setPlace] = useState<{ below: boolean; maxHeight: number }>({ below: false, maxHeight: 520 })
   useLayoutEffect(() => {
     if (!open || !bubbleRef.current) return
     const rect = bubbleRef.current.getBoundingClientRect()
-    const header = window.matchMedia('(max-width: 800px)').matches ? 72 : 12
+    // The app header is a sidebar on wide screens and a top bar on narrow ones: only a top
+    // bar takes room above the field.
+    const bar = document.querySelector('.topbar')?.getBoundingClientRect()
+    const header = (bar && bar.width > bar.height ? Math.max(0, bar.bottom) : 0) + 12
     const above = rect.top - 8 - header
     const below = window.innerHeight - rect.bottom - 14
     const fitsAbove = above >= Math.min(320, below)

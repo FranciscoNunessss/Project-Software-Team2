@@ -91,8 +91,7 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
   disabled: boolean
   onTaskChange: (value: string) => void
   onAnalyse: () => void
-  // The task field: the bubble sits on it and the panel opens below it, in the page flow, so
-  // it never covers the Analyse button.
+  // The task field: the bubble sits on it and the panel floats below the bubble.
   children: ReactNode
 }) {
   const [enabled, setEnabled] = useState<boolean | null>(null)
@@ -129,11 +128,15 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
 
   useEffect(() => () => active.current?.abort(), [])
 
+  // A floating panel: Escape or a click anywhere outside it (and outside the bubble) closes it.
+  const root = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!open) return
     const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
+    const onPointer = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false) }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('pointerdown', onPointer)
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('pointerdown', onPointer) }
   }, [open])
 
   const current = base !== null && base.id === analysisId && task === base.text
@@ -192,7 +195,7 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
   const label = pending ? `Prompt Coach: ${pending} ${pending === 1 ? 'suggestion' : 'suggestions'}` : 'Prompt Coach'
 
   return (
-    <div className="coach">
+    <div className="coach" ref={root}>
       <div className="coach-field">
       {children}
       <button type="button" className="coach-bubble" aria-label={label} aria-haspopup="dialog" aria-expanded={open}

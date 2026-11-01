@@ -717,7 +717,8 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .coach-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-warn); }
 .coach { position: relative; }
 .coach-panel.below { bottom: auto; top: calc(100% + 6px); }
-.coach-panel { position: absolute; z-index: 60; right: 0; bottom: 44px; width: 400px; max-width: 100%; max-height: min(520px, 70vh); display: flex; flex-direction: column; background: var(--c-bg); color: var(--c-fg); border: 1px solid var(--c-line); border-radius: 14px; box-shadow: var(--c-shadow); overflow: hidden; font-size: 13.5px; line-height: 1.45; text-align: left; }
+/* Below the app header (z-index 30), so the panel never covers it when the page scrolls. */
+.coach-panel { position: absolute; z-index: 20; right: 0; bottom: 44px; width: 400px; max-width: 100%; max-height: min(520px, 70vh); display: flex; flex-direction: column; background: var(--c-bg); color: var(--c-fg); border: 1px solid var(--c-line); border-radius: 14px; box-shadow: var(--c-shadow); overflow: hidden; font-size: 13.5px; line-height: 1.45; text-align: left; }
 .coach-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 14px 16px 10px; border-bottom: 1px solid var(--c-line); }
 .coach-head b { font-size: 14.5px; display: block; }
 .coach-head small { color: var(--c-muted); font-size: 12px; }

@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test'
 
 // Starts the real backend with fake models (e2e/server.py) and the Vite frontend, then runs
-// the browser specs. The extension spec loads extension/ into Chromium itself.
+// the browser specs.
 export default defineConfig({
   testDir: '.',
   timeout: 60_000,

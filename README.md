@@ -264,7 +264,16 @@ is switched off by default: `ADAPTAI_PROMPT_COACH_ENABLED=false`. Only when the 
 `true` does `create_app` import `backend/app/prompt_coach.py` (a late import inside a
 single `if` block) and call `install_prompt_coach`; no other core file imports it, and
 `backend/tests/test_features.py` enforces that. `GET /api/features` (public) returns
-`{"prompt_coach": true|false}` so the frontend can show or hide the Coach. Tests of the
+`{"prompt_coach": true|false}` so the frontend can show or hide the Coach.
+
+In the Assistant, a bubble on the task field (`PromptCoachBubble.tsx`) is the Coach's
+entry point. After an analysis it shows how many dimensions were left uncertain, using
+the same priority as the backend and no model call; the count disappears when the text
+changes. Selecting it opens a panel below the field that names where the task would be
+sent, asks the Coach only on click (edits, questions or a rewrite shown as a diff),
+changes the task only on click, and offers **Analyse again** to see what changed. With
+the flag off the bubble runs quick local checks only (very short text, emails, phone
+numbers) and sends nothing. Tests of the
 module carry the `prompt_coach` pytest marker. CI runs the backend with the flag in both
 states and a `removal-drill` job that deletes the module, runs
 `pytest -m "not prompt_coach"`, migrates a real database, adds a leftover
@@ -281,15 +290,17 @@ that do not exist yet):
 
 1. Keep `ADAPTAI_PROMPT_COACH_ENABLED=false`.
 2. Delete `backend/app/prompt_coach.py`, `backend/tests/test_prompt_coach*.py`,
-   `scripts/check_prompt_coach.py`, `extension/`, `frontend/src/PromptCoachTips.tsx`,
-   `e2e/extension.spec.ts` and the Coach steps in `e2e/assistant.spec.ts`.
+   `scripts/check_prompt_coach.py`, `frontend/src/PromptCoachTips.tsx`,
+   `frontend/src/PromptCoachBubble.tsx` (and its `.coach*` styles in `index.css`),
+   `e2e/coach-bubble.spec.ts` and the Coach steps in `e2e/assistant.spec.ts`.
 3. Remove the touch points: in `backend/app/main.py` the late import, the
    `if settings.prompt_coach_enabled:` block and the `prompt_coach_options` parameter;
    `Settings.prompt_coach_enabled` in `providers.py`; `prompt_coach` in `/api/features`
    (or keep it returning `false`); `/api/prompt-coach` in the no-store path list; the
    `prompt_coach` marker in `pyproject.toml`; the `collect_ignore_glob` line in
    `backend/tests/conftest.py`; the `true` matrix leg and the `removal-drill` job in
-   `.github/workflows/ci.yml`; the mounting line in `App.tsx`; `prompt_coach_options`
+   `.github/workflows/ci.yml`; in `App.tsx` the `PromptCoachTips` line and the
+   `<PromptCoachBubble>` wrapper around the task field (keep the textarea); `prompt_coach_options`
    in `e2e/server.py`; the call in `Progress.tsx` and the sentence in `Profile.tsx`.
 4. Optionally run `DROP TABLE IF EXISTS prompt_coach_events` on the SQLite database
    (the core ignores the table if it stays).

@@ -720,3 +720,37 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .theme-dark .fit-track { background: #3a3a3a; }
 .theme-dark .fit-row.recommended .fit-fill { background: #e4e4e4; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* Prompt Coach bubble (optional module, ADR-009 / AA-030). */
+.coach-field { position: relative; }
+.composer .coach-field textarea { padding-right: 56px; }
+.coach { --c-bg: #ffffff; --c-fg: #222222; --c-muted: #727272; --c-line: #e4e4e4; --c-sunk: #f4f4f4; --c-accent: #202020; --c-accent-fg: #ffffff; --c-warn: #b45309; --c-ins: #dcfce7; --c-del: #fee2e2; --c-mark: #fef3c7; --c-shadow: 0 16px 40px rgba(0,0,0,.16); }
+.theme-dark .coach { --c-bg: #191919; --c-fg: #f2f2f2; --c-muted: #a3a3a3; --c-line: #343434; --c-sunk: #242424; --c-accent: #f2f2f2; --c-accent-fg: #191919; --c-warn: #fbbf24; --c-ins: #14532d; --c-del: #7f1d1d; --c-mark: #713f12; --c-shadow: 0 16px 40px rgba(0,0,0,.55); }
+.coach-bubble { position: absolute; right: 18px; bottom: 4px; height: 32px; min-width: 32px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--c-line); background: var(--c-accent); color: var(--c-accent-fg); font-size: 12.5px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: var(--c-shadow); transition: transform .12s; }
+.coach-bubble:hover:not(:disabled) { transform: translateY(-1px); }
+.coach-bubble:disabled { opacity: .5; cursor: default; }
+.coach-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-warn); }
+.coach-panel { margin: 10px 0 14px auto; width: 420px; max-width: 100%; max-height: min(560px, 75vh); display: flex; flex-direction: column; background: var(--c-bg); color: var(--c-fg); border: 1px solid var(--c-line); border-radius: 14px; box-shadow: var(--c-shadow); overflow: hidden; font-size: 13.5px; line-height: 1.45; text-align: left; }
+.coach-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 14px 16px 10px; border-bottom: 1px solid var(--c-line); }
+.coach-head b { font-size: 14.5px; display: block; }
+.coach-head small { color: var(--c-muted); font-size: 12px; }
+.coach-x { border: 0; background: transparent; color: var(--c-muted); font-size: 18px; line-height: 1; padding: 2px 6px; border-radius: 6px; }
+.coach-body { overflow: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.coach-note, .coach-detail { color: var(--c-muted); font-size: 12.5px; margin: 0; }
+.coach-notice { background: var(--c-sunk); border-radius: 10px; padding: 10px 12px; font-size: 12.5px; margin: 0; }
+.coach-error { color: #b91c1c; font-size: 12.5px; margin: 0; }
+.coach-card { border: 1px solid var(--c-line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.coach-kicker { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted); font-weight: 600; }
+.coach-title { font-weight: 600; }
+.coach-preview { font-size: 12.5px; background: var(--c-sunk); border-radius: 8px; padding: 6px 8px; overflow-wrap: anywhere; }
+.coach-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.coach-btn { border: 1px solid var(--c-line); background: var(--c-bg); color: var(--c-fg); border-radius: 8px; padding: 5px 11px; font-size: 12.5px; }
+.coach-btn.primary { background: var(--c-accent); border-color: var(--c-accent); color: var(--c-accent-fg); font-weight: 600; }
+.coach-btn:disabled { opacity: .55; cursor: default; }
+.composer .coach-answer { width: 100%; min-height: 52px; resize: vertical; border: 1px solid var(--c-line); border-radius: 8px; padding: 6px 8px; background: var(--c-bg); color: var(--c-fg); font-size: 12.5px; line-height: 1.45; }
+.coach-diff { white-space: pre-wrap; overflow-wrap: break-word; background: var(--c-sunk); padding: 10px 12px; border-radius: 10px; margin: 0; font: inherit; font-size: 13px; line-height: 1.6; }
+.coach ins { background: var(--c-ins); text-decoration: none; border-radius: 3px; }
+.coach del { background: var(--c-del); border-radius: 3px; }
+.coach mark { background: var(--c-mark); color: inherit; border-radius: 3px; }
+.coach-foot { border-top: 1px solid var(--c-line); padding: 10px 14px; display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
+@media (prefers-reduced-motion: reduce) { .coach-bubble { transition: none; } }

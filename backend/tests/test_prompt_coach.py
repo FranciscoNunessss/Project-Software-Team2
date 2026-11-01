@@ -89,7 +89,7 @@ def build(profile=None, provider="groq", settings=None, factory=FakeCoach, perso
             return Assessment(profile=Profile.model_validate(profile or uncertain_profile()))
 
     app = create_app(
-        settings or Settings(_env_file=None, prompt_coach_enabled=True),
+        settings or Settings(_env_file=None),
         overrides={"groq": Assessor(), "ollama": Assessor()},
         prompt_coach_options={"model_factory": factory} if factory else None,
     )
@@ -258,7 +258,7 @@ def test_external_provider_without_consent_is_refused_before_any_model_call():
 def test_changed_server_model_is_a_conflict():
     _, client, analysis_id = build()
     changed = create_app(
-        Settings(_env_file=None, prompt_coach_enabled=True, groq_model="another-model"),
+        Settings(_env_file=None, groq_model="another-model"),
         overrides={"groq": object()},
         prompt_coach_options={"model_factory": FakeCoach},
     )
@@ -532,3 +532,14 @@ def test_task_text_never_reaches_the_logs(caplog, failure):
         for mode in ("tips", "edits", "rewrite"):
             assert coach(client, analysis_id, mode=mode, task=marker).status_code == 200
     assert "7f3a" not in caplog.text and "merger memo" not in caplog.text
+
+
+def test_a_user_who_switched_the_coach_off_gets_no_model_call():
+    _, client, analysis_id = build()
+    assert client.put("/api/prompt-coach/settings", json={"enabled": False}).status_code == 200
+    response = coach(client, analysis_id)
+    assert response.status_code == 403
+    assert response.json()["detail"] == "prompt_coach_disabled"
+    assert FakeCoach.calls == []
+    client.put("/api/prompt-coach/settings", json={"enabled": True})
+    assert coach(client, analysis_id).status_code == 200

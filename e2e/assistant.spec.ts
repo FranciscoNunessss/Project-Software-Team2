@@ -41,8 +41,8 @@ test('the Prompt Coach is called only on click and shows grounded suggestions', 
   expect(JSON.parse(coachCalls[0])).toMatchObject({ mode: 'tips', allow_external: true })
 })
 
-test('with the Prompt Coach switched off nothing of it appears', async ({ page }) => {
-  // The flag is a server setting; the frontend only reads /api/features.
+test('without the Prompt Coach module nothing of it appears', async ({ page }) => {
+  // /api/features says whether the module is installed on the server.
   await page.route('**/api/features', route => route.fulfill({ json: { prompt_coach: false } }))
   const coachCalls: string[] = []
   page.on('request', request => {

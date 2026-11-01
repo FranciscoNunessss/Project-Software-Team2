@@ -140,6 +140,19 @@ export async function api<T>(path: string, body?: unknown, signal?: AbortSignal,
 export function getFeatures(signal?: AbortSignal): Promise<Features> {
   return api<Features>('features', undefined, signal)
 }
+export type CoachSettings = { enabled: boolean }
+export function getCoachSettings(signal?: AbortSignal): Promise<CoachSettings> {
+  return api<CoachSettings>('prompt-coach/settings', undefined, signal)
+}
+export function setCoachSettings(body: CoachSettings): Promise<CoachSettings> {
+  return api<CoachSettings>('prompt-coach/settings', body, undefined, 'PUT')
+}
+// True when the module is installed on the server and this user has it switched on.
+export async function coachAvailable(signal?: AbortSignal): Promise<boolean> {
+  const features = await getFeatures(signal)
+  if (features.prompt_coach !== true) return false
+  return (await getCoachSettings(signal)).enabled === true
+}
 export function promptCoach(
   body: { analysis_id: string; task: string; mode: CoachMode; allow_external: boolean },
   signal?: AbortSignal,

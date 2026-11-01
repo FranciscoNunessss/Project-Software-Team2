@@ -254,57 +254,57 @@ pnpm exec playwright install chromium
 pnpm exec playwright test
 ```
 
-The CI job `e2e` runs the same specs. `E2E_PROMPT_COACH=false` starts the test server with
-the Prompt Coach switched off.
+The CI job `e2e` runs the same specs.
 
 ## Prompt Coach (optional)
 
-The Prompt Coach is an optional module (ADR-009) that the client has not approved. It
-is switched off by default: `ADAPTAI_PROMPT_COACH_ENABLED=false`. Only when the flag is
-`true` does `create_app` import `backend/app/prompt_coach.py` (a late import inside a
-single `if` block) and call `install_prompt_coach`; no other core file imports it, and
-`backend/tests/test_features.py` enforces that. `GET /api/features` (public) returns
-`{"prompt_coach": true|false}` so the frontend can show or hide the Coach.
+The Prompt Coach is an optional module (ADR-009) that the client has not approved. There
+is no server flag: each user switches it on or off in **Profile** (on by default), and the
+choice is kept per account. `create_app` imports `backend/app/prompt_coach.py` late, at the
+end, inside a single `try`, and carries on without it if the file is missing; no other core
+file imports it, and `backend/tests/test_features.py` enforces that. `GET /api/features`
+(public) returns `{"prompt_coach": true|false}`: whether the module is installed.
+`GET`/`PUT /api/prompt-coach/settings` read and change the user's switch; with it off,
+`POST /api/prompt-coach` answers 403 `prompt_coach_disabled` without calling a model.
 
 In the Assistant, a bubble on the task field (`PromptCoachBubble.tsx`) is the Coach's
 entry point. After an analysis it shows how many dimensions were left uncertain, using
 the same priority as the backend and no model call; the count disappears when the text
-changes. Selecting it opens a panel below the field that names where the task would be
-sent, asks the Coach only on click (edits, questions or a rewrite shown as a diff),
-changes the task only on click, and offers **Analyse again** to see what changed. With
-the flag off the bubble runs quick local checks only (very short text, emails, phone
-numbers) and sends nothing. Tests of the
-module carry the `prompt_coach` pytest marker. CI runs the backend with the flag in both
-states and a `removal-drill` job that deletes the module, runs
-`pytest -m "not prompt_coach"`, migrates a real database, adds a leftover
-`prompt_coach_events` table and restarts the app over it, checking that
+changes. Selecting it opens a floating panel above the bubble that names where the task
+would be sent, asks the Coach only on click (edits, questions or a rewrite shown as a
+diff), changes the task only on click, and offers **Analyse again** to see what changed.
+With the user's switch off the bubble runs quick local checks only (very short text,
+emails, phone numbers) and sends nothing. The switch itself is `PromptCoachToggle.tsx`
+in Profile.
+
+Tests of the module carry the `prompt_coach` pytest marker. CI runs the backend suite and
+a `removal-drill` job that deletes the module, runs `pytest -m "not prompt_coach"`,
+migrates a real database, adds leftover `prompt_coach_events` and
+`prompt_coach_settings` tables and restarts the app over them, checking that
 `PRAGMA user_version` is unchanged. The module must therefore never change
-`PRAGMA user_version`: its tables are created with `CREATE TABLE IF NOT EXISTS`,
-outside the core migrations. The Coach is mounted after every core route, so it can
-never shadow one. Branch protection should require the checks
-"backend (prompt_coach=false)", "backend (prompt_coach=true)" and "removal-drill"
-instead of "backend".
+`PRAGMA user_version`: its tables (`prompt_coach_settings`) are created with
+`CREATE TABLE IF NOT EXISTS`, outside the core migrations. The Coach is mounted after
+every core route, so it can never shadow one. Branch protection should require the
+checks "backend" and "removal-drill".
 
-To remove the Prompt Coach (some of these files are added by later cards; skip those
-that do not exist yet):
+To remove the Prompt Coach:
 
-1. Keep `ADAPTAI_PROMPT_COACH_ENABLED=false`.
-2. Delete `backend/app/prompt_coach.py`, `backend/tests/test_prompt_coach*.py`,
+1. Delete `backend/app/prompt_coach.py`, `backend/tests/test_prompt_coach*.py`,
    `scripts/check_prompt_coach.py`, `frontend/src/PromptCoachTips.tsx`,
    `frontend/src/PromptCoachBubble.tsx` (and its `.coach*` styles in `index.css`),
-   `e2e/coach-bubble.spec.ts` and the Coach steps in `e2e/assistant.spec.ts`.
-3. Remove the touch points: in `backend/app/main.py` the late import, the
-   `if settings.prompt_coach_enabled:` block and the `prompt_coach_options` parameter;
-   `Settings.prompt_coach_enabled` in `providers.py`; `prompt_coach` in `/api/features`
-   (or keep it returning `false`); `/api/prompt-coach` in the no-store path list; the
-   `prompt_coach` marker in `pyproject.toml`; the `collect_ignore_glob` line in
-   `backend/tests/conftest.py`; the `true` matrix leg and the `removal-drill` job in
-   `.github/workflows/ci.yml`; in `App.tsx` the `PromptCoachTips` line and the
-   `<PromptCoachBubble>` wrapper around the task field (keep the textarea); `prompt_coach_options`
-   in `e2e/server.py`; the call in `Progress.tsx` and the sentence in `Profile.tsx`.
-4. Optionally run `DROP TABLE IF EXISTS prompt_coach_events` on the SQLite database
-   (the core ignores the table if it stays).
-5. Run the full backend suite, `pnpm build` and the e2e tests.
+   `frontend/src/PromptCoachToggle.tsx`, `e2e/coach-bubble.spec.ts` and the Coach steps
+   in `e2e/assistant.spec.ts`. The backend already runs without the file.
+2. Remove the touch points: in `backend/app/main.py` the `try` block and the
+   `prompt_coach_options` parameter; `prompt_coach` in `/api/features` (or keep it, it
+   returns `false`); `/api/prompt-coach` in the no-store path list; the `prompt_coach`
+   marker in `pyproject.toml`; the `collect_ignore_glob` line in
+   `backend/tests/conftest.py`; the `removal-drill` job in `.github/workflows/ci.yml`; in
+   `App.tsx` the `PromptCoachTips` line and the `<PromptCoachBubble>` wrapper around the
+   task field (keep the textarea); the `PromptCoachToggle` line in `Profile.tsx`;
+   `prompt_coach_options` in `e2e/server.py`.
+3. Optionally run `DROP TABLE IF EXISTS prompt_coach_settings` (and
+   `prompt_coach_events`, if present) on the SQLite database; the core ignores them.
+4. Run the full backend suite, `pnpm build` and the e2e tests.
 
 ## Seven-dimension prototype
 

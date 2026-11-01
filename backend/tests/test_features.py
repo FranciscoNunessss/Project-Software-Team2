@@ -1,4 +1,4 @@
-"""Core tests: the application works with the optional Prompt Coach switched off.
+"""Core tests: the application works with or without the optional Prompt Coach module.
 
 These tests are not marked ``prompt_coach`` so they run in the removal drill too.
 """
@@ -13,13 +13,14 @@ from fastapi.testclient import TestClient
 APP_DIR = Path(__file__).resolve().parents[1] / "app"
 
 
-def test_features_report_prompt_coach_disabled():
-    client = TestClient(create_app(Settings(_env_file=None, prompt_coach_enabled=False)))
+def test_features_report_whether_the_module_is_installed():
+    installed = (APP_DIR / "prompt_coach.py").exists()  # False in the removal drill.
+    client = TestClient(create_app(Settings(_env_file=None)))
     response = client.get("/api/features")
     assert response.status_code == 200
-    assert response.json() == {"prompt_coach": False}
-    # Stays meaningful once the module registers routes: with the flag off there are none.
-    assert client.post("/api/prompt-coach", json={}).status_code == 404
+    assert response.json() == {"prompt_coach": installed}
+    if not installed:
+        assert client.post("/api/prompt-coach", json={}).status_code == 404
 
 
 def _imports_prompt_coach(node: ast.AST) -> bool:
@@ -34,24 +35,15 @@ def _imports_prompt_coach(node: ast.AST) -> bool:
     return False
 
 
-def _is_flag_test(test: ast.expr) -> bool:
-    return (
-        isinstance(test, ast.Attribute)
-        and test.attr == "prompt_coach_enabled"
-        and isinstance(test.value, ast.Name)
-        and test.value.id == "settings"
-    )
-
-
 def _guarded_lines(tree: ast.Module) -> set[int]:
-    """Imports allowed only in an ``if settings.prompt_coach_enabled:`` that is a direct
-    statement of the ``create_app`` body (not nested in a route handler or another block)."""
+    """Imports allowed only in a ``try`` that is a direct statement of the ``create_app`` body
+    (not nested in a route handler or another block), so the core starts without the file."""
     lines: set[int] = set()
     for function in tree.body:
         if isinstance(function, ast.FunctionDef) and function.name == "create_app":
             for branch in function.body:
-                if isinstance(branch, ast.If) and _is_flag_test(branch.test):
-                    for node in ast.walk(branch):
+                if isinstance(branch, ast.Try):
+                    for node in branch.body:
                         if _imports_prompt_coach(node):
                             lines.add(node.lineno)
     return lines
@@ -74,7 +66,7 @@ def _dynamic_imports(tree: ast.Module) -> list[int]:
     return found
 
 
-def test_only_create_app_imports_prompt_coach_behind_the_flag():
+def test_only_create_app_imports_prompt_coach_and_tolerates_its_absence():
     offending = []
     for path in sorted(APP_DIR.rglob("*.py")):
         if path.name == "prompt_coach.py":
@@ -90,16 +82,18 @@ def test_only_create_app_imports_prompt_coach_behind_the_flag():
     assert not offending, f"prompt_coach imported outside the guarded block: {offending}"
 
 
-def test_guard_rejects_imports_outside_the_flag_block():
+def test_guard_rejects_imports_outside_the_create_app_try():
     nested = ast.parse(
         "def create_app(settings):\n"
         "    def handler():\n"
         "        if True:\n"
         "            from app.prompt_coach import install_prompt_coach\n"
-        "    if settings.prompt_coach_enabled:\n"
+        "    try:\n"
         "        from app.prompt_coach import install_prompt_coach\n"
+        "    except ModuleNotFoundError:\n"
+        "        pass\n"
         "    import importlib\n"
         "    importlib.import_module('app.prompt_coach')\n"
     )
     assert _guarded_lines(nested) == {6}
-    assert _dynamic_imports(nested) == [8]
+    assert _dynamic_imports(nested) == [10]

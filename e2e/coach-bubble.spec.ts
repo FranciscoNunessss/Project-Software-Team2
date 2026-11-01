@@ -85,18 +85,47 @@ test('a suggested rewrite is shown as a diff and applied only on click', async (
   await expect(page.locator('[data-task-input]')).toHaveValue(/for the board\. \[Which sources/)
 })
 
-test('with the Prompt Coach switched off only quick checks run', async ({ page }) => {
+test('without the Prompt Coach module only quick checks run', async ({ page }) => {
   await page.route('**/api/features', route => route.fulfill({ json: { prompt_coach: false } }))
   const coachBodies = watchCoach(page)
   await signUp(page)
   await page.locator('[data-task-input]').fill('Email me at someone@example.com')
   await bubble(page).click()
   await expect(panel(page)).toContainText('Email address in the task')
-  await expect(panel(page)).toContainText('switched off on this AdaptAI server')
+  await expect(panel(page)).toContainText('The Prompt Coach is switched off')
   await expect(panel(page).getByRole('button', { name: 'Get suggestions' })).toHaveCount(0)
   await page.locator('.composer-meta').click() // A click outside closes the floating panel.
   await expect(panel(page)).toBeHidden()
   await analyse(page, VAGUE)
   await expect(bubble(page)).toHaveText('✦') // No count from the analysis when the Coach is off.
   expect(coachBodies).toHaveLength(0)
+})
+
+test('each user switches the Prompt Coach on or off in Profile', async ({ page }) => {
+  const coachBodies = watchCoach(page)
+  await signUp(page)
+  await page.locator('.nav-item', { hasText: 'Profile' }).first().click()
+  const toggle = page.getByRole('switch', { name: 'Use the Prompt Coach' })
+  await expect(toggle).toBeChecked() // On by default.
+  const saved = page.waitForResponse(response => response.url().endsWith('/api/prompt-coach/settings') && response.request().method() === 'PUT')
+  await toggle.click()
+  expect((await saved).status()).toBe(200)
+  await expect(toggle).not.toBeChecked()
+
+  await page.locator('.nav-item', { hasText: 'Assistant' }).first().click()
+  await analyse(page, VAGUE)
+  await expect(bubble(page)).toHaveText('✦') // No count: the Coach is off for this user.
+  await expect(page.getByRole('button', { name: 'Improve with Prompt Coach' })).toHaveCount(0)
+  await bubble(page).click()
+  await expect(panel(page)).toContainText('You can switch it on in Profile')
+  await expect(panel(page).getByRole('button', { name: 'Get suggestions' })).toHaveCount(0)
+  expect(coachBodies).toHaveLength(0)
+
+  await page.keyboard.press('Escape')
+  await page.locator('.nav-item', { hasText: 'Profile' }).first().click()
+  await page.getByRole('switch', { name: 'Use the Prompt Coach' }).click()
+  await expect(page.getByRole('switch', { name: 'Use the Prompt Coach' })).toBeChecked()
+  await page.locator('.nav-item', { hasText: 'Assistant' }).first().click()
+  await analyse(page, VAGUE)
+  await expect(bubble(page)).toHaveText('4')
 })

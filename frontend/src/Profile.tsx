@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type MemorySettings } from './api'
+import { PromptCoachToggle } from './PromptCoachToggle'
 
 export function ProfileScreen() {
   const [settings, setSettings] = useState<MemorySettings>()
@@ -51,6 +52,7 @@ export function ProfileScreen() {
         <p className="muted">{settings.saved_conversations} saved conversations. Review and export them in My progress.</p>
         <div className="history-delete">{forgetConversations?<><p>Permanently delete saved conversation text, AI responses and generated coaching? Numeric history and choices remain. New conversations can still be saved if the switch stays on.</p><div className="history-actions"><button className="button button-danger" disabled={busy} onClick={()=>void clearConversations()}>Delete saved conversations permanently</button><button className="button button-secondary" disabled={busy} onClick={()=>setForgetConversations(false)}>Cancel</button></div></>:<button className="button button-danger" disabled={busy||!settings.saved_conversations} onClick={()=>setForgetConversations(true)}>Delete saved conversations…</button>}</div>
       </section>
+      <PromptCoachToggle />
       <section className="card profile-card-settings"><p className="eyebrow">My progress</p><h2>Automatic learning suggestions</h2>
         <label className="settings-switch"><span><strong>Automatically update suggestions with Groq</strong><small>Send your latest 50 derived assessment profiles and confirmed choices to project Groq after history changes, including existing history when enabled. Up to 5 saved conversation excerpts are included only when both text saving and Use memory are enabled above. Saved preferences and provider keys are excluded. Suggestions are saved to your account; provider quota may be used.</small></span><input type="checkbox" role="switch" checked={settings.coaching_auto_enabled} disabled={busy} onChange={event=>void update({coaching_auto_enabled:event.target.checked})} /></label>
         <p className="muted">This is separate from Assistant memory. Turning it off pauses new suggestions and keeps existing ones. When enabled, My progress updates automatically after new analyses and confirmed choices.</p>

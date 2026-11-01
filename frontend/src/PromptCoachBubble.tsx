@@ -91,7 +91,7 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
   disabled: boolean
   onTaskChange: (value: string) => void
   onAnalyse: () => void
-  // The task field: the bubble sits on it and the panel floats below the bubble.
+  // The task field: the bubble sits on it and the panel floats above it (below if no room).
   children: ReactNode
 }) {
   const [enabled, setEnabled] = useState<boolean | null>(null)
@@ -101,7 +101,8 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
   const [error, setError] = useState('')
   const [result, setResult] = useState<CoachResponse | null>(null)
   const [view, setView] = useState<'list' | 'rewrite'>('list')
-  const [answers, setAnswers] = useState<Record<number, string>>({})
+  // Answers are keyed by suggestion, not by position, so ignoring one card keeps the others' text.
+  const [answers, setAnswers] = useState<Record<string, string>>({})
   const [applied, setApplied] = useState(false)
   const active = useRef<AbortController | null>(null)
 
@@ -200,13 +201,18 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
     change(task.slice(0, at) + suggestion.replacement + task.slice(at + suggestion.quote.length))
     drop(index)
   }
+  const keyOf = (index: number) => {
+    const suggestion = result?.suggestions[index]
+    return suggestion ? `${suggestion.dimension}:${suggestion.title}` : ''
+  }
   const addAnswer = (index: number) => {
-    const answer = (answers[index] ?? '').trim()
+    const key = keyOf(index)
+    const answer = (answers[key] ?? '').trim()
     if (!answer) return
     const value = task.replace(/\s+$/, '')
     change(`${value}${/[.!?]$/.test(value) ? '' : '.'} ${answer}`)
     drop(index)
-    setAnswers({})
+    setAnswers(({ [key]: _used, ...rest }) => rest)
   }
   const analyseAgain = () => { setOpen(false); onAnalyse() }
 
@@ -281,7 +287,7 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
                         ) : suggestion.kind === 'question' ? (
                           <>
                             <textarea className="coach-answer" placeholder="Your answer (only you know this)" aria-label={`Answer: ${suggestion.title}`}
-                              value={answers[index] ?? ''} onChange={event => setAnswers({ ...answers, [index]: event.target.value })} />
+                              value={answers[keyOf(index)] ?? ''} onChange={event => setAnswers({ ...answers, [keyOf(index)]: event.target.value })} />
                             <div className="coach-row"><button type="button" className="coach-btn primary" onClick={() => addAnswer(index)}>Add to task</button>
                               <button type="button" className="coach-btn" onClick={() => drop(index)}>Ignore</button></div>
                           </>

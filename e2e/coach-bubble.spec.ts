@@ -132,3 +132,15 @@ test('each user switches the Prompt Coach on or off in Profile', async ({ page }
   await analyse(page, VAGUE)
   await expect(bubble(page)).toHaveText('4')
 })
+
+test('an answer stays with its question when another suggestion is ignored', async ({ page }) => {
+  await signUp(page)
+  await analyse(page, VAGUE)
+  await bubble(page).click()
+  await panel(page).getByRole('button', { name: 'Get suggestions' }).click()
+  const answer = panel(page).getByLabel('Answer: Say what happens if it is wrong')
+  await answer.fill('Rework before the meeting.')
+  await panel(page).getByRole('button', { name: 'Ignore' }).first().click() // The edit card above it.
+  await expect(answer).toHaveValue('Rework before the meeting.')
+  await expect(panel(page).getByLabel('Answer: Name the source material')).toHaveValue('')
+})

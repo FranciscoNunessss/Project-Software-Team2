@@ -106,6 +106,9 @@ class Candidate(BaseModel):
     name: str
     capacity: int = Field(ge=1, le=3)
     capabilities: list[str]
+    # Estimated, uncalibrated; None on results recorded before graded recommendation.
+    sufficiency: float | None = Field(None, ge=0, le=1)
+    fit: float | None = Field(None, ge=0, le=1)
 
 
 class Decision(BaseModel):
@@ -149,3 +152,4 @@ class AnalysisResult(BaseModel):
     # None only for analyses stored before completeness was introduced (prototype-3).
     completeness: int | None = Field(default=None, ge=0, le=100)
     changes: list[Change] = []
+    grading: dict | None = None

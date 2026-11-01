@@ -36,6 +36,23 @@ class PersonalContext(BaseModel):
     conversation_memory_enabled: bool | None = None
 
 
+def choice_gap(row) -> int:
+    """Chosen capacity minus recommended capacity for a confirmed choice."""
+    result = json.loads(row["result_json"])
+    recommended = result["recommendation"]
+    chosen = next(
+        item for item in [recommended, *result["alternatives"]] if item["id"] == row["candidate_id"]
+    )
+    return chosen["capacity"] - recommended["capacity"]
+
+
+def agreement_percent(gaps: list[int]) -> int | None:
+    """Partial credit per choice: 0 tiers apart = 100, 1 = 50, 2 or more = 0."""
+    if not gaps:
+        return None
+    return round(100 * sum(max(0.0, 1 - abs(gap) / 2) for gap in gaps) / len(gaps))
+
+
 def create_app(
     settings: Settings | None = None,
     overrides: dict | None = None,
@@ -170,7 +187,21 @@ def create_app(
             sessions = db.execute(
                 "SELECT count(*) FROM sessions WHERE user_id=?", (user["id"],)
             ).fetchone()[0]
-        return {"sessions": sessions, **dict(counts)}
+            gaps = [
+                choice_gap(row)
+                for row in db.execute(
+                    """SELECT a.result_json, d.candidate_id FROM sessions s
+                       JOIN analyses a ON a.session_id=s.id
+                       JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=?""",
+                    (user["id"],),
+                )
+            ]
+        return {
+            "sessions": sessions,
+            **dict(counts),
+            "agreement": agreement_percent(gaps),
+            "mean_gap": round(sum(gaps) / len(gaps), 2) if gaps else None,
+        }
 
     @app.get("/api/progress/pending")
     def pending_choices(
@@ -338,15 +369,10 @@ def create_app(
             )
             points = {}
             for row in rows:
-                result = json.loads(row["result_json"])
-                recommended = result["recommendation"]
-                chosen = next(
-                    item
-                    for item in [recommended, *result["alternatives"]]
-                    if item["id"] == row["candidate_id"]
-                )
-                over += chosen["capacity"] > recommended["capacity"]
-                under += chosen["capacity"] < recommended["capacity"]
+                recommended = json.loads(row["result_json"])["recommendation"]
+                gap = choice_gap(row)
+                over += gap > 0
+                under += gap < 0
                 point = points.setdefault(
                     row["id"],
                     {
@@ -355,18 +381,24 @@ def create_app(
                         "created_at": row["created_at"],
                         "choices": 0,
                         "matches": 0,
+                        "gaps": [],
                     },
                 )
                 point["choices"] += 1
                 point["matches"] += row["candidate_id"] == recommended["id"]
-        return {
-            "over": over,
-            "under": under,
-            "series": [
-                {**point, "rate": round(point["matches"] / point["choices"] * 100, 1)}
-                for point in list(points.values())[-6:]
-            ],
-        }
+                point["gaps"].append(gap)
+        series = []
+        for point in list(points.values())[-6:]:
+            gaps = point.pop("gaps")
+            series.append(
+                {
+                    **point,
+                    "rate": round(point["matches"] / point["choices"] * 100, 1),
+                    "score": agreement_percent(gaps),
+                    "mean_gap": round(sum(gaps) / len(gaps), 2),
+                }
+            )
+        return {"over": over, "under": under, "series": series}
 
     @app.get("/api/sessions/{identifier}")
     def session_detail(
@@ -541,6 +573,7 @@ def create_app(
                 "changes": explain_changes(previous, state["profile"])
                 if previous is not None
                 else [],
+                "grading": state.get("grading"),
             }
         )
         try:

@@ -2,12 +2,15 @@
 
 import argparse
 import json
+import secrets
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
 from app.main import create_app  # noqa: E402
+from app.providers import Settings  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 
@@ -17,12 +20,27 @@ def main() -> int:
         "--provider", choices=["groq", "openai", "claude", "ollama"], default="groq"
     )
     args = parser.parse_args()
-    client = TestClient(create_app())
+    # /api/analyze requires an account: use a throwaway database and account, never the
+    # local one, so the smoke test leaves no history behind.
+    with tempfile.TemporaryDirectory() as directory:
+        settings = Settings(database_path=str(Path(directory) / "check.sqlite3"))
+        client = TestClient(create_app(settings))
+        client.post(
+            "/api/auth/register",
+            json={
+                "email": f"check-{secrets.token_hex(4)}@example.com",
+                "password": secrets.token_hex(12),
+            },
+        )
+        return run(client, args.provider)
+
+
+def run(client: TestClient, provider: str) -> int:
     response = client.post(
         "/api/analyze",
         json={
             "task": "Compare two API designs for a small library catalogue. Explain trade-offs.",
-            "provider": args.provider,
+            "provider": provider,
             "allow_external": True,
         },
     )

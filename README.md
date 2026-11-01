@@ -78,7 +78,7 @@ and confirms eligible selections. The semantic profile now covers reasoning, con
 ambiguity, domain specificity, risk and tool need, with categorical execution modality.
 Every dimension includes evidence and qualitative, uncalibrated confidence; unknown
 values display as “Not determined”. Clarification prompts invite editing and re-analysis
-without blocking eligible selections. The rubric is in `backend/prompts/assessment-v2.txt`; the API migration is described in the "Seven-dimension prototype" section below.
+without blocking eligible selections. The rubric is versioned data in `backend/rubric/` (see "Rubric" below); the API migration is described in the "Seven-dimension prototype" section below.
 Accounts, persistent session history, context and confirmed choices are implemented.
 My progress shows real saved history, counts and recommendation agreement.
 The original progress dashboard uses actual per-session agreement and capacity comparison counts.
@@ -228,12 +228,90 @@ unknown analysis/session (404), missing or expired login (401), and conflicting 
 retry or choose another provider. The supplied frontend uses a development proxy for
 `/api`; production origins and deployment remain to be agreed.
 
+## Rubric
+
+The assessment rubric is data (ADR-009). Each version is an immutable JSON file in
+`backend/rubric/versions/`; `backend/rubric/ACTIVE` names the version in use and
+`backend/rubric/versions.json` records the sha256 of every version file. The backend
+refuses to start if the active version is missing, invalid, unregistered or modified.
+`backend/app/prompt_builder.py` generates the assessment prompt from it; `rubric-2.0`
+reproduces the former `assessment-v2.txt` prompt byte for byte (fixture in
+`backend/tests/fixtures/`). Each response carries `rubric_version`, and
+`GET /api/rubric` returns the dimensions, definitions and levels (never tips or
+Prompt Coach focus). To change the rubric, add a new version file, register its hash,
+point `ACTIVE` at it and run the core eval; never edit a registered file.
+`uv run python scripts/render_rubric.py` prints the active rubric as Markdown.
+
+## End-to-end tests
+
+`e2e/` runs Playwright against the real backend and the Vite frontend, with deterministic
+fake models from `e2e/server.py` (temporary database, no API keys, no external calls):
+
+```bash
+cd e2e
+pnpm install
+pnpm exec playwright install chromium
+pnpm exec playwright test
+```
+
+The CI job `e2e` runs the same specs.
+
+## Prompt Coach (optional)
+
+The Prompt Coach is an optional module (ADR-009) that the client has not approved. There
+is no server flag: each user switches it on or off in **Profile** (on by default), and the
+choice is kept per account. `create_app` imports `backend/app/prompt_coach.py` late, at the
+end, inside a single `try`, and carries on without it if the file is missing; no other core
+file imports it, and `backend/tests/test_features.py` enforces that. `GET /api/features`
+(public) returns `{"prompt_coach": true|false}`: whether the module is installed.
+`GET`/`PUT /api/prompt-coach/settings` read and change the user's switch; with it off,
+`POST /api/prompt-coach` answers 403 `prompt_coach_disabled` without calling a model.
+
+In the Assistant, a bubble on the task field (`PromptCoachBubble.tsx`) is the Coach's
+entry point. After an analysis it shows how many dimensions were left uncertain, using
+the same priority as the backend and no model call; the count disappears when the text
+changes. Selecting it opens a floating panel above the bubble that names where the task
+would be sent, asks the Coach only on click (edits, questions or a rewrite shown as a
+diff), changes the task only on click, and offers **Analyse again** to see what changed.
+With the user's switch off the bubble runs quick local checks only (very short text,
+emails, phone numbers) and sends nothing. The switch itself is `PromptCoachToggle.tsx`
+in Profile.
+
+Tests of the module carry the `prompt_coach` pytest marker. CI runs the backend suite and
+a `removal-drill` job that deletes the module, runs `pytest -m "not prompt_coach"`,
+migrates a real database, adds leftover `prompt_coach_events` and
+`prompt_coach_settings` tables and restarts the app over them, checking that
+`PRAGMA user_version` is unchanged. The module must therefore never change
+`PRAGMA user_version`: its tables (`prompt_coach_settings`) are created with
+`CREATE TABLE IF NOT EXISTS`, outside the core migrations. The Coach is mounted after
+every core route, so it can never shadow one. Branch protection should require the
+checks "backend" and "removal-drill".
+
+To remove the Prompt Coach:
+
+1. Delete `backend/app/prompt_coach.py`, `backend/tests/test_prompt_coach*.py`,
+   `scripts/check_prompt_coach.py`, `frontend/src/PromptCoachTips.tsx`,
+   `frontend/src/PromptCoachBubble.tsx` (and its `.coach*` styles in `index.css`),
+   `frontend/src/PromptCoachToggle.tsx`, `e2e/coach-bubble.spec.ts` and the Coach steps
+   in `e2e/assistant.spec.ts`. The backend already runs without the file.
+2. Remove the touch points: in `backend/app/main.py` the `try` block and the
+   `prompt_coach_options` parameter; `prompt_coach` in `/api/features` (or keep it, it
+   returns `false`); `/api/prompt-coach` in the no-store path list; the `prompt_coach`
+   marker in `pyproject.toml`; the `collect_ignore_glob` line in
+   `backend/tests/conftest.py`; the `removal-drill` job in `.github/workflows/ci.yml`; in
+   `App.tsx` the `PromptCoachTips` line and the `<PromptCoachBubble>` wrapper around the
+   task field (keep the textarea); the `PromptCoachToggle` line in `Profile.tsx`;
+   `prompt_coach_options` in `e2e/server.py`.
+3. Optionally run `DROP TABLE IF EXISTS prompt_coach_settings` (and
+   `prompt_coach_events`, if present) on the SQLite database; the core ignores them.
+4. Run the full backend suite, `pnpm build` and the e2e tests.
+
 ## Seven-dimension prototype
 
-The response identifies `profile_version: profile-2` and `policy_version: prototype-2`.
+The response identifies `profile_version: profile-2`, `policy_version: prototype-3` and `rubric_version`; re-analyses that send `previous_analysis_id` also return `completeness` and `changes`.
 This changes scalar profile fields into objects: read `profile.reasoning.score`,
 `.confidence` and `.evidence`. Backend, frontend and test fixtures must migrate together.
-The versioned assessor instructions live in `backend/prompts/assessment-v2.txt`.
+The assessor instructions are generated from the active rubric version (see "Rubric").
 
 Ranking uses reasoning/context for provisional capacity and derives hard modality
 requirements before capability filtering. Risk, domain, ambiguity and tool need do

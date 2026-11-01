@@ -33,6 +33,7 @@ package = false
 testpaths = ["backend/tests"]
 pythonpath = ["backend"]
 asyncio_mode = "auto"
+markers = ["prompt_coach: tests of the optional Prompt Coach module"]
 
 [tool.ruff]
 target-version = "py312"

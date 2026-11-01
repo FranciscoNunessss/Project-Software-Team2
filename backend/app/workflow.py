@@ -4,8 +4,14 @@ from typing import TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from app.assessment import assessment_advice, capacity_target, required_capabilities
-from app.models import AnalysisRequest, Assessment, Candidate, Profile
+from app.assessment import (
+    assessment_advice,
+    capacity_target,
+    completeness,
+    required_capabilities,
+    tips,
+)
+from app.models import AnalysisRequest, Assessment, Candidate, Profile, Tip
 from app.providers import AssessmentProvider, ProviderFailure
 
 CATALOGUE = json.loads((Path(__file__).parent.parent / "data/catalogue.json").read_text())
@@ -19,7 +25,9 @@ class State(TypedDict, total=False):
     usage: dict[str, int] | None
     clarification_questions: list[str]
     guidance: list[str]
+    tips: list[Tip]
     recommendation_provisional: bool
+    completeness: int
 
 
 def rank(profile: Profile, required: list[str]) -> list[Candidate]:
@@ -62,7 +70,9 @@ def build_workflow(provider: AssessmentProvider):
             "candidates": candidates,
             "clarification_questions": questions,
             "guidance": guidance,
+            "tips": tips(profile, questions),
             "recommendation_provisional": provisional,
+            "completeness": completeness(profile, provisional),
             "rationale": (
                 f"Required capabilities: {requirements}. "
                 f"Assessed reasoning/context capacity: {target}/3. "

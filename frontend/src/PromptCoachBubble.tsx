@@ -91,7 +91,7 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
   disabled: boolean
   onTaskChange: (value: string) => void
   onAnalyse: () => void
-  // The task field: the bubble sits on it and the panel floats below the bubble.
+  // The task field: the bubble sits on it and the panel floats above the bubble.
   children: ReactNode
 }) {
   const [enabled, setEnabled] = useState<boolean | null>(null)
@@ -128,21 +128,20 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
 
   useEffect(() => () => active.current?.abort(), [])
 
-  // The panel opens above the bubble, as tall as the space between the bubble and the header
-  // allows. When there is too little room above, it opens below instead.
+  // The panel always opens above the bubble, between it and the app header (the top bar on
+  // narrow screens; none for the sidebar on wide ones). When that space is short and the page
+  // can scroll, it scrolls just enough to give the panel room; otherwise the panel is shorter
+  // and scrolls inside.
   const bubbleRef = useRef<HTMLButtonElement>(null)
-  const [place, setPlace] = useState<{ below: boolean; maxHeight: number }>({ below: false, maxHeight: 520 })
+  const [maxHeight, setMaxHeight] = useState(520)
   useLayoutEffect(() => {
     if (!open || !bubbleRef.current) return
-    const rect = bubbleRef.current.getBoundingClientRect()
-    // The app header is a sidebar on wide screens and a top bar on narrow ones: only a top
-    // bar takes room above the field.
     const bar = document.querySelector('.topbar')?.getBoundingClientRect()
     const header = (bar && bar.width > bar.height ? Math.max(0, bar.bottom) : 0) + 12
-    const above = rect.top - 8 - header
-    const below = window.innerHeight - rect.bottom - 14
-    const fitsAbove = above >= Math.min(320, below)
-    setPlace({ below: !fitsAbove, maxHeight: Math.max(220, Math.min(520, fitsAbove ? above : below)) })
+    const room = () => bubbleRef.current!.getBoundingClientRect().top - 8 - header
+    const wanted = 360
+    if (room() < wanted && window.scrollY > 0) window.scrollBy({ top: -Math.min(window.scrollY, wanted - room()) })
+    setMaxHeight(Math.max(160, Math.min(520, room())))
   }, [open, view])
 
   // A floating panel: Escape or a click anywhere outside it (and outside the bubble) closes it.
@@ -221,7 +220,7 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
       </button>
       </div>
       {open && (
-        <div className={place.below ? 'coach-panel below' : 'coach-panel'} role="dialog" aria-label="Prompt Coach" style={{ maxHeight: place.maxHeight }}>
+        <div className="coach-panel" role="dialog" aria-label="Prompt Coach" style={{ maxHeight }}>
           {view === 'rewrite' && result?.rewrite ? (
             <>
               <div className="coach-head"><div><b>Suggested rewrite</b><small>Green is added, red removed, yellow is for you to fill in</small></div>

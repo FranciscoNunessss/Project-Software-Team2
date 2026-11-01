@@ -4,14 +4,7 @@ permissions:
   contents: read
 jobs:
   backend:
-    name: backend (prompt_coach=${{ matrix.prompt_coach }})
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        prompt_coach: ["false", "true"]
-    env:
-      ADAPTAI_PROMPT_COACH_ENABLED: ${{ matrix.prompt_coach }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -24,8 +17,6 @@ jobs:
   removal-drill:
     # Proves the optional Prompt Coach (ADR-009) can be deleted without touching the core.
     runs-on: ubuntu-latest
-    env:
-      ADAPTAI_PROMPT_COACH_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -58,6 +49,10 @@ jobs:
               # 2. Leftover Prompt Coach data, as after removing the module.
               db.execute("CREATE TABLE prompt_coach_events (id TEXT PRIMARY KEY, payload TEXT)")
               db.execute("INSERT INTO prompt_coach_events VALUES ('drill', '{}')")
+              db.execute(
+                  "CREATE TABLE IF NOT EXISTS prompt_coach_settings (user_id TEXT PRIMARY KEY, "
+                  "enabled INTEGER NOT NULL, updated_at TEXT NOT NULL)"
+              )
           # 3. The core restarts over it and the schema version is untouched.
           assert TestClient(create_app()).get("/api/health").status_code == 200
           with sqlite3.connect(path) as db:

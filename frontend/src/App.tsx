@@ -9,6 +9,7 @@ import { LLMConfigScreen } from './LLMConfig'
 import { ModelPicker } from './ModelPicker'
 import { TipsCard } from './TipsCard'
 import { PromptCoachTips } from './PromptCoachTips'
+import { PromptCoachBubble } from './PromptCoachBubble'
 
 type Screen = 'assistant' | 'progress' | 'profile' | 'llm'
 type ResultState = 'empty' | 'loading' | 'result'
@@ -364,6 +365,11 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
       setState('empty')
     } finally { window.clearTimeout(timeout) }
   }
+  // Any edit (typed or applied from the Prompt Coach) makes the shown analysis stale.
+  const editTask = (value: string) => {
+    setTask(value)
+    setState('empty'); setAnalysis(undefined); setSaved(false)
+  }
   const candidates = analysis ? [analysis.recommendation, ...analysis.alternatives] : []
   const selectedProvider = providers.find(item => item.id === (provider === 'auto' ? autoId : provider))
   const requiresConsent = selectedProvider?.external === true
@@ -393,18 +399,18 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
       {historyBusy && <p role="status">Opening your saved work…</p>}
       <section className="composer" aria-labelledby="task-label" data-analysis-id={lastAnalysisId ?? ""} data-session-id={sessionId ?? ""}>
         <label id="task-label" htmlFor="task">Describe your task</label>
-        <textarea
-          id="task"
-          data-task-input
-          value={task}
-          maxLength={8000}
-          disabled={state === 'loading' || saving}
-          onChange={(event) => {
-            setTask(event.target.value)
-            setState('empty'); setAnalysis(undefined); setSaved(false)
-          }}
-          placeholder="Describe what you need to do…"
-        />
+        <PromptCoachBubble analysis={analysis} analysisId={lastAnalysisId} task={task}
+          disabled={state === 'loading' || saving || historyBusy} onTaskChange={editTask} onAnalyse={analyse}>
+          <textarea
+            id="task"
+            data-task-input
+            value={task}
+            maxLength={8000}
+            disabled={state === 'loading' || saving}
+            onChange={(event) => editTask(event.target.value)}
+            placeholder="Describe what you need to do…"
+          />
+        </PromptCoachBubble>
 
         <div className="composer-footer">
           <ModelPicker options={providers} value={provider} autoId={autoId} loading={modelsLoading} disabled={state === 'loading' || saving || historyBusy} onChange={value => {setProvider(value);setAnalysis(undefined);setState('empty');setSaved(false)}} onConfigure={onConfigureModels} />

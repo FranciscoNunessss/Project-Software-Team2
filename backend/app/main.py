@@ -117,7 +117,8 @@ def create_app(
 
     @app.get("/api/features")
     def features():
-        return {"prompt_coach": settings.prompt_coach_enabled}
+        # True when the optional module is installed; each user switches it on or off.
+        return {"prompt_coach": getattr(app.state, "prompt_coach", None) is not None}
 
     @app.get("/api/catalogue")
     def catalogue():
@@ -633,10 +634,14 @@ def create_app(
         }
 
     # Optional Prompt Coach (ADR-009), mounted after every core route so it can never shadow
-    # one. It is the only core touch point besides /api/features.
-    if settings.prompt_coach_enabled:
+    # one. It is the only core touch point besides /api/features. Each user switches it on or
+    # off in Profile; deleting backend/app/prompt_coach.py removes it and the core carries on.
+    try:
         from app.prompt_coach import install_prompt_coach
-
+    except ModuleNotFoundError as missing:
+        if missing.name != "app.prompt_coach":
+            raise
+    else:
         install_prompt_coach(
             app,
             store,

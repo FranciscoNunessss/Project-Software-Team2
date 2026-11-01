@@ -6,7 +6,7 @@ so a fake Groq key is configured and the "groq" provider is replaced by ``FakeAs
 ``FakeCoach`` replaces the Prompt Coach model through ``prompt_coach_options`` (B1), so the
 core needs no test hooks.
 
-Environment: E2E_PROMPT_COACH=false starts the app with the Prompt Coach switched off.
+Each test user switches the Prompt Coach on or off in Profile (on by default).
 """
 
 import os
@@ -115,17 +115,15 @@ class FakeCoach:
 
 
 def build():
-    coach = os.environ.get("E2E_PROMPT_COACH", "true").lower() != "false"
     settings = Settings(
         _env_file=None,
         groq_api_key="e2e-fake-key",
-        prompt_coach_enabled=coach,
         browser_origin="http://127.0.0.1:8443",
     )
     return create_app(
         settings,
         overrides={"groq": FakeAssessor()},
-        prompt_coach_options={"model_factory": FakeCoach} if coach else None,
+        prompt_coach_options={"model_factory": FakeCoach},
     )
 
 

@@ -92,7 +92,6 @@ class EchoingAssessor:
 def make_app():
     settings = Settings(
         _env_file=None,
-        prompt_coach_enabled=True,
         ollama_model="local-test-model",
         groq_api_key="",
     )

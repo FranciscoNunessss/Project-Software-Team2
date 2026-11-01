@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { getFeatures, promptCoach, type Analysis, type CoachMode, type CoachResponse, type DimensionName, type Profile } from './api'
+import { coachAvailable, promptCoach, type Analysis, type CoachMode, type CoachResponse, type DimensionName, type Profile } from './api'
 
 // Optional Prompt Coach module (ADR-009, AA-030). A bubble on the task field: it counts what
 // the last analysis left uncertain (no model call), and opens a panel that asks the Coach
@@ -107,8 +107,8 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
 
   useEffect(() => {
     const controller = new AbortController()
-    getFeatures(controller.signal)
-      .then(features => { if (!controller.signal.aborted) setEnabled(features.prompt_coach === true) })
+    coachAvailable(controller.signal)
+      .then(available => { if (!controller.signal.aborted) setEnabled(available) })
       .catch(() => { if (!controller.signal.aborted) setEnabled(false) })
     return () => controller.abort()
   }, [])
@@ -248,7 +248,7 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
                     <span className="coach-title">{check.title}</span><p className="coach-detail">{check.detail}</p></div>
                 ))}
                 {enabled === false ? (
-                  <p className="coach-notice">The Prompt Coach is switched off on this AdaptAI server. Only quick checks run; nothing is sent.</p>
+                  <p className="coach-notice">The Prompt Coach is switched off. Only quick checks run; nothing is sent. You can switch it on in Profile.</p>
                 ) : !base ? (
                   <p className="coach-notice">Analyse the task first. Suggestions are based on what its analysis left uncertain.</p>
                 ) : (

@@ -1,10 +1,11 @@
-"""Módulo opcional Prompt Coach (ADR-009). Desligado por ADAPTAI_PROMPT_COACH_ENABLED. O núcleo não depende deste ficheiro.
+"""Módulo opcional Prompt Coach (ADR-009). Cada utilizador liga-o ou desliga-o no Profile. O núcleo não depende deste ficheiro.
 
-Optional Prompt Coach module (ADR-009). Switched off by ADAPTAI_PROMPT_COACH_ENABLED.
-The core does not depend on this file.
+Optional Prompt Coach module (ADR-009). Each user switches it on or off in Profile
+(on by default). The core does not depend on this file.
 
-``app.main.create_app`` imports this module late, only when the flag is true. Deleting
-this file (with its tests) must leave the core application working; see README,
+``app.main.create_app`` imports this module late, at the end, and carries on without it if
+the file is missing. Deleting this file (with its tests) must leave the core application
+working; see README,
 "Prompt Coach (optional)", for the removal procedure. This module must never change
 ``PRAGMA user_version``: any table it needs is created with ``CREATE TABLE IF NOT EXISTS``,
 outside the core migrations, so the core still starts after the module is removed.
@@ -19,7 +20,8 @@ domains, emails and their defanged or spelled-out forms ("hxxp", "[.]", "(dot)",
 
 ``POST /api/prompt-coach`` suggests how to improve a task text for the dimensions a stored
 analysis of the same user left uncertain. Privacy: the task, the suggestions and the rewrite
-are never logged, traced or stored; nothing is written to the database.
+are never logged, traced or stored. The only row it writes is the user's on/off choice in
+``prompt_coach_settings`` (no task text).
 """  # noqa: E501
 
 import json
@@ -459,6 +461,28 @@ def fallback_response(targets: list[dict]) -> CoachResponse:
     )
 
 
+# Each user's on/off choice. Outside the core migrations (never changes PRAGMA user_version);
+# rows go with the account. On by default: no row means on.
+SETTINGS_TABLE = (
+    "CREATE TABLE IF NOT EXISTS prompt_coach_settings ("
+    "user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, "
+    "enabled INTEGER NOT NULL, updated_at TEXT NOT NULL)"
+)
+
+
+class CoachSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool
+
+
+def coach_enabled_for(store: Storage, user_id: str) -> bool:
+    with store.connect() as db:
+        row = db.execute(
+            "SELECT enabled FROM prompt_coach_settings WHERE user_id=?", (user_id,)
+        ).fetchone()
+    return True if row is None else bool(row["enabled"])
+
+
 def install_prompt_coach(
     app: FastAPI,
     store: Storage,
@@ -487,9 +511,28 @@ def install_prompt_coach(
         "model_factory": factory,
     }
     workflow = build_coach_graph(store, configurations, enabled, external_providers, factory)
+    with store.connect() as db:
+        db.execute(SETTINGS_TABLE)
+
+    @app.get("/api/prompt-coach/settings", response_model=CoachSettings)
+    def get_coach_settings(user: AuthenticatedUser):
+        return CoachSettings(enabled=coach_enabled_for(store, user["id"]))
+
+    @app.put("/api/prompt-coach/settings", response_model=CoachSettings)
+    def put_coach_settings(body: CoachSettings, user: AuthenticatedUser):
+        with store.connect() as db:
+            db.execute(
+                "INSERT INTO prompt_coach_settings (user_id, enabled, updated_at) "
+                "VALUES (?, ?, datetime('now')) ON CONFLICT(user_id) DO UPDATE SET "
+                "enabled=excluded.enabled, updated_at=excluded.updated_at",
+                (user["id"], int(body.enabled)),
+            )
+        return body
 
     @app.post("/api/prompt-coach", response_model=CoachResponse)
     async def prompt_coach(body: PromptCoachRequest, user: AuthenticatedUser):
+        if not coach_enabled_for(store, user["id"]):
+            raise HTTPException(403, "prompt_coach_disabled")
         with tracing_context(enabled=False):
             state = await workflow.ainvoke({"user_id": user["id"], "request": body})
         return state["response"]

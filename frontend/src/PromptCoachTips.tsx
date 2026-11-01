@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { getFeatures, promptCoach, type Analysis, type CoachResponse, type DimensionName } from './api'
+import { coachAvailable, promptCoach, type Analysis, type CoachResponse, type DimensionName } from './api'
 
 // Optional Prompt Coach module (ADR-009, AA-019 B3). App.tsx mounts this component in one
 // line; deleting it (and that line) leaves the deterministic tips in TipsCard untouched.
@@ -28,8 +28,8 @@ export function PromptCoachTips({ analysis, task }: { analysis: Analysis; task: 
 
   useEffect(() => {
     const controller = new AbortController()
-    getFeatures(controller.signal)
-      .then(features => { if (!controller.signal.aborted) setEnabled(features.prompt_coach === true) })
+    coachAvailable(controller.signal)
+      .then(available => { if (!controller.signal.aborted) setEnabled(available) })
       .catch(() => { if (!controller.signal.aborted) setEnabled(false) })
     return () => controller.abort()
   }, [])

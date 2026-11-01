@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { getFeatures, promptCoach, type Analysis, type CoachMode, type CoachResponse, type DimensionName, type Profile } from './api'
 
 // Optional Prompt Coach module (ADR-009, AA-030). A bubble on the task field: it counts what
@@ -128,6 +128,20 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
 
   useEffect(() => () => active.current?.abort(), [])
 
+  // The panel opens above the bubble, as tall as the space above it allows (below the
+  // mobile top bar). When there is too little room above, it opens below instead.
+  const bubbleRef = useRef<HTMLButtonElement>(null)
+  const [place, setPlace] = useState<{ below: boolean; maxHeight: number }>({ below: false, maxHeight: 520 })
+  useLayoutEffect(() => {
+    if (!open || !bubbleRef.current) return
+    const rect = bubbleRef.current.getBoundingClientRect()
+    const header = window.matchMedia('(max-width: 800px)').matches ? 72 : 12
+    const above = rect.top - 8 - header
+    const below = window.innerHeight - rect.bottom - 14
+    const fitsAbove = above >= Math.min(320, below)
+    setPlace({ below: !fitsAbove, maxHeight: Math.max(220, Math.min(520, fitsAbove ? above : below)) })
+  }, [open, view])
+
   // A floating panel: Escape or a click anywhere outside it (and outside the bubble) closes it.
   const root = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -198,13 +212,13 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
     <div className="coach" ref={root}>
       <div className="coach-field">
       {children}
-      <button type="button" className="coach-bubble" aria-label={label} aria-haspopup="dialog" aria-expanded={open}
+      <button type="button" ref={bubbleRef} className="coach-bubble" aria-label={label} aria-haspopup="dialog" aria-expanded={open}
         disabled={disabled} onClick={() => setOpen(value => !value)}>
         {pending ? <><span className="coach-dot" aria-hidden="true" />{pending}</> : '✦'}
       </button>
       </div>
       {open && (
-        <div className="coach-panel" role="dialog" aria-label="Prompt Coach">
+        <div className={place.below ? 'coach-panel below' : 'coach-panel'} role="dialog" aria-label="Prompt Coach" style={{ maxHeight: place.maxHeight }}>
           {view === 'rewrite' && result?.rewrite ? (
             <>
               <div className="coach-head"><div><b>Suggested rewrite</b><small>Green is added, red removed, yellow is for you to fill in</small></div>

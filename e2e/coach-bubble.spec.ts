@@ -94,7 +94,7 @@ test('with the Prompt Coach switched off only quick checks run', async ({ page }
   await expect(panel(page)).toContainText('Email address in the task')
   await expect(panel(page)).toContainText('switched off on this AdaptAI server')
   await expect(panel(page).getByRole('button', { name: 'Get suggestions' })).toHaveCount(0)
-  await page.locator('label#task-label').click() // A click outside closes the floating panel.
+  await page.locator('.composer-meta').click() // A click outside closes the floating panel.
   await expect(panel(page)).toBeHidden()
   await analyse(page, VAGUE)
   await expect(bubble(page)).toHaveText('✦') // No count from the analysis when the Coach is off.

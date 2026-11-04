@@ -1,0 +1,198 @@
+# OKR Pulse — single source of truth for the team's OKRs.
+# Source: 01 Process Charter v0.11 (4 Nov 2026), section "OKRs".
+# Schema: okr-pulse/schema/okrs.schema.json  ·  Validate: cd okr-pulse && npm run validate
+#
+# Objectives and targets live here (and in the charter). Measured values of manual KRs
+# are copied here by the KR owner at the weekly replenishment, from the
+# "OKRs & Improvement (GCI)" tab of the DA spreadsheet; never invent a value.
+# A KR without a measured value keeps `value: null` and shows as "sem dados".
+
+version: 1
+repo: FranciscoNunessss/Project-Software-Team2
+branch: develop
+
+semester:
+  # Monday of week 1. Derived from the charter ("4 November 2026, in week 8").
+  start_date: 2026-09-14
+  weeks: 15
+  milestones:
+    - { name: First Interview, week: 2 }
+    - { name: Kick-off, week: 6 }
+    - { name: Walking skeleton, week: 7 }
+    - { name: Proven Architecture, week: 8 }
+    - { name: Continued Viability, week: 9 }
+    - { name: Sufficient Functionality, week: 10 }
+    - { name: MVP, week: 11 }
+    - { name: Final Delivery, week: 15 }
+
+settings:
+  at_risk_gap: 10     # expected − progress > 10 pp → at risk
+  behind_gap: 25      # expected − progress > 25 pp → behind
+  docs_stale_days: 14
+
+# Repository documents shown under "Saúde da documentação".
+# The charter, ADRs and specifications live on Google Drive and are not tracked here.
+docs_health:
+  - README.md
+  - GIT_WORKFLOW.md
+  - docs/memory-privacy.md
+
+objectives:
+  - id: T1
+    title: The Assistant right-sizes each user's model choice from the first task
+    description: Supports O1; verified through the O3 practices.
+    supports: [O1, O3]
+  - id: T2
+    title: The Educator makes users measurably more independent
+    description: Supports O1.
+    supports: [O1]
+  - id: T3
+    title: Our AI-assisted way of working is disciplined, evidenced and improving
+    description: Supports O2 and O3.
+    supports: [O2, O3]
+
+key_results:
+  # ---------------- T1 ----------------
+  - id: KR1.1
+    objective_id: T1
+    title: At least 16 of 20 recommendations judged correct in a blind review by people outside the team
+    owner: PO
+    type: manual
+    unit: "/20"
+    start_week: 7
+    checkpoints:
+      - { milestone: MVP, target: 16 }
+      - { milestone: Final Delivery, target: 16 }
+    value: null
+    note: >-
+      Not measured. Labelled task set v1 (OI-8) closed on ClickUp on 1 Nov; evaluation
+      protocol and the 2–3 outside reviewers not chosen yet.
+    updated: 2026-11-04
+    evidence:
+      - title: "PR #22 — graded recommendation with fit per tier"
+        url: https://github.com/FranciscoNunessss/Project-Software-Team2/pull/22
+
+  - id: KR1.2
+    objective_id: T1
+    title: Following the recommendations costs at most half of always using the top tier
+    owner: AO
+    proposed: true
+    type: manual
+    unit: "% of top-tier cost"
+    direction: lower
+    baseline: 100
+    start_week: 7
+    target: 50
+    due: MVP
+    value: null
+    note: Not measurable — the catalogue tiers are illustrative, with no real prices (AA-004).
+    updated: 2026-11-04
+
+  - id: KR1.3
+    objective_id: T1
+    title: A non-developer gets a first explained recommendation unaided, with no setup step
+    owner: PO
+    type: manual
+    unit: people
+    start_week: 7
+    checkpoints:
+      - { milestone: MVP, target: 1 }
+      - { milestone: Final Delivery, target: 3 }
+    value: null
+    note: No usability session yet (AA-015, planned for week 10).
+    updated: 2026-11-04
+    evidence:
+      - title: "PR #18 — Prompt Coach (helps a new user describe the task)"
+        url: https://github.com/FranciscoNunessss/Project-Software-Team2/pull/18
+
+  # ---------------- T2 ----------------
+  - id: KR2.1
+    objective_id: T2
+    title: The three patterns are detected in simulated histories, with no detection in control histories
+    owner: AO
+    type: manual
+    unit: "of 3 patterns"
+    start_week: 7
+    checkpoints:
+      - { milestone: MVP, target: 1 }
+      - { milestone: Final Delivery, target: 3 }
+    value: 0
+    note: 0 of 3. AA-012 (over-provisioning) and the synthetic usage histories are in Backlog, unassigned.
+    updated: 2026-11-04
+
+  - id: KR2.2
+    objective_id: T2
+    title: For at least two simulated profiles, the user's own choice matches the recommended tier more often over time
+    owner: PO
+    type: manual
+    unit: profiles
+    start_week: 7
+    target: 2
+    due: Final Delivery
+    value: null
+    note: "Not measured on simulated profiles. My progress shows agreement on saved sessions (PR #12)."
+    updated: 2026-11-04
+    evidence:
+      - title: "PR #12 — recommendation agreement in My progress"
+        url: https://github.com/FranciscoNunessss/Project-Software-Team2/pull/12
+
+  - id: KR2.3
+    objective_id: T2
+    title: Every detected pattern produces a specific suggestion that the client judges specific rather than generic
+    owner: To assign
+    type: manual
+    unit: "% of patterns built"
+    start_week: 7
+    checkpoints:
+      - { milestone: MVP, target: 100 }
+      - { milestone: Final Delivery, target: 100 }
+    value: null
+    note: Not started. AA-013 in Backlog, unassigned; KR owner still to assign (OI-9).
+    updated: 2026-11-04
+
+  # ---------------- T3 ----------------
+  - id: KR3.1
+    objective_id: T3
+    title: Every significant AI-assisted contribution is disclosed where the Learning Agreement requires it
+    owner: AO
+    type: manual
+    unit: "% disclosed"
+    start_week: 7
+    pace: constant          # 100% every week from week 7, not a ramp
+    target: 100
+    due: Final Delivery
+    value: null
+    note: Weekly spot check not recorded yet. 47 of the 51 commits since 26 Oct carry an AI co-author trailer.
+    updated: 2026-11-04
+
+  - id: KR3.2
+    objective_id: T3
+    title: Every week ends with a recorded improvement-review outcome; every experiment reaches adopt/adapt/abandon within two weeks
+    owner: TL
+    proposed: true
+    type: manual
+    unit: "% of weeks"
+    start_week: 7
+    pace: constant
+    target: 100
+    due: Final Delivery
+    value: null
+    note: Not recorded. No improvement-review outcome or PDSA entry found for weeks 7 and 8.
+    updated: 2026-11-04
+
+  - id: KR3.3
+    objective_id: T3
+    title: Review changes requested per AI-assisted pull request fall by at least a third (weeks 7–8 → weeks 10–11)
+    owner: CI/CD owner
+    proposed: true
+    type: pr_reviews
+    unit: "% fewer changes requested"
+    base: develop
+    match:
+      label: AI-assisted    # the label named in the charter (create it on GitHub)
+      ai_trailer: true      # also count PRs whose commits carry an AI Co-Authored-By trailer
+    baseline_weeks: [7, 8]
+    window_weeks: 2
+    start_week: 9
+    target: 33.3
+    due: MVP

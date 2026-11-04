@@ -1,0 +1,156 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/FranciscoNunessss/Project-Software-Team2/okr-pulse/schema/okrs.schema.json",
+  "title": "OKR Pulse configuration (okrs.yml)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "repo", "semester", "objectives", "key_results"],
+  "properties": {
+    "version": { "const": 1 },
+    "repo": { "type": "string", "pattern": "^[\\w.-]+/[\\w.-]+$", "description": "owner/name" },
+    "branch": { "type": "string", "minLength": 1, "description": "Integration branch the collector reads (default: develop)" },
+    "semester": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_date", "weeks", "milestones"],
+      "properties": {
+        "start_date": { "type": "string", "format": "date", "description": "Monday of week 1 (YYYY-MM-DD)" },
+        "weeks": { "type": "integer", "minimum": 1, "maximum": 52 },
+        "milestones": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "week"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "week": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "at_risk_gap": { "type": "number", "minimum": 0, "maximum": 100 },
+        "behind_gap": { "type": "number", "minimum": 0, "maximum": 100 },
+        "docs_stale_days": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "docs_health": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "objectives": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title"],
+        "properties": {
+          "id": { "$ref": "#/definitions/id" },
+          "title": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" },
+          "supports": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "key_results": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/keyResult" }
+    }
+  },
+  "definitions": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "weekRange": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1 },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "keyResult": {
+      "type": "object",
+      "required": ["id", "objective_id", "title", "type"],
+      "properties": {
+        "id": { "$ref": "#/definitions/id" },
+        "objective_id": { "$ref": "#/definitions/id" },
+        "title": { "type": "string", "minLength": 1 },
+        "type": { "enum": ["issues", "milestone", "prs", "pr_reviews", "docs", "ci", "manual"] },
+        "owner": { "type": "string" },
+        "proposed": { "type": "boolean" },
+        "unit": { "type": "string" },
+        "direction": { "enum": ["higher", "lower"] },
+        "baseline": { "type": "number" },
+        "start_week": { "type": "integer", "minimum": 1 },
+        "pace": { "enum": ["linear", "constant"] },
+        "target": { "type": "number" },
+        "due": { "type": "string", "minLength": 1 },
+        "checkpoints": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["milestone", "target"],
+            "properties": {
+              "milestone": { "type": "string", "minLength": 1 },
+              "target": { "type": "number" }
+            }
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["title"],
+            "properties": {
+              "title": { "type": "string" },
+              "url": { "type": "string", "format": "uri" }
+            }
+          }
+        },
+        "label": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "paths": { "type": "array", "items": { "type": "string" } },
+        "base": { "type": "string" },
+        "require_review_by": { "type": "string" },
+        "match": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "label": { "type": "string" },
+            "ai_trailer": { "type": "boolean" }
+          }
+        },
+        "baseline_weeks": { "$ref": "#/definitions/weekRange" },
+        "window_weeks": { "type": "integer", "minimum": 1 },
+        "files": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "workflow": { "type": "string" },
+        "artifact": { "type": "string" },
+        "file": { "type": "string" },
+        "json_path": { "type": "string" },
+        "branch": { "type": "string" },
+        "value": { "type": ["number", "null"] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "note": { "type": "string" },
+        "updated": { "type": "string", "format": "date" }
+      },
+      "additionalProperties": false,
+      "oneOf": [
+        { "required": ["checkpoints"], "not": { "anyOf": [{ "required": ["target"] }, { "required": ["due"] }] } },
+        { "required": ["target", "due"], "not": { "required": ["checkpoints"] } }
+      ],
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "issues" } } }, "then": { "required": ["label"] } },
+        { "if": { "properties": { "type": { "const": "milestone" } } }, "then": { "required": ["name"] } },
+        { "if": { "properties": { "type": { "const": "pr_reviews" } } }, "then": { "required": ["baseline_weeks"] } },
+        { "if": { "properties": { "type": { "const": "docs" } } }, "then": { "required": ["files"] } },
+        { "if": { "properties": { "type": { "const": "ci" } } }, "then": { "required": ["workflow", "artifact", "file", "json_path"] } },
+        { "if": { "properties": { "type": { "const": "manual" } } }, "then": { "required": ["value"] } }
+      ]
+    }
+  }
+}

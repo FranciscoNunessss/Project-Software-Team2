@@ -62,6 +62,9 @@ TREND_SENTENCE = (
     "When completeness_series has at least 5 points, describe the completeness trend "
     "across sessions; when insufficient_history is true, say there is not enough "
     "history yet to describe a completeness trend. "
+    "completeness_trend.verdict is computed by the backend: use it as the trend, never "
+    "contradict it, and use completeness_trend.dimensions to say which dimensions the user "
+    "now describes more or less often. "
 )
 # ADR-009 (decision S3): numeric size metrics from optional modules never unlock
 # prompting.status; only opted-in conversation_excerpts do (PR #12 rule, enforced below).
@@ -241,6 +244,17 @@ def completeness_series(store, user_id):
     Returns ``(series, skipped)``: sessions whose stored profile cannot be validated are
     left out of the series and counted in ``skipped``.
     """
+    values = [_recomputed_completeness(result) for _, result in _first_analyses(store, user_id)]
+    series = [value for value in values if value is not None]
+    return series, len(values) - len(series)
+
+
+DIMENSION_NAMES = ("reasoning", "context", "ambiguity", "domain", "risk", "tools", "modality")
+TREND_MARGIN = 5  # Completeness points between early and recent means; below it is "stable".
+
+
+def _first_analyses(store, user_id):
+    """First analysis of each session (date, result), oldest session first, at most 50."""
     with store.connect() as db:
         rows = db.execute(
             """SELECT * FROM (
@@ -252,9 +266,61 @@ def completeness_series(store, user_id):
                ) WHERE first_result IS NOT NULL LIMIT ?""",
             (user_id, SERIES_LIMIT),
         ).fetchall()
-    values = [_recomputed_completeness(json.loads(row["first_result"])) for row in reversed(rows)]
-    series = [value for value in values if value is not None]
-    return series, len(values) - len(series)
+    return [(row["session_created"], json.loads(row["first_result"])) for row in reversed(rows)]
+
+
+def _determined(result, name):
+    value = (result.get("profile") or {}).get(name) or {}
+    key = "required" if name == "modality" else "score"
+    return value.get(key) is not None
+
+
+def learning_progress(store, user_id):
+    """Is the user describing tasks better over time? Numeric only, no task text.
+
+    Uses the first analysis of each session (re-analyses after suggestions do not show how the
+    user writes unaided). Compares the mean completeness of the first and the last ``window``
+    sessions; a change of at least TREND_MARGIN points is improving or declining.
+    """
+    points = []
+    determined = []
+    for created, result in _first_analyses(store, user_id):
+        value = _recomputed_completeness(result)
+        if value is None:
+            continue
+        points.append({"date": created, "completeness": value})
+        determined.append({name: _determined(result, name) for name in DIMENSION_NAMES})
+    report = {"points": points, "min_sessions": MIN_TREND_SESSIONS, "margin": TREND_MARGIN}
+    if len(points) < MIN_TREND_SESSIONS:
+        return report | {"verdict": "insufficient_history", "dimensions": []}
+    window = min(5, len(points) // 2)
+    early = [p["completeness"] for p in points[:window]]
+    recent = [p["completeness"] for p in points[-window:]]
+    early_mean = round(sum(early) / window, 1)
+    recent_mean = round(sum(recent) / window, 1)
+    delta = round(recent_mean - early_mean, 1)
+    verdict = (
+        "improving"
+        if delta >= TREND_MARGIN
+        else "declining"
+        if delta <= -TREND_MARGIN
+        else "stable"
+    )
+    dimensions = []
+    for name in DIMENSION_NAMES:
+        before = sum(row[name] for row in determined[:window]) / window
+        after = sum(row[name] for row in determined[-window:]) / window
+        dimensions.append(
+            {"dimension": name, "early_rate": round(before, 2), "recent_rate": round(after, 2)}
+        )
+    return report | {
+        "verdict": verdict,
+        "window": window,
+        "early_mean": early_mean,
+        "recent_mean": recent_mean,
+        "delta": delta,
+        "dimensions": dimensions,
+    }
 
 
 def snapshot(store, user_id):
@@ -332,6 +398,12 @@ def snapshot(store, user_id):
     # Only valid points count: skipped sessions never make the history sufficient.
     if len(series) < MIN_TREND_SESSIONS:
         result["insufficient_history"] = True
+    else:
+        trend = learning_progress(store, user_id)
+        result["completeness_trend"] = {
+            key: trend[key]
+            for key in ("verdict", "window", "early_mean", "recent_mean", "delta", "dimensions")
+        }
     extensions = _extension_data(store, user_id)
     if extensions:
         result["extensions"] = extensions
@@ -495,6 +567,10 @@ def install_coaching(app, store, settings):
         attempts[user_id] = (fingerprint, settings.groq_model)
         jobs[user_id] = {"generating": True, "error": None}
         background.add_task(update_automatically, user_id)
+
+    @app.get("/api/progress/learning")
+    def get_learning(user: AuthenticatedUser):
+        return learning_progress(store, user["id"])
 
     @app.get("/api/progress/coaching")
     def get_coaching(user: AuthenticatedUser, background: BackgroundTasks):

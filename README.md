@@ -83,7 +83,7 @@ Accounts, persistent session history, context and confirmed choices are implemen
 My progress shows real saved history, counts and recommendation agreement.
 The original progress dashboard uses actual per-session agreement and capacity comparison counts.
 My data exports the account's context and paginated session history as a local JSON file.
-Groq coaching uses derived metadata, on request or automatically when enabled in Profile. Prompt-quality detection and team aggregation remain unimplemented.
+My progress also answers "Are you describing tasks better?": it compares the completeness of the first analysis of each session (re-analyses do not count) between your first and last sessions (up to five each, from five sessions on), gives a verdict computed in Python (improving, stable or declining; a change under 5 points is stable) and lists which dimensions you now describe more or less often (`GET /api/progress/learning`, numbers only). The Educator receives the same verdict and must not contradict it. Groq coaching uses derived metadata, on request or automatically when enabled in Profile. Prompt-quality detection and team aggregation remain unimplemented.
 Production reverse proxy and deployment are not configured.
 
 ## Configure assessment providers

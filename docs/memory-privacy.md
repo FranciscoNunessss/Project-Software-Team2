@@ -166,3 +166,11 @@ off in Profile (on by default); the choice is stored as one row in `prompt_coach
 on/off, time), never with task text, and is deleted with the account. With the switch off the
 task field runs quick local checks only and `POST /api/prompt-coach` refuses without calling a
 model.
+
+4 November 2026: learning progress in My progress
+
+`GET /api/progress/learning` and the Educator snapshot (`completeness_trend`) are computed from
+the stored scores and confidences of the first analysis of each session: completeness per session,
+early and recent means, a verdict and, per dimension, the share of first analyses where it was
+determined. No task text, evidence or new table is read or stored.
+

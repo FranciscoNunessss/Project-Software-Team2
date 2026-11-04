@@ -308,7 +308,7 @@ To remove the Prompt Coach:
 
 ## Seven-dimension prototype
 
-The response identifies `profile_version: profile-2`, `policy_version: prototype-3` and `rubric_version`; re-analyses that send `previous_analysis_id` also return `completeness` and `changes`.
+The response identifies `profile_version: profile-2`, `policy_version: prototype-3-graded` and `rubric_version`; re-analyses that send `previous_analysis_id` also return `completeness` and `changes`.
 This changes scalar profile fields into objects: read `profile.reasoning.score`,
 `.confidence` and `.evidence`. Backend, frontend and test fixtures must migrate together.
 The assessor instructions are generated from the active rubric version (see "Rubric").
@@ -320,6 +320,34 @@ Unknown requirements or low confidence mark the result provisional. The current
 illustrative catalogue cannot satisfy audio/video requirements or verify tool support.
 This policy is experimental and awaits team/AO review and independent task evaluation.
 The contract tests run in CI; human quality evals and their regression gate remain outstanding.
+
+## Graded recommendation (PROPOSED, `prototype-3-graded`)
+
+Instead of treating each tier as 100% or 0% suitable, the policy estimates a gradual
+fit per eligible tier. Capability filtering is still a hard requirement. Results report
+`policy_version: prototype-3-graded`, the graded ranking on top of the `prototype-3`
+completeness and changes policy.
+
+- **Demand** on the 1–3 scale, with R and C the reasoning/context scores (unknown = 2):
+  `D = 0.75·max(R, C) + 0.25·mean(R, C) + secondary_weight·(mean(domain, tools) − 1)`,
+  clamped to [1, 3]. `secondary_weight` is 0, so domain, risk and tools do not raise the tier.
+- **Uncertainty**: `spread = sqrt((s(conf_R)² + s(conf_C)²) / 2)` with
+  `s = {high: 0.25, medium: 0.45, low: 0.7, undetermined: 0.9}`, plus 0.2 when ambiguity
+  is unknown or 3.
+- **Sufficiency** of a tier with capacity `c`: 1 for the top tier (3), otherwise
+  `Φ((c + 0.5 − D) / spread)`, where Φ is the standard normal CDF.
+- **Fit** = `sufficiency · exp(−0.6 · max(0, c − D))`, penalising capacity above demand.
+- Candidates are ordered by highest fit, then lower capacity, then id. Each candidate
+  carries `sufficiency` and `fit`; the result carries `grading` with `demand`, `spread`,
+  the parameters and `basis: "Uncalibrated estimate; not a probability"`.
+
+**My progress** adds partial-credit agreement: each confirmed choice scores
+`max(0, 1 − |gap| / 2)`, where gap = chosen capacity − recommended capacity (0 tiers apart
+= 100, 1 = 50, 2 = 0). `/api/progress` returns `agreement` (percent) and `mean_gap`;
+dashboard points add `score` and `mean_gap` alongside the exact-match `rate`.
+
+These parameters are initial guesses, **not calibrated** against task outcomes; fit values
+are relative estimates, not probabilities. Calibration and AO review are pending.
 
 ## Architecture and limits
 

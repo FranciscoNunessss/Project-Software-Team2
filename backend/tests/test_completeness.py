@@ -53,7 +53,7 @@ def undetermined_profile():
 
 
 def test_policy_version_is_bumped():
-    assert POLICY_VERSION == "prototype-3"
+    assert POLICY_VERSION == "prototype-3-graded"
 
 
 def test_fully_determined_confident_profile_is_complete():
@@ -83,7 +83,7 @@ def test_response_includes_completeness_and_no_changes_without_previous():
     assert result["completeness"] == 100
     assert result["changes"] == []
     assert result["previous_analysis_id"] is None
-    assert result["policy_version"] == "prototype-3"
+    assert result["policy_version"] == "prototype-3-graded"
 
 
 def test_explain_changes_reads_only_values_from_previous():

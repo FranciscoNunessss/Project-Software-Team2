@@ -105,6 +105,8 @@ def test_user_isolation():
         "analyses": 0,
         "choices": 0,
         "matches": 0,
+        "agreement": None,
+        "mean_gap": None,
     }
     assert bob.get(f"/api/sessions/{identifier}").status_code == 404
     assert bob.patch(f"/api/sessions/{identifier}", json={"title": "Stolen"}).status_code == 404
@@ -223,6 +225,8 @@ def test_progress_counts_only_saved_owner_choices():
         "analyses": 0,
         "choices": 0,
         "matches": 0,
+        "agreement": None,
+        "mean_gap": None,
     }
     empty = client.post("/api/sessions", json={"title": "Empty session"}).json()
     first = client.post("/api/analyze", json={"task": "First task"}).json()
@@ -247,7 +251,14 @@ def test_progress_counts_only_saved_owner_choices():
     )
     response = client.get("/api/progress")
     assert response.headers["cache-control"] == "no-store"
-    assert response.json() == {"sessions": 3, "analyses": 3, "choices": 2, "matches": 1}
+    assert response.json() == {
+        "sessions": 3,
+        "analyses": 3,
+        "choices": 2,
+        "matches": 1,
+        "agreement": 75,
+        "mean_gap": 0.5,
+    }
     assert client.delete("/api/sessions/" + empty["id"]).status_code == 200
     assert client.get("/api/progress").json()["sessions"] == 2
     assert client.delete("/api/sessions/" + first["session_id"]).status_code == 200
@@ -256,6 +267,8 @@ def test_progress_counts_only_saved_owner_choices():
         "analyses": 1,
         "choices": 0,
         "matches": 0,
+        "agreement": None,
+        "mean_gap": None,
     }
     client.post("/api/auth/logout")
     assert client.get("/api/progress").status_code == 401

@@ -304,6 +304,8 @@ def test_clear_usage_history_preserves_account_preferences_and_other_users():
         "analyses": 0,
         "choices": 0,
         "matches": 0,
+        "agreement": None,
+        "mean_gap": None,
     }
     assert alice.get("/api/auth/me").status_code == 200
     assert len(alice.get("/api/llm-configs").json()) == 1

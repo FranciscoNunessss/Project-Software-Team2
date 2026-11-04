@@ -34,3 +34,7 @@ backups/
 *.p12
 *.pfx
 .DS_Store
+
+# End-to-end test output
+e2e/test-results/
+e2e/playwright-report/

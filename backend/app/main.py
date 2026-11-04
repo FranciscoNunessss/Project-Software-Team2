@@ -11,12 +11,13 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.accounts import AuthenticatedUser, check_origin
 from app.accounts import router as accounts_router
-from app.assessment import POLICY_VERSION, PROFILE_VERSION
+from app.assessment import POLICY_VERSION, PROFILE_VERSION, RUBRIC_VERSION, explain_changes
 from app.coaching import install_coaching
 from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
+from app.prompt_builder import active_rubric, public_rubric
 from app.providers import DemonstrationProvider, LangChainProvider, ProviderFailure, Settings
-from app.storage import Storage, history_result
+from app.storage import Storage, history_result, stored_result
 from app.workflow import CATALOGUE, build_workflow
 
 
@@ -52,7 +53,11 @@ def agreement_percent(gaps: list[int]) -> int | None:
     return round(100 * sum(max(0.0, 1 - abs(gap) / 2) for gap in gaps) / len(gaps))
 
 
-def create_app(settings: Settings | None = None, overrides: dict | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    overrides: dict | None = None,
+    prompt_coach_options: dict | None = None,
+) -> FastAPI:
     settings = settings or Settings()
     app = FastAPI(title="AdaptAI", version="0.1.0", dependencies=[Depends(check_origin)])
     store = Storage(settings.database_path)
@@ -73,6 +78,7 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
                 "/api/progress",
                 "/api/context",
                 "/api/llm-",
+                "/api/prompt-coach",
             )
         ):
             response.headers["Cache-Control"] = "no-store"
@@ -126,9 +132,18 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
             for key, value in enabled.items()
         ]
 
+    @app.get("/api/features")
+    def features():
+        # True when the optional module is installed; each user switches it on or off.
+        return {"prompt_coach": getattr(app.state, "prompt_coach", None) is not None}
+
     @app.get("/api/catalogue")
     def catalogue():
         return CATALOGUE
+
+    @app.get("/api/rubric")
+    def rubric():
+        return public_rubric(active_rubric())
 
     @app.post("/api/sessions", status_code=201)
     def create_session(body: SessionInput, user: AuthenticatedUser):
@@ -207,7 +222,7 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
             return [
                 {
                     "request": {},
-                    "result": json.loads(row["result_json"]),
+                    "result": stored_result(row["result_json"]),
                     "candidate_id": None,
                     "created_at": row["created_at"],
                     "session_title": row["title"],
@@ -414,8 +429,29 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
             db.execute("DELETE FROM coaching_reports WHERE user_id=?", (user["id"],))
         return {"status": "deleted"}
 
+    def previous_profile(user: dict, body: AnalysisRequest, session: dict) -> dict | None:
+        """The stored profile a re-analysis is compared with, checked before any provider call."""
+        if not body.previous_analysis_id:
+            return None
+        with store.connect() as db:
+            row = db.execute(
+                "SELECT a.session_id,a.result_json FROM analyses a "
+                "JOIN sessions s ON s.id=a.session_id WHERE a.id=? AND s.user_id=?",
+                (body.previous_analysis_id, user["id"]),
+            ).fetchone()
+        if not row:
+            raise HTTPException(404, "analysis_not_found")
+        if row["session_id"] != session["id"]:
+            raise HTTPException(422, "previous_analysis_other_session")
+        previous = json.loads(row["result_json"])
+        if previous.get("profile_version") != PROFILE_VERSION:
+            raise HTTPException(422, "previous_analysis_incompatible")
+        return previous["profile"]
+
     @app.post("/api/analyze", response_model=AnalysisResult)
     async def analyse(body: AnalysisRequest, user: AuthenticatedUser, background: BackgroundTasks):
+        if body.previous_analysis_id and not body.session_id:
+            raise HTTPException(422, "previous_analysis_requires_session")
         session = (
             owned_session(user, body.session_id)
             if body.session_id
@@ -440,6 +476,7 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
         background: BackgroundTasks,
         session: dict[str, object],
     ):
+        previous = previous_profile(user, body, session)
         actual_provider, actual_settings, actual_model, configuration_id = configurations.resolve(
             user["id"], body, enabled
         )
@@ -469,7 +506,15 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
                 "Usage metadata (previous assessments, not task requirements):\n"
                 + json.dumps(preferences["memory"])
             )
-        if use_memory and preferences["conversation_memory_enabled"]:
+        # A re-analysis is compared with its previous analysis, so it is assessed without past
+        # conversation excerpts: otherwise old tasks could change the dimensions being compared.
+        # Numeric usage metadata (above) is kept: it carries no task content and the first
+        # analysis was assessed with it too.
+        if (
+            use_memory
+            and preferences["conversation_memory_enabled"]
+            and not body.previous_analysis_id
+        ):
             samples = store.conversation_samples(user["id"])
             if samples:
                 parts.append(
@@ -504,9 +549,11 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
                 else "manual",
                 "profile": state["profile"],
                 "profile_version": PROFILE_VERSION,
+                "rubric_version": RUBRIC_VERSION,
                 "recommendation_provisional": state["recommendation_provisional"],
                 "clarification_questions": state["clarification_questions"],
                 "guidance": state["guidance"],
+                "tips": state["tips"],
                 "recommendation": candidates[0],
                 "alternatives": candidates[1:],
                 "rationale": state["rationale"],
@@ -523,6 +570,11 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
                 "usage": state.get("usage"),
                 "observed_cost": None,
                 "grading": state.get("grading"),
+                "previous_analysis_id": body.previous_analysis_id,
+                "completeness": state["completeness"],
+                "changes": explain_changes(previous, state["profile"])
+                if previous is not None
+                else [],
             }
         )
         try:
@@ -613,6 +665,26 @@ def create_app(settings: Settings | None = None, overrides: dict | None = None) 
             "candidate_id": body.candidate_id,
             "persistence": "database",
         }
+
+    # Optional Prompt Coach (ADR-009), mounted after every core route so it can never shadow
+    # one. It is the only core touch point besides /api/features. Each user switches it on or
+    # off in Profile; deleting backend/app/prompt_coach.py removes it and the core carries on.
+    try:
+        from app.prompt_coach import install_prompt_coach
+    except ModuleNotFoundError as missing:
+        if missing.name != "app.prompt_coach":
+            raise
+    else:
+        install_prompt_coach(
+            app,
+            store,
+            settings,
+            configurations=configurations,
+            enabled=enabled,
+            external_providers=external_providers,
+            providers=providers,
+            **(prompt_coach_options or {}),
+        )
 
     return app
 

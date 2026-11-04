@@ -8,11 +8,13 @@ from app.assessment import (
     GRADING,
     SPREAD,
     assessment_advice,
+    completeness,
     demand_estimate,
     required_capabilities,
     tier_fit,
+    tips,
 )
-from app.models import AnalysisRequest, Assessment, Candidate, Profile
+from app.models import AnalysisRequest, Assessment, Candidate, Profile, Tip
 from app.providers import AssessmentProvider, ProviderFailure
 
 CATALOGUE = json.loads((Path(__file__).parent.parent / "data/catalogue.json").read_text())
@@ -26,8 +28,10 @@ class State(TypedDict, total=False):
     usage: dict[str, int] | None
     clarification_questions: list[str]
     guidance: list[str]
+    tips: list[Tip]
     recommendation_provisional: bool
     grading: dict
+    completeness: int
 
 
 def rank(profile: Profile, required: list[str]) -> list[Candidate]:
@@ -68,6 +72,7 @@ def build_workflow(provider: AssessmentProvider):
             "candidates": candidates,
             "clarification_questions": questions,
             "guidance": guidance,
+            "tips": tips(profile, questions),
             "recommendation_provisional": provisional,
             "grading": {
                 "demand": round(demand, 3),
@@ -75,6 +80,7 @@ def build_workflow(provider: AssessmentProvider):
                 "parameters": {**GRADING, "spread_by_confidence": SPREAD},
                 "basis": "Uncalibrated estimate; not a probability",
             },
+            "completeness": completeness(profile, provisional),
             "rationale": (
                 f"Required capabilities: {requirements}. "
                 f"Estimated reasoning/context demand: {demand:.1f}/3 "

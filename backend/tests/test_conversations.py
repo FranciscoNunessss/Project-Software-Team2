@@ -186,3 +186,18 @@ def test_revocation_while_collecting_snapshot_discards_text(monkeypatch):
 
     monkeypatch.setattr(app.state.storage, "conversation_samples", revoke_after_read)
     assert snapshot(app.state.storage, owner)[1]["conversation_excerpts"] == []
+
+
+def test_saved_conversation_response_reports_its_rubric_version():
+    app = create_app(Settings(_env_file=None))
+    client = account(app)
+    client.put("/api/context", json={"conversation_memory_enabled": True})
+    saved = task(client)
+    assert saved["rubric_version"] == "rubric-2.0"
+    with app.state.storage.connect() as db:
+        db.execute(
+            "UPDATE conversation_content "
+            "SET response_json=json_remove(response_json,'$.rubric_version')"
+        )
+    response = history(client, saved)["conversation"]["response"]
+    assert response["rubric_version"] == "rubric-2.0"

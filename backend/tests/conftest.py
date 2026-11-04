@@ -5,6 +5,10 @@ from pathlib import Path
 
 import pytest
 
+# The Prompt Coach is optional (ADR-009); its tests disappear with the module.
+if not (Path(__file__).resolve().parents[1] / "app" / "prompt_coach.py").exists():
+    collect_ignore_glob = ["test_prompt_coach*.py"]
+
 # app.main creates its module-level app during test collection, before fixtures run.
 # Keep that import away from the developer's database as well as isolating each test.
 _collection_data = tempfile.TemporaryDirectory(prefix="adaptai-test-collection-")

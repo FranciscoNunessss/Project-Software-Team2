@@ -1,0 +1,53 @@
+# OKR Pulse weekly summary (optional).
+#
+# Every Monday, renders progress deltas and at-risk KRs from the latest snapshot.
+# The summary always appears in the run's job summary. It is also posted as a comment
+# on the "OKR Weekly" issue when the repository variable OKR_WEEKLY_ISSUE is set to
+# that issue's number (Settings → Secrets and variables → Actions → Variables).
+
+name: OKR Weekly
+
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays, 07:00 UTC, before the weekly replenishment
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  DATA_BRANCH: okr-pulse-data
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DATA_BRANCH }}
+          path: okr-data
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: okr-pulse/package-lock.json
+
+      - name: Render summary
+        working-directory: okr-pulse
+        run: |
+          npm ci
+          npm run -s summary -- --data ../okr-data/data --out ../summary.md \
+            --dashboard-url "https://${GITHUB_REPOSITORY_OWNER,,}.github.io/${GITHUB_REPOSITORY#*/}/"
+          cat ../summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on the OKR Weekly issue
+        if: vars.OKR_WEEKLY_ISSUE != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh issue comment "${{ vars.OKR_WEEKLY_ISSUE }}" --repo "${{ github.repository }}" --body-file summary.md

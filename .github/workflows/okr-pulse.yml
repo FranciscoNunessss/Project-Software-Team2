@@ -1,0 +1,132 @@
+# OKR Pulse: measure the OKRs in okrs.yml and publish the dashboard to GitHub Pages.
+#
+# Data history is committed to the `okr-pulse-data` branch (created on the first run);
+# the dashboard is deployed as a Pages artifact. Nothing is pushed to main or develop.
+#
+# One-time setup (repository admin): Settings → Pages → Build and deployment →
+# Source: "GitHub Actions". Scheduled runs only fire for workflows on the default
+# branch (main), so the daily run starts once this file reaches main.
+
+name: OKR Pulse
+
+on:
+  schedule:
+    - cron: "17 6 * * *" # daily, 06:17 UTC
+  push:
+    branches: [develop]
+  pull_request:
+    paths: ["okrs.yml", "okr-pulse/**", ".github/workflows/okr-pulse.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: okr-pulse-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
+  cancel-in-progress: false
+
+env:
+  # Branch the OKRs are measured on; keep in sync with `branch:` in okrs.yml.
+  OKR_BRANCH: develop
+  DATA_BRANCH: okr-pulse-data
+
+jobs:
+  # On pull requests: validate okrs.yml, type-check, run tests and build. No data, no deploy.
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: okr-pulse
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: okr-pulse/package-lock.json
+      - run: npm ci
+      - run: npm run validate
+      - run: npm test
+      - run: npm run mock && npm run build
+
+  collect:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push snapshots to the data branch
+      issues: read
+      pull-requests: read
+      actions: read # download CI artifacts for `type: ci` KRs
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.OKR_BRANCH }}
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: okr-pulse/package-lock.json
+
+      - name: Install
+        working-directory: okr-pulse
+        run: npm ci
+
+      - name: Validate okrs.yml
+        working-directory: okr-pulse
+        run: npm run validate
+
+      - name: Check out the data branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin "$DATA_BRANCH" >/dev/null; then
+            git fetch --depth=1 origin "$DATA_BRANCH"
+            git worktree add okr-data FETCH_HEAD
+            git -C okr-data switch -c "$DATA_BRANCH"
+          else
+            git worktree add --orphan -b "$DATA_BRANCH" okr-data
+          fi
+          mkdir -p okr-data/data
+
+      - name: Collect
+        working-directory: okr-pulse
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run collect -- --out ../okr-data/data
+
+      - name: Commit snapshot
+        working-directory: okr-data
+        run: |
+          git add data
+          if git diff --cached --quiet; then
+            echo "No data changes."
+          else
+            git commit -m "data: OKR snapshot $(date -u +%F)"
+            git push origin "HEAD:$DATA_BRANCH"
+          fi
+
+      - name: Build dashboard
+        working-directory: okr-pulse
+        run: |
+          npm run build
+          cp -r ../okr-data/data dist/data
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: okr-pulse/dist
+
+  deploy:
+    needs: collect
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

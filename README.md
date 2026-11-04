@@ -83,7 +83,7 @@ Accounts, persistent session history, context and confirmed choices are implemen
 My progress shows real saved history, counts and recommendation agreement.
 The original progress dashboard uses actual per-session agreement and capacity comparison counts.
 My data exports the account's context and paginated session history as a local JSON file.
-Groq coaching uses derived metadata, on request or automatically when enabled in Profile. Prompt-quality detection and team aggregation remain unimplemented.
+Groq coaching uses derived metadata, on request or automatically when enabled in Profile. The optional Prompt Coach helps describe a task better (see "Prompt Coach (optional)"). Team aggregation remains unimplemented.
 Production reverse proxy and deployment are not configured.
 
 ## Configure assessment providers

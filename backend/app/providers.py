@@ -20,8 +20,9 @@ class Settings(BaseSettings):
     anthropic_api_key: SecretStr = SecretStr("")
     groq_model: str = "openai/gpt-oss-20b"
     groq_api_key: SecretStr = SecretStr("")
-    # "openrouter/free" is OpenRouter's Free Models Router (the Auto option).
-    openrouter_model: str = "openrouter/free"
+    # OpenRouter is never a project model: these fields only carry a user's personal
+    # configuration (their own key and model) into the adapter.
+    openrouter_model: str = ""
     openrouter_api_key: SecretStr = SecretStr("")
     ollama_model: str = ""
     # LM Studio's local OpenAI-compatible server. The address is server configuration only; it
@@ -122,12 +123,16 @@ def provider_error_code(exc: BaseException) -> str:
     from anthropic import APITimeoutError as AnthropicTimeoutError
     from langchain_core.exceptions import OutputParserException
     from openai import APITimeoutError as OpenAITimeoutError
+    from openai import LengthFinishReasonError
     from pydantic import ValidationError
 
     if isinstance(exc, ProviderFailure):
         return exc.code
     if isinstance(exc, (TimeoutError, OpenAITimeoutError, AnthropicTimeoutError)):
         return "provider_timeout"
+    if isinstance(exc, LengthFinishReasonError):
+        # The model spent its whole output budget (typically reasoning) before the JSON ended.
+        return "provider_output_truncated"
     if isinstance(exc, (ValidationError, OutputParserException, JSONDecodeError)):
         return "invalid_provider_output"
     if _invalid_generation(exc):
@@ -166,6 +171,13 @@ def _build_model(provider: str, settings: Settings, max_tokens: int, temperature
             max_tokens=max_tokens,
             use_responses_api=use_responses,
             **({"store": False, "reasoning_effort": "low"} if use_responses else {}),
+            **(
+                # The free router may otherwise pick a model that cannot honour the strict JSON
+                # schema; require_parameters keeps it to endpoints that support the request.
+                {"extra_body": {"provider": {"require_parameters": True}}}
+                if provider == "openrouter"
+                else {}
+            ),
             **sampling,
         )
     if provider == "claude":

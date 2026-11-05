@@ -26,6 +26,7 @@ def entry(identifier, **extra):
 
 RAW = [
     entry("acme/chat-only"),
+    entry("acme/paid-chat", pricing={"prompt": "0.000003", "completion": "0.000015"}),
     entry(
         "acme/embedder",
         architecture={"input_modalities": ["text"], "output_modalities": ["embeddings"]},
@@ -74,35 +75,47 @@ def send(client, chat, **extra):
     return client.post(f"/api/chats/{chat}/messages", json=body)
 
 
-def test_server_openrouter_answers_with_the_configured_model():
-    client, chat = build(openrouter_api_key="sk-or-test")
+def connect(client, model="acme/chat-only", key="sk-or-personal"):
+    """OpenRouter is always a personal configuration: the user's own key and model."""
+    created = client.post(
+        "/api/llm-configs",
+        json={"label": "My OpenRouter", "provider": "openrouter", "model": model, "api_key": key},
+    )
+    assert created.status_code == 201, created.text
+    return created.json()["id"]
+
+
+def test_openrouter_is_not_a_project_model_in_the_chat():
+    client, chat = build(openrouter_api_key="sk-or-env-must-be-ignored")
     response = send(client, chat, provider="openrouter")
-    assert response.status_code == 200
-    assert response.json()["answer"]["content"] == "openrouter:openrouter/free"
-    assert response.json()["answer"]["provider"] == "openrouter"
+    assert (response.status_code, response.json()["detail"]) == (409, "provider_not_configured")
+    assert Recorder.calls == []
 
 
-def test_openrouter_without_a_key_is_not_configured():
+def test_personal_openrouter_answers_with_its_own_key_and_model():
     client, chat = build()
-    assert send(client, chat, provider="openrouter").status_code == 409
+    response = send(client, chat, configuration_id=connect(client))
+    assert response.status_code == 200, response.text
+    answer = response.json()["answer"]
+    assert (answer["provider"], answer["model"]) == ("openrouter", "acme/chat-only")
+    assert answer["content"] == "openrouter:acme/chat-only"
 
 
 def test_chat_model_override_must_be_a_text_model_in_the_catalogue():
-    client, chat = build(openrouter_api_key="sk-or-test")
-    ok = send(client, chat, provider="openrouter", model="acme/chat-only")
+    client, chat = build()
+    cfg = connect(client)
+    ok = send(client, chat, configuration_id=cfg, model="acme/paid-chat")  # the user's own key
     assert ok.status_code == 200  # no structured output needed for a chat
-    assert ok.json()["answer"]["model"] == "acme/chat-only"
-    assert send(client, chat, provider="openrouter", model="nobody/none").json()["detail"] == (
-        "model_not_found"
-    )
-    assert send(client, chat, provider="openrouter", model="acme/embedder").json()["detail"] == (
-        "model_not_compatible"
-    )
-    assert [call[1] for call in Recorder.calls] == ["acme/chat-only"]  # nothing else was sent
+    assert ok.json()["answer"]["model"] == "acme/paid-chat"
+    missing = send(client, chat, configuration_id=cfg, model="nobody/none")
+    assert missing.json()["detail"] == "model_not_found"
+    embedder = send(client, chat, configuration_id=cfg, model="acme/embedder")
+    assert embedder.json()["detail"] == "model_not_compatible"
+    assert [call[1] for call in Recorder.calls] == ["acme/paid-chat"]  # nothing else was sent
 
 
 def test_model_override_is_refused_for_other_providers():
-    client, chat = build(openrouter_api_key="sk-or-test")
+    client, chat = build()
     response = send(client, chat, provider="groq", model="acme/chat-only")
     assert (response.status_code, response.json()["detail"]) == (
         422,
@@ -112,14 +125,15 @@ def test_model_override_is_refused_for_other_providers():
 
 
 def test_openrouter_requires_consent_and_reports_catalogue_failure():
-    client, chat = build(openrouter_api_key="sk-or-test")
-    assert send(client, chat, provider="openrouter", allow_external=False).status_code == 403
+    client, chat = build()
+    cfg = connect(client)
+    assert send(client, chat, configuration_id=cfg, allow_external=False).status_code == 403
 
     async def down():
         raise CatalogueUnavailable("openrouter_catalogue_unavailable")
 
-    client, chat = build(down, openrouter_api_key="sk-or-test")
-    response = send(client, chat, provider="openrouter", model="acme/chat-only")
+    client, chat = build(down)
+    response = send(client, chat, configuration_id=connect(client))
     assert (response.status_code, response.json()["detail"]) == (
         502,
         "openrouter_catalogue_unavailable",
@@ -136,29 +150,26 @@ def test_lmstudio_is_local_so_it_needs_no_consent_and_a_model():
     assert send(client, chat, provider="lmstudio").status_code == 409
 
 
-def test_personal_openrouter_and_lmstudio_configurations_work_in_chat():
+def test_personal_lmstudio_configuration_works_in_chat():
     client, chat = build()
-    for provider, model, key in (
-        ("openrouter", "acme/chat-only", "sk-or-personal"),
-        ("lmstudio", "my-local", None),
-    ):
-        created = client.post(
-            "/api/llm-configs",
-            json={"label": provider, "provider": provider, "model": model, "api_key": key},
-        )
-        assert created.status_code == 201, created.text
-        response = send(client, chat, configuration_id=created.json()["id"])
-        assert response.status_code == 200, response.text
-        assert response.json()["answer"]["content"] == f"{provider}:{model}"
+    created = client.post(
+        "/api/llm-configs",
+        json={"label": "lmstudio", "provider": "lmstudio", "model": "my-local"},
+    )
+    assert created.status_code == 201, created.text
+    response = send(client, chat, configuration_id=created.json()["id"])
+    assert response.status_code == 200, response.text
+    assert response.json()["answer"]["content"] == "lmstudio:my-local"
 
 
-def test_model_tiers_accept_the_new_server_providers():
-    client, _ = build(openrouter_api_key="sk-or-test", lmstudio_model="local-model")
+def test_model_tiers_accept_lmstudio_and_a_personal_openrouter():
+    client, _ = build(lmstudio_model="local-model")
     from app.workflow import CATALOGUE
 
     tier = CATALOGUE["models"][0]["id"]
-    for provider in ("openrouter", "lmstudio"):
+    cfg = connect(client)
+    for identifier in ("server:lmstudio", cfg):
         response = client.put(
-            "/api/chat/model-tiers", json={"configuration_id": f"server:{provider}", "tier": tier}
+            "/api/chat/model-tiers", json={"configuration_id": identifier, "tier": tier}
         )
         assert response.status_code == 200, response.text

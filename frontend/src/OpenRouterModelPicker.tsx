@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { api, formatContext, formatPrice, OPENROUTER_AUTO, type OpenRouterCatalogue, type OpenRouterModel } from './api'
+import { api, formatContext, formatPrice, type OpenRouterCatalogue, type OpenRouterModel } from './api'
 
 type Props = {
   /** The OpenRouter model id that will be sent to the backend. */
@@ -9,9 +9,7 @@ type Props = {
 }
 type Filter = 'all' | 'free' | 'paid'
 
-const AUTO_LABEL = 'Auto — Free model'
-
-/** Second picker shown only for OpenRouter: Auto, or any model from the live catalogue. */
+/** Second picker shown only for the user's own OpenRouter configuration: a model of the live catalogue. */
 export function OpenRouterModelPicker({ value, disabled, onChange }: Props) {
   const trigger = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
@@ -32,7 +30,7 @@ export function OpenRouterModelPicker({ value, disabled, onChange }: Props) {
   useEffect(() => { if (open && !catalogue && !loading && !error) void load() }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = catalogue?.models.find(model => model.id === value)
-  const title = value === OPENROUTER_AUTO ? AUTO_LABEL : selected?.name ?? value
+  const title = selected?.name ?? value
 
   const groups = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -75,11 +73,6 @@ export function OpenRouterModelPicker({ value, disabled, onChange }: Props) {
     </button>
     <div ref={panel} id="openrouter-model-picker" className="model-picker-panel openrouter-panel" popover="auto" role="dialog" aria-label="Choose OpenRouter model" onToggle={event => setOpen(event.currentTarget.matches(':popover-open'))}>
       <p className="model-picker-heading">OpenRouter model</p>
-      <button className="model-picker-option" type="button" aria-pressed={value === OPENROUTER_AUTO} disabled={disabled} onClick={() => choose(OPENROUTER_AUTO)}>
-        <span className="model-picker-symbol" aria-hidden="true">✦</span>
-        <span><strong>{AUTO_LABEL}</strong><small>OpenRouter picks a compatible free model for you.</small><small className="model-picker-id">{OPENROUTER_AUTO}</small></span>
-        <span className="model-picker-check" aria-hidden="true">{value === OPENROUTER_AUTO ? '✓' : ''}</span>
-      </button>
       <div className="model-picker-group">
         <p>All models{catalogue ? ` · ${catalogue.models.length}` : ''}</p>
         <input className="openrouter-search" type="search" aria-label="Search OpenRouter models" placeholder="Search by name, organisation or id" value={query} onChange={event => setQuery(event.target.value)} />

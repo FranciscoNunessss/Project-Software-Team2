@@ -426,6 +426,21 @@ def test_error_table_maps_timeouts_and_invalid_output():
     assert provider_error_code(RuntimeError("no status")) == "provider_unavailable"
 
 
+def test_a_reply_cut_off_by_the_output_limit_has_its_own_code():
+    from app.providers import provider_error_code
+    from openai import LengthFinishReasonError
+
+    class Usage:
+        completion_tokens = 2048
+
+    class Completion:
+        usage = Usage()
+
+    # What the OpenAI client raises when a reasoning model spends the whole budget thinking.
+    error = LengthFinishReasonError(completion=Completion())
+    assert provider_error_code(error) == "provider_output_truncated"
+
+
 async def test_coach_temperature_falls_back_once_and_is_remembered(monkeypatch):
     from app import providers
 

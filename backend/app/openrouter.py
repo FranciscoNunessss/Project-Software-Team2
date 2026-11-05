@@ -12,6 +12,7 @@ from decimal import Decimal, InvalidOperation
 import httpx
 
 BASE_URL = "https://openrouter.ai/api/v1"
+# The Free Models Router is not a model and is not offered: it is kept out of the catalogue.
 FREE_ROUTER = "openrouter/free"
 CACHE_SECONDS = 300
 _PER_MILLION = Decimal(1_000_000)
@@ -143,12 +144,10 @@ class OpenRouterCatalogue:
     async def check(self, model: str, *, structured: bool = True) -> None:
         """Raise ValueError('model_not_found' | 'model_not_compatible') for an unusable id.
 
-        ``openrouter/free`` is the Auto router and is always allowed without a lookup. The
+        There is no Auto router: the model is always an exact id of the live catalogue. The
         assessment needs structured output (``structured=True``); the chat only needs a
         text-in, text-out model (``structured=False``).
         """
-        if model == FREE_ROUTER:
-            return
         models, _ = await self.models()
         match = next((item for item in models if item["id"] == model), None)
         if match is None:

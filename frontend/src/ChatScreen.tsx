@@ -87,7 +87,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
   // OpenRouter only: the exact catalogue id the user picked; null keeps the configured model.
   const [routerModel, setRouterModel] = useState<string | null>(null)
   const usesRouter = selected?.provider === 'openrouter'
-  const routerValue = routerModel ?? selected?.model ?? 'openrouter/free'
+  const routerValue = routerModel ?? selected?.model ?? ''
   const target = { provider: 'auto' as const, configuration_id: model === 'auto' ? undefined : model, model: usesRouter ? routerValue : undefined, allow_external: selected?.external === true }
 
   const resetAnalysis = () => { setShown(null); setDraftAnalysis(null); setDrawer(false) }

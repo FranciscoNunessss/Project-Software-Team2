@@ -173,7 +173,6 @@ def build():
     settings = Settings(
         _env_file=None,
         groq_api_key="e2e-fake-key",
-        openrouter_api_key="e2e-fake-openrouter-key",
         browser_origin="http://127.0.0.1:8443",
     )
     return create_app(

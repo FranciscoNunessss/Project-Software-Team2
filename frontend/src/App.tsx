@@ -262,8 +262,8 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
   const selectedProvider = providers.find(item => item.id === (provider === 'auto' ? autoId : provider))
   const requiresConsent = selectedProvider?.external === true
   const usesRouter = selectedProvider?.provider === 'openrouter'
-  // The exact id sent to the backend: Auto is "openrouter/free", otherwise the catalogue id.
-  const routerValue = routerModel ?? selectedProvider?.model ?? 'openrouter/free'
+  // The exact id sent to the backend: the one picked from the catalogue, else the configured model.
+  const routerValue = routerModel ?? selectedProvider?.model ?? ''
   const confirm = async () => {
     const selected = candidates.find(candidate => tierOf(candidate) === tier)
     if (!analysis || !selected) return

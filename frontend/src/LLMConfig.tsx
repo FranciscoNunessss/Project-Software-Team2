@@ -5,7 +5,7 @@ type ProviderId = LLMConfiguration['provider']
 type ModelForm = {label:string; provider:ProviderId; model:string; api_key:string; responses_api:boolean; enabled:boolean; is_default:boolean}
 const providers: {id:ProviderId;name:string;mark:string;description:string;endpoint:string}[] = [
   {id:'groq',name:'Groq',mark:'G',description:'The project default, managed centrally. No personal credentials needed.',endpoint:'https://api.groq.com/openai/v1'},
-  {id:'openrouter',name:'OpenRouter',mark:'R',description:'One API key for hundreds of free and paid models.',endpoint:'https://openrouter.ai/api/v1'},
+  {id:'openrouter',name:'OpenRouter',mark:'R',description:'Experimental. Your own OpenRouter key and a model you choose from its live list; always set up by you.',endpoint:'https://openrouter.ai/api/v1'},
   {id:'claude',name:'Claude',mark:'C',description:'Connect an Anthropic model with your own account.',endpoint:'https://api.anthropic.com'},
   {id:'openai',name:'OpenAI / Codex',mark:'O',description:'Use an OpenAI model available to your API account.',endpoint:'https://api.openai.com'},
   {id:'ollama',name:'Ollama',mark:'L',description:'Use a model installed on the backend machine.',endpoint:'http://127.0.0.1:11434'},

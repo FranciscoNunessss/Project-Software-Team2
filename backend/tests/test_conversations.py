@@ -193,7 +193,7 @@ def test_saved_conversation_response_reports_its_rubric_version():
     client = account(app)
     client.put("/api/context", json={"conversation_memory_enabled": True})
     saved = task(client)
-    assert saved["rubric_version"] == "rubric-2.1"
+    assert saved["rubric_version"] == "rubric-2.0"
     with app.state.storage.connect() as db:
         db.execute(
             "UPDATE conversation_content "

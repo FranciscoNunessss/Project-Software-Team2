@@ -95,13 +95,13 @@ def create_app(
         "openai": bool(settings.openai_model and settings.openai_api_key.get_secret_value()),
         "claude": bool(settings.claude_model and settings.anthropic_api_key.get_secret_value()),
         "groq": bool(settings.groq_model and settings.groq_api_key.get_secret_value()),
-        "openrouter": bool(
-            settings.openrouter_model and settings.openrouter_api_key.get_secret_value()
-        ),
+        # OpenRouter is never a project model: each user configures it with their own key.
+        "openrouter": False,
         "ollama": bool(settings.ollama_model),
         "lmstudio": bool(settings.lmstudio_model),
     }
     enabled.update({key: True for key in (overrides or {})})
+    enabled["openrouter"] = False  # even a test double is only reachable through a personal key
     configurations = ModelConfigurations(store, settings)
     install_routes(app, configurations, enabled)
     labels = {
@@ -118,7 +118,7 @@ def create_app(
         "openai": settings.openai_model,
         "claude": settings.claude_model,
         "groq": settings.groq_model,
-        "openrouter": settings.openrouter_model,
+        "openrouter": None,
         "ollama": settings.ollama_model,
         "lmstudio": settings.lmstudio_model,
     }
@@ -156,12 +156,7 @@ def create_app(
             items, fetched_at = await router_models.models(refresh)
         except CatalogueUnavailable as exc:
             raise HTTPException(502, exc.code) from None
-        return {
-            "auto": {"id": "openrouter/free", "label": "Auto — Free model"},
-            "configured": bool(enabled.get("openrouter")),
-            "fetched_at": fetched_at,
-            "models": items,
-        }
+        return {"fetched_at": fetched_at, "models": items}
 
     @app.get("/api/features")
     def features():

@@ -82,13 +82,22 @@ def signed_in(app, email="alice@example.com"):
     return client
 
 
-def make_app(fetch=None, key=SECRET, **settings):
+def make_app(fetch=None, **settings):
     fetch = fetch or FakeFetch()
     app = create_app(
-        Settings(_env_file=None, openrouter_api_key=key, **settings),
-        openrouter_catalogue=OpenRouterCatalogue(fetch),
+        Settings(_env_file=None, **settings), openrouter_catalogue=OpenRouterCatalogue(fetch)
     )
     return app, fetch
+
+
+def connect(client, model="meta-llama/llama-free:free", key=SECRET):
+    """OpenRouter is always a personal configuration (the user's own key); returns its id."""
+    created = client.post(
+        "/api/llm-configs",
+        json={"label": "My OpenRouter", "provider": "openrouter", "model": model, "api_key": key},
+    )
+    assert created.status_code == 201, created.text
+    return created.json()["id"]
 
 
 # --- catalogue normalisation -------------------------------------------------------------------
@@ -199,8 +208,7 @@ def test_models_endpoint_loads_dynamically_caches_and_refreshes():
     app, fetch = make_app()
     client = signed_in(app)
     body = client.get("/api/openrouter/models").json()
-    assert body["auto"] == {"id": "openrouter/free", "label": "Auto — Free model"}
-    assert body["configured"] is True
+    assert "auto" not in body  # no Auto router: the user always picks or configures a model
     ids = {item["id"] for item in body["models"]}
     assert "openai/gpt-paid" in ids and "acme/gratis-model" in ids
     assert any(item["free"] for item in body["models"])
@@ -226,46 +234,47 @@ def test_models_endpoint_reports_failure_without_stale_list_or_secrets():
     assert SECRET not in failed.text
 
 
-def test_catalogue_is_available_even_when_no_key_is_configured():
-    app, _ = make_app(key="")
-    response = signed_in(app).get("/api/openrouter/models")
-    assert response.status_code == 200 and response.json()["configured"] is False
-
-
 # --- provider registration ---------------------------------------------------------------------
 
 
-def test_openrouter_is_registered_next_to_the_other_providers():
-    app, _ = make_app(groq_api_key="g", groq_model="m")
+def test_openrouter_is_never_a_project_model_even_if_the_environment_has_a_key():
+    app, _ = make_app(groq_api_key="g", groq_model="m", openrouter_api_key=SECRET)
     client = signed_in(app)
     options = client.get("/api/llm-options").json()
-    server = {item["provider"]: item for item in options["options"] if item["source"] == "server"}
-    assert server["openrouter"]["id"] == "server:openrouter"
-    assert server["openrouter"]["model"] == "openrouter/free"
-    assert server["openrouter"]["external"] is True
-    assert "groq" in server  # existing providers are untouched
-    assert options["auto_configuration_id"] == "server:groq"  # project Auto still uses Groq
+    server = {item["provider"] for item in options["options"] if item["source"] == "server"}
+    assert "openrouter" not in server and "groq" in server
+    assert options["auto_configuration_id"] == "server:groq"  # Auto is always the project Groq
+    assert SECRET not in client.get("/api/llm-options").text
     listed = {item["id"]: item for item in client.get("/api/providers").json()}
-    assert listed["openrouter"]["enabled"] is True and listed["openrouter"]["external"] is True
-    assert SECRET not in client.get("/api/llm-options").text + client.get("/api/providers").text
+    assert listed["openrouter"]["enabled"] is False
+    # Nor can the project's configuration be selected by id.
+    response = analyse(client, configuration_id="server:openrouter")
+    assert response.status_code == 409 and response.json()["detail"] == "provider_not_configured"
 
 
-def test_openrouter_is_not_offered_without_a_key():
-    app, _ = make_app(key="")
-    options = signed_in(app).get("/api/llm-options").json()["options"]
+def test_openrouter_appears_only_after_the_user_configures_it():
+    app, _ = make_app()
+    client = signed_in(app)
+    options = client.get("/api/llm-options").json()["options"]
     assert "openrouter" not in {item["provider"] for item in options}
+    connect(client)
+    options = client.get("/api/llm-options").json()["options"]
+    mine = [item for item in options if item["provider"] == "openrouter"]
+    assert len(mine) == 1 and mine[0]["source"] == "personal" and mine[0]["external"] is True
 
 
 def test_personal_openrouter_configuration_is_encrypted_and_never_returned():
-    app, _ = make_app(key="")
+    app, _ = make_app()
     client = signed_in(app)
-    body = {
-        "label": "Mine",
-        "provider": "openrouter",
-        "model": "openai/gpt-paid",
-        "api_key": SECRET,
-    }
-    created = client.post("/api/llm-configs", json=body)
+    created = client.post(
+        "/api/llm-configs",
+        json={
+            "label": "Mine",
+            "provider": "openrouter",
+            "model": "openai/gpt-paid",
+            "api_key": SECRET,
+        },
+    )
     assert created.status_code == 201 and created.json()["external"] is True
     assert SECRET not in created.text and SECRET not in client.get("/api/llm-options").text
     with app.state.storage.connect() as db:
@@ -305,11 +314,11 @@ def recorder(monkeypatch):
     return Recorder
 
 
-def analyse(client, model=None, **extra):
+def analyse(client, model=None, configuration_id=None, **extra):
     body = {
         "task": "Compare two API designs",
         "provider": "auto",
-        "configuration_id": "server:openrouter",
+        "configuration_id": configuration_id or connect(client),
         "allow_external": True,
     } | extra
     if model:
@@ -317,27 +326,37 @@ def analyse(client, model=None, **extra):
     return client.post("/api/analyze", json=body)
 
 
-def test_auto_sends_openrouter_free_to_the_provider_without_a_catalogue_lookup(recorder):
+def test_the_configured_model_is_checked_against_the_catalogue_and_sent_exactly(recorder):
     app, fetch = make_app()
     response = analyse(signed_in(app))
     assert response.status_code == 200
-    assert recorder.built[-1]["model"] == "openrouter/free"
+    assert recorder.built[-1]["model"] == "meta-llama/llama-free:free"
     assert recorder.built[-1]["base_url"] == "https://openrouter.ai/api/v1"
-    assert recorder.built[-1]["api_key"] == SECRET
+    assert recorder.built[-1]["api_key"] == SECRET  # the user's own key
     assert recorder.options["method"] == "json_schema"
-    assert fetch.calls == 0
+    # Only endpoints that support the strict JSON schema are used.
+    assert recorder.built[-1]["extra_body"] == {"provider": {"require_parameters": True}}
+    assert fetch.calls == 1
     assert SECRET not in response.text
 
 
+def test_there_is_no_auto_router_a_configured_openrouter_free_is_refused(recorder):
+    app, _ = make_app()
+    client = signed_in(app)
+    response = analyse(client, configuration_id=connect(client, model="openrouter/free"))
+    assert response.status_code == 422 and response.json()["detail"] == "model_not_found"
+    assert recorder.built == []
+
+
 @pytest.mark.parametrize(
-    "model", ["openai/gpt-paid", "meta-llama/llama-free:free", "acme/gratis-model"]
+    "model", ["meta-llama/llama-free:free", "acme/gratis-model", "openai/gpt-paid"]
 )
 def test_manual_selection_sends_the_exact_catalogue_id(recorder, model):
-    app, fetch = make_app()
-    response = analyse(signed_in(app), model, expected_model=model)
+    app, _ = make_app()
+    response = analyse(signed_in(app), model, expected_model=model)  # paid: the user's own key
     assert response.status_code == 200
     assert recorder.built[-1]["model"] == model
-    assert fetch.calls == 1
+    assert recorder.built[-1]["api_key"] == SECRET
 
 
 def test_a_model_outside_the_catalogue_is_refused_before_any_provider_call(recorder):
@@ -355,15 +374,14 @@ def test_incompatible_models_are_refused(recorder, model):
     assert recorder.built == []
 
 
-def test_unavailable_catalogue_blocks_manual_models_but_not_auto(recorder):
-    app, fetch = make_app(FakeFetch(error=CatalogueUnavailable()))
+def test_unavailable_catalogue_blocks_every_model(recorder):
+    app, _ = make_app(FakeFetch(error=CatalogueUnavailable()))
     client = signed_in(app)
-    manual = analyse(client, "openai/gpt-paid")
-    assert (
-        manual.status_code == 502 and manual.json()["detail"] == "openrouter_catalogue_unavailable"
-    )
+    for model in (None, "openai/gpt-paid"):
+        response = analyse(client, model)
+        assert response.status_code == 502
+        assert response.json()["detail"] == "openrouter_catalogue_unavailable"
     assert recorder.built == []  # no hardcoded fallback model was used
-    assert analyse(client).status_code == 200
 
 
 def test_the_model_field_is_only_accepted_for_openrouter(recorder):
@@ -402,7 +420,7 @@ def test_provider_errors_map_to_safe_codes_without_leaking_the_key(recorder, sta
     error.status_code = status
     recorder.error = error
     app, _ = make_app()
-    response = analyse(signed_in(app), "openai/gpt-paid")
+    response = analyse(signed_in(app))
     assert response.status_code == 502 and response.json()["detail"] == code
     assert SECRET not in response.text and "private task" not in response.text
 

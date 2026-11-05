@@ -12,8 +12,7 @@ export type OpenRouterModel = {
   top_provider: { context_length: number | null; max_completion_tokens: number | null; is_moderated: boolean | null }
   text_chat: boolean; structured_output: boolean; selectable: boolean; unavailable_reason: string | null
 }
-export type OpenRouterCatalogue = { auto: { id: string; label: string }; configured: boolean; fetched_at: number; models: OpenRouterModel[] }
-export const OPENROUTER_AUTO = 'openrouter/free'
+export type OpenRouterCatalogue = { fetched_at: number; models: OpenRouterModel[] }
 /** USD per 1M tokens as a short string; null means the API gave no fixed price. */
 export function formatPrice(perMillion: number | null): string {
   if (perMillion === null) return 'variable'
@@ -127,6 +126,7 @@ const errorMessages: Record<string, string> = {
   external_processing_requires_consent: 'Allow external processing before requesting this assessment.',
   provider_timeout: 'The provider took too long to respond. Please try again.',
   provider_rate_limit: 'The provider rate limit or quota was reached. Wait before retrying or check the provider account.',
+  provider_output_truncated: 'The model used its whole output budget (reasoning models often do) before finishing. Try again or choose another model.',
   invalid_provider_output: 'The provider returned an invalid assessment. No recommendation was generated.',
   provider_model_unavailable: 'The configured model is unavailable. Check the model ID and account access.',
   provider_unsupported_request: 'The configured model does not support this request. Check structured output compatibility.',

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-05T17:27:07.296Z",
+  "generatedAt": "2026-11-05T20:54:08.644Z",
   "date": "2026-11-05",
   "repo": "FranciscoNunessss/Project-Software-Team2",
   "branch": "develop",
@@ -384,8 +384,20 @@
       "progress": null,
       "expected": 0,
       "status": "no-data",
-      "note": "Baseline 0 per PR (12 PRs). Baseline still being measured (weeks 7–8).",
+      "note": "Baseline 0 per PR (14 PRs). Baseline still being measured (weeks 7–8).",
       "evidence": [
+        {
+          "kind": "pr",
+          "title": "#36 Chat stack to develop: E2 streaming + E3/E4 chat screen (already reviewed in #32, #33)",
+          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/36",
+          "meta": "baseline · week 8 · 0 changes requested"
+        },
+        {
+          "kind": "pr",
+          "title": "#35 OpenRouter and LM Studio providers, wired into the chat (ADR-012)",
+          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/35",
+          "meta": "baseline · week 8 · 0 changes requested"
+        },
         {
           "kind": "pr",
           "title": "#31 E1 · Optional chat module: chats, messages, settings, model tiers",
@@ -471,7 +483,7 @@
         "checked": 0
       },
       "completion": 100,
-      "lastModified": "2026-11-05T17:26:31Z",
+      "lastModified": "2026-11-05T20:53:41Z",
       "stale": false
     },
     {

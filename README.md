@@ -353,7 +353,8 @@ chat id as `session_id`, then send it with the `analysis_id` to link the two.
 |---|---|---|
 | GET/POST | `/api/chats` | List or create the user's chats |
 | GET/PATCH/DELETE | `/api/chats/{id}` | Messages (with each analysis' completeness), rename, delete |
-| POST | `/api/chats/{id}/messages` | Send `{content, provider, configuration_id?, model?, analysis_id?, allow_external}` and get `{title, message, answer}` |
+| POST | `/api/chats/{id}/messages` | Send `{content, provider, configuration_id?, model?, analysis_id?, allow_external}` and get `{title, message, answer}`, or a stream (below) |
+| POST | `/api/chats/{id}/messages/{answer_id}/retry` | Answer the last question again (`{provider, configuration_id?, allow_external}`) |
 | GET/PUT | `/api/chat/settings` | `{auto_analyse}`, off by default |
 | GET/PUT | `/api/chat/model-tiers` | Map a model configuration to a catalogue tier (`tier: null` clears it) |
 
@@ -366,11 +367,45 @@ like the others; for `openrouter` the message may also carry an optional `model`
 `openrouter/free` or a text-in, text-out id of the live catalogue (422 `model_not_found` /
 `model_not_compatible`; 422 `model_override_not_supported` for any other provider). The chat
 does not need structured output, so it accepts catalogue models the assessment cannot use. The
-demonstration provider answers with a fixed note. Streaming,
-the chat screen and the analysis drawer follow in later cards (E2 to E5).
+demonstration provider answers with a fixed note.
+
+With `Accept: text/event-stream` the send answers as Server-Sent Events: `message` (the
+stored question and the `answer_id`), `delta` (text as it arrives), `error` (code, on a
+provider failure) and `done` (the same `{title, message, answer}` as the JSON reply).
+Closing the connection is **Stop**: the text received so far stays, with status
+`stopped`. `POST /api/chats/{id}/messages/{answer_id}/retry` answers the last question
+again after a failed or stopped answer, replacing that answer.
+
+In the frontend, when `/api/features` reports `chat`, the **Assistant** tab is the chat
+(`ChatScreen.tsx`): the list of chats (new, open, delete), the messages and a message box
+with the model picker (and, when OpenRouter is chosen, its second picker of live catalogue
+models, ADR-012; the chosen id is sent as `model` with Analyse, Send and Retry), the Prompt
+Coach bubble and two buttons. **Analyse** runs the usual
+analysis on the draft without sending it and opens the analysis panel on the right
+(`AnalysisDrawer.tsx`: completeness, what changed, clarification questions, recommended
+tier, tips, profile). The panel slides in from the right; its tab, part of the panel's
+left edge, stays visible when it is closed, widens on hover to read "Show analysis" or
+"Hide analysis", and opens or closes it on click (or drag left to open, right to close). Analysing an edited draft again
+shows what changed. **Send** sends the message (Enter sends, Shift+Enter adds a line) and
+carries the analysis only if it was made from that exact text; the message then shows an
+"Analysis NN/100" chip that reopens it. While an answer streams in, Send becomes **Stop**;
+a stopped or failed answer offers **Retry**. Answers are rendered as GitHub-flavoured
+Markdown (`ChatMarkdown.tsx`, react-markdown with remark-gfm); raw HTML is dropped and unsafe
+links removed. The chat's system prompt asks every model for the same Markdown, so answers
+from different providers look alike. Without the module, or for a saved session
+that is not a chat, the earlier Assistant page is shown. The result cards are shared in
+`AnalysisResult.tsx`.
+
+To try it against a real provider (uses quota; a throwaway account and database):
+
+```powershell
+uv run python scripts/check_chat.py                  # Groq from .env, in-process
+uv run python scripts/check_chat.py --provider demo  # no key
+uv run python scripts/check_chat.py --url http://127.0.0.1:8000  # a running backend, also checks Stop and Retry
+```
 
 Tests carry the `chat` marker; the `removal-drill` job deletes `chat.py` together with the
-Prompt Coach. To remove the chat: delete `backend/app/chat.py` and
+Prompt Coach. To remove the chat: delete `backend/app/chat.py`, `scripts/check_chat.py` and
 `backend/tests/test_chat*.py`, then the `try` block and `chat_options` in `main.py`,
 `chat` in `/api/features`, `/api/chat` in the no-store list, the `chat` marker,
 `chat_options` in `e2e/server.py` and the chat lines of the `removal-drill` job. Optionally

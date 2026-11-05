@@ -21,7 +21,8 @@ from types import SimpleNamespace
 from typing import Any, Literal
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import StreamingResponse
 from langsmith import tracing_context
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -41,7 +42,12 @@ DEMO_ANSWER = (
     "This is the demonstration model, so there is no real answer here. "
     "Add a model in LLM config to chat with it."
 )
-SYSTEM_PROMPT = "You are a helpful assistant. Answer clearly and concisely."
+# Every model is asked for the same output format, so the chat renders all of them alike.
+SYSTEM_PROMPT = (
+    "You are a helpful assistant. Answer clearly and concisely. "
+    "Format answers in Markdown (GitHub-flavoured) when structure helps: headings, lists, "
+    "tables and fenced code blocks with a language. Do not use raw HTML."
+)
 
 TABLES = (
     "CREATE TABLE IF NOT EXISTS chat_sessions ("
@@ -70,6 +76,10 @@ TABLES = (
 )
 
 Provider = Literal["auto", "demo", "openai", "claude", "groq", "openrouter", "ollama", "lmstudio"]
+# OpenRouter only (ADR-012): the exact catalogue id; it is never replaced silently.
+ModelId = Field(
+    default=None, min_length=1, max_length=200, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/@+\-]*$"
+)
 
 
 class ChatRename(BaseModel):
@@ -89,11 +99,8 @@ class MessageInput(BaseModel):
     content: str = Field(min_length=1, max_length=MAX_MESSAGE_CHARS)
     provider: Provider = "auto"
     configuration_id: str | None = Field(default=None, min_length=1, max_length=64)
+    model: str | None = ModelId
     analysis_id: str | None = Field(default=None, min_length=1, max_length=36)
-    # OpenRouter only (ADR-012): the exact catalogue id; never replaced silently.
-    model: str | None = Field(
-        default=None, min_length=1, max_length=200, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/@+\-]*$"
-    )
     allow_external: bool = False
 
     @field_validator("content")
@@ -102,6 +109,14 @@ class MessageInput(BaseModel):
         if not value.strip():
             raise ValueError("content must not be blank")
         return value
+
+
+class RetryInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    provider: Provider = "auto"
+    configuration_id: str | None = Field(default=None, min_length=1, max_length=64)
+    model: str | None = ModelId
+    allow_external: bool = False
 
 
 class ChatSettings(BaseModel):
@@ -170,6 +185,10 @@ def history_for(rows: list[dict]) -> list[tuple[str, str]]:
     return kept
 
 
+def sse(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
 def title_from(content: str) -> str:
     line = " ".join(content.split())
     return line if len(line) <= TITLE_CHARS else line[: TITLE_CHARS - 1].rstrip() + "…"
@@ -184,6 +203,32 @@ def public_message(row: dict) -> dict:
     else:
         message["completeness"] = None
     return message
+
+
+async def answer_events(
+    store: Storage, answer, answer_id: str, provider: str, model: str | None, history
+) -> AsyncIterator[dict]:
+    """Yield ``delta`` (and ``error``) events and keep the answer row in step.
+
+    The row is written in ``finally``: if the client goes away mid-answer the generator is
+    closed and the text that arrived so far stays, with status ``stopped``.
+    """
+    parts: list[str] = []
+    status, error = "stopped", None
+    try:
+        async for text in answer.stream([("system", SYSTEM_PROMPT), *history]):
+            parts.append(text)
+            yield {"event": "delta", "text": text}
+        status = "complete"
+    except Exception as exc:  # noqa: BLE001 - every provider failure becomes a stored state.
+        status, error = "failed", provider_error_code(exc)
+        yield {"event": "error", "code": error}
+    finally:
+        with store.connect() as db:
+            db.execute(
+                "UPDATE chat_messages SET content=?,provider=?,model=?,status=?,error=? WHERE id=?",
+                ("".join(parts), provider, model, status, error, answer_id),
+            )
 
 
 # --- installation --------------------------------------------------------------------------
@@ -276,24 +321,13 @@ def install_chat(
             db.execute("DELETE FROM sessions WHERE id=? AND user_id=?", (chat_id, user["id"]))
         return Response(status_code=204)
 
-    @app.post("/api/chats/{chat_id}/messages")
-    async def send_message(chat_id: str, body: MessageInput, user: AuthenticatedUser):
-        with store.connect() as db:
-            chat = owned_chat(db, user["id"], chat_id)
-            if (
-                body.analysis_id
-                and not db.execute(
-                    "SELECT 1 FROM analyses WHERE id=? AND session_id=?",
-                    (body.analysis_id, chat_id),
-                ).fetchone()
-            ):
-                raise HTTPException(404, "analysis_not_found")
-        provider, provider_settings, model, _configuration_id = configurations.resolve(
-            user["id"],
+    async def resolve_model(user_id: str, body) -> tuple[str, Settings, str | None]:
+        provider, provider_settings, model, configuration_id = configurations.resolve(
+            user_id,
             SimpleNamespace(configuration_id=body.configuration_id, provider=body.provider),
             enabled,
         )
-        if _configuration_id.startswith("server:") and not enabled.get(provider):
+        if configuration_id.startswith("server:") and not enabled.get(provider):
             raise HTTPException(409, "provider_not_configured")
         if body.model is not None:
             if provider != "openrouter":
@@ -306,11 +340,67 @@ def install_chat(
             raise HTTPException(403, "external_processing_requires_consent")
         if provider == "openrouter" and openrouter_catalogue is not None:
             try:
+                # A chat needs a text-in, text-out model, not structured output.
                 await openrouter_catalogue.check(model, structured=False)
             except ValueError as exc:
                 raise HTTPException(422, str(exc)) from None
             except CatalogueUnavailable as exc:
                 raise HTTPException(502, exc.code) from None
+        return provider, provider_settings, model
+
+    def generate(chat_id, answer_id, target, history) -> AsyncIterator[dict]:
+        provider, provider_settings, model = target
+        use_demo = provider == "demo" and model_factory is None
+        answer = DemoChat() if use_demo else factory(provider, provider_settings, model)
+        return answer_events(store, answer, answer_id, provider, model, history)
+
+    def finished(user_id: str, chat_id: str, question_id: str, answer_id: str) -> dict:
+        with store.connect() as db:
+            rows = {row["id"]: row for row in messages_of(db, chat_id)}
+            title = owned_chat(db, user_id, chat_id)["title"]
+        return {
+            "title": title,
+            "message": public_message(rows[question_id]),
+            "answer": public_message(rows[answer_id]),
+        }
+
+    async def respond(request: Request, user_id, chat_id, question_id, answer_id, target, history):
+        """Server-Sent Events when the client asks for them, else one JSON body at the end."""
+        if "text/event-stream" not in request.headers.get("accept", ""):
+            async for _event in generate(chat_id, answer_id, target, history):
+                pass
+            return finished(user_id, chat_id, question_id, answer_id)
+
+        async def events():
+            with store.connect() as db:
+                question = public_message(
+                    next(row for row in messages_of(db, chat_id) if row["id"] == question_id)
+                )
+            yield sse("message", {"message": question, "answer_id": answer_id})
+            async for event in generate(chat_id, answer_id, target, history):
+                name = event.pop("event")
+                yield sse(name, event)
+            yield sse("done", finished(user_id, chat_id, question_id, answer_id))
+
+        return StreamingResponse(
+            events(), media_type="text/event-stream", headers={"X-Accel-Buffering": "no"}
+        )
+
+    @app.post("/api/chats/{chat_id}/messages")
+    async def send_message(
+        chat_id: str, body: MessageInput, request: Request, user: AuthenticatedUser
+    ):
+        with store.connect() as db:
+            chat = owned_chat(db, user["id"], chat_id)
+            if (
+                body.analysis_id
+                and not db.execute(
+                    "SELECT 1 FROM analyses WHERE id=? AND session_id=?",
+                    (body.analysis_id, chat_id),
+                ).fetchone()
+            ):
+                raise HTTPException(404, "analysis_not_found")
+        target = await resolve_model(user["id"], body)
 
         question_id, answer_id = str(uuid4()), str(uuid4())
         with store.connect() as db:
@@ -324,29 +414,34 @@ def install_chat(
                     "UPDATE sessions SET title=? WHERE id=?", (title_from(body.content), chat_id)
                 )
             history = history_for(messages_of(db, chat_id))
+            db.execute(
+                "INSERT INTO chat_messages(id,session_id,role,content,status) "
+                "VALUES (?,?,'assistant','','stopped')",
+                (answer_id, chat_id),
+            )
+        return await respond(request, user["id"], chat_id, question_id, answer_id, target, history)
 
-        use_demo = provider == "demo" and model_factory is None
-        answer = DemoChat() if use_demo else factory(provider, provider_settings, model)
-        parts: list[str] = []
-        status, error = "complete", None
-        try:
-            async for text in answer.stream([("system", SYSTEM_PROMPT), *history]):
-                parts.append(text)
-        except Exception as exc:  # noqa: BLE001 - every provider failure becomes a stored state.
-            status, error = "failed", provider_error_code(exc)
+    @app.post("/api/chats/{chat_id}/messages/{answer_id}/retry")
+    async def retry_answer(
+        chat_id: str, answer_id: str, body: RetryInput, request: Request, user: AuthenticatedUser
+    ):
+        """Answer the last question again after a failed or stopped answer."""
+        with store.connect() as db:
+            owned_chat(db, user["id"], chat_id)
+            rows = messages_of(db, chat_id)
+        if not rows or rows[-1]["id"] != answer_id or rows[-1]["role"] != "assistant":
+            raise HTTPException(409, "not_the_last_answer")
+        if rows[-1]["status"] == "complete":
+            raise HTTPException(409, "answer_already_complete")
+        target = await resolve_model(user["id"], body)
+        question_id = rows[-2]["id"]
         with store.connect() as db:
             db.execute(
-                "INSERT INTO chat_messages(id,session_id,role,content,provider,model,status,error) "
-                "VALUES (?,?,'assistant',?,?,?,?,?)",
-                (answer_id, chat_id, "".join(parts), provider, model, status, error),
+                "UPDATE chat_messages SET content='',status='stopped',error=NULL WHERE id=?",
+                (answer_id,),
             )
-            rows = {row["id"]: row for row in messages_of(db, chat_id)}
-            title = owned_chat(db, user["id"], chat_id)["title"]
-        return {
-            "title": title,
-            "message": public_message(rows[question_id]),
-            "answer": public_message(rows[answer_id]),
-        }
+        history = history_for(rows[:-1])
+        return await respond(request, user["id"], chat_id, question_id, answer_id, target, history)
 
     @app.get("/api/chat/settings", response_model=ChatSettings)
     def get_chat_settings(user: AuthenticatedUser):

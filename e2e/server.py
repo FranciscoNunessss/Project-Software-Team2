@@ -123,6 +123,16 @@ class FakeChat:
 
     async def stream(self, messages):
         question = messages[-1][1]
+        if "markdown" in question.lower():
+            # Markdown as real models write it, plus raw HTML that must not be rendered.
+            for part in (
+                "## Steps\n\n1. **Sort** the list\n2. Use `bisect`\n\n",
+                "| n | cost |\n|---|---|\n| 8 | 3 |\n\n",
+                "```python\nprint('hi')\n```\n\n",
+                '<img src="x" onerror="window.__xss = 1">',
+            ):
+                yield part
+            return
         for part in ("Fake answer: ", question):
             yield part
 

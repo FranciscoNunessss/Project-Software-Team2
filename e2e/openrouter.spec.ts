@@ -68,3 +68,21 @@ test('a failing catalogue is explained and can be retried', async ({ page }) => 
   await list.getByRole('button', { name: 'Try again' }).click()
   await expect(list.getByRole('button', { name: /Deluxe/ })).toBeVisible()
 })
+
+test('the chat sends the chosen OpenRouter model with the message', async ({ page }) => {
+  await signUp(page)
+  await chooseOpenRouter(page)
+  await page.getByRole('button', { name: /^OpenRouter model/ }).click()
+  await page.locator('#openrouter-model-picker').getByRole('button', { name: /Swift/ }).click()
+  await expect(page.getByRole('button', { name: 'OpenRouter model: Swift' })).toBeVisible()
+
+  await page.locator('[data-chat-input]').fill('Explain what an API is.')
+  const sent = page.waitForRequest(request => /\/api\/chats\/[^/]+\/messages$/.test(request.url()))
+  await page.locator('[data-chat-send]').click()
+  expect((await sent).postDataJSON()).toMatchObject({
+    configuration_id: 'server:openrouter',
+    model: 'acme/swift:free',
+    allow_external: true,
+  })
+  await expect(page.locator('[data-chat-message="assistant"]').last()).toContainText('Fake answer')
+})

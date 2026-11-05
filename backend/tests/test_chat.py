@@ -272,3 +272,106 @@ def test_deleting_the_history_deletes_every_chat_message():
     assert client.get("/api/chats").json() == []
     with app.state.storage.connect() as db:
         assert db.execute("SELECT count(*) FROM chat_messages").fetchone()[0] == 0
+
+
+def events_of(response) -> list[tuple[str, dict]]:
+    import json
+
+    found = []
+    for block in response.text.strip().split("\n\n"):
+        lines = dict(line.split(": ", 1) for line in block.splitlines())
+        found.append((lines["event"], json.loads(lines["data"])))
+    return found
+
+
+def stream(client, chat_id, content=QUESTION):
+    body = {"content": content, "provider": "groq", "allow_external": True}
+    return client.post(
+        f"/api/chats/{chat_id}/messages", json=body, headers={"Accept": "text/event-stream"}
+    )
+
+
+def test_streaming_sends_message_deltas_and_done_in_order():
+    client = register(build())
+    chat_id = new_chat(client)
+    response = stream(client, chat_id)
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert response.headers["cache-control"] == "no-store"
+    events = events_of(response)
+    assert [name for name, _ in events] == ["message", "delta", "delta", "done"]
+    assert events[0][1]["message"]["content"] == QUESTION
+    assert "".join(data["text"] for name, data in events if name == "delta") == (
+        f"Answer to: {QUESTION}"
+    )
+    done = events[-1][1]
+    assert done["answer"]["id"] == events[0][1]["answer_id"]
+    assert done["answer"]["status"] == "complete"
+
+
+def test_a_streamed_failure_sends_an_error_and_keeps_the_partial_text():
+    client = register(build())
+    chat_id = new_chat(client)
+    FakeChat.fail = "provider_rate_limit"
+    events = events_of(stream(client, chat_id))
+    assert [name for name, _ in events] == ["message", "delta", "error", "done"]
+    assert events[2][1] == {"code": "provider_rate_limit"}
+    answer = events[-1][1]["answer"]
+    assert answer["status"] == "failed" and answer["content"] == "partial "
+
+
+async def test_closing_the_stream_keeps_the_partial_answer_as_stopped():
+    from app.chat import answer_events
+    from app.storage import Storage
+
+    app = build()
+    client = register(app)
+    chat_id = new_chat(client)
+    store: Storage = app.state.storage
+    with store.connect() as db:
+        db.execute(
+            "INSERT INTO chat_messages(id,session_id,role,content,status) "
+            "VALUES ('a1', ?, 'assistant', '', 'stopped')",
+            (chat_id,),
+        )
+    events = answer_events(store, FakeChat("groq", None, "m"), "a1", "groq", "m", [("human", "hi")])
+    assert (await anext(events)) == {"event": "delta", "text": "Answer to: "}
+    await events.aclose()  # What the server does when the client disconnects (Stop).
+    with store.connect() as db:
+        row = db.execute("SELECT content, status FROM chat_messages WHERE id='a1'").fetchone()
+    assert tuple(row) == ("Answer to: ", "stopped")
+
+
+def test_retry_answers_the_last_question_again():
+    client = register(build())
+    chat_id = new_chat(client)
+    FakeChat.fail = "provider_rate_limit"
+    failed = send(client, chat_id).json()["answer"]
+    retry = client.post(
+        f"/api/chats/{chat_id}/messages/{failed['id']}/retry",
+        json={"provider": "groq", "allow_external": True},
+    )
+    assert retry.status_code == 200
+    answer = retry.json()["answer"]
+    assert answer["id"] == failed["id"] and answer["status"] == "complete"
+    assert answer["content"] == f"Answer to: {QUESTION}"
+    messages = client.get(f"/api/chats/{chat_id}").json()["messages"]
+    assert [m["role"] for m in messages] == ["user", "assistant"]  # Replaced, not added.
+    again = client.post(
+        f"/api/chats/{chat_id}/messages/{failed['id']}/retry",
+        json={"provider": "groq", "allow_external": True},
+    )
+    assert again.status_code == 409 and again.json()["detail"] == "answer_already_complete"
+
+
+def test_only_the_last_answer_can_be_retried():
+    client = register(build())
+    chat_id = new_chat(client)
+    FakeChat.fail = "provider_unavailable"
+    failed = send(client, chat_id).json()["answer"]
+    send(client, chat_id, "Next question")
+    response = client.post(
+        f"/api/chats/{chat_id}/messages/{failed['id']}/retry",
+        json={"provider": "groq", "allow_external": True},
+    )
+    assert response.status_code == 409 and response.json()["detail"] == "not_the_last_answer"

@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.assessment import ASSESSMENT_PROMPT
 from app.models import Assessment, Dimension, Modality, Profile
+from app.openrouter import BASE_URL as OPENROUTER_BASE_URL
 
 
 class Settings(BaseSettings):
@@ -19,7 +20,14 @@ class Settings(BaseSettings):
     anthropic_api_key: SecretStr = SecretStr("")
     groq_model: str = "openai/gpt-oss-20b"
     groq_api_key: SecretStr = SecretStr("")
+    # "openrouter/free" is OpenRouter's Free Models Router (the Auto option).
+    openrouter_model: str = "openrouter/free"
+    openrouter_api_key: SecretStr = SecretStr("")
     ollama_model: str = ""
+    # LM Studio's local OpenAI-compatible server. The address is server configuration only; it
+    # can never be set by an API request.
+    lmstudio_model: str = ""
+    lmstudio_base_url: str = "http://127.0.0.1:1234/v1"
     timeout_seconds: float = Field(default=30, gt=0, le=120)
     database_path: str = "backend/data/adaptai.sqlite3"
     credentials_key_path: str = ""
@@ -84,6 +92,7 @@ ROLE_PARAMETERS: dict[str, RoleParameters] = {
 
 _STATUS_CODES = {
     401: "provider_authentication",
+    402: "provider_insufficient_credits",
     403: "provider_authentication",
     429: "provider_rate_limit",
     400: "provider_unsupported_request",
@@ -130,24 +139,28 @@ def _model_id(provider: str, settings: Settings) -> str:
     return {
         "openai": settings.openai_model,
         "groq": settings.groq_model,
+        "openrouter": settings.openrouter_model,
         "claude": settings.claude_model,
         "ollama": settings.ollama_model,
+        "lmstudio": settings.lmstudio_model,
     }[provider]
 
 
 def _build_model(provider: str, settings: Settings, max_tokens: int, temperature: float | None):
     use_responses = provider == "openai" and settings.openai_use_responses_api
     sampling = {} if temperature is None else {"temperature": temperature}
-    if provider in {"openai", "groq"}:
+    if provider in {"openai", "groq", "openrouter"}:
         from langchain_openai import ChatOpenAI
 
-        is_groq = provider == "groq"
+        key, base_url = {
+            "openai": (settings.openai_api_key, None),
+            "groq": (settings.groq_api_key, "https://api.groq.com/openai/v1"),
+            "openrouter": (settings.openrouter_api_key, OPENROUTER_BASE_URL),
+        }[provider]
         return ChatOpenAI(
             model=_model_id(provider, settings),
-            api_key=(
-                settings.groq_api_key if is_groq else settings.openai_api_key
-            ).get_secret_value(),
-            base_url="https://api.groq.com/openai/v1" if is_groq else None,
+            api_key=key.get_secret_value(),
+            base_url=base_url,
             max_retries=0,
             timeout=settings.timeout_seconds,
             max_tokens=max_tokens,
@@ -164,6 +177,19 @@ def _build_model(provider: str, settings: Settings, max_tokens: int, temperature
             max_tokens=max_tokens,
             max_retries=0,
             timeout=settings.timeout_seconds,
+            **sampling,
+        )
+    if provider == "lmstudio":
+        from langchain_openai import ChatOpenAI
+
+        return ChatOpenAI(
+            model=settings.lmstudio_model,
+            api_key="lm-studio",  # LM Studio ignores the key but the client requires one
+            base_url=settings.lmstudio_base_url,
+            max_retries=0,
+            timeout=settings.timeout_seconds,
+            max_tokens=max_tokens,
+            use_responses_api=False,  # LM Studio serves Chat Completions
             **sampling,
         )
     from langchain_ollama import ChatOllama
@@ -189,9 +215,9 @@ async def _invoke(
     use_responses = provider == "openai" and settings.openai_use_responses_api
     model = _build_model(provider, settings, max_tokens, temperature)
     structured_options = {"include_raw": True}
-    if provider == "groq" or use_responses:
+    if provider in {"groq", "openrouter"} or use_responses:
         structured_options.update(method="json_schema", strict=True)
-    elif provider == "claude":
+    elif provider in {"claude", "lmstudio"}:
         structured_options.update(method="json_schema")
     with tracing_context(enabled=False):
         result = await asyncio.wait_for(
@@ -234,7 +260,10 @@ async def structured_call(
     (the model's JSON broke the schema) is retried once as it was; a second failure is
     ``invalid_provider_output``. At most one retry per call either way.
     """
-    if provider not in {"openai", "groq", "claude", "ollama"} or role not in ROLE_PARAMETERS:
+    if (
+        provider not in {"openai", "groq", "openrouter", "claude", "ollama", "lmstudio"}
+        or role not in ROLE_PARAMETERS
+    ):
         raise ProviderFailure("unsupported_provider")
     parameters = ROLE_PARAMETERS[role]
     use_responses = provider == "openai" and settings.openai_use_responses_api

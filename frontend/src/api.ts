@@ -4,7 +4,26 @@ export type Grading = { demand: number; spread: number; parameters: Record<strin
 export type Provider = { id: string; label: string; model: string | null; enabled: boolean; external: boolean }
 export type LLMOption = {id:string;label:string;provider:string;model:string|null;external:boolean;source:'server'|'personal'}
 export type LLMOptions = {options:LLMOption[];auto_configuration_id:string|null;auto_policy:string}
-export type LLMConfiguration = LLMOption & {model:string;provider:'openai'|'claude'|'groq'|'ollama';has_key:boolean;responses_api:boolean;enabled:boolean;is_default:boolean;created_at:string}
+export type LLMConfiguration = LLMOption & {model:string;provider:'openai'|'claude'|'groq'|'openrouter'|'ollama'|'lmstudio';has_key:boolean;responses_api:boolean;enabled:boolean;is_default:boolean;created_at:string}
+export type OpenRouterModel = {
+  id: string; name: string; organisation: string; description: string; context_length: number | null
+  price_input_per_million: number | null; price_output_per_million: number | null; free: boolean
+  input_modalities: string[]; output_modalities: string[]; supported_parameters: string[]
+  top_provider: { context_length: number | null; max_completion_tokens: number | null; is_moderated: boolean | null }
+  text_chat: boolean; structured_output: boolean; selectable: boolean; unavailable_reason: string | null
+}
+export type OpenRouterCatalogue = { auto: { id: string; label: string }; configured: boolean; fetched_at: number; models: OpenRouterModel[] }
+export const OPENROUTER_AUTO = 'openrouter/free'
+/** USD per 1M tokens as a short string; null means the API gave no fixed price. */
+export function formatPrice(perMillion: number | null): string {
+  if (perMillion === null) return 'variable'
+  if (perMillion === 0) return '$0'
+  return `$${perMillion >= 1 ? perMillion.toFixed(2) : perMillion.toPrecision(2)}`
+}
+export function formatContext(tokens: number | null): string {
+  if (tokens === null) return 'n/a'
+  return tokens >= 1_000_000 ? `${+(tokens / 1_000_000).toFixed(1)}M` : `${Math.round(tokens / 1000)}k`
+}
 export type Confidence = 'low' | 'medium' | 'high' | 'undetermined'
 export type Dimension = { score: 1 | 2 | 3 | null; confidence: Confidence; evidence: string }
 export type Profile = {
@@ -111,6 +130,12 @@ const errorMessages: Record<string, string> = {
   invalid_provider_output: 'The provider returned an invalid assessment. No recommendation was generated.',
   provider_model_unavailable: 'The configured model is unavailable. Check the model ID and account access.',
   provider_unsupported_request: 'The configured model does not support this request. Check structured output compatibility.',
+  provider_insufficient_credits: 'This model is paid and the OpenRouter API key has no credit or spending limit for it. Choose a free model, or raise the limit in your OpenRouter account.',
+  openrouter_catalogue_unavailable: 'The OpenRouter model catalogue could not be loaded. Check the connection and try again.',
+  openrouter_catalogue_invalid: 'OpenRouter returned a catalogue the app could not read. Try again later.',
+  model_not_found: 'This model is not in the OpenRouter catalogue. Reload the models and choose again.',
+  model_not_compatible: 'This model cannot be used for task assessment (it needs text input and output and structured output).',
+  model_override_not_supported: 'A model can only be chosen manually for OpenRouter.',
   provider_unavailable: 'The assessment provider is unavailable. Check the connection or try again later.',
   previous_analysis_requires_session: 'Re-analysis needs its saved session. Start a new task and try again.',
   previous_analysis_other_session: 'The previous analysis belongs to another session. Start a new task and try again.',

@@ -11,7 +11,9 @@ from app.providers import LangChainProvider, ProviderFailure, Settings
 from profile_samples import profile_data
 
 
-@pytest.mark.parametrize("provider", ["openai", "claude", "groq", "ollama"])
+@pytest.mark.parametrize(
+    "provider", ["openai", "claude", "groq", "openrouter", "lmstudio", "ollama"]
+)
 @pytest.mark.parametrize("scenario", ["valid", "invalid", "timeout", "authentication", "rate"])
 async def test_adapters_without_network(monkeypatch, provider, scenario):
     constructed = {}
@@ -23,9 +25,9 @@ async def test_adapters_without_network(monkeypatch, provider, scenario):
         def with_structured_output(self, schema, **kwargs):
             assert schema is Profile
             assert kwargs["include_raw"] is True
-            if provider in {"claude", "groq"}:
+            if provider in {"claude", "groq", "openrouter", "lmstudio"}:
                 assert kwargs["method"] == "json_schema"
-            if provider == "groq":
+            if provider in {"groq", "openrouter"}:
                 assert kwargs["strict"] is True
             return self
 
@@ -54,6 +56,8 @@ async def test_adapters_without_network(monkeypatch, provider, scenario):
     target = {
         "openai": "langchain_openai.ChatOpenAI",
         "groq": "langchain_openai.ChatOpenAI",
+        "openrouter": "langchain_openai.ChatOpenAI",
+        "lmstudio": "langchain_openai.ChatOpenAI",
         "claude": "langchain_anthropic.ChatAnthropic",
         "ollama": "langchain_ollama.ChatOllama",
     }[provider]
@@ -66,6 +70,9 @@ async def test_adapters_without_network(monkeypatch, provider, scenario):
         anthropic_api_key="fake-anthropic",
         groq_model="openai/gpt-oss-20b",
         groq_api_key="fake-groq",
+        openrouter_model="vendor/chosen-model",
+        openrouter_api_key="fake-openrouter",
+        lmstudio_model="local/loaded-model",
         ollama_model="test",
         timeout_seconds=0.02,
     )
@@ -84,10 +91,10 @@ async def test_adapters_without_network(monkeypatch, provider, scenario):
         with pytest.raises(ProviderFailure) as failure:
             await adapter.assess("Private task")
         assert failure.value.code == codes[scenario]
-    if provider in {"openai", "groq", "claude"}:
+    if provider in {"openai", "groq", "openrouter", "lmstudio", "claude"}:
         assert constructed["max_retries"] == 0
         assert constructed["timeout"] == settings.timeout_seconds
-        if provider in {"openai", "groq"}:
+        if provider in {"openai", "groq", "openrouter", "lmstudio"}:
             assert constructed["use_responses_api"] is False
         if provider == "claude":
             assert constructed["model"] == "test-claude"
@@ -95,6 +102,13 @@ async def test_adapters_without_network(monkeypatch, provider, scenario):
         if provider == "groq":
             assert constructed["base_url"] == "https://api.groq.com/openai/v1"
             assert constructed["api_key"] == "fake-groq"
+        if provider == "lmstudio":
+            assert constructed["base_url"] == "http://127.0.0.1:1234/v1"
+            assert constructed["model"] == "local/loaded-model"
+        if provider == "openrouter":
+            assert constructed["base_url"] == "https://openrouter.ai/api/v1"
+            assert constructed["api_key"] == "fake-openrouter"
+            assert constructed["model"] == "vendor/chosen-model"
     else:
         assert constructed["base_url"] == "http://127.0.0.1:11434"
 
@@ -105,6 +119,7 @@ def test_secret_is_redacted():
         openai_api_key="credential-must-stay-private",
         groq_api_key="groq-credential-must-stay-private",
         anthropic_api_key="anthropic-credential-must-stay-private",
+        openrouter_api_key="openrouter-credential-must-stay-private",
     )
     assert "credential-must-stay-private" not in repr(settings)
 

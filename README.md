@@ -338,8 +338,16 @@ Closing the connection is **Stop**: the text received so far stays, with status
 again after a failed or stopped answer, replacing that answer. The chat screen and the
 analysis drawer follow in later cards (E3 to E5).
 
+To try it against a real provider (uses quota; a throwaway account and database):
+
+```powershell
+uv run python scripts/check_chat.py                  # Groq from .env, in-process
+uv run python scripts/check_chat.py --provider demo  # no key
+uv run python scripts/check_chat.py --url http://127.0.0.1:8000  # a running backend, also checks Stop and Retry
+```
+
 Tests carry the `chat` marker; the `removal-drill` job deletes `chat.py` together with the
-Prompt Coach. To remove the chat: delete `backend/app/chat.py` and
+Prompt Coach. To remove the chat: delete `backend/app/chat.py`, `scripts/check_chat.py` and
 `backend/tests/test_chat*.py`, then the `try` block and `chat_options` in `main.py`,
 `chat` in `/api/features`, `/api/chat` in the no-store list, the `chat` marker,
 `chat_options` in `e2e/server.py` and the chat lines of the `removal-drill` job. Optionally

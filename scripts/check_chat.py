@@ -76,7 +76,8 @@ def run(client: httpx.Client, provider: str, live: bool, other: httpx.Client) ->
         check("event stream", response.status_code == 200, str(response.status_code))
         seen = list(events(response))
     names = [name for name, _ in seen]
-    check("message, deltas, done", names[0] == "message" and names[-1] == "done", str(names))
+    summary = f"message, {names.count('delta')} deltas, {names[-1]}"
+    check("message, deltas, done", names[0] == "message" and names[-1] == "done", summary)
     answer = seen[-1][1]["answer"]
     check("answer complete", answer["status"] == "complete", answer["error"] or "")
     print("        " + answer["content"][:160].replace("\n", " "))
@@ -104,7 +105,12 @@ def run(client: httpx.Client, provider: str, live: bool, other: httpx.Client) ->
     print("3. Analyse, then send with the analysis")
     task = "Write a one-page summary of the report for the board."
     analysis = client.post("/api/analyze", json={"task": task, "session_id": chat_id, **send})
-    check("analysis in this chat", analysis.status_code == 200, str(analysis.status_code))
+    detail = "" if analysis.status_code == 200 else analysis.json().get("detail", "")
+    check(
+        "analysis in this chat",
+        analysis.status_code == 200,
+        f"{analysis.status_code} {detail}".strip(),
+    )
     sent = client.post(
         f"/api/chats/{chat_id}/messages",
         json={"content": task, "analysis_id": analysis.json()["id"], **send},

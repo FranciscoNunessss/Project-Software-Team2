@@ -49,8 +49,10 @@ async def main() -> int:
     args = parser.parse_args()
     settings = Settings()
     model = getattr(settings, MODEL_FIELDS[args.provider])
-    key = getattr(settings, KEY_FIELDS[args.provider], None)
-    if not model or (key is not None and not key.get_secret_value()):
+    # Ollama runs locally and has no key field.
+    key_field = KEY_FIELDS.get(args.provider)
+    key = getattr(settings, key_field) if key_field else None
+    if not model or (key_field and (key is None or not key.get_secret_value())):
         print(json.dumps({"status": "failed", "error": "provider_not_configured"}))
         return 1
     targets = select_targets(PROFILE, active_rubric())

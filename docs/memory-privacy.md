@@ -149,7 +149,7 @@ visible but stops new automatic calls. The existing explicit-consent POST remain
 capability; the frontend does not use it. Failure messages explain that new history can trigger
 another attempt, rather than directing the user to a removed retry button.
 
-31 October 2026: optional Prompt Coach (ADR-009, off by default)
+31 October 2026: optional Prompt Coach (ADR-009)
 
 When the user's Prompt Coach switch is on, `POST /api/prompt-coach` sends the task text the
 user is editing, and the dimensions of one of that user's stored analyses, to the same provider

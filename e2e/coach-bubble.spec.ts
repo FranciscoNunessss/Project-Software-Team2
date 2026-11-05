@@ -144,3 +144,22 @@ test('an answer stays with its question when another suggestion is ignored', asy
   await expect(answer).toHaveValue('Rework before the meeting.')
   await expect(panel(page).getByLabel('Answer: Name the source material')).toHaveValue('')
 })
+
+test('suggestions stop counting and applying once the user edits the text by hand', async ({ page }) => {
+  await signUp(page)
+  await analyse(page, VAGUE)
+  await expect(page.locator('section.composer')).not.toHaveAttribute('data-analysis-id', '')
+  await bubble(page).click()
+  await panel(page).getByRole('button', { name: 'Get suggestions' }).click()
+  await expect(panel(page)).toContainText('Name the audience')
+  const withSuggestions = Number(await bubble(page).innerText())
+  expect(withSuggestions).toBeGreaterThan(0)
+
+  // An edit elsewhere in the task: the quoted passage is still there and still unique.
+  await page.locator('[data-task-input]').fill('Please write a summary of the report.')
+  await expect(bubble(page)).not.toHaveText(String(withSuggestions))
+  await expect(panel(page)).toBeVisible()
+  await panel(page).getByRole('button', { name: 'Apply' }).click()
+  await expect(panel(page)).toContainText('The text changed since these suggestions. Ask again.')
+  await expect(page.locator('[data-task-input]')).toHaveValue('Please write a summary of the report.')
+})

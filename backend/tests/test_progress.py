@@ -691,3 +691,55 @@ def test_opted_in_excerpts_are_the_only_text_in_the_snapshot():
     rest = {key: value for key, value in metadata.items() if key != "conversation_excerpts"}
     assert "OPTED_IN_SENTINEL" not in json.dumps(rest)
     assert metadata["extensions"] == {"numbers": {"n": 2}}
+
+
+def first_analyses_with(app, client, determined_per_session):
+    for determined in determined_per_session:
+        first = analyze(client)
+        store_profile(app, first["id"], determined, stored_completeness=0)
+        # A later, fuller analysis in the same session must not count.
+        later = client.post(
+            "/api/analyze",
+            json={"task": "PRIVATE_TASK_SENTINEL", "session_id": first["session_id"]},
+        ).json()
+        store_profile(app, later["id"], 7)
+
+
+def test_learning_progress_needs_five_sessions():
+    app = create_app(Settings(_env_file=None))
+    client = account(app)
+    first_analyses_with(app, client, [1, 2, 3, 4])
+    progress = client.get("/api/progress/learning").json()
+    assert progress["verdict"] == "insufficient_history"
+    assert len(progress["points"]) == 4 and progress["dimensions"] == []
+
+
+@pytest.mark.parametrize(
+    ("determined", "verdict"),
+    [([1, 1, 1, 6, 7, 7], "improving"), ([7, 7, 7, 1, 1, 1], "declining"), ([4] * 6, "stable")],
+)
+def test_learning_progress_compares_early_and_recent_first_analyses(determined, verdict):
+    app = create_app(Settings(_env_file=None))
+    client = account(app)
+    first_analyses_with(app, client, determined)
+    progress = client.get("/api/progress/learning").json()
+    assert progress["verdict"] == verdict
+    assert progress["window"] == 3 and len(progress["points"]) == 6
+    assert progress["delta"] == round(progress["recent_mean"] - progress["early_mean"], 1)
+    rates = {row["dimension"]: row for row in progress["dimensions"]}
+    if verdict == "improving":  # Only reasoning was determined early; all seven are now.
+        assert rates["reasoning"]["early_rate"] == 1.0
+        assert rates["context"]["early_rate"] == 0.0
+        assert rates["modality"]["recent_rate"] == pytest.approx(2 / 3, abs=0.01)
+    assert "PRIVATE_TASK_SENTINEL" not in json.dumps(progress)
+
+
+def test_learning_progress_is_private_and_reaches_the_educator():
+    app = create_app(Settings(_env_file=None))
+    alice = account(app)
+    first_analyses_with(app, alice, [1, 1, 1, 7, 7, 7])
+    bob = account(app, "bob@example.com")
+    assert bob.get("/api/progress/learning").json()["points"] == []
+    assert TestClient(app).get("/api/progress/learning").status_code == 401
+    _, metadata = snapshot(app.state.storage, user_of(alice))
+    assert metadata["completeness_trend"]["verdict"] == "improving"

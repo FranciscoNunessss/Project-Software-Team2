@@ -342,11 +342,16 @@ In the frontend, when `/api/features` reports `chat`, the **Assistant** tab is t
 with the model picker, the Prompt Coach bubble and two buttons. **Analyse** runs the usual
 analysis on the draft without sending it and opens the analysis panel on the right
 (`AnalysisDrawer.tsx`: completeness, what changed, clarification questions, recommended
-tier, tips, profile), which the user opens and closes; analysing an edited draft again
+tier, tips, profile). The panel slides in from the right; its tab, part of the panel's
+left edge, stays visible when it is closed, widens on hover to read "Show analysis" or
+"Hide analysis", and opens or closes it on click (or drag left to open, right to close). Analysing an edited draft again
 shows what changed. **Send** sends the message (Enter sends, Shift+Enter adds a line) and
 carries the analysis only if it was made from that exact text; the message then shows an
 "Analysis NN/100" chip that reopens it. While an answer streams in, Send becomes **Stop**;
-a stopped or failed answer offers **Retry**. Without the module, or for a saved session
+a stopped or failed answer offers **Retry**. Answers are rendered as GitHub-flavoured
+Markdown (`ChatMarkdown.tsx`, react-markdown with remark-gfm); raw HTML is dropped and unsafe
+links removed. The chat's system prompt asks every model for the same Markdown, so answers
+from different providers look alike. Without the module, or for a saved session
 that is not a chat, the earlier Assistant page is shown. The result cards are shared in
 `AnalysisResult.tsx`.
 

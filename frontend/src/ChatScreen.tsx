@@ -4,6 +4,7 @@ import {
   type Analysis, type ChatMessage, type ChatSummary, type HistoryItem, type LLMOption, type LLMOptions,
 } from './api'
 import { AnalysisDrawer } from './AnalysisDrawer'
+import { ChatMarkdown } from './ChatMarkdown'
 import { ModelPicker } from './ModelPicker'
 import { PromptCoachBubble } from './PromptCoachBubble'
 
@@ -16,7 +17,9 @@ function Bubble({ message, last, busy, onRetry, onShowAnalysis }: { message: Cha
   return (
     <div className={`chat-message ${mine ? 'mine' : 'theirs'}`} data-chat-message={message.role} data-status={message.status}>
       <div className="chat-bubble">
-        {message.content ? <p>{message.content}</p> : pending ? <p className="chat-typing" aria-label="Writing">…</p> : null}
+        {message.content
+          ? (mine ? <p>{message.content}</p> : <ChatMarkdown text={message.content} />)
+          : pending ? <p className="chat-typing" aria-label="Writing">…</p> : null}
       </div>
       {!mine && !pending && message.status !== 'complete' && (
         <div className="chat-note" role="status">
@@ -210,9 +213,6 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
       <section className="chat-main">
         <div className="chat-toolbar">
           <span className="muted">{chats.find(chat => chat.id === chatId)?.title ?? 'New chat'}</span>
-          <button type="button" className="button button-secondary" onClick={() => setDrawer(value => !value)} aria-pressed={drawer} data-analysis-toggle="">
-            {drawer ? 'Hide analysis' : 'Show analysis'}
-          </button>
         </div>
         <div className="chat-messages" aria-live="polite">
           {messages.length === 0 ? (
@@ -245,7 +245,9 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
         </section>
         {selected?.external && <p className="processing-notice">Selecting <strong>Analyse</strong> or <strong>Send</strong> sends your text to <strong>{selected.provider}</strong>. Messages are saved in this chat until you delete it.</p>}
       </section>
-      {drawer && <AnalysisDrawer analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory} onClose={() => setDrawer(false)} />}
+      <div className="drawer-slot">
+        <AnalysisDrawer open={drawer} onToggle={setDrawer} analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory} />
+      </div>
     </main>
   )
 }

@@ -48,7 +48,7 @@ test('new chat starts empty and a chat can be deleted', async ({ page }) => {
 test('Analyse opens the analysis panel; Send carries the analysis with the message', async ({ page }) => {
   await openChat(page)
   const drawer = page.locator('[data-analysis-drawer]')
-  await expect(drawer).toHaveCount(0)
+  await expect(drawer).toBeHidden()
   await page.locator('[data-chat-input]').fill(VAGUE)
   await page.locator('[data-analyse-button]').click()
   await expect(drawer.getByText('50/100')).toBeVisible()
@@ -68,12 +68,18 @@ test('Analyse opens the analysis panel; Send carries the analysis with the messa
   expect((await sent).postDataJSON().analysis_id).toBeTruthy()
   await expect(page.locator('[data-analysis-chip]')).toHaveText('Analysis 100/100')
 
-  await page.getByRole('button', { name: 'Close analysis' }).click()
-  await expect(drawer).toHaveCount(0)
+  // The tab on the panel's edge closes and reopens it.
+  const tab = page.locator('[data-analysis-toggle]')
+  await expect(tab).toHaveAttribute('aria-label', 'Hide analysis')
+  await tab.click()
+  await expect(drawer).toBeHidden()
+  await expect(tab).toHaveAttribute('aria-label', 'Show analysis')
   await page.locator('[data-analysis-chip]').click()
   await expect(drawer.getByText('100/100')).toBeVisible()
-  await page.locator('[data-analysis-toggle]').click()
-  await expect(drawer).toHaveCount(0)
+  await tab.click()
+  await expect(drawer).toBeHidden()
+  await tab.click()
+  await expect(drawer).toBeVisible()
 })
 
 test('a message sent without analysing it has no analysis chip', async ({ page }) => {
@@ -84,6 +90,42 @@ test('a message sent without analysing it has no analysis chip', async ({ page }
   // Edited after the analysis: the analysis no longer describes this text.
   await send(page, 'Something else entirely.')
   await expect(page.locator('[data-analysis-chip]')).toHaveCount(0)
+})
+
+test('dragging the tab right closes the panel and left opens it', async ({ page }) => {
+  await openChat(page)
+  await page.locator('[data-chat-input]').fill(VAGUE)
+  await page.locator('[data-analyse-button]').click()
+  const drawer = page.locator('[data-analysis-drawer]')
+  await expect(drawer.getByText('50/100')).toBeVisible()
+  const drag = async (dx: number) => {
+    // Let the panel finish sliding so the tab is where it will stay.
+    await page.waitForFunction(() => document.getAnimations().length === 0)
+    const box = await page.locator('[data-analysis-toggle]').boundingBox()
+    if (!box) throw new Error('no tab')
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width / 2 + dx, box.y + box.height / 2, { steps: 5 })
+    await page.mouse.up()
+  }
+  await drag(120)
+  await expect(drawer).toBeHidden()
+  await drag(-120)
+  await expect(drawer).toBeVisible()
+})
+
+test('answers are rendered as Markdown and raw HTML is not', async ({ page }) => {
+  await openChat(page)
+  await page.locator('[data-chat-input]').fill('Answer in markdown please')
+  await page.locator('[data-chat-send]').click()
+  const answer = page.locator('[data-chat-message="assistant"]').last()
+  await expect(answer.getByRole('heading', { name: 'Steps' })).toBeVisible()
+  await expect(answer.locator('strong', { hasText: 'Sort' })).toBeVisible()
+  await expect(answer.locator('ol li')).toHaveCount(2)
+  await expect(answer.locator('table td').first()).toHaveText('8')
+  await expect(answer.locator('pre code')).toContainText("print('hi')")
+  await expect(answer.locator('img')).toHaveCount(0)
+  expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined()
 })
 
 test('without the chat module the Assistant page is shown', async ({ page }) => {

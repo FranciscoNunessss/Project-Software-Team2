@@ -319,7 +319,8 @@ chat id as `session_id`, then send it with the `analysis_id` to link the two.
 |---|---|---|
 | GET/POST | `/api/chats` | List or create the user's chats |
 | GET/PATCH/DELETE | `/api/chats/{id}` | Messages (with each analysis' completeness), rename, delete |
-| POST | `/api/chats/{id}/messages` | Send `{content, provider, configuration_id?, analysis_id?, allow_external}` and get `{title, message, answer}` |
+| POST | `/api/chats/{id}/messages` | Send `{content, provider, configuration_id?, analysis_id?, allow_external}` and get `{title, message, answer}`, or a stream (below) |
+| POST | `/api/chats/{id}/messages/{answer_id}/retry` | Answer the last question again (`{provider, configuration_id?, allow_external}`) |
 | GET/PUT | `/api/chat/settings` | `{auto_analyse}`, off by default |
 | GET/PUT | `/api/chat/model-tiers` | Map a model configuration to a catalogue tier (`tier: null` clears it) |
 
@@ -327,11 +328,26 @@ The answer comes from the chosen model (`configuration_id`, or the server provid
 means Groq) with the last 20 turns or 12,000 characters of the chat. The click on Send is
 the consent for an external provider, as with Analyse. A provider failure is stored as an
 answer with `status: "failed"` and the error code (for example `provider_rate_limit`) and is
-left out of later history. The demonstration provider answers with a fixed note. Streaming,
-the chat screen and the analysis drawer follow in later cards (E2 to E5).
+left out of later history. The demonstration provider answers with a fixed note.
+
+With `Accept: text/event-stream` the send answers as Server-Sent Events: `message` (the
+stored question and the `answer_id`), `delta` (text as it arrives), `error` (code, on a
+provider failure) and `done` (the same `{title, message, answer}` as the JSON reply).
+Closing the connection is **Stop**: the text received so far stays, with status
+`stopped`. `POST /api/chats/{id}/messages/{answer_id}/retry` answers the last question
+again after a failed or stopped answer, replacing that answer. The chat screen and the
+analysis drawer follow in later cards (E3 to E5).
+
+To try it against a real provider (uses quota; a throwaway account and database):
+
+```powershell
+uv run python scripts/check_chat.py                  # Groq from .env, in-process
+uv run python scripts/check_chat.py --provider demo  # no key
+uv run python scripts/check_chat.py --url http://127.0.0.1:8000  # a running backend, also checks Stop and Retry
+```
 
 Tests carry the `chat` marker; the `removal-drill` job deletes `chat.py` together with the
-Prompt Coach. To remove the chat: delete `backend/app/chat.py` and
+Prompt Coach. To remove the chat: delete `backend/app/chat.py`, `scripts/check_chat.py` and
 `backend/tests/test_chat*.py`, then the `try` block and `chat_options` in `main.py`,
 `chat` in `/api/features`, `/api/chat` in the no-store list, the `chat` marker,
 `chat_options` in `e2e/server.py` and the chat lines of the `removal-drill` job. Optionally

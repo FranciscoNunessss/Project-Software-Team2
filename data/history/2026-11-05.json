@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-05T11:06:28.421Z",
+  "generatedAt": "2026-11-05T17:23:50.896Z",
   "date": "2026-11-05",
   "repo": "FranciscoNunessss/Project-Software-Team2",
   "branch": "develop",
@@ -384,8 +384,20 @@
       "progress": null,
       "expected": 0,
       "status": "no-data",
-      "note": "Baseline 0 per PR (10 PRs). Baseline still being measured (weeks 7–8).",
+      "note": "Baseline 0 per PR (12 PRs). Baseline still being measured (weeks 7–8).",
       "evidence": [
+        {
+          "kind": "pr",
+          "title": "#31 E1 · Optional chat module: chats, messages, settings, model tiers",
+          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/31",
+          "meta": "baseline · week 8 · 0 changes requested"
+        },
+        {
+          "kind": "pr",
+          "title": "#30 E0 · ADR-011 Chat with in-line analysis (Proposed)",
+          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/30",
+          "meta": "baseline · week 8 · 0 changes requested"
+        },
         {
           "kind": "pr",
           "title": "#29 Prompt Coach: fix the five review findings from #18",

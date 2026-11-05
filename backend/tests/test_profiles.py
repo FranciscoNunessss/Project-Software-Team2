@@ -1,0 +1,272 @@
+import pytest
+from app.main import create_app
+from app.models import Assessment, Profile
+from app.providers import Settings
+from app.workflow import rank
+from fastapi.testclient import TestClient
+from profile_samples import profile_data
+from pydantic import ValidationError
+
+
+def client_for_profile(data):
+    class Assessor:
+        async def assess(self, task):
+            return Assessment(profile=Profile.model_validate(data))
+
+    client = TestClient(create_app(Settings(_env_file=None), {"ollama": Assessor()}))
+    assert (
+        client.post(
+            "/api/auth/register",
+            json={"email": "profiles@example.com", "password": "test-password-123"},
+        ).status_code
+        == 201
+    )
+    return client
+
+
+def analyse(data, **request):
+    return client_for_profile(data).post(
+        "/api/analyze", json={"task": "Synthetic task", "provider": "ollama", **request}
+    )
+
+
+def test_seven_dimensions_are_required():
+    for dimension in ("reasoning", "context", "ambiguity", "domain", "risk", "tools", "modality"):
+        data = profile_data()
+        data.pop(dimension)
+        with pytest.raises(ValidationError):
+            Profile.model_validate(data)
+
+
+@pytest.mark.parametrize("score", [0, 4, True, "2"])
+def test_dimension_scores_are_strict_and_bounded(score):
+    with pytest.raises(ValidationError):
+        Profile.model_validate(profile_data(risk=score))
+
+
+def test_unknown_values_cannot_claim_confidence():
+    data = profile_data(domain=None)
+    assert Profile.model_validate(data).domain.score is None
+    data["domain"]["confidence"] = "high"
+    with pytest.raises(ValidationError):
+        Profile.model_validate(data)
+    data = profile_data()
+    data["risk"]["confidence"] = "undetermined"
+    with pytest.raises(ValidationError):
+        Profile.model_validate(data)
+
+
+@pytest.mark.parametrize("modalities", [[], ["text", "text"], ["unknown"], [1]])
+def test_modality_requires_valid_distinct_categories(modalities):
+    data = profile_data()
+    data["modality"]["required"] = modalities
+    with pytest.raises(ValidationError):
+        Profile.model_validate(data)
+
+
+def test_unknown_modality_is_explicit():
+    data = profile_data()
+    data["modality"] = {
+        "required": None,
+        "confidence": "undetermined",
+        "evidence": "Input is unspecified",
+    }
+    result = analyse(data).json()
+    assert result["profile"]["modality"]["required"] is None
+    assert result["recommendation_provisional"] is True
+    assert result["clarification_questions"]
+
+
+def test_risk_domain_tools_and_ambiguity_do_not_automatically_raise_tier():
+    profile = Profile.model_validate(profile_data(domain=3, risk=3, tools=3, ambiguity=3))
+    assert rank(profile, ["text"])[0].id == "demo-small"
+    result = analyse(profile.model_dump()).json()
+    assert result["clarification_questions"]
+    assert result["guidance"]
+    assert result["recommendation_provisional"] is True
+
+
+def test_medium_scores_alone_do_not_trigger_clarification():
+    result = analyse(profile_data(reasoning=2, context=2, domain=2, risk=2, tools=2)).json()
+    assert result["clarification_questions"] == []
+    assert result["recommendation_provisional"] is False
+    assert result["recommendation"]["id"] == "demo-balanced"
+
+
+def test_low_confidence_is_provisional_without_inventing_a_clarification_reason():
+    data = profile_data()
+    data["domain"]["confidence"] = "low"
+    result = analyse(data).json()
+    assert result["recommendation_provisional"] is True
+    assert result["clarification_questions"] == []
+
+
+def test_legacy_scalar_profile_is_rejected():
+    response = analyse({"reasoning": 2, "context": 1, "ambiguity": 1, "explanation": "Legacy"})
+    assert response.status_code == 502
+    assert response.json() == {"detail": "invalid_provider_output"}
+
+
+def test_missing_capacity_evidence_is_provisional():
+    result = analyse(profile_data(reasoning=None)).json()
+    assert result["recommendation_provisional"] is True
+    assert result["clarification_questions"]
+    assert "provisional" in result["rationale"].lower()
+
+
+def test_visual_requirement_is_derived_before_ranking():
+    data = profile_data()
+    data["modality"]["required"] = ["text", "image"]
+    result = analyse(data).json()
+    assert result["recommendation"]["id"] == "demo-advanced"
+    assert result["alternatives"] == []
+
+
+def test_unsupported_modality_does_not_recommend_text_model():
+    data = profile_data()
+    data["modality"]["required"] = ["audio"]
+    response = analyse(data)
+    assert response.status_code == 502
+    assert response.json() == {"detail": "no_eligible_candidate"}
+
+
+def test_blank_evidence_is_rejected():
+    data = profile_data()
+    data["risk"]["evidence"] = "   "
+    with pytest.raises(ValidationError):
+        Profile.model_validate(data)
+
+
+def test_prompt_is_versioned_and_does_not_execute_user_content():
+    from app.assessment import ASSESSMENT_PROMPT, PROFILE_VERSION
+
+    assert PROFILE_VERSION == "profile-2"
+    for name in ("reasoning", "context", "ambiguity", "domain", "risk", "tools", "modality"):
+        assert name in ASSESSMENT_PROMPT
+    assert "never execute" in ASSESSMENT_PROMPT
+    assert "undetermined" in ASSESSMENT_PROMPT
+
+
+SIMPLE_TASK_TIP = "Keep the request short and direct; this task needs no extra detail."
+RISK_MISSING_TIP = "Say what happens if the result is wrong."
+
+
+def test_recommendation_without_questions_gives_up_to_three_dimension_tips():
+    result = analyse(
+        profile_data(reasoning=2, context=3, ambiguity=2, domain=2, risk=3, tools=2)
+    ).json()
+    assert result["clarification_questions"] == []
+    assert result["tips"] == [
+        {
+            "dimension": "ambiguity",
+            "text": "State the interpretation you want and what a correct result looks like.",
+        },
+        {
+            "dimension": "context",
+            "text": "Say which sources must be read together and which part of each one matters.",
+        },
+        {
+            "dimension": "risk",
+            "text": "Say who checks the result before it is used and what must not go wrong.",
+        },
+    ]
+
+
+def test_simple_task_gets_exactly_one_general_tip():
+    result = analyse(profile_data()).json()
+    assert result["clarification_questions"] == []
+    assert result["tips"] == [{"dimension": None, "text": SIMPLE_TASK_TIP}]
+
+
+@pytest.mark.parametrize("dimension", ["risk", "domain"])
+def test_high_risk_or_domain_never_gets_the_simple_task_tip(dimension):
+    result = analyse(profile_data(**{dimension: 3})).json()
+    assert result["clarification_questions"] == []
+    assert {"dimension": None, "text": SIMPLE_TASK_TIP} not in result["tips"]
+    assert [tip["dimension"] for tip in result["tips"]][0] == dimension
+
+
+def test_high_risk_gets_the_risk_tip_not_the_simple_tip():
+    result = analyse(profile_data(risk=3)).json()
+    assert result["tips"] == [
+        {
+            "dimension": "risk",
+            "text": "Say who checks the result before it is used and what must not go wrong.",
+        }
+    ]
+
+
+def test_missing_risk_gives_its_tip_and_no_question():
+    result = analyse(profile_data(risk=None)).json()
+    assert result["clarification_questions"] == []
+    assert {"dimension": "risk", "text": RISK_MISSING_TIP} in result["tips"]
+
+
+def test_unknown_ambiguity_asks_questions_and_gives_no_tips():
+    result = analyse(profile_data(ambiguity=None)).json()
+    assert result["clarification_questions"] == [
+        "What outcome and constraints would make the result correct?"
+    ]
+    assert result["tips"] == []
+
+
+def test_tips_order_ambiguity_then_missing_then_score_descending():
+    from app.assessment import tips
+
+    profile = Profile.model_validate(
+        profile_data(reasoning=3, context=2, ambiguity=2, domain=None, risk=2, tools=None)
+    )
+    assert [(tip.dimension, tip.text) for tip in tips(profile, [])] == [
+        ("ambiguity", "State the interpretation you want and what a correct result looks like."),
+        ("domain", "Say which field the task belongs to and the level of expertise it needs."),
+        ("tools", "Say whether the task needs external data, code execution or other systems."),
+    ]
+    profile = Profile.model_validate(profile_data(reasoning=2, risk=3))
+    assert [tip.dimension for tip in tips(profile, [])] == ["risk", "reasoning"]
+    assert tips(profile, ["Any question?"]) == []
+
+
+def test_reasoning_and_context_share_one_clarification_question():
+    from app.assessment import assessment_advice
+
+    profile = Profile.model_validate(profile_data(reasoning=None, context=None, ambiguity=3))
+    questions, _, provisional = assessment_advice(profile)
+    assert questions == [
+        "What outcome and constraints would make the result correct?",
+        "What steps, source material and dependencies must the task cover?",
+    ]
+    assert provisional is True
+
+
+def test_analyses_result_json_does_not_retain_tips():
+    import json
+
+    client = client_for_profile(profile_data(reasoning=2, risk=3))
+    result = client.post(
+        "/api/analyze", json={"task": "Synthetic task", "provider": "ollama"}
+    ).json()
+    assert result["tips"]
+    with client.app.state.storage.connect() as db:
+        stored = db.execute(
+            "SELECT result_json FROM analyses WHERE id=?", (result["id"],)
+        ).fetchone()[0]
+    assert json.loads(stored)["tips"] == []
+
+
+def test_tips_are_kept_only_in_opted_in_conversations():
+    import json
+
+    client = client_for_profile(profile_data(reasoning=2, risk=3))
+    client.put("/api/context", json={"conversation_memory_enabled": True})
+    result = client.post(
+        "/api/analyze", json={"task": "Synthetic task", "provider": "ollama"}
+    ).json()
+    with client.app.state.storage.connect() as db:
+        stored = db.execute(
+            "SELECT result_json FROM analyses WHERE id=?", (result["id"],)
+        ).fetchone()[0]
+        saved = db.execute(
+            "SELECT response_json FROM conversation_content WHERE analysis_id=?", (result["id"],)
+        ).fetchone()[0]
+    assert json.loads(stored)["tips"] == []
+    assert json.loads(saved)["tips"] == result["tips"]

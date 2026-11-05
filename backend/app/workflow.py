@@ -4,7 +4,17 @@ from typing import TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from app.models import AnalysisRequest, Assessment, Candidate, Profile
+from app.assessment import (
+    GRADING,
+    SPREAD,
+    assessment_advice,
+    completeness,
+    demand_estimate,
+    required_capabilities,
+    tier_fit,
+    tips,
+)
+from app.models import AnalysisRequest, Assessment, Candidate, Profile, Tip
 from app.providers import AssessmentProvider, ProviderFailure
 
 CATALOGUE = json.loads((Path(__file__).parent.parent / "data/catalogue.json").read_text())
@@ -16,23 +26,27 @@ class State(TypedDict, total=False):
     candidates: list[Candidate]
     rationale: str
     usage: dict[str, int] | None
+    clarification_questions: list[str]
+    guidance: list[str]
+    tips: list[Tip]
+    recommendation_provisional: bool
+    grading: dict
+    completeness: int
 
 
 def rank(profile: Profile, required: list[str]) -> list[Candidate]:
-    eligible = [
-        Candidate.model_validate(item)
-        for item in CATALOGUE["models"]
-        if set(required) <= set(item["capabilities"])
-    ]
-    target = max(profile.reasoning, profile.context, profile.ambiguity)
-    return sorted(
-        eligible,
-        key=lambda item: (
-            item.capacity < target,
-            abs(item.capacity - target),
-            item.id,
-        ),
-    )
+    demand, spread = demand_estimate(profile)
+    eligible = []
+    for item in CATALOGUE["models"]:
+        if not set(required) <= set(item["capabilities"]):
+            continue
+        sufficiency, fit = tier_fit(item["capacity"], demand, spread)
+        eligible.append(
+            Candidate.model_validate(
+                {**item, "sufficiency": round(sufficiency, 3), "fit": round(fit, 3)}
+            )
+        )
+    return sorted(eligible, key=lambda item: (-item.fit, item.capacity, item.id))
 
 
 def build_workflow(provider: AssessmentProvider):
@@ -41,19 +55,45 @@ def build_workflow(provider: AssessmentProvider):
         return {"profile": assessment.profile, "usage": assessment.usage}
 
     def match(state: State):
-        candidates = rank(state["profile"], state["request"].required_capabilities)
+        profile = state["profile"]
+        required = required_capabilities(profile, state["request"].required_capabilities)
+        candidates = rank(profile, required)
         if not candidates:
             raise ProviderFailure("no_eligible_candidate")
-        target = max(
-            state["profile"].reasoning, state["profile"].context, state["profile"].ambiguity
+        demand, spread = demand_estimate(profile)
+        questions, guidance, provisional = assessment_advice(profile)
+        requirements = ", ".join(required) or "none"
+        uncertainty_note = (
+            "Some capacity requirements are undetermined; the middle tier is provisional. "
+            if profile.reasoning.score is None or profile.context.score is None
+            else ""
         )
-        required = ", ".join(state["request"].required_capabilities) or "none"
         return {
             "candidates": candidates,
+            "clarification_questions": questions,
+            "guidance": guidance,
+            "tips": tips(profile, questions),
+            "recommendation_provisional": provisional,
+            "grading": {
+                "demand": round(demand, 3),
+                "spread": round(spread, 3),
+                "parameters": {**GRADING, "spread_by_confidence": SPREAD},
+                "basis": "Uncalibrated estimate; not a probability",
+            },
+            "completeness": completeness(profile, provisional),
             "rationale": (
-                f"Required capabilities: {required}. "
-                f"Maximum assessed dimension: {target}/3. Prototype policy selects the closest "
-                "sufficient catalogue tier, then lists other eligible options."
+                f"Required capabilities: {requirements}. "
+                f"Estimated reasoning/context demand: {demand:.1f}/3 "
+                f"(uncertainty ±{spread:.1f}). "
+                + uncertainty_note
+                + "This eligible tier has the highest estimated fit "
+                f"({round(candidates[0].fit * 100)}%). Review domain references, "
+                "consequences of error and tool access separately. "
+                + (
+                    "Recommendation is provisional; review uncertainty and clarification prompts."
+                    if provisional
+                    else "Qualitative confidence remains uncalibrated."
+                )
             ),
         }
 

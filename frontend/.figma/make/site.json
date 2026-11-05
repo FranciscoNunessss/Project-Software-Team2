@@ -1,4 +1,5 @@
 {
+  "title": "AdaptAI",
   "description": "Empower users to select the right AI model for their tasks with tailored recommendations, progress tracking, and practical guidance for optimal results.",
   "robots": {
     "index": false

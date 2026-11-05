@@ -13,11 +13,14 @@ dependencies = [
     "langgraph>=1,<2",
     "langchain-openai>=1,<2",
     "langchain-ollama>=1,<2",
+    "langchain-anthropic>=1,<2",
+    "cryptography>=46,<48",
 ]
 
 [dependency-groups]
 dev = [
     "httpx>=0.28,<1",
+    "httpx2>=2,<3",
     "pytest>=8,<10",
     "pytest-asyncio>=1,<2",
     "ruff>=0.12,<1",
@@ -30,6 +33,10 @@ package = false
 testpaths = ["backend/tests"]
 pythonpath = ["backend"]
 asyncio_mode = "auto"
+markers = [
+    "prompt_coach: tests of the optional Prompt Coach module",
+    "chat: tests of the optional chat module",
+]
 
 [tool.ruff]
 target-version = "py312"

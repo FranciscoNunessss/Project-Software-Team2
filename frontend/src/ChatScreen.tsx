@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import {
-  api, createChat, deleteChat, errorMessage, getChat, listChats, streamChat, ApiError,
-  type ChatMessage, type ChatSummary, type LLMOption, type LLMOptions,
+  api, createChat, deleteChat, renameChat, errorMessage, getChat, listChats, notifyProgressChange, streamChat, tierOf, ApiError,
+  type Analysis, type ChatMessage, type ChatSummary, type HistoryItem, type LLMOption, type LLMOptions,
 } from './api'
+import { AnalysisDrawer } from './AnalysisDrawer'
 import { ModelPicker } from './ModelPicker'
+import { PromptCoachBubble } from './PromptCoachBubble'
 
 // Optional chat (ADR-011). Shown only when /api/features reports "chat".
 const MAX_CHARS = 8000
 
-function Bubble({ message, last, busy, onRetry }: { message: ChatMessage; last: boolean; busy: boolean; onRetry: () => void }) {
+function Bubble({ message, last, busy, onRetry, onShowAnalysis }: { message: ChatMessage; last: boolean; busy: boolean; onRetry: () => void; onShowAnalysis: (id: string) => void }) {
   const mine = message.role === 'user'
   const pending = !mine && busy && last
   return (
@@ -23,11 +25,20 @@ function Bubble({ message, last, busy, onRetry }: { message: ChatMessage; last: 
         </div>
       )}
       {!mine && message.model && message.status === 'complete' && <span className="chat-meta">{message.model}</span>}
+      {mine && message.analysis_id && (
+        <button type="button" className="chat-analysis-chip" onClick={() => onShowAnalysis(message.analysis_id as string)} data-analysis-chip="">
+          Analysis {message.completeness ?? '–'}/100
+        </button>
+      )}
     </div>
   )
 }
 
-export function ChatScreen({ onConfigureModels }: { onConfigureModels: () => void }) {
+export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
+  onConfigureModels: () => void
+  initialChatId?: string
+  onNotAChat?: () => void
+}) {
   const [chats, setChats] = useState<ChatSummary[]>([])
   const [chatId, setChatId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -40,6 +51,14 @@ export function ChatScreen({ onConfigureModels }: { onConfigureModels: () => voi
   const [modelsLoading, setModelsLoading] = useState(true)
   const active = useRef<AbortController | null>(null)
   const end = useRef<HTMLDivElement>(null)
+  // Analysis panel: the shown analysis, and the one made from the current draft.
+  const [shown, setShown] = useState<Analysis | null>(null)
+  const [shownFromHistory, setShownFromHistory] = useState(false)
+  const [drawer, setDrawer] = useState(false)
+  const [analysing, setAnalysing] = useState(false)
+  const [draftAnalysis, setDraftAnalysis] = useState<{ analysis: Analysis; text: string } | null>(null)
+  // Live analyses of this visit, kept whole (history drops tips and evidence).
+  const cache = useRef(new Map<string, Analysis>())
 
   const refreshList = () => listChats().then(setChats).catch(() => setError('Could not load your chats.'))
 
@@ -54,16 +73,63 @@ export function ChatScreen({ onConfigureModels }: { onConfigureModels: () => voi
   }, [])
 
   useEffect(() => { end.current?.scrollIntoView({ block: 'end' }) }, [messages])
+  useEffect(() => {
+    if (!initialChatId) return
+    getChat(initialChatId).then(chat => { setChatId(chat.id); setMessages(chat.messages) })
+      .catch(failure => { if (failure instanceof ApiError && failure.status === 404) onNotAChat?.() })
+  }, [initialChatId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = options.find(item => item.id === (model === 'auto' ? autoId : model))
   const target = { provider: 'auto' as const, configuration_id: model === 'auto' ? undefined : model, allow_external: selected?.external === true }
 
+  const resetAnalysis = () => { setShown(null); setDraftAnalysis(null); setDrawer(false) }
   const open = async (id: string) => {
     if (busy) return
-    setError(''); setChatId(id)
+    setError(''); setChatId(id); resetAnalysis()
     try { setMessages((await getChat(id)).messages) } catch { setError('Could not open this chat.') }
   }
-  const startNew = () => { if (busy) return; setChatId(null); setMessages([]); setDraft(''); setError('') }
+  const startNew = () => { if (busy) return; setChatId(null); setMessages([]); setDraft(''); setError(''); resetAnalysis() }
+
+  const ensureChat = async () => {
+    if (chatId) return chatId
+    const id = (await createChat()).id
+    setChatId(id)
+    return id
+  }
+
+  const analyse = async () => {
+    const content = draft.trim()
+    if (!content || busy || analysing || !selected) return
+    setAnalysing(true); setDrawer(true); setError('')
+    try {
+      const fresh = !chatId
+      const id = await ensureChat()
+      // A chat started by Analyse is named after the draft, as Send would name it.
+      if (fresh) await renameChat(id, titleFrom(content)).catch(() => undefined)
+      const result = await api<Analysis>('analyze', {
+        task: draft, provider: 'auto', configuration_id: target.configuration_id,
+        expected_configuration_id: selected.id, expected_provider: selected.provider, expected_model: selected.model ?? undefined,
+        session_id: id, previous_analysis_id: draftAnalysis?.analysis.id, allow_external: target.allow_external,
+        required_capabilities: ['text'],
+      })
+      cache.current.set(result.id, result)
+      setDraftAnalysis({ analysis: result, text: draft }); setShown(result); setShownFromHistory(false)
+      notifyProgressChange(); refreshList()
+    } catch (failure) {
+      setError(failure instanceof ApiError ? failure.message : 'The analysis failed. Please retry.')
+    } finally { setAnalysing(false) }
+  }
+
+  const showAnalysis = async (analysisId: string) => {
+    setDrawer(true)
+    const cached = cache.current.get(analysisId)
+    if (cached) { setShown(cached); setShownFromHistory(false); return }
+    try {
+      const session = await api<{ analyses: HistoryItem[] }>(`sessions/${chatId}`)
+      const item = session.analyses.find(entry => entry.result.id === analysisId)
+      if (item) { setShown(item.conversation?.response ?? item.result); setShownFromHistory(!item.conversation) }
+    } catch { setError('Could not open this analysis.') }
+  }
   const remove = async (id: string) => {
     if (busy) return
     try { await deleteChat(id) } catch { setError('Could not delete the chat.'); return }
@@ -106,13 +172,13 @@ export function ChatScreen({ onConfigureModels }: { onConfigureModels: () => voi
   const send = async () => {
     const content = draft.trim()
     if (!content || busy || content.length > MAX_CHARS) return
-    let id = chatId
-    if (!id) {
-      try { id = (await createChat()).id; setChatId(id) } catch { setError('Could not create a chat.'); return }
-    }
-    setDraft('')
-    const question: ChatMessage = { ...placeholder('draft-question'), role: 'user', content }
-    await run(id, `chats/${id}/messages`, { content, ...target }, [...messages, question, placeholder('draft-answer')])
+    let id: string
+    try { id = await ensureChat() } catch { setError('Could not create a chat.'); return }
+    // The analysis goes with the message only if it was made from this exact text.
+    const analysisId = draftAnalysis && draftAnalysis.text === draft ? draftAnalysis.analysis.id : undefined
+    setDraft(''); setDraftAnalysis(null)
+    const question: ChatMessage = { ...placeholder('draft-question'), role: 'user', content, analysis_id: analysisId ?? null, completeness: analysisId ? draftAnalysis?.analysis.completeness ?? null : null }
+    await run(id, `chats/${id}/messages`, { content, ...target, analysis_id: analysisId }, [...messages, question, placeholder('draft-answer')])
   }
   const retry = () => {
     const last = messages[messages.length - 1]
@@ -124,47 +190,69 @@ export function ChatScreen({ onConfigureModels }: { onConfigureModels: () => voi
     if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send() }
   }
 
+  const stale = shown !== null && draftAnalysis?.analysis.id === shown.id && draftAnalysis.text !== draft
+  const locked = busy || analysing
+
   return (
-    <main className="page chat-layout" data-chat-screen="">
+    <main className={`page chat-layout${drawer ? ' with-drawer' : ''}`} data-chat-screen="">
       <aside className="chat-sidebar" aria-label="Chats">
-        <button type="button" className="button button-secondary chat-new" onClick={startNew} disabled={busy}>New chat</button>
+        <button type="button" className="button button-secondary chat-new" onClick={startNew} disabled={locked}>New chat</button>
         <ul className="chat-list">
           {chats.map(chat => (
             <li key={chat.id} className={chat.id === chatId ? 'active' : ''}>
-              <button type="button" className="chat-open" onClick={() => open(chat.id)} disabled={busy}>{chat.title}</button>
-              <button type="button" className="chat-delete" aria-label={`Delete ${chat.title}`} onClick={() => remove(chat.id)} disabled={busy}>×</button>
+              <button type="button" className="chat-open" onClick={() => open(chat.id)} disabled={locked}>{chat.title}</button>
+              <button type="button" className="chat-delete" aria-label={`Delete ${chat.title}`} onClick={() => remove(chat.id)} disabled={locked}>×</button>
             </li>
           ))}
           {chats.length === 0 && <li className="chat-empty-list">No chats yet.</li>}
         </ul>
       </aside>
       <section className="chat-main">
+        <div className="chat-toolbar">
+          <span className="muted">{chats.find(chat => chat.id === chatId)?.title ?? 'New chat'}</span>
+          <button type="button" className="button button-secondary" onClick={() => setDrawer(value => !value)} aria-pressed={drawer} data-analysis-toggle="">
+            {drawer ? 'Hide analysis' : 'Show analysis'}
+          </button>
+        </div>
         <div className="chat-messages" aria-live="polite">
           {messages.length === 0 ? (
-            <div className="chat-empty"><h2>What do you need to do?</h2><p>Write a message and send it to the model you choose.</p></div>
+            <div className="chat-empty"><h2>What do you need to do?</h2><p>Write your prompt. <strong>Analyse</strong> shows how complete it is and which model fits; <strong>Send</strong> gets the answer.</p></div>
           ) : messages.map((message, index) => (
-            <Bubble key={message.id} message={message} last={index === messages.length - 1} busy={busy} onRetry={retry} />
+            <Bubble key={message.id} message={message} last={index === messages.length - 1} busy={busy} onRetry={retry} onShowAnalysis={showAnalysis} />
           ))}
           <div ref={end} />
         </div>
         {error && <p className="error-banner" role="alert">{error}</p>}
-        <div className="chat-composer composer">
-          <textarea aria-label="Message" placeholder="Message AdaptAI…" value={draft} maxLength={MAX_CHARS}
-            onChange={event => setDraft(event.target.value)} onKeyDown={onKey} rows={3} data-chat-input="" />
+        <section className="chat-composer composer" data-analysis-id={draftAnalysis?.analysis.id ?? ''} data-session-id={chatId ?? ''}>
+          <PromptCoachBubble analysis={draftAnalysis?.analysis} analysisId={draftAnalysis?.analysis.id} task={draft}
+            disabled={locked} onTaskChange={setDraft} onAnalyse={analyse}>
+            <textarea aria-label="Message" placeholder="Message AdaptAI…" value={draft} maxLength={MAX_CHARS}
+              onChange={event => setDraft(event.target.value)} onKeyDown={onKey} rows={3} data-chat-input="" data-task-input="" disabled={busy} />
+          </PromptCoachBubble>
           <div className="composer-footer">
-            <ModelPicker options={options} value={model} autoId={autoId} loading={modelsLoading} disabled={busy} onChange={setModel} onConfigure={onConfigureModels} />
+            <ModelPicker options={options} value={model} autoId={autoId} loading={modelsLoading} disabled={locked} onChange={value => { setModel(value); setDraftAnalysis(null) }} onConfigure={onConfigureModels} />
             <div className="composer-actions">
               <span>{draft.length}/{MAX_CHARS}</span>
+              {draftAnalysis && draftAnalysis.text === draft && <span className="chat-recommendation">Recommended: <strong>{tierOf(draftAnalysis.analysis.recommendation)}</strong></span>}
+              <button type="button" className="button button-secondary" onClick={analyse} disabled={locked || !draft.trim() || modelsLoading || !selected} data-analyse-button="">
+                {analysing ? 'Analysing…' : 'Analyse'}
+              </button>
               {busy
                 ? <button type="button" className="button button-secondary" onClick={stop} data-chat-stop="">Stop</button>
-                : <button type="button" className="button button-primary" onClick={send} disabled={!draft.trim() || modelsLoading || !selected} data-chat-send="">Send</button>}
+                : <button type="button" className="button button-primary" onClick={send} disabled={analysing || !draft.trim() || modelsLoading || !selected} data-chat-send="">Send</button>}
             </div>
           </div>
-        </div>
-        {selected?.external && <p className="processing-notice">Selecting <strong>Send</strong> sends this chat to <strong>{selected.provider}</strong>. Messages are saved in this chat until you delete it.</p>}
+        </section>
+        {selected?.external && <p className="processing-notice">Selecting <strong>Analyse</strong> or <strong>Send</strong> sends your text to <strong>{selected.provider}</strong>. Messages are saved in this chat until you delete it.</p>}
       </section>
+      {drawer && <AnalysisDrawer analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory} onClose={() => setDrawer(false)} />}
     </main>
   )
+}
+
+function titleFrom(text: string) {
+  const line = text.split(/\s+/).join(' ')
+  return line.length <= 60 ? line : `${line.slice(0, 59).trimEnd()}…`
 }
 
 function placeholder(id: string): ChatMessage {

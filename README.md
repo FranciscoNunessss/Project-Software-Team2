@@ -337,11 +337,18 @@ Closing the connection is **Stop**: the text received so far stays, with status
 `stopped`. `POST /api/chats/{id}/messages/{answer_id}/retry` answers the last question
 again after a failed or stopped answer, replacing that answer.
 
-In the frontend, **Chat** (`ChatScreen.tsx`) appears in the navigation when
-`/api/features` reports `chat`: the list of chats (new, open, delete), the messages, a
-message box (Enter sends, Shift+Enter adds a line) with the model picker, **Send** and,
-while an answer streams in, **Stop**. A stopped or failed answer offers **Retry**. The
-Assistant stays available until the analysis moves into the chat (E4).
+In the frontend, when `/api/features` reports `chat`, the **Assistant** tab is the chat
+(`ChatScreen.tsx`): the list of chats (new, open, delete), the messages and a message box
+with the model picker, the Prompt Coach bubble and two buttons. **Analyse** runs the usual
+analysis on the draft without sending it and opens the analysis panel on the right
+(`AnalysisDrawer.tsx`: completeness, what changed, clarification questions, recommended
+tier, tips, profile), which the user opens and closes; analysing an edited draft again
+shows what changed. **Send** sends the message (Enter sends, Shift+Enter adds a line) and
+carries the analysis only if it was made from that exact text; the message then shows an
+"Analysis NN/100" chip that reopens it. While an answer streams in, Send becomes **Stop**;
+a stopped or failed answer offers **Retry**. Without the module, or for a saved session
+that is not a chat, the earlier Assistant page is shown. The result cards are shared in
+`AnalysisResult.tsx`.
 
 To try it against a real provider (uses quota; a throwaway account and database):
 

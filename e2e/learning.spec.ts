@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { analyse, signUp } from './helpers'
 
 // FakeAssessor: VAGUE leaves context and risk undetermined (completeness 50); COMPLETE
-// determines everything (100). Each task is the first analysis of a new session.
+// determines everything (100). Each task is the first analysis of a new chat (a session).
 const VAGUE = 'Write a summary of the report.'
 const COMPLETE =
   'Write a one-page summary of the report for the board. The risk: an error means rework before the meeting.'
@@ -10,7 +10,7 @@ const COMPLETE =
 test('My progress shows whether first descriptions improve over sessions', async ({ page }) => {
   await signUp(page)
   for (const [index, task] of [VAGUE, VAGUE, VAGUE, COMPLETE, COMPLETE, COMPLETE].entries()) {
-    if (index) await page.getByRole('button', { name: 'New task' }).click()
+    if (index) await page.getByRole('button', { name: 'New chat', exact: true }).first().click()
     await analyse(page, task)
     await expect(page.getByText('Profile completeness')).toBeVisible()
   }

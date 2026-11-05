@@ -307,6 +307,36 @@ To remove the Prompt Coach:
    `prompt_coach_events`, if present) on the SQLite database; the core ignores them.
 4. Run the full backend suite, `pnpm build` and the e2e tests.
 
+## Chat (optional, backend only so far)
+
+The chat is part of the product (ADR-011) and is built as a removable module, like the
+Prompt Coach: `create_app` imports `backend/app/chat.py` last, inside its own `try`, and carries
+on without it. `GET /api/features` reports `{"chat": true|false}`. A chat is a session
+marked in `chat_sessions`; analyse a draft with the usual `POST /api/analyze`, passing the
+chat id as `session_id`, then send it with the `analysis_id` to link the two.
+
+| Method | Route | Purpose |
+|---|---|---|
+| GET/POST | `/api/chats` | List or create the user's chats |
+| GET/PATCH/DELETE | `/api/chats/{id}` | Messages (with each analysis' completeness), rename, delete |
+| POST | `/api/chats/{id}/messages` | Send `{content, provider, configuration_id?, analysis_id?, allow_external}` and get `{title, message, answer}` |
+| GET/PUT | `/api/chat/settings` | `{auto_analyse}`, off by default |
+| GET/PUT | `/api/chat/model-tiers` | Map a model configuration to a catalogue tier (`tier: null` clears it) |
+
+The answer comes from the chosen model (`configuration_id`, or the server provider; `auto`
+means Groq) with the last 20 turns or 12,000 characters of the chat. The click on Send is
+the consent for an external provider, as with Analyse. A provider failure is stored as an
+answer with `status: "failed"` and the error code (for example `provider_rate_limit`) and is
+left out of later history. The demonstration provider answers with a fixed note. Streaming,
+the chat screen and the analysis drawer follow in later cards (E2 to E5).
+
+Tests carry the `chat` marker; the `removal-drill` job deletes `chat.py` together with the
+Prompt Coach. To remove the chat: delete `backend/app/chat.py` and
+`backend/tests/test_chat*.py`, then the `try` block and `chat_options` in `main.py`,
+`chat` in `/api/features`, `/api/chat` in the no-store list, the `chat` marker,
+`chat_options` in `e2e/server.py` and the chat lines of the `removal-drill` job. Optionally
+drop `chat_sessions`, `chat_messages`, `chat_settings` and `chat_model_tiers`.
+
 ## Seven-dimension prototype
 
 The response identifies `profile_version: profile-2`, `policy_version: prototype-3-graded` and `rubric_version`; re-analyses that send `previous_analysis_id` also return `completeness` and `changes`.

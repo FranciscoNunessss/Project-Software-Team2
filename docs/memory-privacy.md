@@ -174,3 +174,13 @@ the stored scores and confidences of the first analysis of each session: complet
 early and recent means, a verdict and, per dimension, the share of first analyses where it was
 determined. No task text, evidence or new table is read or stored.
 
+5 November 2026: chat (ADR-011)
+
+With the chat module installed, the text of chat messages and of the model's answers is stored in
+`chat_messages` while the chat exists. This is a deliberate exception to the rule that task text is
+kept only with "Save task text and AI responses": a chat cannot show its history otherwise. The
+text goes only to the model chosen for the answer, and only when the user selects Send (the
+consent for an external provider). Nothing is traced. The Educator and the coaching snapshot read
+no message text. Deleting a chat deletes its messages and analyses; deleting the history or the
+account deletes all of them. `chat_settings` keeps one on/off value per user and
+`chat_model_tiers` maps a model configuration to a catalogue tier; neither holds text.

@@ -176,6 +176,11 @@ def _build_model(provider: str, settings: Settings, max_tokens: int, temperature
     )
 
 
+def chat_model(provider: str, settings: Settings, max_tokens: int):
+    """A plain chat model for free-text answers (optional chat module, ADR-011)."""
+    return _build_model(provider, settings, max_tokens, None)
+
+
 async def _invoke(
     provider: str,
     settings: Settings,

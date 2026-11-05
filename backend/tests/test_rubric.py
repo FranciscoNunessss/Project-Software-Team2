@@ -32,16 +32,31 @@ def copy_rubric(tmp_path, mutate):
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
     registry = {"rubric-2.0": hashlib.sha256(path.read_bytes()).hexdigest()}
     (root / "versions.json").write_text(json.dumps(registry), encoding="utf-8")
+    (root / "ACTIVE").write_text("rubric-2.0", encoding="utf-8")
     return root
 
 
 def test_rubric_2_0_reproduces_the_original_prompt_byte_for_byte():
-    from app.assessment import ASSESSMENT_PROMPT, RUBRIC_VERSION
 
     expected = FIXTURE.read_bytes()
     assert build_assessment_prompt(load_rubric("rubric-2.0")).encode("utf-8") == expected
-    assert ASSESSMENT_PROMPT.encode("utf-8") == expected
-    assert RUBRIC_VERSION == "rubric-2.0"
+
+
+def test_rubric_2_1_is_active_and_only_adds_anchors_to_the_prompt():
+    from app.assessment import ASSESSMENT_PROMPT, RUBRIC_VERSION
+
+    old, new = load_rubric("rubric-2.0"), load_rubric("rubric-2.1")
+    assert RUBRIC_VERSION == "rubric-2.1"
+    assert ASSESSMENT_PROMPT == build_assessment_prompt(new)
+    # The policy inputs are unchanged: levels, questions, order, tips and focus.
+    for before, after in zip(old.dimensions, new.dimensions, strict=True):
+        assert before.model_dump(exclude={"anchors"}) == after.model_dump(exclude={"anchors"})
+    assert old.modality == new.modality and old.general_tips == new.general_tips
+    anchors = {item.name: " ".join(item.anchors) for item in new.dimensions if item.anchors}
+    assert set(anchors) == {"context", "ambiguity", "domain", "risk"}
+    assert "not supplied" in anchors["context"] and "not supply" in anchors["ambiguity"]
+    assert "health" in anchors["risk"] and "medicine" in anchors["domain"]
+    assert all(not item.anchors for item in old.dimensions)
 
 
 def test_every_level_text_appears_in_its_prompt_lines():
@@ -91,7 +106,7 @@ def test_invalid_rubric_fails_with_an_error_naming_the_problem(tmp_path, mutate,
 def test_modified_registered_file_is_refused(tmp_path):
     root = tmp_path / "rubric"
     shutil.copytree(RUBRIC_DIR, root)
-    path = root / "versions" / "rubric-2.0.json"
+    path = root / "versions" / "rubric-2.1.json"
     path.write_text(
         path.read_text(encoding="utf-8").replace("Specialised", "Special"), encoding="utf-8"
     )
@@ -103,7 +118,7 @@ def test_modified_registered_file_is_refused(tmp_path):
     ("damage", "message"),
     [
         (lambda root: (root / "ACTIVE").unlink(), "unreadable"),
-        (lambda root: (root / "versions" / "rubric-2.0.json").unlink(), "missing"),
+        (lambda root: (root / "versions" / "rubric-2.1.json").unlink(), "missing"),
         (lambda root: (root / "versions.json").write_text("{", encoding="utf-8"), "unreadable"),
     ],
 )
@@ -158,7 +173,7 @@ def test_public_rubric_endpoint_hides_tips_and_coach_focus():
     response = client.get("/api/rubric")
     assert response.status_code == 200
     body = response.json()
-    assert body["version"] == "rubric-2.0"
+    assert body["version"] == "rubric-2.1"
     assert [item["name"] for item in body["dimensions"]] == [
         "reasoning",
         "context",
@@ -177,7 +192,7 @@ def test_public_rubric_endpoint_hides_tips_and_coach_focus():
 def test_analysis_reports_rubric_version():
     response = analyse(profile_data())
     assert response.status_code == 200
-    assert response.json()["rubric_version"] == "rubric-2.0"
+    assert response.json()["rubric_version"] == "rubric-2.1"
 
 
 def test_analyses_stored_before_the_rubric_report_rubric_2_0(tmp_path):
@@ -198,5 +213,5 @@ def test_render_rubric_script_prints_markdown():
         text=True,
         check=True,
     ).stdout
-    assert output.startswith("# Assessment rubric rubric-2.0")
+    assert output.startswith("# Assessment rubric rubric-2.1")
     assert "| risk |" in output

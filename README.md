@@ -271,7 +271,11 @@ The assessment rubric is data (ADR-009). Each version is an immutable JSON file 
 refuses to start if the active version is missing, invalid, unregistered or modified.
 `backend/app/prompt_builder.py` generates the assessment prompt from it; `rubric-2.0`
 reproduces the former `assessment-v2.txt` prompt byte for byte (fixture in
-`backend/tests/fixtures/`). Each response carries `rubric_version`, and
+`backend/tests/fixtures/`). `rubric-2.1` is active: same levels, questions and tips, plus prompt
+anchors so that a document the task refers to but does not supply counts as missing information
+(ambiguity), not as context demand, and so that health, safety, legal, financial and
+personal-data consequences score 3 for risk and professional fields score 3 for domain. It
+comes from manual tests with LM Studio, not from an eval: run the core eval before relying on it. Each response carries `rubric_version`, and
 `GET /api/rubric` returns the dimensions, definitions and levels (never tips or
 Prompt Coach focus). To change the rubric, add a new version file, register its hash,
 point `ACTIVE` at it and run the core eval; never edit a registered file.

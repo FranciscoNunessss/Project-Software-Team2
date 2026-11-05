@@ -335,8 +335,13 @@ stored question and the `answer_id`), `delta` (text as it arrives), `error` (cod
 provider failure) and `done` (the same `{title, message, answer}` as the JSON reply).
 Closing the connection is **Stop**: the text received so far stays, with status
 `stopped`. `POST /api/chats/{id}/messages/{answer_id}/retry` answers the last question
-again after a failed or stopped answer, replacing that answer. The chat screen and the
-analysis drawer follow in later cards (E3 to E5).
+again after a failed or stopped answer, replacing that answer.
+
+In the frontend, **Chat** (`ChatScreen.tsx`) appears in the navigation when
+`/api/features` reports `chat`: the list of chats (new, open, delete), the messages, a
+message box (Enter sends, Shift+Enter adds a line) with the model picker, **Send** and,
+while an answer streams in, **Stop**. A stopped or failed answer offers **Retry**. The
+Assistant stays available until the analysis moves into the chat (E4).
 
 To try it against a real provider (uses quota; a throwaway account and database):
 

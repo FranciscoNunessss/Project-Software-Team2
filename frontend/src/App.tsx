@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { api, ApiError, PROFILE_VERSION, tierOf, fitPercent, notifyProgressChange, type Analysis, type LLMOption, type LLMOptions, type Tier, type SavedSession, type Resume } from './api'
+import { api, ApiError, getFeatures, PROFILE_VERSION, tierOf, fitPercent, notifyProgressChange, type Analysis, type LLMOption, type LLMOptions, type Tier, type SavedSession, type Resume } from './api'
 import { Account } from './Account'
 import { AnalysisChanges } from './AnalysisChanges'
 
@@ -10,8 +10,9 @@ import { ModelPicker } from './ModelPicker'
 import { TipsCard } from './TipsCard'
 import { PromptCoachTips } from './PromptCoachTips'
 import { PromptCoachBubble } from './PromptCoachBubble'
+import { ChatScreen } from './ChatScreen'
 
-type Screen = 'assistant' | 'progress' | 'profile' | 'llm'
+type Screen = 'chat' | 'assistant' | 'progress' | 'profile' | 'llm'
 type ResultState = 'empty' | 'loading' | 'result'
 
 function Icon({
@@ -91,11 +92,13 @@ function Header({
   onNavigate,
   dark,
   onToggleTheme,
+  hasChat,
 }: {
   screen: Screen
   onNavigate: (screen: Screen) => void
   dark: boolean
   onToggleTheme: () => void
+  hasChat: boolean
 }) {
   const [online, setOnline] = useState<boolean | null>(null)
   useEffect(() => {
@@ -107,11 +110,16 @@ function Header({
   return (
     <header className="topbar">
       <div className="nav-shell">
-        <button className="brand" onClick={() => onNavigate('assistant')} aria-label="AdaptAI home">
+        <button className="brand" onClick={() => onNavigate(hasChat ? 'chat' : 'assistant')} aria-label="AdaptAI home">
           <span className="brand-mark"><Icon name="spark" size={16} /></span>
           <span>AdaptAI</span>
         </button>
         <nav aria-label="Main navigation" className="main-nav">
+          {hasChat && (
+            <button className={screen === 'chat' ? 'nav-item active' : 'nav-item'} onClick={() => onNavigate('chat')}>
+              Chat
+            </button>
+          )}
           <button className={screen === 'assistant' ? 'nav-item active' : 'nav-item'} onClick={() => onNavigate('assistant')}>
             Assistant
           </button>
@@ -503,11 +511,18 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>(() => {
     try {
       const saved = window.localStorage.getItem('adaptai-screen')
-      if (saved === 'assistant' || saved === 'progress' || saved === 'profile' || saved === 'llm') return saved
+      if (saved === 'chat' || saved === 'assistant' || saved === 'progress' || saved === 'profile' || saved === 'llm') return saved
     } catch { /* Navigation remains available without browser storage. */ }
     return 'assistant'
   })
   const [resume, setResume] = useState<Resume | null>(null)
+  // The chat is optional (ADR-011): shown only when the server has the module.
+  const [hasChat, setHasChat] = useState(false)
+  useEffect(() => {
+    const controller = new AbortController()
+    getFeatures(controller.signal).then(features => setHasChat(features.chat === true)).catch(() => setHasChat(false))
+    return () => controller.abort()
+  }, [])
   const navigate = (next: Screen) => { setResume(null); setScreen(next) }
   const [dark, setDark] = useState(() => window.localStorage.getItem('adaptai-theme') === 'dark')
   useEffect(() => {
@@ -523,8 +538,9 @@ export default function App() {
   }
   return (
     <div className={dark ? 'app theme-dark' : 'app'}>
-      <Account dark={dark} onToggleTheme={toggleTheme} header={<Header screen={screen} onNavigate={navigate} dark={dark} onToggleTheme={toggleTheme} />}>
-      {screen === 'assistant' && <AssistantScreen resume={resume} onConfigureModels={() => navigate('llm')} />}
+      <Account dark={dark} onToggleTheme={toggleTheme} header={<Header screen={screen} onNavigate={navigate} dark={dark} onToggleTheme={toggleTheme} hasChat={hasChat} />}>
+      {screen === 'chat' && hasChat && <ChatScreen onConfigureModels={() => navigate('llm')} />}
+      {(screen === 'assistant' || (screen === 'chat' && !hasChat)) && <AssistantScreen resume={resume} onConfigureModels={() => navigate('llm')} />}
       {screen === 'progress' && <ProgressScreen onResume={saved => { setResume(saved); setScreen('assistant') }} />}
       {screen === 'profile' && <ProfileScreen />}
       {screen === 'llm' && <LLMConfigScreen />}

@@ -335,8 +335,25 @@ stored question and the `answer_id`), `delta` (text as it arrives), `error` (cod
 provider failure) and `done` (the same `{title, message, answer}` as the JSON reply).
 Closing the connection is **Stop**: the text received so far stays, with status
 `stopped`. `POST /api/chats/{id}/messages/{answer_id}/retry` answers the last question
-again after a failed or stopped answer, replacing that answer. The chat screen and the
-analysis drawer follow in later cards (E3 to E5).
+again after a failed or stopped answer, replacing that answer.
+
+In the frontend, when `/api/features` reports `chat`, the **Assistant** tab is the chat
+(`ChatScreen.tsx`): the list of chats (new, open, delete), the messages and a message box
+with the model picker, the Prompt Coach bubble and two buttons. **Analyse** runs the usual
+analysis on the draft without sending it and opens the analysis panel on the right
+(`AnalysisDrawer.tsx`: completeness, what changed, clarification questions, recommended
+tier, tips, profile). The panel slides in from the right; its tab, part of the panel's
+left edge, stays visible when it is closed, widens on hover to read "Show analysis" or
+"Hide analysis", and opens or closes it on click (or drag left to open, right to close). Analysing an edited draft again
+shows what changed. **Send** sends the message (Enter sends, Shift+Enter adds a line) and
+carries the analysis only if it was made from that exact text; the message then shows an
+"Analysis NN/100" chip that reopens it. While an answer streams in, Send becomes **Stop**;
+a stopped or failed answer offers **Retry**. Answers are rendered as GitHub-flavoured
+Markdown (`ChatMarkdown.tsx`, react-markdown with remark-gfm); raw HTML is dropped and unsafe
+links removed. The chat's system prompt asks every model for the same Markdown, so answers
+from different providers look alike. Without the module, or for a saved session
+that is not a chat, the earlier Assistant page is shown. The result cards are shared in
+`AnalysisResult.tsx`.
 
 To try it against a real provider (uses quota; a throwaway account and database):
 

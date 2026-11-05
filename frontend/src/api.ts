@@ -54,7 +54,7 @@ export type Analysis = {
 export const PROFILE_VERSION = 'profile-2'
 
 // Optional Prompt Coach (ADR-009, AA-019 B3). Mirrors backend CoachResponse.
-export type Features = { prompt_coach: boolean }
+export type Features = { prompt_coach: boolean; chat?: boolean }
 export type CoachMode = 'tips' | 'edits' | 'rewrite'
 export type CoachSuggestion = {
   dimension: DimensionName
@@ -158,4 +158,71 @@ export function promptCoach(
   signal?: AbortSignal,
 ): Promise<CoachResponse> {
   return api<CoachResponse>('prompt-coach', body, signal)
+}
+
+export function errorMessage(code: string | null | undefined): string {
+  if (!code) return 'Something went wrong.'
+  return errorMessages[code] ?? code.replace(/_/g, ' ')
+}
+
+// Optional chat (ADR-011). Mirrors backend/app/chat.py.
+export type ChatStatus = 'complete' | 'stopped' | 'failed'
+export type ChatMessage = {
+  id: string; role: 'user' | 'assistant'; content: string; provider: string | null; model: string | null
+  analysis_id: string | null; status: ChatStatus; error: string | null; created_at: string; completeness: number | null
+}
+export type ChatSummary = { id: string; title: string; created_at: string; updated_at?: string; message_count: number }
+export type Chat = ChatSummary & { messages: ChatMessage[] }
+export type ChatTurn = { title: string; message: ChatMessage; answer: ChatMessage }
+export type ChatTarget = { provider: 'auto'; configuration_id?: string; allow_external: boolean }
+export type ChatHandlers = {
+  onMessage?: (message: ChatMessage, answerId: string) => void
+  onDelta?: (text: string) => void
+  onError?: (code: string) => void
+}
+
+export const listChats = (signal?: AbortSignal) => api<ChatSummary[]>('chats', undefined, signal)
+export const createChat = () => api<Chat>('chats', {})
+export const getChat = (id: string, signal?: AbortSignal) => api<Chat>(`chats/${id}`, undefined, signal)
+export const renameChat = (id: string, title: string) => api<ChatSummary>(`chats/${id}`, { title }, undefined, 'PATCH')
+export async function deleteChat(id: string): Promise<void> {
+  const response = await fetch(`/api/chats/${id}`, { method: 'DELETE', credentials: 'same-origin' })
+  if (!response.ok && response.status !== 404) throw new ApiError('Could not delete the chat', response.status)
+}
+
+// Sends (or retries) and reads the Server-Sent Events as they arrive. Aborting the signal is
+// Stop: the server keeps the text received so far with status "stopped".
+export async function streamChat(path: string, body: unknown, handlers: ChatHandlers, signal: AbortSignal): Promise<ChatTurn> {
+  const response = await fetch(`/api/${path}`, {
+    method: 'POST', credentials: 'same-origin', signal,
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok || !response.body) {
+    const failure = await response.json().catch(() => ({}))
+    const detail = typeof failure.detail === 'string' ? failure.detail : undefined
+    throw new ApiError(errorMessage(detail ?? 'request_failed'), response.status, detail)
+  }
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
+  let buffer = ''
+  let done: ChatTurn | null = null
+  for (;;) {
+    const { value, done: finished } = await reader.read()
+    if (finished) break
+    buffer += value
+    let end: number
+    while ((end = buffer.indexOf('\n\n')) >= 0) {
+      const block = buffer.slice(0, end); buffer = buffer.slice(end + 2)
+      const event = /^event: (.*)$/m.exec(block)?.[1]
+      const data = /^data: (.*)$/m.exec(block)?.[1]
+      if (!event || data === undefined) continue
+      const payload = JSON.parse(data)
+      if (event === 'message') handlers.onMessage?.(payload.message, payload.answer_id)
+      else if (event === 'delta') handlers.onDelta?.(payload.text)
+      else if (event === 'error') handlers.onError?.(payload.code)
+      else if (event === 'done') done = payload
+    }
+  }
+  if (!done) throw new ApiError('The answer was interrupted.', 0)
+  return done
 }

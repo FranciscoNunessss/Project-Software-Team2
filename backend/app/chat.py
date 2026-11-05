@@ -41,7 +41,12 @@ DEMO_ANSWER = (
     "This is the demonstration model, so there is no real answer here. "
     "Add a model in LLM config to chat with it."
 )
-SYSTEM_PROMPT = "You are a helpful assistant. Answer clearly and concisely."
+# Every model is asked for the same output format, so the chat renders all of them alike.
+SYSTEM_PROMPT = (
+    "You are a helpful assistant. Answer clearly and concisely. "
+    "Format answers in Markdown (GitHub-flavoured) when structure helps: headings, lists, "
+    "tables and fenced code blocks with a language. Do not use raw HTML."
+)
 
 TABLES = (
     "CREATE TABLE IF NOT EXISTS chat_sessions ("

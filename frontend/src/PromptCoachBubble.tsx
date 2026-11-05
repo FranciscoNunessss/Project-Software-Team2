@@ -104,6 +104,9 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
   // Answers are keyed by suggestion, not by position, so ignoring one card keeps the others' text.
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [applied, setApplied] = useState(false)
+  // The text the current suggestions apply to: the task sent to the Coach, then the result of
+  // each change made from the panel. Any other edit makes the suggestions stale.
+  const resultText = useRef<string | null>(null)
   const active = useRef<AbortController | null>(null)
 
   useEffect(() => {
@@ -120,7 +123,7 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
     if (!analysis) return
     active.current?.abort()
     setBase(task.trim() ? { id: analysis.id, profile: analysis.profile, provider: analysis.provider, model: analysis.assessment_model, text: task } : null)
-    setResult(null); setView('list'); setError(''); setAnswers({}); setApplied(false); setBusy(false)
+    setResult(null); setView('list'); setError(''); setAnswers({}); setApplied(false); setBusy(false); resultText.current = null
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the analysis changes
   }, [analysis?.id])
 
@@ -163,7 +166,9 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
   // An empty field is not counted: the bubble should not nag before the user has written.
   // With the Coach off (or not installed) the bubble shows no count at all; the quick checks
   // are still listed when the user opens it.
-  const pending = enabled ? (task.trim() ? checks.length : 0) + (result ? result.suggestions.length : uncertain.length) : 0
+  // Coach suggestions count only while they still fit the text; once it changes, they do not.
+  const fresh = result !== null && resultText.current === task
+  const pending = enabled ? (task.trim() ? checks.length : 0) + (fresh ? result.suggestions.length : uncertain.length) : 0
   const local = base?.provider === 'demo'
   const destination = base ? (base.model ? `${base.provider} · ${base.model}` : base.provider) : ''
 
@@ -178,6 +183,7 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
       // The panel names the destination; the click is the consent, as with Analyse.
       const response = await promptCoach({ analysis_id: base.id, task, mode, allow_external: !local }, controller.signal)
       if (active.current !== controller) return
+      resultText.current = task
       setResult(response)
       setView(mode === 'rewrite' && response.rewrite ? 'rewrite' : 'list')
     } catch (failure) {
@@ -190,15 +196,23 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
     }
   }
 
-  const change = (value: string) => { onTaskChange(value); setApplied(true) }
+  const change = (value: string) => { resultText.current = value; onTaskChange(value); setApplied(true) }
+  const stale = () => {
+    if (resultText.current === task) return false
+    setError('The text changed since these suggestions. Ask again.')
+    return true
+  }
   const drop = (index: number) => setResult(previous => previous && { ...previous, suggestions: previous.suggestions.filter((_, at) => at !== index) })
 
   const applyEdit = (index: number) => {
     const suggestion = result?.suggestions[index]
-    if (!suggestion?.quote || suggestion.replacement === null) return
-    const at = task.indexOf(suggestion.quote)
-    if (at < 0 || task.indexOf(suggestion.quote, at + 1) >= 0) { setError('The text changed since these suggestions. Ask again.'); return }
-    change(task.slice(0, at) + suggestion.replacement + task.slice(at + suggestion.quote.length))
+    if (!suggestion?.quote || suggestion.replacement === null || stale()) return
+    // The backend compares and quotes in NFC; match in the same form so accented text still applies.
+    const text = task.normalize('NFC')
+    const quote = suggestion.quote.normalize('NFC')
+    const at = text.indexOf(quote)
+    if (at < 0 || text.indexOf(quote, at + 1) >= 0) { setError('The text changed since these suggestions. Ask again.'); return }
+    change(text.slice(0, at) + suggestion.replacement + text.slice(at + quote.length))
     drop(index)
   }
   const keyOf = (index: number) => {
@@ -237,7 +251,7 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
               <div className="coach-body"><pre className="coach-diff">{diffWords(task, result.rewrite)}</pre></div>
               <div className="coach-foot">
                 <button type="button" className="coach-btn" onClick={() => setView('list')}>Back</button>
-                <button type="button" className="coach-btn primary" onClick={() => { change(result.rewrite ?? task); setResult({ ...result, rewrite: null, suggestions: [] }); setView('list') }}>Apply rewrite</button>
+                <button type="button" className="coach-btn primary" onClick={() => { if (stale()) return; change(result.rewrite ?? task); setResult({ ...result, rewrite: null, suggestions: [] }); setView('list') }}>Apply rewrite</button>
               </div>
             </>
           ) : (

@@ -505,3 +505,73 @@ async def test_coach_sends_zero_temperature_when_accepted(monkeypatch):
     )
     assert constructions[0]["temperature"] == 0
     assert len(invocations) == 1
+
+
+def _groq_error(status, code):
+    error = RuntimeError("provider error")
+    error.status_code = status
+    error.body = {"error": {"code": code, "type": "invalid_request_error", "message": "x"}}
+    return error
+
+
+async def test_invalid_json_from_the_model_is_retried_once(monkeypatch):
+    from app import providers
+
+    monkeypatch.setattr(providers, "_TEMPERATURE_REFUSED", set())
+    calls = []
+
+    async def flaky(provider, settings, schema, prompt, max_tokens, temperature):
+        calls.append(temperature)
+        if len(calls) == 1:
+            raise _groq_error(400, "json_validate_failed")
+        return {"ok": True}, None
+
+    monkeypatch.setattr(providers, "_invoke", flaky)
+    result = await providers.structured_call(
+        "groq", _structured_settings(), Profile, "system", "Private task", "coach"
+    )
+    assert result == ({"ok": True}, None)
+    assert calls == [0, 0]  # Same request again; temperature is not blamed.
+    assert providers._TEMPERATURE_REFUSED == set()
+
+
+async def test_invalid_json_twice_is_invalid_output_not_unsupported(monkeypatch):
+    from app import providers
+
+    calls = []
+
+    async def always(provider, settings, schema, prompt, max_tokens, temperature):
+        calls.append(temperature)
+        raise _groq_error(400, "json_validate_failed")
+
+    monkeypatch.setattr(providers, "_invoke", always)
+    with pytest.raises(ProviderFailure) as failure:
+        await providers.structured_call(
+            "groq", _structured_settings(), Profile, "system", "Private task", "assessment"
+        )
+    assert failure.value.code == "invalid_provider_output"
+    assert len(calls) == 2
+    assert failure.value.__cause__ is None and "Private task" not in str(failure.value)
+
+
+async def test_other_400s_and_rate_limits_are_not_retried_without_temperature(monkeypatch):
+    from app import providers
+
+    def failing_with(status, code, calls):
+        async def failing(provider, settings, schema, prompt, max_tokens, temperature):
+            calls.append(temperature)
+            raise _groq_error(status, code)
+
+        return failing
+
+    for status, code, expected in [
+        (400, "invalid_request_error", "provider_unsupported_request"),
+        (429, "rate_limit_exceeded", "provider_rate_limit"),
+    ]:
+        calls = []
+        monkeypatch.setattr(providers, "_invoke", failing_with(status, code, calls))
+        with pytest.raises(ProviderFailure) as failure:
+            await providers.structured_call(
+                "groq", _structured_settings(), Profile, "system", "Private task", "assessment"
+            )
+        assert failure.value.code == expected and len(calls) == 1

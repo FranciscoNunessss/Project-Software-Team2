@@ -96,6 +96,18 @@ _STATUS_CODES = {
 _TEMPERATURE_REFUSED: set[tuple[str, str]] = set()
 
 
+def _invalid_generation(exc: BaseException) -> bool:
+    """Groq answers HTTP 400 ``json_validate_failed`` when the model's own JSON breaks the
+    schema. It is intermittent model output, not an unsupported request."""
+    body = getattr(exc, "body", None)
+    error = body.get("error", body) if isinstance(body, dict) else None
+    return (
+        getattr(exc, "status_code", None) == 400
+        and isinstance(error, dict)
+        and error.get("code") == "json_validate_failed"
+    )
+
+
 def provider_error_code(exc: BaseException) -> str:
     """Map any provider-side exception to the application's error code."""
     from anthropic import APITimeoutError as AnthropicTimeoutError
@@ -108,6 +120,8 @@ def provider_error_code(exc: BaseException) -> str:
     if isinstance(exc, (TimeoutError, OpenAITimeoutError, AnthropicTimeoutError)):
         return "provider_timeout"
     if isinstance(exc, (ValidationError, OutputParserException, JSONDecodeError)):
+        return "invalid_provider_output"
+    if _invalid_generation(exc):
         return "invalid_provider_output"
     return _STATUS_CODES.get(getattr(exc, "status_code", None), "provider_unavailable")
 
@@ -216,7 +230,9 @@ async def structured_call(
 
     Any HTTP 400 on a request that carried a temperature triggers exactly one retry without
     it (worst case 2x ``timeout_seconds``). If that retry succeeds, temperature is disabled
-    for that (provider, model) for the rest of the process.
+    for that (provider, model) for the rest of the process. Groq's ``json_validate_failed``
+    (the model's JSON broke the schema) is retried once as it was; a second failure is
+    ``invalid_provider_output``. At most one retry per call either way.
     """
     if provider not in {"openai", "groq", "claude", "ollama"} or role not in ROLE_PARAMETERS:
         raise ProviderFailure("unsupported_provider")
@@ -229,14 +245,20 @@ async def structured_call(
     try:
         return await _invoke(provider, settings, schema, prompt, max_tokens, temperature)
     except Exception as exc:
-        if temperature is None or getattr(exc, "status_code", None) != 400:
+        if _invalid_generation(exc):
+            # Intermittent invalid JSON from the model: the same request usually succeeds.
+            retry_temperature, refused = temperature, False
+        elif temperature is not None and getattr(exc, "status_code", None) == 400:
+            # The model rejected the request while a temperature was set: retry without it.
+            retry_temperature, refused = None, True
+        else:
             raise ProviderFailure(provider_error_code(exc)) from None
-    # The model rejected the request while a temperature was set: retry once without it.
     try:
-        result = await _invoke(provider, settings, schema, prompt, max_tokens, None)
+        result = await _invoke(provider, settings, schema, prompt, max_tokens, retry_temperature)
     except Exception as exc:
         raise ProviderFailure(provider_error_code(exc)) from None
-    _TEMPERATURE_REFUSED.add(key)
+    if refused:
+        _TEMPERATURE_REFUSED.add(key)
     return result
 
 

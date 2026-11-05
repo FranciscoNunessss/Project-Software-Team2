@@ -57,6 +57,7 @@ def create_app(
     settings: Settings | None = None,
     overrides: dict | None = None,
     prompt_coach_options: dict | None = None,
+    chat_options: dict | None = None,
 ) -> FastAPI:
     settings = settings or Settings()
     app = FastAPI(title="AdaptAI", version="0.1.0", dependencies=[Depends(check_origin)])
@@ -79,6 +80,7 @@ def create_app(
                 "/api/context",
                 "/api/llm-",
                 "/api/prompt-coach",
+                "/api/chat",
             )
         ):
             response.headers["Cache-Control"] = "no-store"
@@ -135,7 +137,10 @@ def create_app(
     @app.get("/api/features")
     def features():
         # True when the optional module is installed; each user switches it on or off.
-        return {"prompt_coach": getattr(app.state, "prompt_coach", None) is not None}
+        return {
+            "prompt_coach": getattr(app.state, "prompt_coach", None) is not None,
+            "chat": getattr(app.state, "chat", None) is not None,
+        }
 
     @app.get("/api/catalogue")
     def catalogue():
@@ -684,6 +689,23 @@ def create_app(
             external_providers=external_providers,
             providers=providers,
             **(prompt_coach_options or {}),
+        )
+
+    # Optional chat (ADR-011), mounted the same way: deleting backend/app/chat.py removes it.
+    try:
+        from app.chat import install_chat
+    except ModuleNotFoundError as missing:
+        if missing.name != "app.chat":
+            raise
+    else:
+        install_chat(
+            app,
+            store,
+            settings,
+            configurations=configurations,
+            enabled=enabled,
+            external_providers=external_providers,
+            **(chat_options or {}),
         )
 
     return app

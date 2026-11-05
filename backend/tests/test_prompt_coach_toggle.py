@@ -21,7 +21,7 @@ def signed_in(app, email="coach-toggle@example.com"):
 
 def test_features_report_the_installed_module():
     app = create_app(Settings(_env_file=None))
-    assert TestClient(app).get("/api/features").json() == {"prompt_coach": True}
+    assert TestClient(app).get("/api/features").json()["prompt_coach"] is True
     assert app.state.prompt_coach is not None
 
 
@@ -50,10 +50,11 @@ def test_prompt_coach_is_mounted_after_the_core_routes(monkeypatch):
     monkeypatch.setattr(module, "install_prompt_coach", recording)
     installed = create_app(Settings(_env_file=None))
     monkeypatch.setitem(sys.modules, "app.prompt_coach", None)  # As if the file were deleted.
+    monkeypatch.setitem(sys.modules, "app.chat", None)  # The core alone, without any module.
     core = create_app(Settings(_env_file=None))
     assert seen == [len(core.routes)]  # Every core route already exists when it is mounted.
     assert len(installed.routes) > len(core.routes)
-    assert TestClient(core).get("/api/features").json() == {"prompt_coach": False}
+    assert TestClient(core).get("/api/features").json()["prompt_coach"] is False
 
 
 def test_the_switch_is_on_by_default_and_per_user():

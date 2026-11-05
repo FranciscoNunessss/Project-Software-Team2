@@ -114,6 +114,18 @@ class FakeCoach:
         }, {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2}
 
 
+class FakeChat:
+    """Fixed answer model for the optional chat (ADR-011): echoes the last question."""
+
+    def __init__(self, provider, settings, model):
+        self.provider = provider
+
+    async def stream(self, messages):
+        question = messages[-1][1]
+        for part in ("Fake answer: ", question):
+            yield part
+
+
 def build():
     settings = Settings(
         _env_file=None,
@@ -124,6 +136,7 @@ def build():
         settings,
         overrides={"groq": FakeAssessor()},
         prompt_coach_options={"model_factory": FakeCoach},
+        chat_options={"model_factory": FakeChat},
     )
 
 

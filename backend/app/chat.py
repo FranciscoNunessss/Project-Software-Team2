@@ -210,6 +210,7 @@ async def answer_events(
 ) -> AsyncIterator[dict]:
     """Yield ``delta`` (and ``error``) events and keep the answer row in step.
 
+    A model that ends without any text is stored as ``failed`` with ``empty_answer``.
     The row is written in ``finally``: if the client goes away mid-answer the generator is
     closed and the text that arrived so far stays, with status ``stopped``.
     """
@@ -219,7 +220,13 @@ async def answer_events(
         async for text in answer.stream([("system", SYSTEM_PROMPT), *history]):
             parts.append(text)
             yield {"event": "delta", "text": text}
-        status = "complete"
+        if "".join(parts).strip():
+            status = "complete"
+        else:
+            # Some models (reasoning models in particular) sometimes end without any answer
+            # text. An empty reply is a failure the user can retry, never a "complete" answer.
+            status, error = "failed", "empty_answer"
+            yield {"event": "error", "code": error}
     except Exception as exc:  # noqa: BLE001 - every provider failure becomes a stored state.
         status, error = "failed", provider_error_code(exc)
         yield {"event": "error", "code": error}

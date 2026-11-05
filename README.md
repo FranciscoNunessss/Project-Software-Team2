@@ -362,7 +362,9 @@ The answer comes from the chosen model (`configuration_id`, or the server provid
 means Groq) with the last 20 turns or 12,000 characters of the chat. The click on Send is
 the consent for an external provider, as with Analyse. A provider failure is stored as an
 answer with `status: "failed"` and the error code (for example `provider_rate_limit`) and is
-left out of later history. The providers `openrouter` and `lmstudio` (ADR-012) work in the chat
+left out of later history. A model that ends without any text (reasoning models sometimes do)
+is stored the same way, as `failed` with `empty_answer`, so Retry is offered instead of a blank
+answer marked complete. The providers `openrouter` and `lmstudio` (ADR-012) work in the chat
 like the others; for `openrouter` the message may also carry an optional `model`, which must be
 `openrouter/free` or a text-in, text-out id of the live catalogue (422 `model_not_found` /
 `model_not_compatible`; 422 `model_override_not_supported` for any other provider). The chat

@@ -136,6 +136,7 @@ const errorMessages: Record<string, string> = {
   model_not_found: 'This model is not in the OpenRouter catalogue. Reload the models and choose again.',
   model_not_compatible: 'This model cannot be used for task assessment (it needs text input and output and structured output).',
   model_override_not_supported: 'A model can only be chosen manually for OpenRouter.',
+  empty_answer: 'The model returned no text. Select Retry, or choose another model.',
   provider_unavailable: 'The assessment provider is unavailable. Check the connection or try again later.',
   previous_analysis_requires_session: 'Re-analysis needs its saved session. Start a new task and try again.',
   previous_analysis_other_session: 'The previous analysis belongs to another session. Start a new task and try again.',

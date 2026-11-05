@@ -20,12 +20,12 @@ export function AnalysisDrawer({ analysis, task, loading, stale, fromHistory, on
       <div className="drawer-head">
         <div>
           <p className="eyebrow">Analysis</p>
-          <h2>{analysis ? (analysis.recommendation_provisional ? 'Provisional recommendation' : 'Recommendation') : 'No analysis yet'}</h2>
+          <h2>{loading ? 'Analysing…' : analysis ? (analysis.recommendation_provisional ? 'Provisional recommendation' : 'Recommendation') : 'No analysis yet'}</h2>
         </div>
         <button type="button" className="coach-x" aria-label="Close analysis" onClick={onClose}>×</button>
       </div>
       <div className="drawer-body">
-        {loading && <p className="loading-label"><span className="spinner" />Assessing complexity, risk and context…</p>}
+        {loading && <p className="drawer-loading" role="status"><span className="spinner" />Assessing complexity, risk and context…</p>}
         {!loading && !analysis && <p className="muted">Write a message and select <strong>Analyse</strong> to see how complete it is and which model tier fits it.</p>}
         {!loading && analysis && (
           <>

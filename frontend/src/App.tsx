@@ -397,7 +397,8 @@ export default function App() {
       {screen === 'progress' && <ProgressScreen onResume={saved => { setResume(saved); setLegacy(false); setScreen('assistant') }} />}
       {screen === 'profile' && <ProfileScreen />}
       {screen === 'llm' && <LLMConfigScreen />}
-      <footer><span>AdaptAI</span><p>Clearer choices. Better AI judgement.</p><button>Privacy</button><button>How it works</button></footer>
+      {/* The chat fills the window and scrolls only its conversation, so it has no footer. */}
+      {!(screen === 'assistant' && hasChat && !legacy) && <footer><span>AdaptAI</span><p>Clearer choices. Better AI judgement.</p><button>Privacy</button><button>How it works</button></footer>}
       </Account>
     </div>
   )

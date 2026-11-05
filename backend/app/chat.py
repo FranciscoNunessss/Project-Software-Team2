@@ -28,6 +28,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.accounts import AuthenticatedUser
 from app.llm_config import ModelConfigurations
+from app.openrouter import CatalogueUnavailable
 from app.providers import Settings, chat_model, provider_error_code
 from app.storage import Storage
 
@@ -74,7 +75,11 @@ TABLES = (
     " PRIMARY KEY (user_id, configuration_id))",
 )
 
-Provider = Literal["auto", "demo", "openai", "claude", "groq", "ollama"]
+Provider = Literal["auto", "demo", "openai", "claude", "groq", "openrouter", "ollama", "lmstudio"]
+# OpenRouter only (ADR-012): the exact catalogue id; it is never replaced silently.
+ModelId = Field(
+    default=None, min_length=1, max_length=200, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/@+\-]*$"
+)
 
 
 class ChatRename(BaseModel):
@@ -94,6 +99,7 @@ class MessageInput(BaseModel):
     content: str = Field(min_length=1, max_length=MAX_MESSAGE_CHARS)
     provider: Provider = "auto"
     configuration_id: str | None = Field(default=None, min_length=1, max_length=64)
+    model: str | None = ModelId
     analysis_id: str | None = Field(default=None, min_length=1, max_length=36)
     allow_external: bool = False
 
@@ -109,6 +115,7 @@ class RetryInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     provider: Provider = "auto"
     configuration_id: str | None = Field(default=None, min_length=1, max_length=64)
+    model: str | None = ModelId
     allow_external: bool = False
 
 
@@ -203,6 +210,7 @@ async def answer_events(
 ) -> AsyncIterator[dict]:
     """Yield ``delta`` (and ``error``) events and keep the answer row in step.
 
+    A model that ends without any text is stored as ``failed`` with ``empty_answer``.
     The row is written in ``finally``: if the client goes away mid-answer the generator is
     closed and the text that arrived so far stays, with status ``stopped``.
     """
@@ -212,7 +220,13 @@ async def answer_events(
         async for text in answer.stream([("system", SYSTEM_PROMPT), *history]):
             parts.append(text)
             yield {"event": "delta", "text": text}
-        status = "complete"
+        if "".join(parts).strip():
+            status = "complete"
+        else:
+            # Some models (reasoning models in particular) sometimes end without any answer
+            # text. An empty reply is a failure the user can retry, never a "complete" answer.
+            status, error = "failed", "empty_answer"
+            yield {"event": "error", "code": error}
     except Exception as exc:  # noqa: BLE001 - every provider failure becomes a stored state.
         status, error = "failed", provider_error_code(exc)
         yield {"event": "error", "code": error}
@@ -236,6 +250,7 @@ def install_chat(
     enabled: dict[str, bool],
     external_providers: set[str],
     model_factory: Callable[..., Any] | None = None,
+    openrouter_catalogue: Any | None = None,
 ) -> None:
     """Install the chat routes on ``app``.
 
@@ -313,7 +328,7 @@ def install_chat(
             db.execute("DELETE FROM sessions WHERE id=? AND user_id=?", (chat_id, user["id"]))
         return Response(status_code=204)
 
-    def resolve_model(user_id: str, body) -> tuple[str, Settings, str | None]:
+    async def resolve_model(user_id: str, body) -> tuple[str, Settings, str | None]:
         provider, provider_settings, model, configuration_id = configurations.resolve(
             user_id,
             SimpleNamespace(configuration_id=body.configuration_id, provider=body.provider),
@@ -321,8 +336,23 @@ def install_chat(
         )
         if configuration_id.startswith("server:") and not enabled.get(provider):
             raise HTTPException(409, "provider_not_configured")
+        if body.model is not None:
+            if provider != "openrouter":
+                raise HTTPException(422, "model_override_not_supported")
+            provider_settings = provider_settings.model_copy(
+                update={"openrouter_model": body.model}
+            )
+            model = body.model
         if provider in external_providers and not body.allow_external:
             raise HTTPException(403, "external_processing_requires_consent")
+        if provider == "openrouter" and openrouter_catalogue is not None:
+            try:
+                # A chat needs a text-in, text-out model, not structured output.
+                await openrouter_catalogue.check(model, structured=False)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from None
+            except CatalogueUnavailable as exc:
+                raise HTTPException(502, exc.code) from None
         return provider, provider_settings, model
 
     def generate(chat_id, answer_id, target, history) -> AsyncIterator[dict]:
@@ -377,7 +407,7 @@ def install_chat(
                 ).fetchone()
             ):
                 raise HTTPException(404, "analysis_not_found")
-        target = resolve_model(user["id"], body)
+        target = await resolve_model(user["id"], body)
 
         question_id, answer_id = str(uuid4()), str(uuid4())
         with store.connect() as db:
@@ -410,7 +440,7 @@ def install_chat(
             raise HTTPException(409, "not_the_last_answer")
         if rows[-1]["status"] == "complete":
             raise HTTPException(409, "answer_already_complete")
-        target = resolve_model(user["id"], body)
+        target = await resolve_model(user["id"], body)
         question_id = rows[-2]["id"]
         with store.connect() as db:
             db.execute(

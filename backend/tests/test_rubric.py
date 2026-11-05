@@ -32,16 +32,34 @@ def copy_rubric(tmp_path, mutate):
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
     registry = {"rubric-2.0": hashlib.sha256(path.read_bytes()).hexdigest()}
     (root / "versions.json").write_text(json.dumps(registry), encoding="utf-8")
+    (root / "ACTIVE").write_text("rubric-2.0", encoding="utf-8")
     return root
 
 
 def test_rubric_2_0_reproduces_the_original_prompt_byte_for_byte():
+
     from app.assessment import ASSESSMENT_PROMPT, RUBRIC_VERSION
 
     expected = FIXTURE.read_bytes()
     assert build_assessment_prompt(load_rubric("rubric-2.0")).encode("utf-8") == expected
     assert ASSESSMENT_PROMPT.encode("utf-8") == expected
-    assert RUBRIC_VERSION == "rubric-2.0"
+    assert RUBRIC_VERSION == "rubric-2.0"  # rubric-2.1 is registered but not active
+
+
+def test_rubric_2_1_is_registered_but_not_active_and_only_adds_anchors():
+    from app.assessment import ASSESSMENT_PROMPT
+
+    old, new = load_rubric("rubric-2.0"), load_rubric("rubric-2.1")
+    assert ASSESSMENT_PROMPT != build_assessment_prompt(new)  # not active until the AO decides
+    # The policy inputs are unchanged: levels, questions, order, tips and focus.
+    for before, after in zip(old.dimensions, new.dimensions, strict=True):
+        assert before.model_dump(exclude={"anchors"}) == after.model_dump(exclude={"anchors"})
+    assert old.modality == new.modality and old.general_tips == new.general_tips
+    anchors = {item.name: " ".join(item.anchors) for item in new.dimensions if item.anchors}
+    assert set(anchors) == {"context", "ambiguity", "domain", "risk"}
+    assert "not supplied" in anchors["context"] and "not supply" in anchors["ambiguity"]
+    assert "health" in anchors["risk"] and "medicine" in anchors["domain"]
+    assert all(not item.anchors for item in old.dimensions)
 
 
 def test_every_level_text_appears_in_its_prompt_lines():

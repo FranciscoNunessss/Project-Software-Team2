@@ -6,6 +6,7 @@ import {
 import { AnalysisDrawer } from './AnalysisDrawer'
 import { ChatMarkdown } from './ChatMarkdown'
 import { ModelPicker } from './ModelPicker'
+import { OpenRouterModelPicker } from './OpenRouterModelPicker'
 import { PromptCoachBubble } from './PromptCoachBubble'
 
 // Optional chat (ADR-011). Shown only when /api/features reports "chat".
@@ -83,7 +84,11 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
   }, [initialChatId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = options.find(item => item.id === (model === 'auto' ? autoId : model))
-  const target = { provider: 'auto' as const, configuration_id: model === 'auto' ? undefined : model, allow_external: selected?.external === true }
+  // OpenRouter only: the exact catalogue id the user picked; null keeps the configured model.
+  const [routerModel, setRouterModel] = useState<string | null>(null)
+  const usesRouter = selected?.provider === 'openrouter'
+  const routerValue = routerModel ?? selected?.model ?? ''
+  const target = { provider: 'auto' as const, configuration_id: model === 'auto' ? undefined : model, model: usesRouter ? routerValue : undefined, allow_external: selected?.external === true }
 
   const resetAnalysis = () => { setShown(null); setDraftAnalysis(null); setDrawer(false) }
   const open = async (id: string) => {
@@ -111,7 +116,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
       if (fresh) await renameChat(id, titleFrom(content)).catch(() => undefined)
       const result = await api<Analysis>('analyze', {
         task: draft, provider: 'auto', configuration_id: target.configuration_id,
-        expected_configuration_id: selected.id, expected_provider: selected.provider, expected_model: selected.model ?? undefined,
+        expected_configuration_id: selected.id, expected_provider: selected.provider, expected_model: (usesRouter ? routerValue : selected.model) ?? undefined, model: target.model,
         session_id: id, previous_analysis_id: draftAnalysis?.analysis.id, allow_external: target.allow_external,
         required_capabilities: ['text'],
       })
@@ -230,7 +235,8 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
               onChange={event => setDraft(event.target.value)} onKeyDown={onKey} rows={3} data-chat-input="" data-task-input="" disabled={busy} />
           </PromptCoachBubble>
           <div className="composer-footer">
-            <ModelPicker options={options} value={model} autoId={autoId} loading={modelsLoading} disabled={locked} onChange={value => { setModel(value); setDraftAnalysis(null) }} onConfigure={onConfigureModels} />
+            <ModelPicker options={options} value={model} autoId={autoId} loading={modelsLoading} disabled={locked} onChange={value => { setModel(value); setRouterModel(null); setDraftAnalysis(null) }} onConfigure={onConfigureModels} />
+            {usesRouter && <OpenRouterModelPicker value={routerValue} disabled={locked} onChange={value => { setRouterModel(value); setDraftAnalysis(null) }} />}
             <div className="composer-actions">
               <span>{draft.length}/{MAX_CHARS}</span>
               {draftAnalysis && draftAnalysis.text === draft && <span className="chat-recommendation">Recommended: <strong>{tierOf(draftAnalysis.analysis.recommendation)}</strong></span>}

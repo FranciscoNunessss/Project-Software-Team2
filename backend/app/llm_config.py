@@ -14,21 +14,37 @@ from app.accounts import AuthenticatedUser
 from app.providers import LangChainProvider, ProviderFailure, Settings
 from app.storage import Storage
 
-PROVIDERS = ("openai", "claude", "groq", "ollama")
-LABELS = {"openai": "OpenAI / Codex", "claude": "Claude", "groq": "Groq", "ollama": "Ollama"}
+PROVIDERS = ("openai", "claude", "groq", "openrouter", "ollama", "lmstudio")
+# Run on the backend machine: no API key, and nothing leaves it.
+LOCAL_PROVIDERS = {"ollama", "lmstudio"}
+LABELS = {
+    "openai": "OpenAI / Codex",
+    "claude": "Claude",
+    "groq": "Groq",
+    "openrouter": "OpenRouter",
+    "ollama": "Ollama",
+    "lmstudio": "LM Studio",
+}
 MODEL_FIELDS = {
     "openai": "openai_model",
     "claude": "claude_model",
     "groq": "groq_model",
+    "openrouter": "openrouter_model",
     "ollama": "ollama_model",
+    "lmstudio": "lmstudio_model",
 }
-KEY_FIELDS = {"openai": "openai_api_key", "claude": "anthropic_api_key", "groq": "groq_api_key"}
+KEY_FIELDS = {
+    "openai": "openai_api_key",
+    "claude": "anthropic_api_key",
+    "groq": "groq_api_key",
+    "openrouter": "openrouter_api_key",
+}
 
 
 class Configuration(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     label: str = Field(min_length=1, max_length=80)
-    provider: Literal["openai", "claude", "groq", "ollama"]
+    provider: Literal["openai", "claude", "groq", "openrouter", "ollama", "lmstudio"]
     model: str = Field(min_length=1, max_length=200, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/@+\-]*$")
     api_key: SecretStr | None = Field(default=None, max_length=4096)
     responses_api: bool = False
@@ -49,7 +65,7 @@ def public_config(row):
         "responses_api": bool(row["responses_api"]),
         "enabled": bool(row["enabled"]),
         "is_default": bool(row["is_default"]),
-        "external": row["provider"] != "ollama",
+        "external": row["provider"] not in LOCAL_PROVIDERS,
         "source": "personal",
     }
 
@@ -110,7 +126,7 @@ class ModelConfigurations:
             else None
         )
         supplied = body.api_key.get_secret_value() if body.api_key else ""
-        if body.provider == "ollama":
+        if body.provider in LOCAL_PROVIDERS:
             encrypted = None
         elif supplied:
             encrypted = (
@@ -120,7 +136,7 @@ class ModelConfigurations:
                 )
                 .decode()
             )
-        if body.provider != "ollama" and not encrypted:
+        if body.provider not in LOCAL_PROVIDERS and not encrypted:
             raise HTTPException(422, "api_key_required")
         if body.is_default and not body.enabled:
             raise HTTPException(422, "default_must_be_enabled")
@@ -166,7 +182,7 @@ class ModelConfigurations:
 
     def configured_settings(self, row):
         update = {MODEL_FIELDS[row["provider"]]: row["model"]}
-        if row["provider"] != "ollama":
+        if row["provider"] not in LOCAL_PROVIDERS:
             try:
                 decrypted = json.loads(self.cipher().decrypt(row["key_ciphertext"].encode()))
                 if decrypted["user_id"] != row["user_id"] or decrypted["id"] != row["id"]:
@@ -231,10 +247,10 @@ def install_routes(app: FastAPI, configurations: ModelConfigurations, enabled):
                 "model": getattr(configurations.settings, MODEL_FIELDS[key])
                 if key != "demo"
                 else None,
-                "external": key not in {"demo", "ollama"},
+                "external": key != "demo" and key not in LOCAL_PROVIDERS,
                 "source": "server",
             }
-            for key in ("groq", "openai", "claude", "ollama", "demo")
+            for key in ("groq", "openrouter", "openai", "claude", "ollama", "lmstudio", "demo")
             if enabled.get(key)
         ]
         all_options = [*personal, *server]

@@ -24,6 +24,7 @@ os.environ["ADAPTAI_CREDENTIALS_KEY_PATH"] = str(DATA / "e2e.key")
 import uvicorn  # noqa: E402
 from app.main import create_app  # noqa: E402
 from app.models import Assessment, Profile  # noqa: E402
+from app.openrouter import OpenRouterCatalogue  # noqa: E402
 from app.providers import Settings  # noqa: E402
 
 # A task is "complete" once it states its audience and what an error would cost; the fake
@@ -136,6 +137,38 @@ class FakeChat:
             yield part
 
 
+def router_entry(identifier, name, prompt, completion, **extra):
+    base = {
+        "id": identifier,
+        "name": name,
+        "description": "Synthetic OpenRouter catalogue entry for the e2e tests.",
+        "context_length": 128000,
+        "pricing": {"prompt": prompt, "completion": completion},
+        "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
+        "supported_parameters": ["response_format", "structured_outputs"],
+    }
+    return base | extra
+
+
+# A synthetic OpenRouter catalogue: no call to openrouter.ai is ever made.
+ROUTER_MODELS = [
+    router_entry("acme/swift:free", "Swift", "0", "0"),
+    router_entry("acme/gratis", "Gratis (no suffix)", "0", "0"),
+    router_entry("vendor/deluxe", "Deluxe", "0.0000025", "0.00001"),
+    router_entry(
+        "vendor/embedder",
+        "Embedder",
+        "0.0000001",
+        "0",
+        architecture={"input_modalities": ["text"], "output_modalities": ["embeddings"]},
+    ),
+]
+
+
+async def fetch_router_models():
+    return ROUTER_MODELS
+
+
 def build():
     settings = Settings(
         _env_file=None,
@@ -144,9 +177,10 @@ def build():
     )
     return create_app(
         settings,
-        overrides={"groq": FakeAssessor()},
+        overrides={"groq": FakeAssessor(), "openrouter": FakeAssessor()},
         prompt_coach_options={"model_factory": FakeCoach},
         chat_options={"model_factory": FakeChat},
+        openrouter_catalogue=OpenRouterCatalogue(fetch_router_models),
     )
 
 

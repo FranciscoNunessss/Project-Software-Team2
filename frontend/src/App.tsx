@@ -7,6 +7,7 @@ import { ProgressScreen } from './Progress'
 import { ProfileScreen } from './Profile'
 import { LLMConfigScreen } from './LLMConfig'
 import { ModelPicker } from './ModelPicker'
+import { OpenRouterModelPicker } from './OpenRouterModelPicker'
 import { TipsCard } from './TipsCard'
 import { PromptCoachTips } from './PromptCoachTips'
 import { PromptCoachBubble } from './PromptCoachBubble'
@@ -189,6 +190,8 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
   const [autoId, setAutoId] = useState<string|null>(null)
   const [modelsLoading, setModelsLoading] = useState(true)
   const [provider, setProvider] = useState('auto')
+  // OpenRouter only: the exact catalogue id chosen by the user; null keeps the configured model.
+  const [routerModel, setRouterModel] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -235,7 +238,8 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
       const result = await api<Analysis>('analyze', {
         task, provider: 'auto', configuration_id: provider === 'auto' ? undefined : provider,
         expected_configuration_id: selectedProvider?.id, expected_provider: selectedProvider?.provider,
-        expected_model: selectedProvider?.model ?? undefined,
+        expected_model: (usesRouter ? routerValue : selectedProvider?.model) ?? undefined,
+        model: usesRouter ? routerValue : undefined,
         task_context: context, session_id: sessionId || undefined,
         previous_analysis_id: sessionId && lastAnalysisId ? lastAnalysisId : undefined, allow_external: requiresConsent, required_capabilities: ['text'],
       }, controller.signal)
@@ -257,6 +261,9 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
   const candidates = analysis ? [analysis.recommendation, ...analysis.alternatives] : []
   const selectedProvider = providers.find(item => item.id === (provider === 'auto' ? autoId : provider))
   const requiresConsent = selectedProvider?.external === true
+  const usesRouter = selectedProvider?.provider === 'openrouter'
+  // The exact id sent to the backend: the one picked from the catalogue, else the configured model.
+  const routerValue = routerModel ?? selectedProvider?.model ?? ''
   const confirm = async () => {
     const selected = candidates.find(candidate => tierOf(candidate) === tier)
     if (!analysis || !selected) return
@@ -297,7 +304,8 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
         </PromptCoachBubble>
 
         <div className="composer-footer">
-          <ModelPicker options={providers} value={provider} autoId={autoId} loading={modelsLoading} disabled={state === 'loading' || saving || historyBusy} onChange={value => {setProvider(value);setAnalysis(undefined);setState('empty');setSaved(false)}} onConfigure={onConfigureModels} />
+          <ModelPicker options={providers} value={provider} autoId={autoId} loading={modelsLoading} disabled={state === 'loading' || saving || historyBusy} onChange={value => {setProvider(value);setRouterModel(null);setAnalysis(undefined);setState('empty');setSaved(false)}} onConfigure={onConfigureModels} />
+          {usesRouter && <OpenRouterModelPicker value={routerValue} disabled={state === 'loading' || saving || historyBusy} onChange={value => {setRouterModel(value);setAnalysis(undefined);setState('empty');setSaved(false)}} />}
           <div className="composer-actions">
             <Button dataAnalyseButton onClick={analyse} disabled={state === 'loading' || saving || historyBusy || modelsLoading || !selectedProvider || !task.trim()}>
               {state === 'loading' ? 'Analysing…' : 'Analyse'} <Icon name="arrow" size={17} />

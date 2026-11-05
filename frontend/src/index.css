@@ -660,6 +660,21 @@ input[role="switch"]:disabled { opacity: .5; cursor: not-allowed; }
   .model-picker-current { max-width: min(240px,calc(100vw - 255px)); font-size: 13px; }
   .model-picker-brand { display: none; }
 }
+/* OpenRouter model picker */
+.openrouter-panel { width: min(460px,calc(100vw - 24px)); }
+.openrouter-search { width: 100%; box-sizing: border-box; margin: 4px 0 8px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--ink); font-size: 13px; }
+.openrouter-filters { display: flex; gap: 6px; margin: 0 2px 6px; }
+.openrouter-filters button { padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--ink); font-size: 12px; cursor: pointer; }
+.openrouter-filters button[aria-pressed="true"] { background: var(--blue-soft); font-weight: 600; }
+.openrouter-note { margin: 4px 10px 8px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.openrouter-status { margin: 12px 10px; font-size: 13px; line-height: 1.5; }
+.openrouter-status button { margin-top: 8px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--ink); cursor: pointer; }
+.openrouter-badge { padding: 2px 6px; border-radius: 5px; font-size: 10px; font-weight: 700; background: #eaf2ed; color: #34705b; }
+.openrouter-badge.is-paid { background: #f5ede5; color: #956b4e; }
+.theme-dark .openrouter-badge { background: #20372b; color: #a9d5bf; }
+.theme-dark .openrouter-badge.is-paid { background: #382c24; color: #e5ba9b; }
+.provider-openrouter .provider-mark { background: #e9eef8; color: #3b5a9a; }
+.theme-dark .provider-openrouter .provider-mark { background: #212c43; color: #a8bfee; }
 .choice-confirmation { padding: 22px; border: 1px solid var(--line); border-radius: 12px; margin-top: 20px; background: var(--surface); }
 .choice-confirmation p { font-size: 14px; color: var(--muted); line-height: 1.7; }
 .theme-dark .choice-saved { color: #a9d5bf; }

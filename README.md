@@ -117,8 +117,63 @@ hard-coded in the workflow.
 | `openai` | `ADAPTAI_OPENAI_MODEL` | `ADAPTAI_OPENAI_API_KEY` |
 | `claude` | `ADAPTAI_CLAUDE_MODEL` | `ADAPTAI_ANTHROPIC_API_KEY` |
 | `groq` | `ADAPTAI_GROQ_MODEL` | `ADAPTAI_GROQ_API_KEY` |
+| `openrouter` | Personal only: the user's own model in LLM config | The user's own key (never a project key) |
 | `ollama` | `ADAPTAI_OLLAMA_MODEL` | Local runtime |
+| `lmstudio` | `ADAPTAI_LMSTUDIO_MODEL` (and `ADAPTAI_LMSTUDIO_BASE_URL`, default `http://127.0.0.1:1234/v1`) | Local runtime, no key |
 
+### OpenRouter (experimental)
+
+OpenRouter is **never a project model and never a default**: Auto is always the project Groq. A
+user sets OpenRouter up themselves in LLM config, with their own API key and a model, like any
+other personal provider, and only then does it appear in the model picker. There is no
+`ADAPTAI_OPENROUTER_*` setting and no Auto router (`openrouter/free` is not offered or accepted).
+The cost of a paid model is therefore always on the user's own key.
+
+> **Experimental.** Automated tests use a fake catalogue and mock HTTP. Live checks on
+> 5 November 2026 (free-tier key, no credit): the public catalogue loads. Assessments with the
+> full profile schema through the free router completed about half of the time; the rest ended
+> with `provider_output_truncated`: the router picks reasoning models that spend the whole
+> 2,048-token output budget thinking, so the JSON is cut off. Explicit free models were worse:
+> with `require_parameters` some answer 404 ("No endpoints found that can handle the requested
+> parameters"), others are rate-limited upstream (429) or truncate as well. The chat (plain
+> text) is not affected. Treat OpenRouter assessments as unreliable until a model that works is
+> chosen or the output budget is revisited.
+
+`openrouter` uses LangChain's OpenAI-compatible client against `https://openrouter.ai/api/v1`
+with strict JSON schema output. The user's key is stored encrypted like the other personal keys;
+it is sent only to `/chat/completions`, never returned to the frontend, to
+`GET /api/openrouter/models` or in an error code. The assessment (not the chat) sends
+`provider.require_parameters: true`, so only endpoints that support the strict JSON schema are
+used instead of the schema being silently ignored; the chat is plain text and never sends it, so
+a model without structured output still answers there. When no endpoint of the chosen model
+supports the schema OpenRouter answers 404 "No endpoints found"; the app maps it to
+`model_not_compatible` (the analysis only).
+
+`GET /api/openrouter/models` (signed in; `?refresh=true` bypasses the 5-minute cache) returns
+the live `GET /models` catalogue of OpenRouter, normalised: free and paid models, price per
+1M tokens (converted from the per-token `pricing`), context length, modalities and supported
+parameters. A model is `free` only when its prompt and completion price are both zero. There is
+no built-in model list and no stale fallback: if OpenRouter cannot be reached the endpoint
+answers 502 `openrouter_catalogue_unavailable`. A model is `selectable` only when it takes text
+and returns text and supports structured output, which the assessment needs; embeddings, image
+and audio models stay listed with the reason.
+
+`POST /api/analyze` accepts an optional `model` for OpenRouter only. It must be a selectable id of
+the catalogue (422 `model_not_found` / `model_not_compatible`) and is sent to OpenRouter exactly
+as given; the model of the personal configuration is checked the same way. A paid model on a key
+with no credit answers 502 `provider_insufficient_credits` (HTTP 402 upstream). Selecting the
+project's `server:openrouter` is refused (409 `provider_not_configured`).
+
+### LM Studio
+
+`lmstudio` talks to LM Studio's local OpenAI-compatible server (Developer tab, Start Server;
+default `http://127.0.0.1:1234/v1`) through the same client, with JSON schema output. It is
+enabled when `ADAPTAI_LMSTUDIO_MODEL` names the loaded model. It needs no key, is local (not
+an external destination, so no external-processing consent) and its address is server
+configuration that no request can change. A personal LM Studio model can be added in LLM
+config like an Ollama one. Not run against a real LM Studio yet; the tests use a fake client.
+
+Both providers also work in the optional chat (below).
 Set the model IDs available to your provider account in `.env`, with the appropriate
 API keys, then restart the backend. OpenAI and Claude remain disabled until both the
 model and key are present. Neither integration reads Codex CLI/Claude Code login
@@ -237,7 +292,15 @@ The assessment rubric is data (ADR-009). Each version is an immutable JSON file 
 refuses to start if the active version is missing, invalid, unregistered or modified.
 `backend/app/prompt_builder.py` generates the assessment prompt from it; `rubric-2.0`
 reproduces the former `assessment-v2.txt` prompt byte for byte (fixture in
-`backend/tests/fixtures/`). Each response carries `rubric_version`, and
+`backend/tests/fixtures/`). `rubric-2.0` is the active version. `rubric-2.1` is registered but
+**not active**: same levels, questions and tips, plus prompt anchors so that a document the task
+refers to but does not supply counts as missing information (ambiguity), not as context demand,
+and so that health, safety, legal, financial and personal-data consequences score 3 for risk and
+professional fields score 3 for domain. It comes from manual tests with two models, not from an
+eval, and switching changes every analysis (and the learning progress, which compares analyses
+made with different rubrics). The Architecture Owner decides, after comparing 2.0 and 2.1 on the
+same model with 10 to 20 tasks; to activate it, point `ACTIVE` at it and revert the version
+assertions in the tests. Each response carries `rubric_version`, and
 `GET /api/rubric` returns the dimensions, definitions and levels (never tips or
 Prompt Coach focus). To change the rubric, add a new version file, register its hash,
 point `ACTIVE` at it and run the core eval; never edit a registered file.
@@ -319,7 +382,7 @@ chat id as `session_id`, then send it with the `analysis_id` to link the two.
 |---|---|---|
 | GET/POST | `/api/chats` | List or create the user's chats |
 | GET/PATCH/DELETE | `/api/chats/{id}` | Messages (with each analysis' completeness), rename, delete |
-| POST | `/api/chats/{id}/messages` | Send `{content, provider, configuration_id?, analysis_id?, allow_external}` and get `{title, message, answer}`, or a stream (below) |
+| POST | `/api/chats/{id}/messages` | Send `{content, provider, configuration_id?, model?, analysis_id?, allow_external}` and get `{title, message, answer}`, or a stream (below) |
 | POST | `/api/chats/{id}/messages/{answer_id}/retry` | Answer the last question again (`{provider, configuration_id?, allow_external}`) |
 | GET/PUT | `/api/chat/settings` | `{auto_analyse}`, off by default |
 | GET/PUT | `/api/chat/model-tiers` | Map a model configuration to a catalogue tier (`tier: null` clears it) |
@@ -328,7 +391,14 @@ The answer comes from the chosen model (`configuration_id`, or the server provid
 means Groq) with the last 20 turns or 12,000 characters of the chat. The click on Send is
 the consent for an external provider, as with Analyse. A provider failure is stored as an
 answer with `status: "failed"` and the error code (for example `provider_rate_limit`) and is
-left out of later history. The demonstration provider answers with a fixed note.
+left out of later history. A model that ends without any text (reasoning models sometimes do)
+is stored the same way, as `failed` with `empty_answer`, so Retry is offered instead of a blank
+answer marked complete. The providers `openrouter` and `lmstudio` (ADR-012) work in the chat
+like the others; for `openrouter` (always the user's own configuration) the message may also carry an optional
+`model`, which must be a text-in, text-out id of the live catalogue (422 `model_not_found` /
+`model_not_compatible`; 422 `model_override_not_supported` for any other provider). The chat
+does not need structured output, so it accepts catalogue models the assessment cannot use. The
+demonstration provider answers with a fixed note.
 
 With `Accept: text/event-stream` the send answers as Server-Sent Events: `message` (the
 stored question and the `answer_id`), `delta` (text as it arrives), `error` (code, on a
@@ -339,7 +409,9 @@ again after a failed or stopped answer, replacing that answer.
 
 In the frontend, when `/api/features` reports `chat`, the **Assistant** tab is the chat
 (`ChatScreen.tsx`): the list of chats (new, open, delete), the messages and a message box
-with the model picker, the Prompt Coach bubble and two buttons. **Analyse** runs the usual
+with the model picker (and, when OpenRouter is chosen, its second picker of live catalogue
+models, ADR-012; the chosen id is sent as `model` with Analyse, Send and Retry), the Prompt
+Coach bubble and two buttons. **Analyse** runs the usual
 analysis on the draft without sending it and opens the analysis panel on the right
 (`AnalysisDrawer.tsx`: completeness, what changed, clarification questions, recommended
 tier, tips, profile). The panel slides in from the right; its tab, part of the panel's

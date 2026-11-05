@@ -309,8 +309,8 @@ To remove the Prompt Coach:
 
 ## Chat (optional, backend only so far)
 
-The chat is an optional module (ADR-011, pending client approval) built like the Prompt
-Coach: `create_app` imports `backend/app/chat.py` last, inside its own `try`, and carries
+The chat is part of the product (ADR-011) and is built as a removable module, like the
+Prompt Coach: `create_app` imports `backend/app/chat.py` last, inside its own `try`, and carries
 on without it. `GET /api/features` reports `{"chat": true|false}`. A chat is a session
 marked in `chat_sessions`; analyse a draft with the usual `POST /api/analyze`, passing the
 chat id as `session_id`, then send it with the `analysis_id` to link the two.

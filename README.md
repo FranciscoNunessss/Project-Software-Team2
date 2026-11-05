@@ -142,9 +142,12 @@ The cost of a paid model is therefore always on the user's own key.
 `openrouter` uses LangChain's OpenAI-compatible client against `https://openrouter.ai/api/v1`
 with strict JSON schema output. The user's key is stored encrypted like the other personal keys;
 it is sent only to `/chat/completions`, never returned to the frontend, to
-`GET /api/openrouter/models` or in an error code. Requests carry
+`GET /api/openrouter/models` or in an error code. The assessment (not the chat) sends
 `provider.require_parameters: true`, so only endpoints that support the strict JSON schema are
-used (verified live with small schemas).
+used instead of the schema being silently ignored; the chat is plain text and never sends it, so
+a model without structured output still answers there. When no endpoint of the chosen model
+supports the schema OpenRouter answers 404 "No endpoints found"; the app maps it to
+`model_not_compatible` (the analysis only).
 
 `GET /api/openrouter/models` (signed in; `?refresh=true` bypasses the 5-minute cache) returns
 the live `GET /models` catalogue of OpenRouter, normalised: free and paid models, price per

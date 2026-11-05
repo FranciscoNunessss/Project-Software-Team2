@@ -436,3 +436,27 @@ def test_the_key_never_appears_in_settings_repr_or_openrouter_responses(recorder
         analyse(client).text,
     ]
     assert all(SECRET not in text for text in texts)
+
+
+def test_require_parameters_is_sent_only_for_the_assessment_never_the_chat(recorder):
+    from app.providers import chat_model
+
+    settings = Settings(
+        _env_file=None, openrouter_api_key=SECRET, openrouter_model="acme/chat-only"
+    )
+    chat_model("openrouter", settings, 1024)
+    assert "extra_body" not in recorder.built[-1]  # a model without structured output can chat
+    app, _ = make_app()
+    assert analyse(signed_in(app)).status_code == 200
+    assert recorder.built[-1]["extra_body"] == {"provider": {"require_parameters": True}}
+
+
+def test_no_endpoint_for_the_strict_schema_becomes_model_not_compatible(recorder):
+    error = RuntimeError("No endpoints found that can handle the requested parameters")
+    error.status_code = 404
+    recorder.error = error
+    app, _ = make_app()
+    response = analyse(signed_in(app))
+    assert response.status_code == 502
+    assert response.json()["detail"] == "model_not_compatible"
+    assert "No endpoints" not in response.text  # no upstream message is returned

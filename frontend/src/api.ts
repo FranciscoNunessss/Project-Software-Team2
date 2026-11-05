@@ -134,7 +134,7 @@ const errorMessages: Record<string, string> = {
   openrouter_catalogue_unavailable: 'The OpenRouter model catalogue could not be loaded. Check the connection and try again.',
   openrouter_catalogue_invalid: 'OpenRouter returned a catalogue the app could not read. Try again later.',
   model_not_found: 'This model is not in the OpenRouter catalogue. Reload the models and choose again.',
-  model_not_compatible: 'This model cannot be used for task assessment (it needs text input and output and structured output).',
+  model_not_compatible: 'This model cannot be used for task assessment: no provider offers it with structured output (JSON schema). Choose another model; it may still work in the chat.',
   model_override_not_supported: 'A model can only be chosen manually for OpenRouter.',
   empty_answer: 'The model returned no text. Select Retry, or choose another model.',
   provider_unavailable: 'The assessment provider is unavailable. Check the connection or try again later.',

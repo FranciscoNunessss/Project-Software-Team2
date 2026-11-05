@@ -130,6 +130,9 @@ def provider_error_code(exc: BaseException) -> str:
         return exc.code
     if isinstance(exc, (TimeoutError, OpenAITimeoutError, AnthropicTimeoutError)):
         return "provider_timeout"
+    if getattr(exc, "status_code", None) == 404 and "No endpoints found" in str(exc):
+        # OpenRouter: no endpoint of the chosen model supports the strict JSON schema.
+        return "model_not_compatible"
     if isinstance(exc, LengthFinishReasonError):
         # The model spent its whole output budget (typically reasoning) before the JSON ended.
         return "provider_output_truncated"
@@ -151,7 +154,15 @@ def _model_id(provider: str, settings: Settings) -> str:
     }[provider]
 
 
-def _build_model(provider: str, settings: Settings, max_tokens: int, temperature: float | None):
+def _build_model(
+    provider: str,
+    settings: Settings,
+    max_tokens: int,
+    temperature: float | None,
+    *,
+    structured: bool = False,
+):
+    """``structured`` is true only for the assessment calls (strict JSON schema), never the chat."""
     use_responses = provider == "openai" and settings.openai_use_responses_api
     sampling = {} if temperature is None else {"temperature": temperature}
     if provider in {"openai", "groq", "openrouter"}:
@@ -172,10 +183,12 @@ def _build_model(provider: str, settings: Settings, max_tokens: int, temperature
             use_responses_api=use_responses,
             **({"store": False, "reasoning_effort": "low"} if use_responses else {}),
             **(
-                # The free router may otherwise pick a model that cannot honour the strict JSON
-                # schema; require_parameters keeps it to endpoints that support the request.
+                # The assessment needs the strict JSON schema: require_parameters keeps OpenRouter
+                # to endpoints that support it instead of silently ignoring the schema. The chat
+                # is plain text and never sends it, so a model that cannot do structured output
+                # still answers there.
                 {"extra_body": {"provider": {"require_parameters": True}}}
-                if provider == "openrouter"
+                if provider == "openrouter" and structured
                 else {}
             ),
             **sampling,
@@ -230,7 +243,7 @@ async def _invoke(
     from langsmith import tracing_context
 
     use_responses = provider == "openai" and settings.openai_use_responses_api
-    model = _build_model(provider, settings, max_tokens, temperature)
+    model = _build_model(provider, settings, max_tokens, temperature, structured=True)
     structured_options = {"include_raw": True}
     if provider in {"groq", "openrouter"} or use_responses:
         structured_options.update(method="json_schema", strict=True)

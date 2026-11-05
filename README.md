@@ -117,7 +117,30 @@ hard-coded in the workflow.
 | `openai` | `ADAPTAI_OPENAI_MODEL` | `ADAPTAI_OPENAI_API_KEY` |
 | `claude` | `ADAPTAI_CLAUDE_MODEL` | `ADAPTAI_ANTHROPIC_API_KEY` |
 | `groq` | `ADAPTAI_GROQ_MODEL` | `ADAPTAI_GROQ_API_KEY` |
+| `openrouter` | `ADAPTAI_OPENROUTER_MODEL` (default `openrouter/free`) | `ADAPTAI_OPENROUTER_API_KEY` |
 | `ollama` | `ADAPTAI_OLLAMA_MODEL` | Local runtime |
+
+### OpenRouter
+
+`openrouter` uses LangChain's OpenAI-compatible client against `https://openrouter.ai/api/v1`
+with strict JSON schema output. It is enabled when `ADAPTAI_OPENROUTER_API_KEY` is set. The key
+stays on the backend: it is sent only to `/chat/completions`, never to the frontend, to
+`GET /api/openrouter/models` or into an error code.
+
+`GET /api/openrouter/models` (signed in; `?refresh=true` bypasses the 5-minute cache) returns
+the live `GET /models` catalogue of OpenRouter, normalised: free and paid models, price per
+1M tokens (converted from the per-token `pricing`), context length, modalities and supported
+parameters. A model is `free` only when its prompt and completion price are both zero. There is
+no built-in model list and no stale fallback: if OpenRouter cannot be reached the endpoint
+answers 502 `openrouter_catalogue_unavailable`. A model is `selectable` only when it takes text
+and returns text and supports structured output, which the assessment needs; embeddings, image
+and audio models stay listed with the reason. The Auto option is `openrouter/free`.
+
+`POST /api/analyze` accepts an optional `model` for OpenRouter only. It must be `openrouter/free`
+or a selectable id of the catalogue (422 `model_not_found` / `model_not_compatible`) and is sent
+to OpenRouter exactly as given. A paid model on a key with no credit answers 502
+`provider_insufficient_credits` (HTTP 402 upstream). Automated tests use a fake catalogue and
+mock HTTP; no live OpenRouter call has been made.
 
 Set the model IDs available to your provider account in `.env`, with the appropriate
 API keys, then restart the backend. OpenAI and Claude remain disabled until both the

@@ -297,3 +297,30 @@ def test_project_groq_failure_never_falls_back_to_personal_models(monkeypatch):
     )
     assert response.status_code == 502 and response.json()["detail"] == "provider_timeout"
     assert calls == [("groq", "project-model")]
+
+
+def test_lmstudio_is_local_keyless_and_registered():
+    app = create_app(Settings(_env_file=None, lmstudio_model="local/loaded-model"))
+    client = signed_in(app)
+    server = {
+        item["provider"]: item
+        for item in client.get("/api/llm-options").json()["options"]
+        if item["source"] == "server"
+    }
+    assert server["lmstudio"]["model"] == "local/loaded-model"
+    assert server["lmstudio"]["external"] is False  # nothing leaves the machine
+    local = client.post(
+        "/api/llm-configs",
+        json={"label": "LM Studio", "provider": "lmstudio", "model": "qwen/qwen3-8b"},
+    )
+    assert local.status_code == 201
+    assert local.json()["has_key"] is False and local.json()["external"] is False
+    # A key sent for a local provider is ignored, never stored.
+    keyed = client.post(
+        "/api/llm-configs",
+        json={"label": "L2", "provider": "lmstudio", "model": "m", "api_key": SECRET},
+    )
+    assert keyed.json()["has_key"] is False and SECRET not in keyed.text
+    # No LM Studio model configured on the server -> not offered as a project model.
+    bare = signed_in(create_app(Settings(_env_file=None)), "carol@example.com")
+    assert "lmstudio" not in {i["provider"] for i in bare.get("/api/llm-options").json()["options"]}

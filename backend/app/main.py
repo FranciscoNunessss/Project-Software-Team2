@@ -15,6 +15,7 @@ from app.assessment import POLICY_VERSION, PROFILE_VERSION, RUBRIC_VERSION, expl
 from app.coaching import install_coaching
 from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
+from app.openrouter import CatalogueUnavailable, OpenRouterCatalogue, fetch_models
 from app.prompt_builder import active_rubric, public_rubric
 from app.providers import DemonstrationProvider, LangChainProvider, ProviderFailure, Settings
 from app.storage import Storage, history_result, stored_result
@@ -58,6 +59,7 @@ def create_app(
     overrides: dict | None = None,
     prompt_coach_options: dict | None = None,
     chat_options: dict | None = None,
+    openrouter_catalogue: OpenRouterCatalogue | None = None,
 ) -> FastAPI:
     settings = settings or Settings()
     app = FastAPI(title="AdaptAI", version="0.1.0", dependencies=[Depends(check_origin)])
@@ -79,6 +81,7 @@ def create_app(
                 "/api/progress",
                 "/api/context",
                 "/api/llm-",
+                "/api/openrouter",
                 "/api/prompt-coach",
                 "/api/chat",
             )
@@ -92,7 +95,11 @@ def create_app(
         "openai": bool(settings.openai_model and settings.openai_api_key.get_secret_value()),
         "claude": bool(settings.claude_model and settings.anthropic_api_key.get_secret_value()),
         "groq": bool(settings.groq_model and settings.groq_api_key.get_secret_value()),
+        "openrouter": bool(
+            settings.openrouter_model and settings.openrouter_api_key.get_secret_value()
+        ),
         "ollama": bool(settings.ollama_model),
+        "lmstudio": bool(settings.lmstudio_model),
     }
     enabled.update({key: True for key in (overrides or {})})
     configurations = ModelConfigurations(store, settings)
@@ -102,16 +109,24 @@ def create_app(
         "openai": "OpenAI",
         "claude": "Claude · Anthropic",
         "groq": "Groq",
+        "openrouter": "OpenRouter",
         "ollama": "Ollama · local",
+        "lmstudio": "LM Studio · local",
     }
     models = {
         "demo": None,
         "openai": settings.openai_model,
         "claude": settings.claude_model,
         "groq": settings.groq_model,
+        "openrouter": settings.openrouter_model,
         "ollama": settings.ollama_model,
+        "lmstudio": settings.lmstudio_model,
     }
-    external_providers = {"openai", "claude", "groq"}
+    external_providers = {"openai", "claude", "groq", "openrouter"}
+    router_models = openrouter_catalogue or OpenRouterCatalogue(
+        lambda: fetch_models(settings.timeout_seconds)
+    )
+    app.state.openrouter_catalogue = router_models
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, _exc: RequestValidationError):
@@ -133,6 +148,20 @@ def create_app(
             }
             for key, value in enabled.items()
         ]
+
+    @app.get("/api/openrouter/models")
+    async def openrouter_models(user: AuthenticatedUser, refresh: bool = False):
+        """The live OpenRouter catalogue, normalised. Public upstream: no API key is used."""
+        try:
+            items, fetched_at = await router_models.models(refresh)
+        except CatalogueUnavailable as exc:
+            raise HTTPException(502, exc.code) from None
+        return {
+            "auto": {"id": "openrouter/free", "label": "Auto — Free model"},
+            "configured": bool(enabled.get("openrouter")),
+            "fetched_at": fetched_at,
+            "models": items,
+        }
 
     @app.get("/api/features")
     def features():
@@ -485,6 +514,12 @@ def create_app(
         actual_provider, actual_settings, actual_model, configuration_id = configurations.resolve(
             user["id"], body, enabled
         )
+        if body.model is not None:
+            if actual_provider != "openrouter":
+                raise HTTPException(422, "model_override_not_supported")
+            # The exact id picked in the UI is used as is; it is never replaced silently.
+            actual_settings = actual_settings.model_copy(update={"openrouter_model": body.model})
+            actual_model = body.model
         if (
             (body.expected_configuration_id and body.expected_configuration_id != configuration_id)
             or (body.expected_provider and body.expected_provider != actual_provider)
@@ -495,6 +530,13 @@ def create_app(
             raise HTTPException(409, "provider_not_configured")
         if actual_provider in external_providers and not body.allow_external:
             raise HTTPException(403, "external_processing_requires_consent")
+        if actual_provider == "openrouter":
+            try:
+                await router_models.check(actual_model)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from None
+            except CatalogueUnavailable as exc:
+                raise HTTPException(502, exc.code) from None
         provider = providers.get(actual_provider) or LangChainProvider(
             actual_provider, actual_settings
         )

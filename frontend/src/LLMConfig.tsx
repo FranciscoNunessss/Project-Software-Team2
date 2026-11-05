@@ -5,9 +5,11 @@ type ProviderId = LLMConfiguration['provider']
 type ModelForm = {label:string; provider:ProviderId; model:string; api_key:string; responses_api:boolean; enabled:boolean; is_default:boolean}
 const providers: {id:ProviderId;name:string;mark:string;description:string;endpoint:string}[] = [
   {id:'groq',name:'Groq',mark:'G',description:'The project default, managed centrally. No personal credentials needed.',endpoint:'https://api.groq.com/openai/v1'},
+  {id:'openrouter',name:'OpenRouter',mark:'R',description:'One API key for hundreds of free and paid models.',endpoint:'https://openrouter.ai/api/v1'},
   {id:'claude',name:'Claude',mark:'C',description:'Connect an Anthropic model with your own account.',endpoint:'https://api.anthropic.com'},
   {id:'openai',name:'OpenAI / Codex',mark:'O',description:'Use an OpenAI model available to your API account.',endpoint:'https://api.openai.com'},
   {id:'ollama',name:'Ollama',mark:'L',description:'Use a model installed on the backend machine.',endpoint:'http://127.0.0.1:11434'},
+  {id:'lmstudio',name:'LM Studio',mark:'S',description:'Use a model served by LM Studio on the backend machine.',endpoint:'http://127.0.0.1:1234/v1'},
 ]
 const emptyForm = (provider:ProviderId):ModelForm => ({label:`My ${providers.find(item=>item.id===provider)?.name}`,provider,model:'',api_key:'',responses_api:false,enabled:true,is_default:false})
 
@@ -87,10 +89,10 @@ export function LLMConfigScreen() {
           {form&&<form className="llm-form" onSubmit={submit}><h3>{editing?'Edit model':'Connect your model'}</h3>
             <label htmlFor="llm-label">Display name</label><input id="llm-label" value={form.label} required maxLength={80} disabled={busy} onChange={event=>setForm({...form,label:event.target.value})} />
             <label htmlFor="llm-model">Model ID</label><input id="llm-model" value={form.model} required maxLength={200} disabled={busy} onChange={event=>setForm({...form,model:event.target.value})} placeholder="Exact model ID available to your account" />
-            {selected!=='ollama'&&<><label htmlFor="llm-key">{editing?'Replace API key (optional)':'API key'}</label><input id="llm-key" type="password" autoComplete="new-password" value={form.api_key} required={!editing} maxLength={4096} disabled={busy} onChange={event=>setForm({...form,api_key:event.target.value})} placeholder={editing?'Leave blank to keep the saved key':'Paste your provider API key'} /></>}
+            {selected!=='ollama'&&selected!=='lmstudio'&&<><label htmlFor="llm-key">{editing?'Replace API key (optional)':'API key'}</label><input id="llm-key" type="password" autoComplete="new-password" value={form.api_key} required={!editing} maxLength={4096} disabled={busy} onChange={event=>setForm({...form,api_key:event.target.value})} placeholder={editing?'Leave blank to keep the saved key':'Paste your provider API key'} /></>}
             {selected==='openai'&&<label className="consent"><input type="checkbox" checked={form.responses_api} disabled={busy} onChange={event=>setForm({...form,responses_api:event.target.checked})} />Use Responses API (for compatible models, including Codex)</label>}
             <label className="consent"><input type="checkbox" checked={form.enabled} disabled={busy} onChange={event=>setForm({...form,enabled:event.target.checked,is_default:false})} />Enable this model in Assistant</label>
-            <p className="muted">{selected==='ollama'?'Ollama must run on the backend machine. No API key is required.':'Keys are stored encrypted and are never returned to this form.'} Saving does not call a provider.</p>
+            <p className="muted">{selected==='ollama'?'Ollama must run on the backend machine. No API key is required.':selected==='lmstudio'?'LM Studio must run its local server on the backend machine (default port 1234) with the model loaded. No API key is required.':'Keys are stored encrypted and are never returned to this form.'} Saving does not call a provider.</p>
             <div className="history-actions"><button className="button button-primary" disabled={busy}>{busy?'Saving…':'Save model'}</button><button type="button" className="button button-secondary" disabled={busy} onClick={()=>{setForm(null);setEditing(undefined)}}>Cancel</button></div>
           </form>}
           <p className="provider-dialog-note">Test connection sends a synthetic task and may consume provider quota. Endpoint: {activeProvider.endpoint}.</p>

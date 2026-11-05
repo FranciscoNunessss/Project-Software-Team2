@@ -6,10 +6,18 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 class AnalysisRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     task: str = Field(min_length=1, max_length=8000)
-    provider: Literal["auto", "demo", "openai", "claude", "groq", "ollama"] = "demo"
+    provider: Literal[
+        "auto", "demo", "openai", "claude", "groq", "openrouter", "ollama", "lmstudio"
+    ] = "demo"
     configuration_id: str | None = Field(default=None, min_length=1, max_length=64)
     expected_configuration_id: str | None = Field(default=None, max_length=64)
-    expected_provider: Literal["demo", "openai", "claude", "groq", "ollama"] | None = None
+    expected_provider: (
+        Literal["demo", "openai", "claude", "groq", "openrouter", "ollama", "lmstudio"] | None
+    ) = None
+    # OpenRouter only: the exact catalogue id picked in the UI. Checked against the catalogue.
+    model: str | None = Field(
+        default=None, min_length=1, max_length=200, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/@+\-]*$"
+    )
     expected_model: str | None = Field(default=None, max_length=200)
     allow_external: bool = False
     use_personal_context: bool | None = None

@@ -174,7 +174,7 @@ the stored scores and confidences of the first analysis of each session: complet
 early and recent means, a verdict and, per dimension, the share of first analyses where it was
 determined. No task text, evidence or new table is read or stored.
 
-5 November 2026: optional chat (ADR-011, pending client approval)
+5 November 2026: chat (ADR-011)
 
 With the chat module installed, the text of chat messages and of the model's answers is stored in
 `chat_messages` while the chat exists. This is a deliberate exception to the rule that task text is

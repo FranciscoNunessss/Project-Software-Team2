@@ -119,6 +119,7 @@ hard-coded in the workflow.
 | `groq` | `ADAPTAI_GROQ_MODEL` | `ADAPTAI_GROQ_API_KEY` |
 | `openrouter` | `ADAPTAI_OPENROUTER_MODEL` (default `openrouter/free`) | `ADAPTAI_OPENROUTER_API_KEY` |
 | `ollama` | `ADAPTAI_OLLAMA_MODEL` | Local runtime |
+| `lmstudio` | `ADAPTAI_LMSTUDIO_MODEL` (and `ADAPTAI_LMSTUDIO_BASE_URL`, default `http://127.0.0.1:1234/v1`) | Local runtime, no key |
 
 ### OpenRouter
 
@@ -142,6 +143,16 @@ to OpenRouter exactly as given. A paid model on a key with no credit answers 502
 `provider_insufficient_credits` (HTTP 402 upstream). Automated tests use a fake catalogue and
 mock HTTP; no live OpenRouter call has been made.
 
+### LM Studio
+
+`lmstudio` talks to LM Studio's local OpenAI-compatible server (Developer tab, Start Server;
+default `http://127.0.0.1:1234/v1`) through the same client, with JSON schema output. It is
+enabled when `ADAPTAI_LMSTUDIO_MODEL` names the loaded model. It needs no key, is local (not
+an external destination, so no external-processing consent) and its address is server
+configuration that no request can change. A personal LM Studio model can be added in LLM
+config like an Ollama one. Not run against a real LM Studio yet; the tests use a fake client.
+
+Both providers also work in the optional chat (below).
 Set the model IDs available to your provider account in `.env`, with the appropriate
 API keys, then restart the backend. OpenAI and Claude remain disabled until both the
 model and key are present. Neither integration reads Codex CLI/Claude Code login
@@ -342,7 +353,7 @@ chat id as `session_id`, then send it with the `analysis_id` to link the two.
 |---|---|---|
 | GET/POST | `/api/chats` | List or create the user's chats |
 | GET/PATCH/DELETE | `/api/chats/{id}` | Messages (with each analysis' completeness), rename, delete |
-| POST | `/api/chats/{id}/messages` | Send `{content, provider, configuration_id?, analysis_id?, allow_external}` and get `{title, message, answer}` |
+| POST | `/api/chats/{id}/messages` | Send `{content, provider, configuration_id?, model?, analysis_id?, allow_external}` and get `{title, message, answer}` |
 | GET/PUT | `/api/chat/settings` | `{auto_analyse}`, off by default |
 | GET/PUT | `/api/chat/model-tiers` | Map a model configuration to a catalogue tier (`tier: null` clears it) |
 
@@ -350,7 +361,12 @@ The answer comes from the chosen model (`configuration_id`, or the server provid
 means Groq) with the last 20 turns or 12,000 characters of the chat. The click on Send is
 the consent for an external provider, as with Analyse. A provider failure is stored as an
 answer with `status: "failed"` and the error code (for example `provider_rate_limit`) and is
-left out of later history. The demonstration provider answers with a fixed note. Streaming,
+left out of later history. The providers `openrouter` and `lmstudio` (ADR-012) work in the chat
+like the others; for `openrouter` the message may also carry an optional `model`, which must be
+`openrouter/free` or a text-in, text-out id of the live catalogue (422 `model_not_found` /
+`model_not_compatible`; 422 `model_override_not_supported` for any other provider). The chat
+does not need structured output, so it accepts catalogue models the assessment cannot use. The
+demonstration provider answers with a fixed note. Streaming,
 the chat screen and the analysis drawer follow in later cards (E2 to E5).
 
 Tests carry the `chat` marker; the `removal-drill` job deletes `chat.py` together with the

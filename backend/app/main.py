@@ -747,6 +747,7 @@ def create_app(
             configurations=configurations,
             enabled=enabled,
             external_providers=external_providers,
+            openrouter_catalogue=router_models,
             **(chat_options or {}),
         )
 

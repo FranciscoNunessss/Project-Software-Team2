@@ -182,5 +182,7 @@ kept only with "Save task text and AI responses": a chat cannot show its history
 text goes only to the model chosen for the answer, and only when the user selects Send (the
 consent for an external provider). Nothing is traced. The Educator and the coaching snapshot read
 no message text. Deleting a chat deletes its messages and analyses; deleting the history or the
-account deletes all of them. `chat_settings` keeps one on/off value per user and
+account deletes all of them. The OpenRouter and LM Studio providers (ADR-012) add no storage:
+OpenRouter receives the chat text like any external provider, only on Send; LM Studio runs on the
+backend machine and is local. `chat_settings` keeps one on/off value per user and
 `chat_model_tiers` maps a model configuration to a catalogue tier; neither holds text.

@@ -50,11 +50,11 @@ would be out of date at once (same driver as ADR-004).
 | Privacy | Nothing new is stored (ADR-005 and Product Spec section 8 unchanged). The task text goes to OpenRouter only on Analyse, under the same per-request consent as other external providers; provider terms must be checked before client material is used (OI-2). |
 | Free-tier limits | Free models are rate-limited (HTTP 429 expected) and the router may pick a model that breaks the JSON schema; `openrouter/free` is not a safe default for the assessment, so Groq stays the default. |
 | Cost | Paid models need an explicit decision (PD-29, OI-2). The application never changes a spending limit or buys credit. |
-| Chat | ADR-011 decides whether the chat reuses the catalogue endpoint and picker. |
+| Chat | The optional chat (ADR-011, merged into `develop`) accepts both providers. For OpenRouter a message may carry the same optional `model`, checked against the catalogue for text chat only, because a chat does not need structured output. ADR-011 stays with its own decision; the chat screen is not built yet, so it will reuse the endpoint and picker in a later card. |
 
 ## Evidence and what is not established (5 November 2026)
 
-Backend 404 tests, browser tests 15 (fake catalogue), ruff, lock check and build pass; all with
+Backend 427 tests (chat integration included), browser tests 15 (fake catalogue), ruff, lock check and build pass; all with
 mocks. The live public catalogue held 452 models, 16 with zero price, 8 of them usable for the
 assessment besides the router. Not established: a successful live assessment with any
 OpenRouter model (two attempts with `openrouter/free` failed, cause not diagnosed), strict

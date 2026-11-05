@@ -27,6 +27,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.accounts import AuthenticatedUser
 from app.llm_config import ModelConfigurations
+from app.openrouter import CatalogueUnavailable
 from app.providers import Settings, chat_model, provider_error_code
 from app.storage import Storage
 
@@ -68,7 +69,7 @@ TABLES = (
     " PRIMARY KEY (user_id, configuration_id))",
 )
 
-Provider = Literal["auto", "demo", "openai", "claude", "groq", "ollama"]
+Provider = Literal["auto", "demo", "openai", "claude", "groq", "openrouter", "ollama", "lmstudio"]
 
 
 class ChatRename(BaseModel):
@@ -89,6 +90,10 @@ class MessageInput(BaseModel):
     provider: Provider = "auto"
     configuration_id: str | None = Field(default=None, min_length=1, max_length=64)
     analysis_id: str | None = Field(default=None, min_length=1, max_length=36)
+    # OpenRouter only (ADR-012): the exact catalogue id; never replaced silently.
+    model: str | None = Field(
+        default=None, min_length=1, max_length=200, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/@+\-]*$"
+    )
     allow_external: bool = False
 
     @field_validator("content")
@@ -193,6 +198,7 @@ def install_chat(
     enabled: dict[str, bool],
     external_providers: set[str],
     model_factory: Callable[..., Any] | None = None,
+    openrouter_catalogue: Any | None = None,
 ) -> None:
     """Install the chat routes on ``app``.
 
@@ -289,8 +295,22 @@ def install_chat(
         )
         if _configuration_id.startswith("server:") and not enabled.get(provider):
             raise HTTPException(409, "provider_not_configured")
+        if body.model is not None:
+            if provider != "openrouter":
+                raise HTTPException(422, "model_override_not_supported")
+            provider_settings = provider_settings.model_copy(
+                update={"openrouter_model": body.model}
+            )
+            model = body.model
         if provider in external_providers and not body.allow_external:
             raise HTTPException(403, "external_processing_requires_consent")
+        if provider == "openrouter" and openrouter_catalogue is not None:
+            try:
+                await openrouter_catalogue.check(model, structured=False)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from None
+            except CatalogueUnavailable as exc:
+                raise HTTPException(502, exc.code) from None
 
         question_id, answer_id = str(uuid4()), str(uuid4())
         with store.connect() as db:

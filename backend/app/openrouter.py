@@ -140,10 +140,12 @@ class OpenRouterCatalogue:
                 self._wall = time.time()
             return self._models, self._wall
 
-    async def check(self, model: str) -> None:
+    async def check(self, model: str, *, structured: bool = True) -> None:
         """Raise ValueError('model_not_found' | 'model_not_compatible') for an unusable id.
 
-        ``openrouter/free`` is the Auto router and is always allowed without a lookup.
+        ``openrouter/free`` is the Auto router and is always allowed without a lookup. The
+        assessment needs structured output (``structured=True``); the chat only needs a
+        text-in, text-out model (``structured=False``).
         """
         if model == FREE_ROUTER:
             return
@@ -151,5 +153,5 @@ class OpenRouterCatalogue:
         match = next((item for item in models if item["id"] == model), None)
         if match is None:
             raise ValueError("model_not_found")
-        if not match["selectable"]:
+        if not (match["selectable"] if structured else match["text_chat"]):
             raise ValueError("model_not_compatible")

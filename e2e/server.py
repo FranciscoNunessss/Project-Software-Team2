@@ -171,8 +171,6 @@ def build():
         overrides={"groq": FakeAssessor(), "openrouter": FakeAssessor()},
         prompt_coach_options={"model_factory": FakeCoach},
         chat_options={"model_factory": FakeChat},
-
-
         openrouter_catalogue=OpenRouterCatalogue(fetch_router_models),
     )
 

@@ -28,6 +28,7 @@ jobs:
         run: >-
           rm -f backend/app/prompt_coach.py backend/tests/test_prompt_coach*.py
           scripts/check_prompt_coach.py backend/app/chat.py backend/tests/test_chat*.py
+          scripts/check_chat.py
       - run: uv run python -m pytest -q -m "not prompt_coach and not chat"
       - name: Restart over a real database that still has Prompt Coach and chat data
         env:

@@ -2293,8 +2293,8 @@
    "output_modalities": [
     "text"
    ],
-   "price_input_per_million": 0.740022,
-   "price_output_per_million": 1.480044,
+   "price_input_per_million": 0.719664,
+   "price_output_per_million": 1.439328,
    "structured_output": true,
    "supported_parameters": [
     "frequency_penalty",
@@ -3860,7 +3860,6 @@
     "include_reasoning",
     "logit_bias",
     "logprobs",
-    "max_completion_tokens",
     "max_tokens",
     "min_p",
     "presence_penalty",
@@ -10528,8 +10527,8 @@
    "output_modalities": [
     "text"
    ],
-   "price_input_per_million": 0.025,
-   "price_output_per_million": 0.092,
+   "price_input_per_million": 0.01,
+   "price_output_per_million": 0.038,
    "structured_output": true,
    "supported_parameters": [
     "frequency_penalty",
@@ -16204,7 +16203,7 @@
    "output_modalities": [
     "text"
    ],
-   "price_input_per_million": 0.1539,
+   "price_input_per_million": 0.1824,
    "price_output_per_million": 9.3388,
    "structured_output": true,
    "supported_parameters": [

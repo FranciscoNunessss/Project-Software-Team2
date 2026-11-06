@@ -68,11 +68,8 @@ TABLES = (
     "CREATE TABLE IF NOT EXISTS chat_settings ("
     " user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,"
     " auto_analyse INTEGER NOT NULL DEFAULT 0)",
-    "CREATE TABLE IF NOT EXISTS chat_model_tiers ("
-    " user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,"
-    " configuration_id TEXT NOT NULL,"
-    " tier TEXT NOT NULL,"
-    " PRIMARY KEY (user_id, configuration_id))",
+    # Removed by ADR-014: models are linked to catalogue cards by their aliases.
+    "DROP TABLE IF EXISTS chat_model_tiers",
 )
 
 Provider = Literal["auto", "demo", "openai", "claude", "groq", "openrouter", "ollama", "lmstudio"]
@@ -122,12 +119,6 @@ class RetryInput(BaseModel):
 class ChatSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
     auto_analyse: bool
-
-
-class ModelTier(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    configuration_id: str = Field(min_length=1, max_length=64)
-    tier: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 # --- models --------------------------------------------------------------------------------
@@ -467,42 +458,3 @@ def install_chat(
                 (user["id"], int(body.auto_analyse)),
             )
         return body
-
-    @app.get("/api/chat/model-tiers")
-    def get_model_tiers(user: AuthenticatedUser):
-        with store.connect() as db:
-            rows = db.execute(
-                "SELECT configuration_id, tier FROM chat_model_tiers WHERE user_id=? "
-                "ORDER BY configuration_id",
-                (user["id"],),
-            )
-            return [dict(row) for row in rows]
-
-    @app.put("/api/chat/model-tiers")
-    def put_model_tier(body: ModelTier, user: AuthenticatedUser):
-        if not body.configuration_id.startswith("server:"):
-            configurations.owned(user["id"], body.configuration_id)
-        elif body.configuration_id.removeprefix("server:") not in enabled:
-            raise HTTPException(404, "configuration_not_found")
-        if body.tier is not None and body.tier not in tier_ids():
-            raise HTTPException(422, "tier_not_found")
-        with store.connect() as db:
-            if body.tier is None:
-                db.execute(
-                    "DELETE FROM chat_model_tiers WHERE user_id=? AND configuration_id=?",
-                    (user["id"], body.configuration_id),
-                )
-            else:
-                db.execute(
-                    "INSERT INTO chat_model_tiers(user_id, configuration_id, tier) "
-                    "VALUES (?, ?, ?) ON CONFLICT(user_id, configuration_id) "
-                    "DO UPDATE SET tier=excluded.tier",
-                    (user["id"], body.configuration_id, body.tier),
-                )
-        return get_model_tiers(user)
-
-
-def tier_ids() -> set[str]:
-    from app.workflow import CATALOGUE
-
-    return {item["id"] for item in CATALOGUE["models"]}

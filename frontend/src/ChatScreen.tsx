@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import {
-  api, createChat, deleteChat, renameChat, errorMessage, getChat, listChats, notifyProgressChange, streamChat, tierOf, ApiError,
+  api, createChat, deleteChat, renameChat, errorMessage, getChat, listChats, notifyProgressChange, streamChat, candidateLabel, ApiError,
   type Analysis, type ChatMessage, type ChatSummary, type HistoryItem, type LLMOption, type LLMOptions,
 } from './api'
 import { AnalysisDrawer } from './AnalysisDrawer'
@@ -122,6 +122,11 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
       })
       cache.current.set(result.id, result)
       setDraftAnalysis({ analysis: result, text: draft }); setShown(result); setShownFromHistory(false)
+      // Following the recommendation is one click away: it is selected for Send (ADR-014).
+      const recommended = result.recommendation.configuration_id
+      if (recommended && options.some(item => item.id === recommended) && recommended !== (model === 'auto' ? autoId : model)) {
+        setModel(recommended === autoId ? 'auto' : recommended); setRouterModel(null)
+      }
       notifyProgressChange(); refreshList()
     } catch (failure) {
       setError(failure instanceof ApiError ? failure.message : 'The analysis failed. Please retry.')
@@ -239,7 +244,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
             {usesRouter && <OpenRouterModelPicker value={routerValue} disabled={locked} onChange={value => { setRouterModel(value); setDraftAnalysis(null) }} />}
             <div className="composer-actions">
               <span>{draft.length}/{MAX_CHARS}</span>
-              {draftAnalysis && draftAnalysis.text === draft && <span className="chat-recommendation">Recommended: <strong>{tierOf(draftAnalysis.analysis.recommendation)}</strong></span>}
+              {draftAnalysis && draftAnalysis.text === draft && <span className="chat-recommendation" data-recommended-model="">Recommended: <strong>{candidateLabel(draftAnalysis.analysis.recommendation)}</strong>{draftAnalysis.analysis.recommendation.configuration_id && draftAnalysis.analysis.recommendation.configuration_id === selected?.id ? ' · selected' : ''}</span>}
               <button type="button" className="button button-secondary" onClick={analyse} disabled={locked || !draft.trim() || modelsLoading || !selected} data-analyse-button="">
                 {analysing ? 'Analysing…' : 'Analyse'}
               </button>

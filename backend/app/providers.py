@@ -29,12 +29,45 @@ class Settings(BaseSettings):
     # can never be set by an API request.
     lmstudio_model: str = ""
     lmstudio_base_url: str = "http://127.0.0.1:1234/v1"
+    # Optional comma-separated lists of server models per provider (ADR-014), for example
+    # ADAPTAI_GROQ_MODELS=openai/gpt-oss-20b,openai/gpt-oss-120b. The first one is the model
+    # used by the analysis; the others can be chosen in the chat and recommended.
+    openai_models: str = ""
+    claude_models: str = ""
+    groq_models: str = ""
+    ollama_models: str = ""
+    lmstudio_models: str = ""
     timeout_seconds: float = Field(default=30, gt=0, le=120)
     database_path: str = "backend/data/adaptai.sqlite3"
     credentials_key_path: str = ""
     session_days: int = Field(default=7, ge=1, le=30)
     cookie_secure: bool = False
     browser_origin: str = "http://127.0.0.1:8443"
+
+
+SERVER_MODEL_PROVIDERS = ("openai", "claude", "groq", "ollama", "lmstudio")
+
+
+def server_models(settings: Settings, provider: str) -> list[str]:
+    """The server's models for a provider: ``*_models`` when set, else the single ``*_model``."""
+    if provider not in SERVER_MODEL_PROVIDERS:
+        return []
+    listed = [item.strip() for item in getattr(settings, f"{provider}_models").split(",")]
+    listed = [item for item in listed if item]
+    if listed:
+        return list(dict.fromkeys(listed))
+    single = getattr(settings, f"{provider}_model")
+    return [single] if single else []
+
+
+def with_server_models(settings: Settings) -> Settings:
+    """Settings whose ``*_model`` is the first of ``*_models`` when a list is given."""
+    update = {
+        f"{provider}_model": server_models(settings, provider)[0]
+        for provider in SERVER_MODEL_PROVIDERS
+        if getattr(settings, f"{provider}_models").strip() and server_models(settings, provider)
+    }
+    return settings.model_copy(update=update) if update else settings
 
 
 class AssessmentProvider(Protocol):

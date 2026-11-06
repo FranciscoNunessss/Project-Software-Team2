@@ -109,14 +109,44 @@ class Tip(BaseModel):
     text: str = Field(min_length=1)
 
 
+class Coverage(BaseModel):
+    """One task need against one model capability (policy needs-capabilities-1)."""
+
+    need: Literal["reasoning", "context", "domain", "reliability", "tools"]
+    estimated: int = Field(ge=1, le=3)
+    top: int = Field(ge=1, le=3)
+    capability: int | None = Field(ge=1, le=3)
+    state: Literal["covers", "covers_as_described", "short"]
+    provisional: bool
+
+
 class Candidate(BaseModel):
+    """A model the analysis compared. Card fields (ADR-014) or, for analyses stored before
+    needs-capabilities-1, an illustrative tier with ``capacity`` and the graded fit."""
+
     id: str
     name: str
-    capacity: int = Field(ge=1, le=3)
-    capabilities: list[str]
-    # Estimated, uncalibrated; None on results recorded before graded recommendation.
+    capabilities: list[str] = []
+    # Legacy tier fields (prototype-3 and prototype-3-graded).
+    capacity: int | None = Field(None, ge=1, le=3)
     sufficiency: float | None = Field(None, ge=0, le=1)
     fit: float | None = Field(None, ge=0, le=1)
+    # Card fields (needs-capabilities-1).
+    provider: str | None = None
+    model: str | None = None
+    configuration_id: str | None = None
+    label: str | None = None
+    status: Literal["covers", "covers_as_described", "short"] | None = None
+    shortfalls: list[str] = []
+    coverage: list[Coverage] = []
+    blended_price: float | None = None
+    cost_band: Literal["low", "medium", "high"] | None = None
+    free: bool = False
+    local: bool = False
+    illustrative: bool = False
+    calibrated: bool = False
+    # Chosen minus recommended: -1 covers less, 0 the recommendation, +1 more than needed.
+    gap: int | None = Field(None, ge=-1, le=1)
 
 
 class Decision(BaseModel):
@@ -161,3 +191,6 @@ class AnalysisResult(BaseModel):
     # None only for analyses stored before completeness was introduced (prototype-3).
     completeness: int | None = Field(default=None, ge=0, le=100)
     changes: list[Change] = []
+    # needs-capabilities-1: the task needs and the notes (verification, tools, coverage).
+    needs: dict | None = None
+    notes: list[str] = []

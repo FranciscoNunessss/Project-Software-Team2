@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import type { Analysis } from './api'
 import { AnalysisChanges } from './AnalysisChanges'
-import { Card, ProfileCard, TierCard } from './AnalysisResult'
+import { Card, ProfileCard, RecommendationCard } from './AnalysisResult'
 import { TipsCard } from './TipsCard'
 import { PromptCoachTips } from './PromptCoachTips'
 
@@ -45,7 +45,7 @@ export function AnalysisDrawer({ open, onToggle, analysis, task, loading, stale,
         </div>
         <div className="drawer-body">
           {loading && <p className="drawer-loading" role="status"><span className="spinner" />Assessing complexity, risk and context…</p>}
-          {!loading && !analysis && <p className="muted">Write a message and select <strong>Analyse</strong> to see how complete it is and which model tier fits it.</p>}
+          {!loading && !analysis && <p className="muted">Write a message and select <strong>Analyse</strong> to see how complete it is and which of your models fits it.</p>}
           {!loading && analysis && (
             <>
               {stale && <p className="drawer-stale" role="status">The message changed since this analysis. Analyse again to update it.</p>}
@@ -63,7 +63,7 @@ export function AnalysisDrawer({ open, onToggle, analysis, task, loading, stale,
                   <ul>{analysis.guidance.map(item => <li key={item}>{item}</li>)}</ul>
                 </Card>
               )}
-              <TierCard analysis={analysis} />
+              <RecommendationCard analysis={analysis} />
               <TipsCard analysis={analysis} fromHistory={fromHistory} />
               {task !== undefined && <PromptCoachTips analysis={analysis} task={task} />}
               <ProfileCard analysis={analysis} />

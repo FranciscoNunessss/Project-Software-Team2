@@ -91,7 +91,7 @@ def test_automatic_coaching_opt_in_updates_on_analysis_and_choice(monkeypatch):
     assert len(calls) == 1  # Refreshing reuses the report.
     choice = {"analysis_id": result["id"], "candidate_id": result["recommendation"]["id"]}
     assert alice.post("/api/decisions", json=choice).status_code == 200
-    assert len(calls) == 2 and calls[-1]["assessments"][0]["chosen_capacity"] == 2
+    assert len(calls) == 2 and calls[-1]["assessments"][0]["choice_gap"] == 0
     alice.post("/api/decisions", json=choice)
     assert len(calls) == 2  # Idempotent confirmations cause no extra model call.
     analyze(alice)
@@ -369,9 +369,9 @@ def test_snapshot_metrics_are_computed_from_confirmed_choices_only():
         "analyses": 3,
         "confirmed_choices": 2,
         "pending_choices": 1,
-        "larger_than_recommended": 1,
+        "larger_than_recommended": 0,
         "smaller_than_recommended": 1,
-        "matches": 0,
+        "matches": 1,
     }
     assert third["id"] not in json.dumps(metadata)
 

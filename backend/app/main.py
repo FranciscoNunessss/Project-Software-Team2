@@ -11,15 +11,23 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.accounts import AuthenticatedUser, check_origin
 from app.accounts import router as accounts_router
-from app.assessment import POLICY_VERSION, PROFILE_VERSION, RUBRIC_VERSION, explain_changes
+from app.assessment import PROFILE_VERSION, RUBRIC_VERSION, explain_changes
+from app.catalogue import active_catalogue
 from app.coaching import install_coaching
 from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
 from app.openrouter import CatalogueUnavailable, OpenRouterCatalogue, fetch_models
 from app.prompt_builder import active_rubric, public_rubric
-from app.providers import DemonstrationProvider, LangChainProvider, ProviderFailure, Settings
+from app.providers import (
+    DemonstrationProvider,
+    LangChainProvider,
+    ProviderFailure,
+    Settings,
+    with_server_models,
+)
+from app.recommendation import POLICY_VERSION, candidate_gap
 from app.storage import Storage, history_result, stored_result
-from app.workflow import CATALOGUE, build_workflow
+from app.workflow import build_workflow
 
 
 class SessionInput(BaseModel):
@@ -38,17 +46,14 @@ class PersonalContext(BaseModel):
 
 
 def choice_gap(row) -> int:
-    """Chosen capacity minus recommended capacity for a confirmed choice."""
-    result = json.loads(row["result_json"])
-    recommended = result["recommendation"]
-    chosen = next(
-        item for item in [recommended, *result["alternatives"]] if item["id"] == row["candidate_id"]
-    )
-    return chosen["capacity"] - recommended["capacity"]
+    """Chosen minus recommended for a confirmed choice: tiers apart for analyses stored with
+    the tier policy, -1/0/+1 (covers less / the recommendation / more than needed) for model
+    recommendations (ADR-014)."""
+    return candidate_gap(json.loads(row["result_json"]), row["candidate_id"])
 
 
 def agreement_percent(gaps: list[int]) -> int | None:
-    """Partial credit per choice: 0 tiers apart = 100, 1 = 50, 2 or more = 0."""
+    """Partial credit per choice: gap 0 = 100, 1 = 50, 2 or more = 0."""
     if not gaps:
         return None
     return round(100 * sum(max(0.0, 1 - abs(gap) / 2) for gap in gaps) / len(gaps))
@@ -61,7 +66,7 @@ def create_app(
     chat_options: dict | None = None,
     openrouter_catalogue: OpenRouterCatalogue | None = None,
 ) -> FastAPI:
-    settings = settings or Settings()
+    settings = with_server_models(settings or Settings())
     app = FastAPI(title="AdaptAI", version="0.1.0", dependencies=[Depends(check_origin)])
     store = Storage(settings.database_path)
     app.state.storage = store
@@ -168,7 +173,7 @@ def create_app(
 
     @app.get("/api/catalogue")
     def catalogue():
-        return CATALOGUE
+        return active_catalogue().model_dump()
 
     @app.get("/api/rubric")
     def rubric():
@@ -571,7 +576,13 @@ def create_app(
             )
         try:
             with tracing_context(enabled=False):
-                state = await build_workflow(provider).ainvoke({"request": assessment_request})
+                state = await build_workflow(provider).ainvoke(
+                    {
+                        "request": assessment_request,
+                        "options": configurations.send_options(user["id"], enabled),
+                        "task_chars": len(body.task),
+                    }
+                )
         except ProviderFailure as exc:
             raise HTTPException(502, exc.code) from None
         except ValidationError:
@@ -600,10 +611,10 @@ def create_app(
                 "alternatives": candidates[1:],
                 "rationale": state["rationale"],
                 "warnings": [
-                    "Illustrative catalogue: these tiers are not verified real models.",
-                    "Assessment and ranking policy have not been calibrated or validated.",
+                    "Model capability levels are provisional until the team calibrates them.",
+                    "The assessment has not been calibrated or validated.",
                 ],
-                "catalogue_version": CATALOGUE["version"],
+                "catalogue_version": active_catalogue().version,
                 "policy_version": POLICY_VERSION,
                 "latency_ms": round((perf_counter() - started) * 1000),
                 "confidence_basis": "Uncalibrated heuristic"
@@ -611,7 +622,8 @@ def create_app(
                 else "Uncalibrated model assessment",
                 "usage": state.get("usage"),
                 "observed_cost": None,
-                "grading": state.get("grading"),
+                "needs": state["needs"],
+                "notes": state["notes"],
                 "previous_analysis_id": body.previous_analysis_id,
                 "completeness": state["completeness"],
                 "changes": explain_changes(previous, state["profile"])
@@ -649,8 +661,9 @@ def create_app(
                             for key, value in result.profile.model_dump().items()
                             if isinstance(value, dict)
                         },
-                        "recommended_capacity": result.recommendation.capacity,
-                        "chosen_capacity": None,
+                        "recommended_model": result.recommendation.id,
+                        "chosen_model": None,
+                        "chosen_gap": None,
                     }
                     db.execute(
                         "INSERT INTO memory_entries VALUES (?,?,?)",
@@ -694,9 +707,8 @@ def create_app(
             ).fetchone()
             if saved_memory:
                 metadata = json.loads(saved_memory[0])
-                metadata["chosen_capacity"] = next(
-                    item["capacity"] for item in eligible if item["id"] == body.candidate_id
-                )
+                metadata["chosen_model"] = body.candidate_id
+                metadata["chosen_gap"] = candidate_gap(result, body.candidate_id)
                 db.execute(
                     "UPDATE memory_entries SET metadata_json=? WHERE analysis_id=?",
                     (json.dumps(metadata), body.analysis_id),

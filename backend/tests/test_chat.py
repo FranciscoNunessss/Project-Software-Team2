@@ -188,39 +188,6 @@ def test_always_analyse_is_off_by_default_and_per_user():
     assert bob.get("/api/chat/settings").json() == {"auto_analyse": False}
 
 
-def test_model_tiers_map_owned_configurations_to_catalogue_tiers():
-    app = build()
-    alice, bob = register(app), register(app)
-    config = alice.post(
-        "/api/llm-configs",
-        json={"label": "Mine", "provider": "groq", "model": "m", "api_key": "test-key-not-real"},
-    ).json()
-    set_tier = alice.put(
-        "/api/chat/model-tiers", json={"configuration_id": config["id"], "tier": "demo-advanced"}
-    )
-    assert set_tier.json() == [{"configuration_id": config["id"], "tier": "demo-advanced"}]
-    alice.put(
-        "/api/chat/model-tiers", json={"configuration_id": "server:groq", "tier": "demo-small"}
-    )
-    assert len(alice.get("/api/chat/model-tiers").json()) == 2
-    assert (
-        alice.put(
-            "/api/chat/model-tiers", json={"configuration_id": config["id"], "tier": "huge"}
-        ).status_code
-        == 422
-    )
-    assert (
-        bob.put(
-            "/api/chat/model-tiers", json={"configuration_id": config["id"], "tier": "demo-small"}
-        ).status_code
-        == 404
-    )
-    cleared = alice.put(
-        "/api/chat/model-tiers", json={"configuration_id": config["id"], "tier": None}
-    )
-    assert cleared.json() == [{"configuration_id": "server:groq", "tier": "demo-small"}]
-
-
 def test_history_is_capped_and_starts_with_the_user():
     rows = []
     for index in range(MAX_HISTORY_TURNS + 5):

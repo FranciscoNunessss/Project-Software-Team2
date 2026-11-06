@@ -1,10 +1,11 @@
 import json
 
 import pytest
-from app.assessment import POLICY_VERSION, completeness, explain_changes
+from app.assessment import assessment_advice, completeness, explain_changes
 from app.main import create_app
 from app.models import Assessment, Profile
 from app.providers import Settings
+from app.recommendation import POLICY_VERSION
 from fastapi.testclient import TestClient
 from profile_samples import profile_data
 from test_profiles import analyse
@@ -53,7 +54,7 @@ def undetermined_profile():
 
 
 def test_policy_version_is_bumped():
-    assert POLICY_VERSION == "prototype-3-graded"
+    assert POLICY_VERSION == "needs-capabilities-1"
 
 
 def test_fully_determined_confident_profile_is_complete():
@@ -83,7 +84,7 @@ def test_response_includes_completeness_and_no_changes_without_previous():
     assert result["completeness"] == 100
     assert result["changes"] == []
     assert result["previous_analysis_id"] is None
-    assert result["policy_version"] == "prototype-3-graded"
+    assert result["policy_version"] == "needs-capabilities-1"
 
 
 def test_explain_changes_reads_only_values_from_previous():
@@ -123,9 +124,9 @@ def test_reanalysis_explains_changed_dimensions_only():
             "evidence": "A screenshot is attached",
         },
     ]
-    assert result["completeness"] == completeness(
-        Profile.model_validate(second), result["recommendation_provisional"]
-    )
+    profile = Profile.model_validate(second)
+    # Completeness measures the description: only the description's own uncertainty counts.
+    assert result["completeness"] == completeness(profile, assessment_advice(profile)[2])
 
 
 def test_analyses_and_history_store_changes_without_evidence():

@@ -257,7 +257,8 @@ def test_progress_counts_only_saved_owner_choices():
         "choices": 2,
         "matches": 1,
         "agreement": 75,
-        "mean_gap": 0.5,
+        # The demo recommends the advanced card; the first alternative covers less (-1).
+        "mean_gap": -0.5,
     }
     assert client.delete("/api/sessions/" + empty["id"]).status_code == 200
     assert client.get("/api/progress").json()["sessions"] == 2
@@ -324,13 +325,14 @@ def test_dashboard_chart_and_capacity_counts_are_real():
     for index in range(7):
         result = client.post("/api/analyze", json={"task": f"Task {index}"}).json()
         candidates = [result["recommendation"], *result["alternatives"]]
-        capacity = 3 if index == 0 else 1 if index == 1 else 2
-        chosen = next(item for item in candidates if item["capacity"] == capacity)
+        # The demo recommends demo-advanced; the smaller cards cover less (gap -1).
+        card = "demo-small" if index == 0 else "demo-balanced" if index == 1 else None
+        chosen = next(item for item in candidates if item["id"] == card) if card else candidates[0]
         client.post(
             "/api/decisions", json={"analysis_id": result["id"], "candidate_id": chosen["id"]}
         )
     dashboard = client.get("/api/progress/dashboard").json()
-    assert dashboard["over"] == 1 and dashboard["under"] == 1
+    assert dashboard["over"] == 0 and dashboard["under"] == 2
     assert len(dashboard["series"]) == 6
     assert dashboard["series"][0]["title"].startswith("Session ")
     assert dashboard["series"][0]["rate"] == 0
@@ -388,7 +390,8 @@ def test_memory_save_use_and_clear_are_independent():
         "/api/decisions",
         json={"analysis_id": result["id"], "candidate_id": result["recommendation"]["id"]},
     )
-    assert client.get("/api/context").json()["memory"][0]["chosen_capacity"] == 2
+    entry = client.get("/api/context").json()["memory"][0]
+    assert entry["chosen_model"] == result["recommendation"]["id"] and entry["chosen_gap"] == 0
     client.put("/api/context", json={"save_enabled": False})
     body = {
         "task": "Another task",

@@ -170,7 +170,7 @@ def test_v5_migration_preserves_history_and_defaults_automatic_coaching_off():
         db.execute("PRAGMA user_version=5")
     migrated = Storage(settings.database_path)
     with migrated.connect() as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 7
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 8
         assert db.execute("SELECT count(*) FROM analyses").fetchone()[0] == 1
         row = db.execute("SELECT * FROM user_context").fetchone()
         assert row["content"] == "Portuguese" and row["save_enabled"] == 1

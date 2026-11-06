@@ -361,7 +361,7 @@ def test_schema_v1_migrates_without_losing_sessions(tmp_path):
     store = Storage(settings.database_path, allow_legacy_redaction=True)
     assert store.session(user["id"], saved["session_id"])["title"].startswith("Session ")
     with store.connect() as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 7
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 8
         assert db.execute("SELECT count(*) FROM user_context").fetchone()[0] == 0
 
 

@@ -217,11 +217,30 @@ export function errorMessage(code: string | null | undefined): string {
   return errorMessages[code] ?? code.replace(/_/g, ' ')
 }
 
+// Feedback per task (ADR-014). Mirrors backend/app/outcomes.py.
+export type TaskOutcome = 'resolved' | 'resolved_with_refinement' | 'not_resolved' | 'skipped'
+export type OutcomeReason = 'quality' | 'instructions' | 'description' | 'other'
+export type OutcomeInput = {
+  outcome: TaskOutcome; reason?: OutcomeReason | null; provider?: string | null; model?: string | null
+  turns?: number; switched_model?: boolean; retries?: number; stops?: number
+}
+export type OutcomeSummary = {
+  tasks: number; skipped: number; resolved: number; resolved_with_refinement: number; not_resolved: number
+  described_poorly: number; solved_rate_following: number | null; solved_rate_not_following: number | null
+  followed: number; mean_turns: number | null; by_model: { model: string | null; tasks: number; solved: number }[]
+}
+export const putOutcome = (analysisId: string, body: OutcomeInput) => api(`analyses/${analysisId}/outcome`, body, undefined, 'PUT')
+export const OUTCOME_REASONS: Record<OutcomeReason, string> = {
+  quality: 'Not good or deep enough', instructions: 'Did not follow my request', description: 'I described it poorly', other: 'Other',
+}
+
 // Optional chat (ADR-011). Mirrors backend/app/chat.py.
 export type ChatStatus = 'complete' | 'stopped' | 'failed'
 export type ChatMessage = {
   id: string; role: 'user' | 'assistant'; content: string; provider: string | null; model: string | null
   analysis_id: string | null; status: ChatStatus; error: string | null; created_at: string; completeness: number | null
+  /** Feedback for the task this analysed message starts (ADR-014); null while it is open. */
+  outcome?: TaskOutcome | null
 }
 export type ChatSummary = { id: string; title: string; created_at: string; updated_at?: string; message_count: number }
 export type Chat = ChatSummary & { messages: ChatMessage[] }

@@ -17,6 +17,7 @@ from app.coaching import install_coaching
 from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
 from app.openrouter import CatalogueUnavailable, OpenRouterCatalogue, fetch_models
+from app.outcomes import install_outcomes, record_decision
 from app.prompt_builder import active_rubric, public_rubric
 from app.providers import (
     DemonstrationProvider,
@@ -73,6 +74,7 @@ def create_app(
     app.state.settings = settings
     app.include_router(accounts_router)
     schedule_coaching = install_coaching(app, store, settings)
+    install_outcomes(app, store)
 
     @app.middleware("http")
     async def private_responses(request: Request, call_next):
@@ -82,6 +84,7 @@ def create_app(
                 "/api/auth",
                 "/api/sessions",
                 "/api/analyze",
+                "/api/analyses",
                 "/api/decisions",
                 "/api/progress",
                 "/api/context",
@@ -679,40 +682,7 @@ def create_app(
     def decide(body: Decision, user: AuthenticatedUser, background: BackgroundTasks):
         with store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            row = db.execute(
-                "SELECT a.result_json FROM analyses a JOIN sessions s ON s.id=a.session_id "
-                "WHERE a.id=? AND s.user_id=?",
-                (body.analysis_id, user["id"]),
-            ).fetchone()
-            if not row:
-                raise HTTPException(404, "analysis_not_found")
-            result = json.loads(row["result_json"])
-            eligible = [result["recommendation"], *result["alternatives"]]
-            if body.candidate_id not in [item["id"] for item in eligible]:
-                raise HTTPException(422, "candidate_not_eligible")
-            previous = db.execute(
-                "SELECT candidate_id FROM decisions WHERE analysis_id=?", (body.analysis_id,)
-            ).fetchone()
-            if previous and previous["candidate_id"] != body.candidate_id:
-                raise HTTPException(409, "decision_already_recorded")
-            db.execute(
-                "INSERT OR IGNORE INTO decisions(analysis_id,candidate_id) VALUES (?,?)",
-                (body.analysis_id, body.candidate_id),
-            )
-            saved_memory = db.execute(
-                "SELECT m.metadata_json FROM memory_entries m "
-                "JOIN user_context c ON c.user_id=m.user_id "
-                "WHERE m.analysis_id=? AND m.user_id=? AND c.save_enabled=1",
-                (body.analysis_id, user["id"]),
-            ).fetchone()
-            if saved_memory:
-                metadata = json.loads(saved_memory[0])
-                metadata["chosen_model"] = body.candidate_id
-                metadata["chosen_gap"] = candidate_gap(result, body.candidate_id)
-                db.execute(
-                    "UPDATE memory_entries SET metadata_json=? WHERE analysis_id=?",
-                    (json.dumps(metadata), body.analysis_id),
-                )
+            record_decision(db, user["id"], body.analysis_id, body.candidate_id)
         schedule_coaching(background, user["id"])
         return {
             "status": "acknowledged",

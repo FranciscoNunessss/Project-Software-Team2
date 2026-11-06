@@ -27,8 +27,10 @@ from langsmith import tracing_context
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.accounts import AuthenticatedUser
+from app.catalogue import active_catalogue
 from app.llm_config import ModelConfigurations
 from app.openrouter import CatalogueUnavailable
+from app.outcomes import record_decision
 from app.providers import Settings, chat_model, provider_error_code
 from app.storage import Storage
 
@@ -193,6 +195,8 @@ def public_message(row: dict) -> dict:
         message["completeness"] = json.loads(row["result_json"]).get("completeness")
     else:
         message["completeness"] = None
+    # Feedback for the task this analysed message starts (ADR-014), None while open.
+    message["outcome"] = row.get("outcome")
     return message
 
 
@@ -269,8 +273,9 @@ def install_chat(
         return [
             dict(row)
             for row in db.execute(
-                "SELECT m.*, a.result_json FROM chat_messages m "
+                "SELECT m.*, a.result_json, o.outcome FROM chat_messages m "
                 "LEFT JOIN analyses a ON a.id=m.analysis_id "
+                "LEFT JOIN task_outcomes o ON o.analysis_id=m.analysis_id "
                 "WHERE m.session_id=? ORDER BY m.created_at, m.rowid",
                 (chat_id,),
             )
@@ -318,6 +323,19 @@ def install_chat(
             owned_chat(db, user["id"], chat_id)
             db.execute("DELETE FROM sessions WHERE id=? AND user_id=?", (chat_id, user["id"]))
         return Response(status_code=204)
+
+    def record_send_choice(user_id: str, analysis_id: str, provider: str, model: str | None):
+        """Send is the choice (ADR-014): record it when the model is one the analysis compared."""
+        card = active_catalogue().card_for(provider, model)
+        if card is None:
+            return
+        with store.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                record_decision(db, user_id, analysis_id, card.id)
+            except HTTPException:
+                # Not a compared model, or a different choice was already recorded: keep it.
+                db.rollback()
 
     async def resolve_model(user_id: str, body) -> tuple[str, Settings, str | None]:
         provider, provider_settings, model, configuration_id = configurations.resolve(
@@ -399,6 +417,8 @@ def install_chat(
             ):
                 raise HTTPException(404, "analysis_not_found")
         target = await resolve_model(user["id"], body)
+        if body.analysis_id:
+            record_send_choice(user["id"], body.analysis_id, target[0], target[2])
 
         question_id, answer_id = str(uuid4()), str(uuid4())
         with store.connect() as db:

@@ -926,3 +926,13 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .theme-dark .recommendation-notes { background: #2b2412; border-color: #5f4c1c; }
 .theme-dark .coverage-short td:last-child { color: #f1b0b0; }
 .theme-dark .coverage-covers_as_described td:last-child { color: #f0d58f; }
+
+/* Feedback per task (ADR-014) */
+.task-solved { margin-top: 6px; font-size: 12px; }
+.task-refine { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.outcome-card { margin: 0 0 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); display: grid; gap: 10px; font-size: 13px; }
+.outcome-card p { margin: 0; }
+.outcome-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.outcome-actions .chip { padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: inherit; font-size: 12px; cursor: pointer; }
+.outcome-actions .chip.selected { border-color: currentColor; font-weight: 600; }
+.model-card .why p { font-size: 12px; line-height: 1.55; margin: 0; }

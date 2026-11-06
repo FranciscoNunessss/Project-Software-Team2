@@ -13,6 +13,7 @@ import { PromptCoachTips } from './PromptCoachTips'
 import { PromptCoachBubble } from './PromptCoachBubble'
 import { ChatScreen } from './ChatScreen'
 import { Card, Icon, ProfileCard, RecommendationCard } from './AnalysisResult'
+import { AssistantOutcome } from './TaskOutcome'
 
 type Screen = 'assistant' | 'progress' | 'profile' | 'llm'
 type ResultState = 'empty' | 'loading' | 'result'
@@ -355,6 +356,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
           />
           <div className="choice-confirmation"><p>Choose a model above, then confirm it to update your progress. Analysing alone does not record a model choice.</p><Button onClick={confirm} disabled={saving || saved}>{saved ? 'Choice saved to My progress' : saving ? 'Saving…' : 'Confirm choice & update progress'}</Button></div>
           {saved && <p role="status">Choice saved to your account. No task execution is performed.</p>}
+          {saved && <AssistantOutcome key={analysis.id} analysisId={analysis.id} />}
           {analysis.warnings.map(warning => <p className="confidence-note" key={warning}>{warning}</p>)}
           <p className="privacy">Profile metadata and choices are saved. Task text, context and AI responses are additionally saved only with explicit conversation-storage permission in Profile. Manage and delete saved sessions in My progress.</p>
           <p className="muted">{analysis.confidence_basis} · Profile {analysis.profile_version} · Catalogue {analysis.catalogue_version} · Policy {analysis.policy_version}</p>

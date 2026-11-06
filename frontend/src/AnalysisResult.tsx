@@ -170,7 +170,7 @@ export function ModelRecommendationCard({ analysis }: { analysis: Analysis }) {
           </tbody>
         </table>
       )}
-      {coverage.some(entry => entry.provisional) && <p className="muted">* Provisional level from public benchmarks, not calibrated by the team yet.</p>}
+      {coverage.some(entry => entry.provisional) && <p className="muted">{best.illustrative ? '* Illustrative level of a demo model, not a real measurement.' : '* Provisional level from public benchmarks, not calibrated by the team yet.'}</p>}
       {(analysis.notes ?? []).length > 0 && (
         <ul className="recommendation-notes">{(analysis.notes ?? []).map(note => <li key={note}>{note}</li>)}</ul>
       )}

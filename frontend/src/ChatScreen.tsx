@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import {
-  api, createChat, deleteChat, renameChat, errorMessage, getChat, listChats, notifyProgressChange, streamChat, candidateLabel, ApiError,
-  type Analysis, type ChatMessage, type ChatSummary, type HistoryItem, type LLMOption, type LLMOptions,
+  api, createChat, deleteChat, renameChat, errorMessage, getChat, listChats, notifyProgressChange, streamChat, candidateLabel, putOutcome, ApiError,
+  type Analysis, type ChatMessage, type ChatSummary, type HistoryItem, type LLMOption, type LLMOptions, type OutcomeReason, type TaskOutcome,
 } from './api'
 import { AnalysisDrawer } from './AnalysisDrawer'
 import { ChatMarkdown } from './ChatMarkdown'
 import { ModelPicker } from './ModelPicker'
 import { OpenRouterModelPicker } from './OpenRouterModelPicker'
 import { PromptCoachBubble } from './PromptCoachBubble'
+import { OutcomeCard, SolvedButton } from './TaskOutcome'
 
 // Optional chat (ADR-011). Shown only when /api/features reports "chat".
 const MAX_CHARS = 8000
@@ -63,6 +64,36 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
   const [draftAnalysis, setDraftAnalysis] = useState<{ analysis: Analysis; text: string } | null>(null)
   // Live analyses of this visit, kept whole (history drops tips and evidence).
   const cache = useRef(new Map<string, Analysis>())
+  // Feedback per task (ADR-014): Retry clicks per task, and the task to ask about when the
+  // next one starts.
+  const retries = useRef(new Map<string, number>())
+  const [pending, setPending] = useState<OpenTask | null>(null)
+  const [savingOutcome, setSavingOutcome] = useState(false)
+  const current = openTask(messages)
+  // Ask about the open task once, when the user moves on to another one.
+  const askAboutOpenTask = () => {
+    if (current && current.answers.some(item => item.status === 'complete')) setPending(current)
+  }
+  const answerOutcome = async (task: OpenTask, outcome: TaskOutcome, reason?: OutcomeReason | null) => {
+    setSavingOutcome(true); setError('')
+    const answered = task.answers.filter(item => item.status === 'complete' && item.model)
+    const last = answered[answered.length - 1]
+    try {
+      await putOutcome(task.analysisId, {
+        outcome, reason: reason ?? null, provider: last?.provider ?? null, model: last?.model ?? null,
+        turns: task.answers.filter(item => item.status === 'complete').length,
+        switched_model: new Set(answered.map(item => `${item.provider}/${item.model}`)).size > 1,
+        stops: task.answers.filter(item => item.status === 'stopped').length,
+        retries: retries.current.get(task.analysisId) ?? 0,
+      })
+    } catch (failure) {
+      // Already answered elsewhere: nothing to ask any more.
+      if (!(failure instanceof ApiError && failure.status === 409)) { setError('Could not save your feedback.'); setSavingOutcome(false); return }
+    }
+    setMessages(items => items.map(item => item.analysis_id === task.analysisId && item.role === 'user' ? { ...item, outcome } : item))
+    setPending(item => item?.analysisId === task.analysisId ? null : item)
+    setSavingOutcome(false); notifyProgressChange()
+  }
 
   const refreshList = () => listChats().then(setChats).catch(() => setError('Could not load your chats.'))
 
@@ -93,10 +124,11 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
   const resetAnalysis = () => { setShown(null); setDraftAnalysis(null); setDrawer(false) }
   const open = async (id: string) => {
     if (busy) return
+    if (id !== chatId) askAboutOpenTask()
     setError(''); setChatId(id); resetAnalysis()
     try { setMessages((await getChat(id)).messages) } catch { setError('Could not open this chat.') }
   }
-  const startNew = () => { if (busy) return; setChatId(null); setMessages([]); setDraft(''); setError(''); resetAnalysis() }
+  const startNew = () => { if (busy) return; askAboutOpenTask(); setChatId(null); setMessages([]); setDraft(''); setError(''); resetAnalysis() }
 
   const ensureChat = async () => {
     if (chatId) return chatId
@@ -108,6 +140,8 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
   const analyse = async () => {
     const content = draft.trim()
     if (!content || busy || analysing || !selected) return
+    // A new analysis starts a new task: the open one, if answered, gets its question now.
+    if (!draftAnalysis) askAboutOpenTask()
     setAnalysing(true); setDrawer(true); setError('')
     try {
       const fresh = !chatId
@@ -196,6 +230,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
   const retry = () => {
     const last = messages[messages.length - 1]
     if (!chatId || !last || last.role !== 'assistant') return
+    if (current) retries.current.set(current.analysisId, (retries.current.get(current.analysisId) ?? 0) + 1)
     run(chatId, `chats/${chatId}/messages/${last.id}/retry`, target, [...messages.slice(0, -1), placeholder(last.id)])
   }
   const stop = () => active.current?.abort()
@@ -230,9 +265,15 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
           ) : messages.map((message, index) => (
             <Bubble key={message.id} message={message} last={index === messages.length - 1} busy={busy} onRetry={retry} onShowAnalysis={showAnalysis} />
           ))}
+          {current && !busy && pending?.analysisId !== current.analysisId && current.answers.some(item => item.status === 'complete') && (
+            <div className="chat-message theirs"><SolvedButton disabled={savingOutcome} onAnswer={outcome => answerOutcome(current, outcome)} /></div>
+          )}
           <div ref={end} />
         </div>
         {error && <p className="error-banner" role="alert">{error}</p>}
+        {pending && (
+          <OutcomeCard title={pending.title} disabled={savingOutcome} onAnswer={(outcome, reason) => answerOutcome(pending, outcome, reason)} />
+        )}
         <section className="chat-composer composer" data-analysis-id={draftAnalysis?.analysis.id ?? ''} data-session-id={chatId ?? ''}>
           <PromptCoachBubble analysis={draftAnalysis?.analysis} analysisId={draftAnalysis?.analysis.id} task={draft}
             disabled={locked} onTaskChange={setDraft} onAnalyse={analyse}>
@@ -261,6 +302,18 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
       </div>
     </main>
   )
+}
+
+type OpenTask = { analysisId: string; title: string; answers: ChatMessage[] }
+
+/** The task still open in a chat: the last analysed message without feedback, and its answers. */
+function openTask(messages: ChatMessage[]): OpenTask | null {
+  let index = -1
+  messages.forEach((item, position) => { if (item.role === 'user' && item.analysis_id) index = position })
+  const question = messages[index]
+  if (!question || !question.analysis_id || question.outcome) return null
+  const rest = messages.slice(index + 1)
+  return { analysisId: question.analysis_id, title: titleFrom(question.content), answers: rest.filter(item => item.role === 'assistant') }
 }
 
 function titleFrom(text: string) {

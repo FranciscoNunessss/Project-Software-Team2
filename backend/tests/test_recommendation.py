@@ -233,3 +233,14 @@ def test_candidate_carries_how_to_use_it():
         "reliability",
         "tools",
     }
+
+
+def test_a_model_run_locally_costs_nothing_whatever_its_card_price():
+    gemma = card("gemma", 2, 0.3)
+    gemma["aliases"] = [{"provider": "lmstudio", "model": "gemma-local"}]
+    result = recommend(
+        needs(reasoning=2),
+        [Option("lmstudio", "gemma-local", "personal-1", "LM Studio · gemma")],
+        catalogue(gemma),
+    )
+    assert result.candidates[0]["blended_price"] == 0 and result.candidates[0]["local"] is True

@@ -1,0 +1,35 @@
+name: Catalogue sources
+# Fetches the public facts and the benchmark snapshot that a new catalogue version is built
+# from (ADR-014, docs/model-classification.md). It only uploads the files as an artifact:
+# a person reviews them and commits the new catalogue version in a pull request.
+on:
+  workflow_dispatch:
+  push:
+    branches: ["data/**"]
+permissions:
+  contents: read
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: OpenRouter facts (public, no key)
+        run: uv run python scripts/import_openrouter_facts.py
+      - name: Artificial Analysis snapshot (needs the AA_API_KEY repository secret)
+        env:
+          ADAPTAI_AA_API_KEY: ${{ secrets.AA_API_KEY }}
+        run: |
+          if [ -z "$ADAPTAI_AA_API_KEY" ]; then
+            echo "AA_API_KEY secret not set: benchmark snapshot skipped"
+          else
+            uv run python scripts/snapshot_benchmarks.py
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catalogue-sources
+          path: backend/data/catalogue/sources/
+          retention-days: 30

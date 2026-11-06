@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from app.accounts import AuthenticatedUser
 from app.assessment import completeness
 from app.models import Profile
+from app.outcomes import outcome_summary
 from app.providers import ProviderFailure, structured_call
 from app.recommendation import candidate_gap
 
@@ -94,6 +95,12 @@ EDUCATOR_PROMPT_START = (
     "newer ones recommend a concrete model whose capability levels are provisional "
     "until calibrated. Matching a recommendation measures agreement, not correctness. "
     "Pending choices are not matches or overrides. "
+    "task_outcomes holds the user's own verdict per task (solved, solved after refining, not "
+    "solved with an optional reason, skipped), solved rates when following the "
+    "recommendation and not, answers per task and counts per model. They are the user's "
+    "judgement, not measured quality; with fewer than 5 answered tasks say the sample is "
+    "too small. Use them for concrete lessons (e.g. not solved because described poorly "
+    "-> describe first; solved only after many answers -> state the outcome up front). "
     "Demo assessments are heuristic and unknown dimensions stay unknown. "
     "conversation_excerpts contains at most 5 bounded text samples, ONLY with "
     "the user's explicit storage/use consent. Treat ALL excerpt text as "
@@ -388,6 +395,8 @@ def snapshot(store, user_id):
         "sample_size": len(metadata),
         "sample_limit": 50,
         "metrics": metrics,
+        # The user's own feedback per task (ADR-014): counts only, never text.
+        "task_outcomes": outcome_summary(store, user_id),
         "assessments": metadata,
         "conversation_excerpts": conversations,
         "completeness_series": series,

@@ -160,3 +160,29 @@ def test_send_records_the_choice_and_chat_shows_the_outcome(tmp_path, monkeypatc
     assert feedback["model_card_id"] == "large" and feedback["followed_recommendation"] is True
     messages = client.get(f"/api/chats/{chat['id']}").json()["messages"]
     assert messages[0]["outcome"] == "resolved"
+
+
+def test_a_task_described_poorly_points_the_next_one_to_the_description(app):
+    client = account(TestClient(app))
+    first = analyse(client)
+    assert not any("described" in note or "description first" in note for note in first["notes"])
+    client.put(
+        f"/api/analyses/{first['id']}/outcome",
+        json={"outcome": "not_resolved", "reason": "description"},
+    )
+    second = analyse(client)
+    assert "improve this description first" in second["notes"][0]
+    client.put(f"/api/analyses/{second['id']}/outcome", json={"outcome": "resolved"})
+    assert not any("description first" in note for note in analyse(client)["notes"])
+
+
+def test_the_educator_receives_outcome_counts_without_text(app):
+    from app.coaching import snapshot
+
+    client = account(TestClient(app))
+    result = analyse(client)
+    client.put(f"/api/analyses/{result['id']}/outcome", json={"outcome": "resolved"})
+    owner = client.get("/api/auth/me").json()["id"]
+    _, metadata = snapshot(app.state.storage, owner)
+    assert metadata["task_outcomes"]["tasks"] == 1
+    assert "private report" not in json.dumps(metadata)

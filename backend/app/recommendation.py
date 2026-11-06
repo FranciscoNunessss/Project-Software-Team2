@@ -186,8 +186,18 @@ def model_status(items: list[dict]) -> tuple[Status, list[str]]:
     return "covers_as_described", []
 
 
+LOCAL_PROVIDERS = {"ollama", "lmstudio"}
+
+
+def price_of(item: Evaluated) -> float | None:
+    """The card's blended price; 0 when the user runs the model locally."""
+    if item.option is not None and item.option.provider in LOCAL_PROVIDERS:
+        return 0.0
+    return item.card.blended_price
+
+
 def _price(item: Evaluated) -> float:
-    price = item.card.blended_price
+    price = price_of(item)
     return float("inf") if price is None else price
 
 
@@ -315,10 +325,11 @@ def candidate(item: Evaluated, chosen: Evaluated, catalogue: Catalogue) -> dict:
         "status": item.status,
         "shortfalls": item.shortfalls,
         "coverage": item.coverage,
-        "blended_price": item.card.blended_price,
-        "cost_band": catalogue.cost_bands.band(item.card.blended_price),
+        "blended_price": price_of(item),
+        "cost_band": catalogue.cost_bands.band(price_of(item)),
         "free": item.card.facts.free,
-        "local": item.card.facts.local,
+        "local": item.card.facts.local
+        or (option is not None and option.provider in LOCAL_PROVIDERS),
         "illustrative": item.card.illustrative,
         "calibrated": not _uncalibrated(item),
         "gap": _gap(item, chosen),

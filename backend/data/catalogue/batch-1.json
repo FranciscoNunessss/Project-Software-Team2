@@ -1,0 +1,27 @@
+{
+  "description": "First batch of models to classify (ADR-014 section 4.3). Each entry: card id, the OpenRouter id its facts come from, the Artificial Analysis slug its levels come from, and the provider aliases it is served under.",
+  "models": [
+    {
+      "id": "gpt-oss-20b",
+      "family": "gpt-oss",
+      "name": "GPT-OSS 20B",
+      "openrouter_id": "openai/gpt-oss-20b",
+      "aa_slug": "gpt-oss-20b",
+      "aliases": [
+        {"provider": "groq", "model": "openai/gpt-oss-20b"},
+        {"provider": "openrouter", "model": "openai/gpt-oss-20b"}
+      ]
+    },
+    {
+      "id": "gpt-oss-120b",
+      "family": "gpt-oss",
+      "name": "GPT-OSS 120B",
+      "openrouter_id": "openai/gpt-oss-120b",
+      "aa_slug": "gpt-oss-120b",
+      "aliases": [
+        {"provider": "groq", "model": "openai/gpt-oss-120b"},
+        {"provider": "openrouter", "model": "openai/gpt-oss-120b"}
+      ]
+    }
+  ]
+}

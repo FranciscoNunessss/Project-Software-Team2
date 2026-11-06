@@ -592,6 +592,25 @@ def create_app(
             raise HTTPException(502, "invalid_provider_output") from None
         candidates = state["candidates"]
         identifier = str(uuid4())
+        notes = list(state["notes"])
+        with store.connect() as db:
+            last = db.execute(
+                "SELECT outcome,reason,completeness FROM task_outcomes WHERE user_id=? "
+                "AND outcome!='skipped' ORDER BY created_at DESC,rowid DESC LIMIT 1",
+                (user["id"],),
+            ).fetchone()
+        # ADR-014: a task not solved because of its description sends the user to the
+        # description first on the next task, not to a bigger model.
+        if (
+            last
+            and last["outcome"] == "not_resolved"
+            and (last["reason"] == "description" or (last["completeness"] or 100) < 75)
+        ):
+            notes.insert(
+                0,
+                "Your last task was not solved and its description was incomplete: improve "
+                "this description first (clarifications, Coach) before choosing a bigger model.",
+            )
         result = AnalysisResult.model_validate(
             {
                 "id": identifier,
@@ -626,7 +645,7 @@ def create_app(
                 "usage": state.get("usage"),
                 "observed_cost": None,
                 "needs": state["needs"],
-                "notes": state["notes"],
+                "notes": notes,
                 "previous_analysis_id": body.previous_analysis_id,
                 "completeness": state["completeness"],
                 "changes": explain_changes(previous, state["profile"])

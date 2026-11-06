@@ -20,12 +20,12 @@ jobs:
       - run: uv sync --locked
       - name: OpenRouter facts (public, no key)
         run: uv run python scripts/import_openrouter_facts.py
-      - name: Artificial Analysis snapshot (needs the AA_API_KEY repository secret)
+      - name: Artificial Analysis snapshot (needs the ARTIFICIAL_ANALYSES_ADAPTAI repository secret)
         env:
-          ADAPTAI_AA_API_KEY: ${{ secrets.AA_API_KEY }}
+          ADAPTAI_AA_API_KEY: ${{ secrets.ARTIFICIAL_ANALYSES_ADAPTAI }}
         run: |
           if [ -z "$ADAPTAI_AA_API_KEY" ]; then
-            echo "AA_API_KEY secret not set: benchmark snapshot skipped"
+            echo "ARTIFICIAL_ANALYSES_ADAPTAI secret not set: benchmark snapshot skipped"
           else
             uv run python scripts/snapshot_benchmarks.py
           fi

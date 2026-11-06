@@ -35,7 +35,7 @@ Implementation follows the ADR-009 pattern:
 | Schema | Its tables use `CREATE TABLE IF NOT EXISTS` and never change `PRAGMA user_version`. |
 | A chat is a session | `chat_sessions` marks which sessions are chats, so My progress, the Educator and learning progress count chats with no change. |
 | Analysis | The existing `POST /api/analyze` with the chat id as `session_id`; Send carries the `analysis_id` to link message and analysis. |
-| Decision | The model chosen on Send is recorded through the existing `POST /api/decisions`, using the user's map from model configuration to catalogue tier (`chat_model_tiers`). |
+| Decision | The model chosen on Send is recorded as the decision when it is one the analysis compared. Since ADR-014 the model is matched to its catalogue card by the card's aliases; `chat_model_tiers` was removed. |
 | Answer model | The user's model configuration or the server provider, through the existing `configurations.resolve`; Send is the consent for an external provider. |
 
 ## Alternatives considered

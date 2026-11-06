@@ -244,3 +244,22 @@ def test_a_model_run_locally_costs_nothing_whatever_its_card_price():
         catalogue(gemma),
     )
     assert result.candidates[0]["blended_price"] == 0 and result.candidates[0]["local"] is True
+
+
+def test_an_alias_price_overrides_the_card_price_for_that_provider():
+    cheap_card = card("model-a", 2, 0.01)
+    cheap_card["aliases"] = [
+        {
+            "provider": "groq",
+            "model": "model-a",
+            "price_in_per_mtok": 1.0,
+            "price_out_per_mtok": 1.0,
+            "price_source": "test",
+        }
+    ]
+    other = card("model-b", 2, 0.5)
+    result = recommend(
+        needs(reasoning=2), options("model-a", "model-b"), catalogue(cheap_card, other)
+    )
+    assert result.candidates[0]["id"] == "model-b"
+    assert {item["id"]: item["blended_price"] for item in result.candidates}["model-a"] == 1.0

@@ -1,0 +1,631 @@
+{
+  "version": "catalogue-2.1",
+  "rubric_scale": "rubric-2.0",
+  "benchmark_mapping": null,
+  "observed_on": "2026-11-06",
+  "source": "Facts: OpenRouter public model catalogue (2026-11-06). No benchmark snapshot yet: real models are unrated and never recommended.",
+  "cost_bands": {
+    "currency": "USD",
+    "unit": "blended price per million tokens, (3 x input + output) / 4",
+    "low_max": 0.5,
+    "medium_max": 5.0
+  },
+  "cards": [
+    {
+      "id": "demo-small",
+      "family": "demo",
+      "name": "Illustrative small model",
+      "illustrative": true,
+      "aliases": [],
+      "facts": {
+        "context_window": 128000,
+        "modalities": [
+          "text"
+        ],
+        "capabilities": [
+          "text"
+        ],
+        "tool_calling": false,
+        "structured_output": true,
+        "price_in_per_mtok": 0.1,
+        "price_out_per_mtok": 0.1,
+        "free": false,
+        "local": false,
+        "source": "Team prototype fixture",
+        "observed_on": "2026-11-06"
+      },
+      "capabilities": {
+        "reasoning": {
+          "level": 1,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        },
+        "context": {
+          "level": 1,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        },
+        "domain": {
+          "level": 1,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        },
+        "reliability": {
+          "level": 1,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        },
+        "tools": {
+          "level": 1,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        }
+      }
+    },
+    {
+      "id": "demo-balanced",
+      "family": "demo",
+      "name": "Illustrative balanced model",
+      "illustrative": true,
+      "aliases": [],
+      "facts": {
+        "context_window": 128000,
+        "modalities": [
+          "text"
+        ],
+        "capabilities": [
+          "text",
+          "code"
+        ],
+        "tool_calling": true,
+        "structured_output": true,
+        "price_in_per_mtok": 1.0,
+        "price_out_per_mtok": 1.0,
+        "free": false,
+        "local": false,
+        "source": "Team prototype fixture",
+        "observed_on": "2026-11-06"
+      },
+      "capabilities": {
+        "reasoning": {
+          "level": 2,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        },
+        "context": {
+          "level": 2,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        },
+        "domain": {
+          "level": 2,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        },
+        "reliability": {
+          "level": 2,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        },
+        "tools": {
+          "level": 2,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        }
+      }
+    },
+    {
+      "id": "demo-advanced",
+      "family": "demo",
+      "name": "Illustrative advanced model",
+      "illustrative": true,
+      "aliases": [],
+      "facts": {
+        "context_window": 1000000,
+        "modalities": [
+          "text",
+          "image"
+        ],
+        "capabilities": [
+          "text",
+          "code",
+          "vision"
+        ],
+        "tool_calling": true,
+        "structured_output": true,
+        "price_in_per_mtok": 10.0,
+        "price_out_per_mtok": 10.0,
+        "free": false,
+        "local": false,
+        "source": "Team prototype fixture",
+        "observed_on": "2026-11-06"
+      },
+      "capabilities": {
+        "reasoning": {
+          "level": 3,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        },
+        "context": {
+          "level": 3,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        },
+        "domain": {
+          "level": 3,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        },
+        "reliability": {
+          "level": 3,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        },
+        "tools": {
+          "level": 3,
+          "status": "provisional",
+          "source": "Illustrative fixture",
+          "observed_on": "2026-11-06"
+        }
+      }
+    },
+    {
+      "id": "gpt-oss-20b",
+      "family": "gpt-oss",
+      "name": "GPT-OSS 20B",
+      "illustrative": false,
+      "aliases": [
+        {
+          "provider": "groq",
+          "model": "openai/gpt-oss-20b",
+          "price_in_per_mtok": 0.1,
+          "price_out_per_mtok": 0.5,
+          "price_source": "https://groq.com/blog/day-zero-support-for-openai-open-models (Groq launch prices; to confirm on https://groq.com/pricing)"
+        },
+        {
+          "provider": "openrouter",
+          "model": "openai/gpt-oss-20b",
+          "price_in_per_mtok": null,
+          "price_out_per_mtok": null,
+          "price_source": null
+        }
+      ],
+      "facts": {
+        "context_window": 131072,
+        "modalities": [
+          "text"
+        ],
+        "capabilities": [
+          "text",
+          "code"
+        ],
+        "tool_calling": true,
+        "structured_output": true,
+        "price_in_per_mtok": 0.03,
+        "price_out_per_mtok": 0.13,
+        "free": false,
+        "local": false,
+        "source": "https://openrouter.ai/openai/gpt-oss-20b (OpenRouter public catalogue)",
+        "observed_on": "2026-11-06"
+      },
+      "capabilities": {
+        "reasoning": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "context": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "domain": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "reliability": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "tools": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        }
+      }
+    },
+    {
+      "id": "gpt-oss-120b",
+      "family": "gpt-oss",
+      "name": "GPT-OSS 120B",
+      "illustrative": false,
+      "aliases": [
+        {
+          "provider": "groq",
+          "model": "openai/gpt-oss-120b",
+          "price_in_per_mtok": 0.15,
+          "price_out_per_mtok": 0.75,
+          "price_source": "https://groq.com/blog/day-zero-support-for-openai-open-models (Groq launch prices; to confirm on https://groq.com/pricing)"
+        },
+        {
+          "provider": "openrouter",
+          "model": "openai/gpt-oss-120b",
+          "price_in_per_mtok": null,
+          "price_out_per_mtok": null,
+          "price_source": null
+        }
+      ],
+      "facts": {
+        "context_window": 131072,
+        "modalities": [
+          "text"
+        ],
+        "capabilities": [
+          "text",
+          "code"
+        ],
+        "tool_calling": true,
+        "structured_output": true,
+        "price_in_per_mtok": 0.025,
+        "price_out_per_mtok": 0.092,
+        "free": false,
+        "local": false,
+        "source": "https://openrouter.ai/openai/gpt-oss-120b (OpenRouter public catalogue)",
+        "observed_on": "2026-11-06"
+      },
+      "capabilities": {
+        "reasoning": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "context": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "domain": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "reliability": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "tools": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        }
+      }
+    },
+    {
+      "id": "gemma-4-26b-a4b",
+      "family": "gemma",
+      "name": "Gemma 4 26B A4B",
+      "illustrative": false,
+      "aliases": [
+        {
+          "provider": "openrouter",
+          "model": "google/gemma-4-26b-a4b-it",
+          "price_in_per_mtok": null,
+          "price_out_per_mtok": null,
+          "price_source": null
+        },
+        {
+          "provider": "openrouter",
+          "model": "google/gemma-4-26b-a4b-it:free",
+          "price_in_per_mtok": null,
+          "price_out_per_mtok": null,
+          "price_source": null
+        }
+      ],
+      "facts": {
+        "context_window": 262144,
+        "modalities": [
+          "image",
+          "text",
+          "video"
+        ],
+        "capabilities": [
+          "text",
+          "code",
+          "vision",
+          "video"
+        ],
+        "tool_calling": true,
+        "structured_output": true,
+        "price_in_per_mtok": 0.0675,
+        "price_out_per_mtok": 0.225,
+        "free": false,
+        "local": false,
+        "source": "https://openrouter.ai/google/gemma-4-26b-a4b-it (OpenRouter public catalogue)",
+        "observed_on": "2026-11-06"
+      },
+      "capabilities": {
+        "reasoning": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "context": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "domain": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "reliability": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "tools": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        }
+      }
+    },
+    {
+      "id": "gemma-4-31b",
+      "family": "gemma",
+      "name": "Gemma 4 31B",
+      "illustrative": false,
+      "aliases": [
+        {
+          "provider": "openrouter",
+          "model": "google/gemma-4-31b-it",
+          "price_in_per_mtok": null,
+          "price_out_per_mtok": null,
+          "price_source": null
+        },
+        {
+          "provider": "openrouter",
+          "model": "google/gemma-4-31b-it:free",
+          "price_in_per_mtok": null,
+          "price_out_per_mtok": null,
+          "price_source": null
+        }
+      ],
+      "facts": {
+        "context_window": 262144,
+        "modalities": [
+          "image",
+          "text",
+          "video"
+        ],
+        "capabilities": [
+          "text",
+          "code",
+          "vision",
+          "video"
+        ],
+        "tool_calling": true,
+        "structured_output": true,
+        "price_in_per_mtok": 0.2,
+        "price_out_per_mtok": 0.4,
+        "free": false,
+        "local": false,
+        "source": "https://openrouter.ai/google/gemma-4-31b-it (OpenRouter public catalogue)",
+        "observed_on": "2026-11-06"
+      },
+      "capabilities": {
+        "reasoning": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "context": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "domain": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "reliability": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "tools": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        }
+      }
+    },
+    {
+      "id": "claude-sonnet-5-5",
+      "family": "claude",
+      "name": "Claude Sonnet 5.5",
+      "illustrative": false,
+      "aliases": [
+        {
+          "provider": "claude",
+          "model": "claude-sonnet-5-5",
+          "price_in_per_mtok": null,
+          "price_out_per_mtok": null,
+          "price_source": null
+        },
+        {
+          "provider": "openrouter",
+          "model": "anthropic/claude-sonnet-5.5",
+          "price_in_per_mtok": null,
+          "price_out_per_mtok": null,
+          "price_source": null
+        }
+      ],
+      "facts": {
+        "context_window": 1000000,
+        "modalities": [
+          "text",
+          "image"
+        ],
+        "capabilities": [
+          "text",
+          "code",
+          "vision"
+        ],
+        "tool_calling": true,
+        "structured_output": true,
+        "price_in_per_mtok": 2.0,
+        "price_out_per_mtok": 10.0,
+        "free": false,
+        "local": false,
+        "source": "https://openrouter.ai/anthropic/claude-sonnet-5.5 (OpenRouter public catalogue)",
+        "observed_on": "2026-11-06"
+      },
+      "capabilities": {
+        "reasoning": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "context": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "domain": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "reliability": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "tools": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        }
+      }
+    },
+    {
+      "id": "gpt-5-4-mini",
+      "family": "gpt-5",
+      "name": "GPT-5.4 mini",
+      "illustrative": false,
+      "aliases": [
+        {
+          "provider": "openai",
+          "model": "gpt-5.4-mini",
+          "price_in_per_mtok": null,
+          "price_out_per_mtok": null,
+          "price_source": null
+        },
+        {
+          "provider": "openrouter",
+          "model": "openai/gpt-5.4-mini",
+          "price_in_per_mtok": null,
+          "price_out_per_mtok": null,
+          "price_source": null
+        }
+      ],
+      "facts": {
+        "context_window": 400000,
+        "modalities": [
+          "image",
+          "text"
+        ],
+        "capabilities": [
+          "text",
+          "code",
+          "vision"
+        ],
+        "tool_calling": true,
+        "structured_output": true,
+        "price_in_per_mtok": 0.75,
+        "price_out_per_mtok": 4.5,
+        "free": false,
+        "local": false,
+        "source": "https://openrouter.ai/openai/gpt-5.4-mini (OpenRouter public catalogue)",
+        "observed_on": "2026-11-06"
+      },
+      "capabilities": {
+        "reasoning": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "context": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "domain": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "reliability": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        },
+        "tools": {
+          "level": null,
+          "status": "unrated",
+          "source": "",
+          "observed_on": null
+        }
+      }
+    }
+  ]
+}

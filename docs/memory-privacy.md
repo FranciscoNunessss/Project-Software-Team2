@@ -184,5 +184,17 @@ consent for an external provider). Nothing is traced. The Educator and the coach
 no message text. Deleting a chat deletes its messages and analyses; deleting the history or the
 account deletes all of them. The OpenRouter and LM Studio providers (ADR-012) add no storage:
 OpenRouter receives the chat text like any external provider, only on Send; LM Studio runs on the
-backend machine and is local. `chat_settings` keeps one on/off value per user and
-`chat_model_tiers` maps a model configuration to a catalogue tier; neither holds text.
+backend machine and is local. `chat_settings` keeps one on/off value per user and holds no text. (`chat_model_tiers` was
+removed by ADR-014.)
+
+## Feedback per task (ADR-014)
+
+`task_outcomes` keeps, for an analysis, the user's verdict on the task (`resolved`,
+`resolved_with_refinement`, `not_resolved` with an optional reason from a fixed list, or
+`skipped`), the card id of the model used and of the recommended one, the task needs and the
+model's levels as numbers, the completeness, and counts (answers, Retry, Stop, whether the
+model was switched). It holds **no text**: the chat sends only these values. Rows are deleted
+with the analysis, the session or chat, the history and the account. The Educator receives
+the totals only; `scripts/calibration_report.py` reads the counts and proposes catalogue
+changes without altering anything.
+

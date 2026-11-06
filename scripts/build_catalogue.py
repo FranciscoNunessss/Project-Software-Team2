@@ -22,7 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
-from app.catalogue import CATALOGUE_DIR, Catalogue, load_catalogue  # noqa: E402
+from app.catalogue import CAPABILITIES, CATALOGUE_DIR, Catalogue, load_catalogue  # noqa: E402
 from app.classification import build_mapping, facts_from_openrouter, rate  # noqa: E402
 
 
@@ -45,16 +45,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--batch", type=Path, required=True)
     parser.add_argument("--facts", type=Path, required=True)
-    parser.add_argument("--snapshot", type=Path, required=True)
+    parser.add_argument("--snapshot", type=Path, help="without it every level stays unrated")
     parser.add_argument("--mapping", default="benchmark-mapping-1")
     parser.add_argument("--version", required=True)
     parser.add_argument("--activate", action="store_true")
     args = parser.parse_args()
 
-    facts, snapshot = read(args.facts), read(args.snapshot)
-    mapping = mapping_for(args.mapping, snapshot)
+    facts = read(args.facts)
+    snapshot = read(args.snapshot) if args.snapshot else None
+    mapping = mapping_for(args.mapping, snapshot) if snapshot else None
     router = {model["id"]: model for model in facts["models"]}
-    benchmarks = {entry["slug"]: entry for entry in snapshot["models"]}
+    benchmarks = {entry["slug"]: entry for entry in snapshot["models"]} if snapshot else {}
+    warnings = []
     current = load_catalogue()
     cards = [card.model_dump() for card in current.cards if card.illustrative]
     problems = []
@@ -67,8 +69,12 @@ def main() -> int:
             {**model, "structured_output": model["structured_output"]}, facts["observed_on"]
         )
         entry = benchmarks.get(item["aa_slug"]) if item.get("aa_slug") else None
-        if item.get("aa_slug") and entry is None:
-            problems.append(f"{item['id']}: {item['aa_slug']} not in the benchmark snapshot")
+        if snapshot and entry is None:
+            close = [slug for slug in benchmarks if item["family"] in slug][:8]
+            warnings.append(
+                f"{item['id']}: {item.get('aa_slug')} not in the snapshot, left unrated. "
+                f"Similar slugs: {', '.join(close) or 'none'}"
+            )
         cards.append(
             {
                 "id": item["id"],
@@ -76,7 +82,9 @@ def main() -> int:
                 "name": item["name"],
                 "aliases": item["aliases"],
                 "facts": card_facts,
-                "capabilities": rate(entry, mapping, tool_calling=card_facts["tool_calling"]),
+                "capabilities": rate(entry, mapping, tool_calling=card_facts["tool_calling"])
+                if mapping
+                else {name: {"level": None, "status": "unrated"} for name in CAPABILITIES},
             }
         )
     if problems:
@@ -86,12 +94,15 @@ def main() -> int:
         {
             "version": args.version,
             "rubric_scale": current.rubric_scale,
-            "benchmark_mapping": mapping["version"],
+            "benchmark_mapping": mapping["version"] if mapping else None,
             "observed_on": date.today().isoformat(),
-            "source": (
-                f"Facts: {facts['source']} ({facts['observed_on']}). Levels: "
-                f"{mapping['version']} over {mapping['source']} ({mapping['observed_on']}), "
-                "provisional until calibrated (docs/model-classification.md)."
+            "source": f"Facts: {facts['source']} ({facts['observed_on']}). "
+            + (
+                f"Levels: {mapping['version']} over {mapping['source']} "
+                f"({mapping['observed_on']}), provisional until calibrated "
+                "(docs/model-classification.md)."
+                if mapping
+                else "No benchmark snapshot yet: real models are unrated and never recommended."
             ),
             "cost_bands": current.cost_bands.model_dump(),
             "cards": cards,
@@ -109,6 +120,7 @@ def main() -> int:
     registry_path.write_text(json.dumps(registry, indent=2) + "\n", encoding="utf-8")
     if args.activate:
         (CATALOGUE_DIR / "ACTIVE").write_text(args.version + "\n", encoding="utf-8")
+    print("\n".join(warnings), file=sys.stderr) if warnings else None
     print(f"wrote {path.relative_to(ROOT)}{' (active)' if args.activate else ''}")
     for card in catalogue.cards:
         levels = " ".join(

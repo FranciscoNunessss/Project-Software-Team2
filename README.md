@@ -60,8 +60,9 @@ Example authenticated request to `POST /api/analyze`:
 
 The demo uses word count as a low-confidence context-size proxy. Semantic dimensions
 and execution modality remain explicitly undetermined; its recommendation is provisional.
-It is **not semantic AI assessment**. The catalogue contains illustrative tiers,
-not verified real models. It has no real prices or performance claims.
+It is **not semantic AI assessment**. With no classified model available, the
+recommendation uses the illustrative demo cards of the catalogue, which make no real price or
+performance claims (see "Model recommendation").
 
 In a second terminal, start the supplied frontend using its existing pnpm lockfile:
 
@@ -228,20 +229,19 @@ uv run python scripts/check_llm.py --provider groq
 It prints model identity, latency and token counts on success, or a sanitised error
 code on failure. `provider_authentication` means the provider rejected the credential:
 replace it in `.env` and restart the backend. Never share keys in chat or commit `.env`.
-The live test and UI still use the illustrative recommendation catalogue; a successful
-LLM call does not validate ranking quality. That smoke test predates the seven-dimension
+A successful LLM call does not validate recommendation quality. That smoke test predates the seven-dimension
 profile contract; provider compatibility with `profile-2` has not been verified live.
 
 Live verification on 21 October 2026 succeeded with Groq's `openai/gpt-oss-20b`:
 the API returned a validated semantic assessment with actual token usage. The supplied
 frontend was tested through its development proxy, including external-processing
-consent, displaying the assessment and confirming an alternative tier. One initial
+consent, displaying the assessment and confirming an alternative choice. One initial
 request was rejected by the provider; subsequent requests succeeded. This is a local
 integration smoke test, not a reliability benchmark or an assessment-quality evaluation.
 
 Assessment providers and recommended catalogue entries are separate concepts.
-The LLM assesses the task; Python filters and ranks catalogue entries. It does not
-execute the task or generate catalogue facts.
+The LLM assesses the task; Python turns the profile into task needs and compares them with
+the catalogue's capability cards. It does not execute the task or generate catalogue facts.
 
 ## API contract for the team frontend
 
@@ -249,13 +249,15 @@ execute the task or generate catalogue facts.
 | --- | --- |
 | `GET /api/health` | Process health |
 | `GET /api/progress` | Current user session, analysis, choice and match counts |
-| `GET /api/progress/dashboard` | Last six sessions with choices and capacity comparison counts |
+| `GET /api/progress/dashboard` | Last six sessions with choices and over/under counts |
+| `GET /api/progress/outcomes` | Feedback totals: solved, after refining, not solved, followed the recommendation, per model |
 | `GET /api/context`, `PUT /api/context` | Read/save account preferences and memory settings |
 | `DELETE /api/context/memory` | Clear learned metadata memory without deleting progress |
 | `GET /api/providers` | Provider IDs, availability and external destination flag |
-| `GET /api/catalogue` | Versioned illustrative catalogue and provenance |
-| `POST /api/analyze` | Profile, recommendation, alternatives, reasons and versions |
+| `GET /api/catalogue` | The active catalogue version: capability cards, sources, cost bands |
+| `POST /api/analyze` | Profile, task needs, recommended model, alternatives, notes, reasons and versions |
 | `POST /api/decisions` | Persist `analysis_id` and eligible `candidate_id` for the signed-in owner |
+| `PUT /api/analyses/{id}/outcome`, `GET` | Feedback for the task: `resolved`, `resolved_with_refinement`, `not_resolved` (optional `reason`) or `skipped`, once |
 | `POST /api/auth/register`, `POST /api/auth/login` | Create account / sign in with email and password |
 | `GET /api/auth/me`, `POST /api/auth/logout` | Current user / revoke current login |
 | `GET /api/sessions`, `POST /api/sessions` | List / create the current user's sessions |
@@ -385,7 +387,6 @@ chat id as `session_id`, then send it with the `analysis_id` to link the two.
 | POST | `/api/chats/{id}/messages` | Send `{content, provider, configuration_id?, model?, analysis_id?, allow_external}` and get `{title, message, answer}`, or a stream (below) |
 | POST | `/api/chats/{id}/messages/{answer_id}/retry` | Answer the last question again (`{provider, configuration_id?, allow_external}`) |
 | GET/PUT | `/api/chat/settings` | `{auto_analyse}`, off by default |
-| GET/PUT | `/api/chat/model-tiers` | Map a model configuration to a catalogue tier (`tier: null` clears it) |
 
 The answer comes from the chosen model (`configuration_id`, or the server provider; `auto`
 means Groq) with the last 20 turns or 12,000 characters of the chat. The click on Send is
@@ -414,12 +415,17 @@ models, ADR-012; the chosen id is sent as `model` with Analyse, Send and Retry),
 Coach bubble and two buttons. **Analyse** runs the usual
 analysis on the draft without sending it and opens the analysis panel on the right
 (`AnalysisDrawer.tsx`: completeness, what changed, clarification questions, recommended
-tier, tips, profile). The panel slides in from the right; its tab, part of the panel's
+model with its coverage per need, tips, profile). The recommended model is selected for Send
+when it is one of the user's models. The panel slides in from the right; its tab, part of the panel's
 left edge, stays visible when it is closed, widens on hover to read "Show analysis" or
 "Hide analysis", and opens or closes it on click (or drag left to open, right to close). Analysing an edited draft again
 shows what changed. **Send** sends the message (Enter sends, Shift+Enter adds a line) and
 carries the analysis only if it was made from that exact text; the message then shows an
-"Analysis NN/100" chip that reopens it. While an answer streams in, Send becomes **Stop**;
+"Analysis NN/100" chip that reopens it. Send records the choice when the model used is one
+the analysis compared. Under the answers of the open task a quiet **Task solved** asks once
+whether the user needed to refine it; when the next task starts (a new analysis, another chat)
+a card asks whether the previous one was solved (Solved, Solved after refining, Not solved
+with an optional reason, Skip). Never per answer, never twice. While an answer streams in, Send becomes **Stop**;
 a stopped or failed answer offers **Retry**. Answers are rendered as GitHub-flavoured
 Markdown (`ChatMarkdown.tsx`, react-markdown with remark-gfm); raw HTML is dropped and unsafe
 links removed. The chat's system prompt asks every model for the same Markdown, so answers
@@ -440,62 +446,75 @@ Prompt Coach. To remove the chat: delete `backend/app/chat.py`, `scripts/check_c
 `backend/tests/test_chat*.py`, then the `try` block and `chat_options` in `main.py`,
 `chat` in `/api/features`, `/api/chat` in the no-store list, the `chat` marker,
 `chat_options` in `e2e/server.py` and the chat lines of the `removal-drill` job. Optionally
-drop `chat_sessions`, `chat_messages`, `chat_settings` and `chat_model_tiers`.
+drop `chat_sessions`, `chat_messages` and `chat_settings` (`chat_model_tiers` was removed by
+ADR-014; the module drops it on start).
 
 ## Seven-dimension prototype
 
-The response identifies `profile_version: profile-2`, `policy_version: prototype-3-graded` and `rubric_version`; re-analyses that send `previous_analysis_id` also return `completeness` and `changes`.
+The response identifies `profile_version: profile-2`, `policy_version: needs-capabilities-1`, `catalogue_version` and `rubric_version`; re-analyses that send `previous_analysis_id` also return `completeness` and `changes`.
 This changes scalar profile fields into objects: read `profile.reasoning.score`,
 `.confidence` and `.evidence`. Backend, frontend and test fixtures must migrate together.
 The assessor instructions are generated from the active rubric version (see "Rubric").
 
-Ranking uses reasoning/context for provisional capacity and derives hard modality
-requirements before capability filtering. Risk, domain, ambiguity and tool need do
-not automatically imply a larger model. They inform guidance and clarification instead.
-Unknown requirements or low confidence mark the result provisional. The current
-illustrative catalogue cannot satisfy audio/video requirements or verify tool support.
-This policy is experimental and awaits team/AO review and independent task evaluation.
+The recommendation is described in "Model recommendation" below. Ambiguity never raises the
+model: it is missing information, handled by clarification questions and the Coach. Unknown
+requirements or low confidence mark the result provisional.
+This policy is proposed (ADR-014) and awaits AO review and independent task evaluation.
 The contract tests run in CI; human quality evals and their regression gate remain outstanding.
 
-## Graded recommendation (PROPOSED, `prototype-3-graded`)
+## Model recommendation (PROPOSED, ADR-014, `needs-capabilities-1`)
 
-Instead of treating each tier as 100% or 0% suitable, the policy estimates a gradual
-fit per eligible tier. Capability filtering is still a hard requirement. Results report
-`policy_version: prototype-3-graded`, the graded ranking on top of the `prototype-3`
-completeness and changes policy.
+The analysis recommends a concrete model, not a tier: **the cheapest of the user's models whose
+capabilities cover every need of the task**. Deterministic Python in
+`backend/app/recommendation.py`; the step names are the ones the Product Specification uses.
 
-- **Demand** on the 1–3 scale, with R and C the reasoning/context scores (unknown = 2):
-  `D = 0.75·max(R, C) + 0.25·mean(R, C) + secondary_weight·(mean(domain, tools) − 1)`,
-  clamped to [1, 3]. `secondary_weight` is 0, so domain, risk and tools do not raise the tier.
-- **Uncertainty**: `spread = sqrt((s(conf_R)² + s(conf_C)²) / 2)` with
-  `s = {high: 0.25, medium: 0.45, low: 0.7, undetermined: 0.9}`, plus 0.2 when ambiguity
-  is unknown or 3.
-- **Sufficiency** of a tier with capacity `c`: 1 for the top tier (3), otherwise
-  `Φ((c + 0.5 − D) / spread)`, where Φ is the standard normal CDF.
-- **Fit** = `sufficiency · exp(−0.6 · max(0, c − D))`, penalising capacity above demand.
-- Candidates are ordered by highest fit, then lower capacity, then id. Each candidate
-  carries `sufficiency` and `fit`; the result carries `grading` with `demand`, `spread`,
-  the parameters and `basis: "Uncalibrated estimate; not a probability"`.
+**Task needs** (`task_needs`), on the rubric's 1–3 scale: reasoning, context, domain,
+reliability (from risk) and tools, plus modalities and length. Each need is an interval
+`[estimated, top]`: high or medium confidence `[s, s]`, low `[s, s+1]`, undetermined `[2, 3]`.
 
-**My progress** adds partial-credit agreement: each confirmed choice scores
-`max(0, 1 − |gap| / 2)`, where gap = chosen capacity − recommended capacity (0 tiers apart
-= 100, 1 = 50, 2 = 0). `/api/progress` returns `agreement` (percent) and `mean_gap`;
-dashboard points add `score` and `mean_gap` alongside the exact-match `rate`.
+**Capability cards** (`backend/data/catalogue/`, versioned and hashed like the rubric; active
+version in `ACTIVE`): one card per model with provider facts (context window, modalities, tools,
+prices), five levels (each with status `provisional`, `calibrated` or `unrated`, a source and a
+date) and its aliases per provider (`groq`, `openrouter`, `lmstudio`...). An alias may carry the
+provider's own price. How levels are assigned: [`docs/model-classification.md`](docs/model-classification.md).
 
-These parameters are initial guesses, **not calibrated** against task outcomes; fit values
-are relative estimates, not probabilities. Calibration and AO review are pending.
+| Step | Rule |
+|---|---|
+| `available_cards` | Rated cards behind the server models and the user's enabled configurations; unrated models are usable but never recommended |
+| `hard_filter` | Modality, requested capabilities, context window, tools 3 needs tool calling |
+| `coverage` | Per need: covers (level >= top), covers as described (>= estimate), short |
+| `model_status` | covers / covers_as_described / short, with the shortfalls |
+| `choose` | Cheapest blended price `(3 x input + output) / 4` among models that cover everything; ties: least excess, calibrated first, id |
+| `fallback` | Otherwise the best covering as described, or the least short; always provisional, with a note |
+| `extra_rules` | Risk 3: verify with a person. Tools 3: the chat does not run tools |
+| `explain` | Text from the coverage: what it covers, where the cheaper one falls short, why not the dearer one |
+
+Local models (Ollama, LM Studio) and `:free` OpenRouter ids cost 0. Cost bands (information
+only): low up to 0.50 USD per million tokens, medium up to 5.00, high above. With no rated
+model available the illustrative demo cards are used and the result says so.
+
+Several server models per provider: `ADAPTAI_GROQ_MODELS=openai/gpt-oss-20b,openai/gpt-oss-120b`
+(and `_OPENAI_`, `_CLAUDE_`, `_OLLAMA_`, `_LMSTUDIO_`). Each is a configuration
+`server:<provider>:<model>`; the first keeps `server:<provider>` and runs the analysis.
+
+**Choices and feedback.** Each candidate carries `gap` (−1 covers less than the
+recommendation, 0 the recommendation, +1 more than needed); My progress scores agreement as
+`max(0, 1 − |gap| / 2)`. Analyses stored with the old tier policy keep their tiers and are
+still counted. Feedback per task is stored in `task_outcomes` (no text) and feeds My progress
+("Your solved tasks"), the Educator and the Coach. `scripts/calibration_report.py` proposes
+level changes from it (at least 10 tasks, completeness >= 75); it never changes the catalogue.
 
 ## Architecture and limits
 
 `backend/app/models.py` owns domain contracts; `assessment.py` owns the provisional
 profile policy and prompt version; `providers.py` implements the provider
 boundary; `workflow.py` assembles the explicit assess → match graph; `main.py` exposes
-the API. Ranking favours sufficient capacity, then the closest tier, after hard
-capability filtering. `backend/data/catalogue.json` records version and provenance.
+the API. `recommendation.py` compares task needs with the capability cards of
+`catalogue.py`, which loads the versioned catalogue in `backend/data/catalogue/`.
 
 By default, task text, task-specific context, provider evidence and free-text explanations are
 transient. Explicit conversation-storage consent adds a separate owner-only text record as described below. Saved history contains derived profile values with fixed placeholder evidence,
-recommended/eligible tiers, confirmed choices, versions, timing and provider metadata.
+recommended and compared models, confirmed choices, task feedback, versions, timing and provider metadata.
 Titles are generated from session IDs. Manually entered profile preferences are a separate,
 explicit account setting. External processing requires consent for the task and enabled memory.
 No workflow checkpoints or tracing are configured; LangSmith tracing is disabled
@@ -509,14 +528,14 @@ external consent, adapter structured output, usage metadata, sanitised failures 
 timeouts. CI runs the checks above. These checks do not establish assessment accuracy.
 
 Next: validate real providers with agreed models/access,
-replace catalogue fixtures with sourced data, and calibrate against human-reviewed
-tasks. Deployment, trend analytics, streaming, automatic fallback and autonomous
+add the benchmark snapshot so real models get provisional levels, and calibrate them with
+the calibration set and the feedback report. Deployment, trend analytics, streaming, automatic fallback and autonomous
 agents are outside this increment.
 
 ## Database and accounts
 
 The default database is `backend/data/adaptai.sqlite3`; it is created automatically
-with schema version 7 (legacy databases with sessions require explicit privacy migration) and is ignored by Git, including WAL/SHM files. Configure an
+with schema version 8 (legacy databases with sessions require explicit privacy migration) and is ignored by Git, including WAL/SHM files. Configure an
 absolute `ADAPTAI_DATABASE_PATH` when running from another directory. No additional
 database server or dependency is required. SQLite enforces foreign keys, uses WAL
 and short transactions, and persists independently of application workers. Use a

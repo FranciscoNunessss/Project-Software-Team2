@@ -191,8 +191,15 @@ LOCAL_PROVIDERS = {"ollama", "lmstudio"}
 
 def price_of(item: Evaluated) -> float | None:
     """The card's blended price; 0 when the user runs the model locally."""
-    if item.option is not None and item.option.provider in LOCAL_PROVIDERS:
+    if item.option is not None and (
+        item.option.provider in LOCAL_PROVIDERS or (item.option.model or "").endswith(":free")
+    ):
         return 0.0
+    if item.option is not None:
+        for alias in item.card.aliases:
+            same = (alias.provider, alias.model) == (item.option.provider, item.option.model)
+            if same and alias.blended_price is not None:
+                return alias.blended_price
     return item.card.blended_price
 
 
@@ -327,7 +334,8 @@ def candidate(item: Evaluated, chosen: Evaluated, catalogue: Catalogue) -> dict:
         "coverage": item.coverage,
         "blended_price": price_of(item),
         "cost_band": catalogue.cost_bands.band(price_of(item)),
-        "free": item.card.facts.free,
+        "free": item.card.facts.free
+        or (option is not None and (option.model or "").endswith(":free")),
         "local": item.card.facts.local
         or (option is not None and option.provider in LOCAL_PROVIDERS),
         "illustrative": item.card.illustrative,

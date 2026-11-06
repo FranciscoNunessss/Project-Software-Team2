@@ -47,6 +47,27 @@ class Alias(BaseModel):
     model_config = ConfigDict(extra="forbid")
     provider: Literal["openai", "claude", "groq", "openrouter", "ollama", "lmstudio"]
     model: str = Field(min_length=1, max_length=200)
+    # The provider's own price when it differs from the card's (e.g. Groq vs OpenRouter).
+    price_in_per_mtok: float | None = Field(default=None, ge=0)
+    price_out_per_mtok: float | None = Field(default=None, ge=0)
+    price_source: str | None = None
+
+    @model_validator(mode="after")
+    def priced_with_source(self):
+        priced = self.price_in_per_mtok is not None or self.price_out_per_mtok is not None
+        if priced and (
+            self.price_in_per_mtok is None
+            or self.price_out_per_mtok is None
+            or not self.price_source
+        ):
+            raise ValueError("an alias price needs input, output and a source")
+        return self
+
+    @property
+    def blended_price(self) -> float | None:
+        if self.price_in_per_mtok is None or self.price_out_per_mtok is None:
+            return None
+        return round((3 * self.price_in_per_mtok + self.price_out_per_mtok) / 4, 6)
 
 
 class Facts(BaseModel):
@@ -131,6 +152,17 @@ class Catalogue(BaseModel):
         if len(aliases) != len(set(aliases)):
             raise ValueError("a provider model may belong to one card only")
         return self
+
+    def alias(self, provider: str, model: str | None) -> Alias | None:
+        return next(
+            (
+                alias
+                for card in self.cards
+                for alias in card.aliases
+                if alias.provider == provider and alias.model == model
+            ),
+            None,
+        )
 
     def card(self, identifier: str) -> Card | None:
         return next((card for card in self.cards if card.id == identifier), None)

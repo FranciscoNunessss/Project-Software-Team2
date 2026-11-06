@@ -1,13 +1,14 @@
 name: Catalogue sources
 # Fetches the public facts and the benchmark snapshot that a new catalogue version is built
-# from (ADR-014, docs/model-classification.md). It only uploads the files as an artifact:
-# a person reviews them and commits the new catalogue version in a pull request.
+# from (ADR-014, docs/model-classification.md). On a data/** branch it also commits the
+# files to that branch; a person reviews them and builds the new catalogue version in a
+# pull request. Nothing reaches develop or main from here.
 on:
   workflow_dispatch:
   push:
     branches: ["data/**"]
 permissions:
-  contents: read
+  contents: write
 jobs:
   sources:
     runs-on: ubuntu-latest
@@ -33,3 +34,11 @@ jobs:
           name: catalogue-sources
           path: backend/data/catalogue/sources/
           retention-days: 30
+      - name: Commit the sources to the data branch
+        if: startsWith(github.ref, 'refs/heads/data/')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add backend/data/catalogue/sources/
+          git diff --cached --quiet || git commit -m "Catalogue sources $(date -u +%F)"
+          git push

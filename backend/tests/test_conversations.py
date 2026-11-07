@@ -181,7 +181,7 @@ def test_revocation_while_collecting_snapshot_discards_text(monkeypatch):
     def revoke_after_read(user_id):
         samples = original(user_id)
         with app.state.storage.connect() as db:
-            db.execute("UPDATE user_context SET use_enabled=0 WHERE user_id=?", (user_id,))
+            db.execute("UPDATE user_context SET use_enabled=0 WHERE user_id=%s", (user_id,))
         return samples
 
     monkeypatch.setattr(app.state.storage, "conversation_samples", revoke_after_read)
@@ -197,7 +197,7 @@ def test_saved_conversation_response_reports_its_rubric_version():
     with app.state.storage.connect() as db:
         db.execute(
             "UPDATE conversation_content "
-            "SET response_json=json_remove(response_json,'$.rubric_version')"
+            "SET response_json=(response_json::jsonb - 'rubric_version')::text"
         )
     response = history(client, saved)["conversation"]["response"]
     assert response["rubric_version"] == "rubric-2.0"

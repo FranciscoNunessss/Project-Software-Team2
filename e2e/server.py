@@ -9,16 +9,33 @@ core needs no test hooks.
 Each test user switches the Prompt Coach on or off in Profile (on by default).
 """
 
+import atexit
 import os
 import sys
 import tempfile
 from pathlib import Path
+from uuid import uuid4
+
+import psycopg
+from psycopg import sql
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 DATA = Path(tempfile.mkdtemp(prefix="adaptai-e2e-"))
-os.environ["ADAPTAI_DATABASE_PATH"] = str(DATA / "e2e.sqlite3")
+DATABASE_URL = os.environ.get("ADAPTAI_TEST_DATABASE_URL", "postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai")
+SCHEMA = "e2e_" + uuid4().hex
+os.environ["ADAPTAI_DATABASE_URL"] = DATABASE_URL
+os.environ["ADAPTAI_DATABASE_SCHEMA"] = SCHEMA
+os.environ.pop("ADAPTAI_CREDENTIALS_KEY", None)
+
+
+def cleanup():
+    with psycopg.connect(DATABASE_URL, autocommit=True) as db:
+        db.execute(sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE").format(sql.Identifier(SCHEMA)))
+
+
+atexit.register(cleanup)
 os.environ["ADAPTAI_CREDENTIALS_KEY_PATH"] = str(DATA / "e2e.key")
 
 import uvicorn  # noqa: E402

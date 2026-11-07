@@ -298,7 +298,7 @@ async def test_closing_the_stream_keeps_the_partial_answer_as_stopped():
     with store.connect() as db:
         db.execute(
             "INSERT INTO chat_messages(id,session_id,role,content,status) "
-            "VALUES ('a1', ?, 'assistant', '', 'stopped')",
+            "VALUES ('a1', %s, 'assistant', '', 'stopped')",
             (chat_id,),
         )
     events = answer_events(store, FakeChat("groq", None, "m"), "a1", "groq", "m", [("human", "hi")])

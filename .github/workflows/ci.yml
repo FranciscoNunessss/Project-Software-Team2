@@ -3,8 +3,97 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  deploy:
+    # Explicit opt-in: no deployment until all cloud resources and secrets are configured.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.CLOUD_DEPLOY_ENABLED == 'true'
+    needs: [containers, backend, removal-drill, frontend, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    concurrency:
+      group: cloud-production
+      cancel-in-progress: false
+    environment: production
+    env:
+      VITE_AUTH_MODE: supabase
+      VITE_API_ORIGIN: ${{ vars.API_ORIGIN }}
+      VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      RENDER_SERVICE_ID: ${{ vars.RENDER_SERVICE_ID }}
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify deployment configuration before changing either service
+        run: |
+          python - <<'PY'
+          import os
+          required = ('VITE_API_ORIGIN', 'VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY',
+                      'RENDER_SERVICE_ID', 'RENDER_API_KEY', 'NETLIFY_SITE_ID', 'NETLIFY_AUTH_TOKEN')
+          missing = [name for name in required if not os.environ.get(name)]
+          if missing:
+              raise SystemExit('Missing deployment settings: ' + ', '.join(missing))
+          PY
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - name: Build the cloud frontend before deploying the backend
+        run: pnpm build
+        working-directory: frontend
+      - name: Deploy the checked backend commit and wait for readiness
+        run: python scripts/deploy_render.py
+      - name: Check the public backend
+        run: curl --fail --silent --show-error --retry 5 --retry-delay 10 --max-time 120 "$VITE_API_ORIGIN/api/health"
+      - name: Publish the prebuilt frontend
+        working-directory: frontend
+        run: npx --yes netlify-cli@27.16.2 deploy --prod --no-build --dir=dist --timeout=600
+  containers:
+    runs-on: ubuntu-latest
+    env:
+      # Only synthetic credentials/demo models; do not inject production secrets here.
+      ADAPTAI_ENV_FILE: .env.example
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start the packaged stack
+        run: docker compose --env-file .env.example up --build -d --wait --wait-timeout 180
+      - name: Check the frontend, API, authentication and SSE
+        run: python scripts/check_containers.py --state-file "$RUNNER_TEMP/container-state.json"
+      - name: Recreate the application containers and retain the encryption key
+        run: |
+          key_before=$(docker compose exec -T backend python -c "import hashlib; from pathlib import Path; print(hashlib.sha256(Path('/data/adaptai.credentials.key').read_bytes()).hexdigest())")
+          docker compose --env-file .env.example up -d --force-recreate --wait --wait-timeout 120 backend frontend
+          key_after=$(docker compose exec -T backend python -c "import hashlib; from pathlib import Path; print(hashlib.sha256(Path('/data/adaptai.credentials.key').read_bytes()).hexdigest())")
+          test "$key_before" = "$key_after"
+      - name: Verify login and data after recreation
+        run: python scripts/check_containers.py --state-file "$RUNNER_TEMP/container-state.json" --verify-only
+      - name: Container logs
+        if: failure()
+        run: docker compose logs --no-color --tail 100
+      - name: Remove this runner's disposable stack
+        if: always()
+        run: docker compose down -v
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_DB: adaptai
+          POSTGRES_USER: adaptai
+          POSTGRES_PASSWORD: adaptai
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U adaptai -d adaptai"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      ADAPTAI_TEST_DATABASE_URL: postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -18,6 +107,19 @@ jobs:
     # Proves the optional modules, Prompt Coach (ADR-009) and chat (ADR-011), can be deleted
     # without touching the core.
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_DB: adaptai
+          POSTGRES_USER: adaptai
+          POSTGRES_PASSWORD: adaptai
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U adaptai -d adaptai"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      ADAPTAI_TEST_DATABASE_URL: postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -32,40 +134,30 @@ jobs:
       - run: uv run python -m pytest -q -m "not prompt_coach and not chat"
       - name: Restart over a real database that still has Prompt Coach and chat data
         env:
-          ADAPTAI_DATABASE_PATH: ${{ runner.temp }}/drill.sqlite3
+          ADAPTAI_DATABASE_URL: postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai
+          ADAPTAI_DATABASE_SCHEMA: removal_drill
           ADAPTAI_CREDENTIALS_KEY_PATH: ${{ runner.temp }}/drill.key
         working-directory: backend
         run: |
           uv run python - <<'PY'
-          import os
-          import sqlite3
-
           from app.main import create_app
           from fastapi.testclient import TestClient
 
-          path = os.environ["ADAPTAI_DATABASE_PATH"]
-          # 1. The core migrates a fresh database to its current schema.
-          assert TestClient(create_app()).get("/api/health").status_code == 200
-          with sqlite3.connect(path) as db:
-              version = db.execute("PRAGMA user_version").fetchone()[0]
-              # 2. Leftover Prompt Coach data, as after removing the module.
+          app = create_app()
+          store = app.state.storage
+          assert TestClient(app).get("/api/health").status_code == 200
+          with store.connect() as db:
+              versions = db.execute("SELECT version,checksum FROM schema_migrations ORDER BY version").fetchall()
               db.execute("CREATE TABLE prompt_coach_events (id TEXT PRIMARY KEY, payload TEXT)")
               db.execute("INSERT INTO prompt_coach_events VALUES ('drill', '{}')")
-              db.execute(
-                  "CREATE TABLE IF NOT EXISTS prompt_coach_settings (user_id TEXT PRIMARY KEY, "
-                  "enabled INTEGER NOT NULL, updated_at TEXT NOT NULL)"
-              )
-              # Leftover chat data as well.
-              db.execute(
-                  "CREATE TABLE IF NOT EXISTS chat_messages (id TEXT PRIMARY KEY, "
-                  "session_id TEXT, role TEXT, content TEXT)"
-              )
+              db.execute("CREATE TABLE chat_messages (id TEXT PRIMARY KEY, session_id TEXT, role TEXT, content TEXT)")
               db.execute("INSERT INTO chat_messages VALUES ('drill', 's', 'user', 'hi')")
-          # 3. The core restarts over it and the schema version is untouched.
-          assert TestClient(create_app()).get("/api/health").status_code == 200
-          with sqlite3.connect(path) as db:
-              assert db.execute("PRAGMA user_version").fetchone()[0] == version
-          print("removal drill ok, user_version", version)
+          restarted = create_app()
+          assert TestClient(restarted).get("/api/health").status_code == 200
+          with restarted.state.storage.connect() as db:
+              assert db.execute("SELECT version,checksum FROM schema_migrations ORDER BY version").fetchall() == versions
+              assert db.execute("SELECT count(*) FROM chat_messages").fetchone()[0] == 1
+          print("removal drill ok")
           PY
   frontend:
     runs-on: ubuntu-latest
@@ -87,6 +179,19 @@ jobs:
   e2e:
     # Browser tests against the real app with fake models (e2e/server.py); no API keys needed.
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_DB: adaptai
+          POSTGRES_USER: adaptai
+          POSTGRES_PASSWORD: adaptai
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U adaptai -d adaptai"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      ADAPTAI_TEST_DATABASE_URL: postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6

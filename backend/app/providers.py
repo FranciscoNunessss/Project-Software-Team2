@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     openrouter_model: str = ""
     openrouter_api_key: SecretStr = SecretStr("")
     ollama_model: str = ""
+    ollama_base_url: str = "http://127.0.0.1:11434"
     # LM Studio's local OpenAI-compatible server. The address is server configuration only; it
     # can never be set by an API request.
     lmstudio_model: str = ""
@@ -38,11 +39,16 @@ class Settings(BaseSettings):
     ollama_models: str = ""
     lmstudio_models: str = ""
     timeout_seconds: float = Field(default=30, gt=0, le=120)
-    database_path: str = "backend/data/adaptai.sqlite3"
+    database_url: SecretStr = SecretStr("postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai")
+    database_schema: str = "adaptai"
     credentials_key_path: str = ""
+    credentials_key: SecretStr = SecretStr("")
     session_days: int = Field(default=7, ge=1, le=30)
     cookie_secure: bool = False
     browser_origin: str = "http://127.0.0.1:8443"
+    auth_mode: Literal["local", "supabase"] = "local"
+    supabase_url: str = ""
+    supabase_publishable_key: SecretStr = SecretStr("")
 
 
 SERVER_MODEL_PROVIDERS = ("openai", "claude", "groq", "ollama", "lmstudio")
@@ -254,7 +260,7 @@ def _build_model(
 
     return ChatOllama(
         model=settings.ollama_model,
-        base_url="http://127.0.0.1:11434",
+        base_url=settings.ollama_base_url,
         num_predict=max_tokens,
         **sampling,
     )

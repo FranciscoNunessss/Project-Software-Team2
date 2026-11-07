@@ -1,0 +1,15 @@
+**
+!package.json
+!pnpm-lock.yaml
+!index.html
+!tsconfig.json
+!vite.config.ts
+!src/
+!src/**
+!public/
+!public/**
+!.figma/
+!.figma/make/
+!.figma/make/site.json
+!nginx.conf
+**/.env*

@@ -267,12 +267,12 @@ def _first_analyses(store, user_id):
     with store.connect() as db:
         rows = db.execute(
             """SELECT * FROM (
-                 SELECT s.created_at AS session_created, s.rowid AS session_row,
+                 SELECT s.created_at AS session_created, s.sequence_id AS session_row,
                    (SELECT a.result_json FROM analyses a WHERE a.session_id=s.id
-                    ORDER BY a.created_at,a.rowid LIMIT 1) AS first_result
-                 FROM sessions s WHERE s.user_id=?
-                 ORDER BY s.created_at DESC,s.rowid DESC
-               ) WHERE first_result IS NOT NULL LIMIT ?""",
+                    ORDER BY a.created_at,a.sequence_id LIMIT 1) AS first_result
+                 FROM sessions s WHERE s.user_id=%s
+                 ORDER BY s.created_at DESC,s.sequence_id DESC
+               ) WHERE first_result IS NOT NULL LIMIT %s""",
             (user_id, SERIES_LIMIT),
         ).fetchall()
     return [(row["session_created"], json.loads(row["first_result"])) for row in reversed(rows)]
@@ -337,8 +337,8 @@ def snapshot(store, user_id):
         rows = db.execute(
             """SELECT a.id,a.result_json,d.candidate_id FROM analyses a
                JOIN sessions s ON s.id=a.session_id
-               LEFT JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=?
-               ORDER BY a.created_at DESC,a.rowid DESC LIMIT 50""",
+               LEFT JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=%s
+               ORDER BY a.created_at DESC,a.sequence_id DESC LIMIT 50""",
             (user_id,),
         ).fetchall()
     records = []
@@ -375,7 +375,7 @@ def snapshot(store, user_id):
     conversations = store.conversation_samples(user_id)
     with store.connect() as db:
         permissions = db.execute(
-            "SELECT conversation_memory_enabled,use_enabled FROM user_context WHERE user_id=?",
+            "SELECT conversation_memory_enabled,use_enabled FROM user_context WHERE user_id=%s",
             (user_id,),
         ).fetchone()
     if not permissions or not all(permissions):
@@ -459,7 +459,7 @@ def install_coaching(app, store, settings):
     def automatic_enabled(user_id):
         with store.connect() as db:
             row = db.execute(
-                "SELECT coaching_auto_enabled FROM user_context WHERE user_id=?", (user_id,)
+                "SELECT coaching_auto_enabled FROM user_context WHERE user_id=%s", (user_id,)
             ).fetchone()
         return bool(row and row[0])
 
@@ -467,7 +467,7 @@ def install_coaching(app, store, settings):
         fingerprint, _ = snapshot(store, user_id)
         with store.connect() as db:
             row = db.execute(
-                "SELECT * FROM coaching_reports WHERE user_id=?", (user_id,)
+                "SELECT * FROM coaching_reports WHERE user_id=%s", (user_id,)
             ).fetchone()
         return (
             None
@@ -505,7 +505,7 @@ def install_coaching(app, store, settings):
         except ProviderFailure as exc:
             raise HTTPException(502, exc.code) from None
         with store.connect() as db:
-            db.execute("BEGIN IMMEDIATE")
+            store.lock_user(db, user_id)
             # A deletion while the model was running must not recreate deleted history.
             actual_fingerprint, _ = snapshot(store, user_id)
             if actual_fingerprint != fingerprint:
@@ -514,11 +514,12 @@ def install_coaching(app, store, settings):
                 return None
             db.execute(
                 """INSERT INTO coaching_reports(user_id,fingerprint,model,report_json,source_json)
-                   VALUES (?,?,?,?,?)
+                   VALUES (%s,%s,%s,%s,%s)
                    ON CONFLICT(user_id) DO UPDATE SET fingerprint=excluded.fingerprint,
                    model=excluded.model,report_json=excluded.report_json,
                    source_json=excluded.source_json,
-                   updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')""",
+                   updated_at=to_char(clock_timestamp() AT TIME ZONE 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')""",
                 (
                     user_id,
                     fingerprint,

@@ -14,7 +14,6 @@ All 16 combinations of save, use, automatic coaching and conversation saving are
 
 import itertools
 import logging
-from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -132,7 +131,10 @@ def database_text(app) -> list[tuple[str, str, str]]:
     with app.state.storage.connect() as db:
         tables = [
             row[0]
-            for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+            for row in db.execute(
+                "SELECT tablename FROM pg_tables "
+                "WHERE schemaname=current_schema() ORDER BY tablename"
+            ).fetchall()
         ]
         assert {"sessions", "analyses", "memory_entries", "user_context"} <= set(tables)
         for table in tables:
@@ -159,14 +161,7 @@ def assert_privacy(app, caplog, capsys, *, conversations_saved=False):
             if marker in text and table not in tables
         ]
         assert leaks == [], f"{marker} stored in {leaks}"
-    # The database files themselves (main file and write-ahead log), byte for byte.
-    database = Path(app.state.storage.path)
-    file_markers = (COACH_MARKER,) if conversations_saved else MARKERS
-    for path in (database, Path(f"{database}-wal"), Path(f"{database}-journal")):
-        if path.exists():
-            content = path.read_bytes()
-            for marker in file_markers:
-                assert marker.encode() not in content, f"{marker} in {path.name}"
+    # PostgreSQL server files are not local; inspect every value in the owned schema above.
     logged = [
         record.name
         for record in caplog.records

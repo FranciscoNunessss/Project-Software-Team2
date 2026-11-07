@@ -1,0 +1,26 @@
+# Backend build context: include only runtime source and locked dependencies.
+**
+!pyproject.toml
+!uv.lock
+!README.md
+!backend/
+!backend/Dockerfile
+!backend/docker-entrypoint.sh
+!backend/app/
+!backend/app/**
+!backend/migrations/
+!backend/migrations/**
+!backend/migration_tools/
+!backend/migration_tools/**
+!backend/rubric/
+!backend/rubric/**
+!backend/data/
+!backend/data/catalogue/
+!backend/data/catalogue/**
+!scripts/
+!scripts/migrate_sqlite_to_postgres.py
+!scripts/migrate_privacy.py
+**/__pycache__/**
+**/*.pyc
+**/*.key
+**/.env*

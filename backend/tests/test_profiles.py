@@ -251,7 +251,7 @@ def test_analyses_result_json_does_not_retain_tips():
     assert result["tips"]
     with client.app.state.storage.connect() as db:
         stored = db.execute(
-            "SELECT result_json FROM analyses WHERE id=?", (result["id"],)
+            "SELECT result_json FROM analyses WHERE id=%s", (result["id"],)
         ).fetchone()[0]
     assert json.loads(stored)["tips"] == []
 
@@ -266,10 +266,10 @@ def test_tips_are_kept_only_in_opted_in_conversations():
     ).json()
     with client.app.state.storage.connect() as db:
         stored = db.execute(
-            "SELECT result_json FROM analyses WHERE id=?", (result["id"],)
+            "SELECT result_json FROM analyses WHERE id=%s", (result["id"],)
         ).fetchone()[0]
         saved = db.execute(
-            "SELECT response_json FROM conversation_content WHERE analysis_id=?", (result["id"],)
+            "SELECT response_json FROM conversation_content WHERE analysis_id=%s", (result["id"],)
         ).fetchone()[0]
     assert json.loads(stored)["tips"] == []
     assert json.loads(saved)["tips"] == result["tips"]

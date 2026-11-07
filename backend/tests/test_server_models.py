@@ -35,7 +35,6 @@ def test_server_models_list_and_single_fallback():
 def test_every_server_model_is_an_option_and_the_first_keeps_server_groq(tmp_path):
     settings = Settings(
         _env_file=None,
-        database_path=str(tmp_path / "db.sqlite3"),
         groq_models="openai/gpt-oss-120b,openai/gpt-oss-20b",
         groq_api_key="synthetic",
     )
@@ -75,7 +74,6 @@ def test_recommendation_points_at_a_server_model_the_user_can_send_to(tmp_path, 
     large["aliases"] = [{"provider": "groq", "model": "openai/gpt-oss-120b"}]
     settings = Settings(
         _env_file=None,
-        database_path=str(tmp_path / "db.sqlite3"),
         groq_models=MODELS,
         groq_api_key="synthetic",
     )

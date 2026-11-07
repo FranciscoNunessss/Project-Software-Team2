@@ -135,7 +135,7 @@ def test_disabling_automatic_coaching_during_call_does_not_save_report(monkeypat
     result = analyze(client)
     with app.state.storage.connect() as db:
         owner = db.execute(
-            "SELECT user_id FROM sessions WHERE id=?", (result["session_id"],)
+            "SELECT user_id FROM sessions WHERE id=%s", (result["session_id"],)
         ).fetchone()[0]
 
     class Coach:
@@ -145,7 +145,7 @@ def test_disabling_automatic_coaching_during_call_does_not_save_report(monkeypat
         async def generate(self, metadata):
             with app.state.storage.connect() as db:
                 db.execute(
-                    "UPDATE user_context SET coaching_auto_enabled=0 WHERE user_id=?", (owner,)
+                    "UPDATE user_context SET coaching_auto_enabled=0 WHERE user_id=%s", (owner,)
                 )
             return CoachingReport.model_validate(REPORT)
 
@@ -154,21 +154,24 @@ def test_disabling_automatic_coaching_during_call_does_not_save_report(monkeypat
     assert client.get("/api/progress/coaching").json()["saved"] is None
 
 
-def test_v5_migration_preserves_history_and_defaults_automatic_coaching_off():
-    from app.storage import Storage
+def test_v5_migration_preserves_history_and_defaults_automatic_coaching_off(tmp_path):
+    from conftest import legacy_copy
+    from migration_tools.legacy_sqlite import LegacySQLiteStorage as Storage
 
     settings = Settings(_env_file=None)
     app = create_app(settings)
     client = account(app)
     analyze(client)
     client.put("/api/context", json={"content": "Portuguese", "save_enabled": True})
-    with app.state.storage.connect() as db:
+    legacy_path = tmp_path / "legacy.sqlite3"
+    legacy = legacy_copy(app.state.storage, legacy_path)
+    with legacy.connect() as db:
         db.execute("ALTER TABLE user_context DROP COLUMN coaching_auto_enabled")
         db.execute("ALTER TABLE user_context DROP COLUMN conversation_memory_enabled")
         db.execute("ALTER TABLE coaching_reports DROP COLUMN source_json")
         db.execute("DROP TABLE conversation_content")
         db.execute("PRAGMA user_version=5")
-    migrated = Storage(settings.database_path)
+    migrated = Storage(str(legacy_path))
     with migrated.connect() as db:
         assert db.execute("PRAGMA user_version").fetchone()[0] == 8
         assert db.execute("SELECT count(*) FROM analyses").fetchone()[0] == 1
@@ -385,7 +388,8 @@ def test_old_coaching_cache_is_stale_and_replaced_without_altering_history(monke
     old = {"summary": "Old summary", "suggestions": REPORT["suggestions"]}
     with app.state.storage.connect() as db:
         db.execute(
-            "INSERT INTO coaching_reports(user_id,fingerprint,model,report_json) VALUES (?,?,?,?)",
+            "INSERT INTO coaching_reports(user_id,fingerprint,model,report_json) "
+            "VALUES (%s,%s,%s,%s)",
             (owner, "old-contract-fingerprint", settings.groq_model, json.dumps(old)),
         )
     assert client.get("/api/progress/coaching").json()["saved"]["stale"]
@@ -436,7 +440,7 @@ def store_profile(app, analysis_id, determined, *, stored_completeness=None):
     """Rewrite a stored analysis so its first ``determined`` dimensions are known."""
     with app.state.storage.connect() as db:
         result = json.loads(
-            db.execute("SELECT result_json FROM analyses WHERE id=?", (analysis_id,)).fetchone()[0]
+            db.execute("SELECT result_json FROM analyses WHERE id=%s", (analysis_id,)).fetchone()[0]
         )
         for index, name in enumerate(DIMENSIONS):
             known = index < determined
@@ -452,7 +456,7 @@ def store_profile(app, analysis_id, determined, *, stored_completeness=None):
         else:
             result["completeness"] = stored_completeness
         db.execute(
-            "UPDATE analyses SET result_json=? WHERE id=?", (json.dumps(result), analysis_id)
+            "UPDATE analyses SET result_json=%s WHERE id=%s", (json.dumps(result), analysis_id)
         )
 
 
@@ -648,11 +652,13 @@ def test_sessions_with_an_invalid_stored_profile_are_skipped():
     broken = analyze(client)
     with app.state.storage.connect() as db:
         result = json.loads(
-            db.execute("SELECT result_json FROM analyses WHERE id=?", (broken["id"],)).fetchone()[0]
+            db.execute("SELECT result_json FROM analyses WHERE id=%s", (broken["id"],)).fetchone()[
+                0
+            ]
         )
         del result["profile"]["risk"]  # An incomplete stored profile.
         db.execute(
-            "UPDATE analyses SET result_json=? WHERE id=?", (json.dumps(result), broken["id"])
+            "UPDATE analyses SET result_json=%s WHERE id=%s", (json.dumps(result), broken["id"])
         )
     _, metadata = snapshot(app.state.storage, user_of(client))
     assert metadata["skipped_sessions"] == 1
@@ -660,14 +666,15 @@ def test_sessions_with_an_invalid_stored_profile_are_skipped():
     assert "insufficient_history" not in metadata
     with app.state.storage.connect() as db:
         valid = db.execute(
-            "SELECT id FROM sessions WHERE id<>? ORDER BY rowid LIMIT 1", (broken["session_id"],)
+            "SELECT id FROM sessions WHERE id<>%s ORDER BY sequence_id LIMIT 1",
+            (broken["session_id"],),
         ).fetchone()[0]
         db.execute(
             "DELETE FROM decisions WHERE analysis_id IN "
-            "(SELECT id FROM analyses WHERE session_id=?)",
+            "(SELECT id FROM analyses WHERE session_id=%s)",
             (valid,),
         )
-        db.execute("DELETE FROM analyses WHERE session_id=?", (valid,))
+        db.execute("DELETE FROM analyses WHERE session_id=%s", (valid,))
     _, metadata = snapshot(app.state.storage, user_of(client))
     # Four valid points plus a skipped session is still insufficient history.
     assert metadata["skipped_sessions"] == 1

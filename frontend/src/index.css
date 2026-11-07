@@ -931,47 +931,44 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .outcome-models { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 12px; }
 .outcome-models li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); padding: 4px 0; }
 
-/* ---------- App shell: the sidebar lists the chats; the AdaptAI menu holds the pages ---------- */
+/* ---------- App shell: sidebar laid out like Claude's (pages on top, chats below) ---------- */
 .topbar { width: 260px; }
-.nav-shell { padding: 14px 12px 12px; gap: 14px; min-height: 0; }
+.nav-shell { padding: 14px 10px 12px; gap: 10px; min-height: 0; }
 .sidebar-head { display: flex; align-items: center; gap: 4px; }
-.brand-menu { position: relative; flex: 1; min-width: 0; }
-.brand-menu .brand { width: 100%; padding: 8px 10px; border-radius: 10px; }
-.brand-menu .brand:hover, .brand-menu .brand[aria-expanded="true"] { background: var(--blue-soft); }
-.brand-caret { width: 7px; height: 7px; margin-left: auto; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: translateY(-2px) rotate(45deg); transition: transform .18s ease; }
-.brand-caret.open { transform: translateY(2px) rotate(-135deg); }
+.sidebar-head .brand { flex: 1; min-width: 0; padding: 6px 10px 8px; border-radius: 10px; }
 .icon-button { width: 36px; height: 36px; display: grid; place-items: center; flex-shrink: 0; border: 0; border-radius: 10px; background: transparent; color: var(--ink); font-size: 20px; line-height: 1; }
 .icon-button:hover { background: var(--blue-soft); }
 .icon-button:disabled { opacity: .45; cursor: default; }
-.sidebar-drawer-toggle, .sidebar-new-icon, .sidebar-drawer-close, .sidebar-backdrop { display: none; }
+.sidebar-drawer-toggle, .sidebar-new-icon, .sidebar-backdrop, .sidebar-panel-head { display: none; }
 .hamburger { width: 16px; height: 2px; border-radius: 2px; background: currentColor; box-shadow: 0 -5px 0 currentColor, 0 5px 0 currentColor; }
-.sidebar-chats { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
-.sidebar-chats-head { display: flex; align-items: center; justify-content: space-between; min-height: 20px; padding: 0 10px; }
-.sidebar-chats-head .eyebrow { margin: 0; }
-.chat-new { width: 100%; min-height: 40px; justify-content: flex-start; gap: 8px; }
-.chat-list { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; max-height: none; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
-.sidebar-pages { display: flex; flex-direction: column; gap: 4px; }
+
+.sidebar-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 1px; }
+.menu-item { width: 100%; min-height: 36px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border: 0; border-radius: 9px; background: none; color: var(--ink); font-size: 13px; font-weight: 500; text-align: left; }
+.menu-item:hover { background: var(--blue-soft); }
+.menu-item.active { background: var(--blue-soft); font-weight: 650; }
+.menu-item:disabled { opacity: .5; cursor: default; }
+.sidebar-icon { flex-shrink: 0; color: var(--muted); }
+.menu-item.active .sidebar-icon, .menu-item:hover .sidebar-icon { color: var(--ink); }
+.sidebar-new { font-weight: 600; }
+.sidebar-new-mark { width: 22px; height: 22px; margin-left: -3px; display: grid; place-items: center; border-radius: 50%; background: #202020; }
+.sidebar-new-mark .sidebar-icon { color: #ffffff; }
+.sidebar-new:hover .sidebar-new-mark .sidebar-icon { color: #ffffff; }
+.theme-dark .sidebar-new-mark { background: #f2f2f2; }
+.theme-dark .sidebar-new-mark .sidebar-icon, .theme-dark .sidebar-new:hover .sidebar-new-mark .sidebar-icon { color: #141414; }
+
+.sidebar-chats { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; margin-top: 14px; }
+.sidebar-section-title { margin: 0; padding: 0 10px 4px; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+.chat-list { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; max-height: none; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+.chat-list li { border-radius: 9px; }
+.chat-open { padding: 8px 10px; font-size: 13px; }
+.sidebar-spacer { flex: 1; }
 @media (hover: none) { .chat-delete { opacity: 1; } }
 
-.nav-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 40; width: 250px; padding: 6px; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 18px 50px rgba(40,40,40,.14); }
-.nav-menu-account { margin: 0; padding: 8px 10px 10px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-bottom: 1px solid var(--line); }
-.account-indicator { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: var(--ink); }
-.nav-menu-pages { display: flex; flex-direction: column; gap: 2px; padding-top: 6px; }
-.nav-menu-footer { display: none; }
-.nav-menu-footer { display: flex; flex-direction: column; gap: 2px; padding-top: 6px; }
-.menu-item { width: 100%; min-height: 38px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border: 0; border-radius: 9px; background: none; color: var(--ink); font-size: 13px; font-weight: 500; text-align: left; }
-.menu-item:hover { background: var(--blue-soft); }
-.menu-item.active { background: #202020; color: #ffffff; font-weight: 650; }
-.menu-item:disabled { opacity: .5; cursor: default; }
-.menu-theme .theme-toggle-icon { width: 14px; height: 14px; }
-.menu-status { margin: 0; padding: 8px 10px 4px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; font-weight: 600; }
-.menu-status.degraded .status-dot { background: #8d8d8d; }
-.theme-dark .nav-menu { box-shadow: 0 18px 50px #0008; }
-.theme-dark .menu-item.active { background: #f2f2f2; color: #141414; }
-.theme-dark .brand-caret { border-color: #a9a9a9; }
-
-/* Bottom of the sidebar: theme, sign out, API status (as before the chat list moved here). */
+/* Bottom of the sidebar: account, theme, sign out, API status. */
 .sidebar-footer { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.sidebar-account { margin: 0; padding: 0 4px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-indicator { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: var(--ink); }
 .sidebar-footer .theme-toggle { margin: 0; }
 .sidebar-signout { min-height: 40px; border: 1px solid #dfdfdf; border-radius: 10px; background: transparent; color: #555555; padding: 0 11px; font-size: 11px; font-weight: 600; text-align: left; }
 .sidebar-signout:hover { background: #eeeeee; color: #222222; }
@@ -979,8 +976,6 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .sidebar-footer .status { margin-top: 18px; padding: 12px 10px 2px; }
 .theme-dark .sidebar-signout { border-color: #383838; color: #d4d4d4; }
 .theme-dark .sidebar-signout:hover { background: #2b2b2b; color: #ffffff; }
-.sidebar-pages { flex: 1; min-height: 0; }
-.sidebar-pages .sidebar-footer { margin-top: auto; }
 
 /* Pages sit centred in the space beside the sidebar. */
 .app-main { margin-left: 292px; min-width: 0; }
@@ -1022,26 +1017,23 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
   .sheet-handle { display: block; flex-shrink: 0; width: 40px; height: 4px; margin: 8px auto 0; border-radius: 4px; background: var(--line); }
 }
 
-/* Small screens: a top bar; the chats slide in from the left. */
+/* Small screens: a top bar; the whole sidebar slides in from the left. */
 @media (max-width: 800px) {
-  /* No backdrop-filter here: it would trap the fixed chat drawer inside the bar. */
+  /* No backdrop-filter here: it would trap the fixed drawer inside the bar. */
   .topbar { width: auto; height: 56px; backdrop-filter: none; }
   .nav-shell { padding: 0 8px; flex-direction: row; gap: 0; }
   .sidebar-head { flex: 1; min-width: 0; }
-  .brand-menu { flex: 0 1 auto; position: static; }
-  .brand-menu .brand { width: auto; gap: 8px; padding: 6px 8px; }
-  .sidebar-drawer-toggle, .sidebar-new-icon { display: grid; }
-  .sidebar-new-icon { margin-left: auto; }
-  .nav-menu { position: fixed; top: 60px; left: 8px; right: 8px; width: auto; }
+  .sidebar-head .brand { flex: 0 1 auto; width: auto; gap: 8px; padding: 6px 8px; }
+  .sidebar-drawer-toggle { display: grid; }
+  .sidebar-new-icon { display: grid; margin-left: auto; }
   .app-main { margin-left: 0; }
   .sidebar-backdrop { display: block; position: fixed; inset: 0; z-index: 44; background: rgba(20,20,20,.32); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
   .sidebar-backdrop.open { opacity: 1; pointer-events: auto; }
-  .sidebar-chats { position: fixed; top: 0; bottom: 0; left: 0; z-index: 45; width: min(320px, 86vw); padding: 14px 12px; background: var(--surface); border-right: 1px solid var(--line); box-shadow: 12px 0 40px rgba(0,0,0,.12); transform: translateX(-100%); visibility: hidden; transition: transform .28s ease, visibility 0s linear .28s; }
-  .sidebar-chats.open { transform: none; visibility: visible; transition: transform .28s ease, visibility 0s; }
-  .sidebar-drawer-close { display: grid; }
-  .sidebar-pages { display: none; }
-  .nav-menu-footer { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
-  /* Undo the top-bar icon styles: in the chats drawer these are full buttons again. */
+  .sidebar-panel { position: fixed; top: 0; bottom: 0; left: 0; z-index: 45; width: min(300px, 86vw); padding: 10px 10px 12px; background: var(--surface); border-right: 1px solid var(--line); box-shadow: 12px 0 40px rgba(0,0,0,.12); transform: translateX(-100%); visibility: hidden; transition: transform .28s ease, visibility 0s linear .28s; }
+  .sidebar-panel.open { transform: none; visibility: visible; transition: transform .28s ease, visibility 0s; }
+  .sidebar-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 0 0 6px 10px; font-size: 16px; font-weight: 700; letter-spacing: -.03em; }
+  .sidebar-panel-head .brand-name { display: inline; }
+  /* Undo the top-bar icon styles: in the drawer these are full buttons again. */
   .sidebar-footer .theme-toggle { width: auto; min-height: 40px; padding: 0 11px; justify-content: flex-start; border-radius: 10px; }
   .sidebar-footer .theme-toggle > span:last-child { display: inline; }
   .sidebar-footer .theme-toggle-icon { width: 18px; height: 18px; }
@@ -1053,4 +1045,4 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
   .chat-composer .composer-actions > .chat-recommendation { display: inline; }
   .account-error { top: 64px; left: 8px; right: 8px; }
 }
-@media (prefers-reduced-motion: reduce) { .drawer-panel, .sheet-backdrop, .sidebar-chats, .sidebar-backdrop, .brand-caret { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .drawer-panel, .sheet-backdrop, .sidebar-panel, .sidebar-backdrop { transition: none !important; } }

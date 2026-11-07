@@ -12,10 +12,9 @@ export async function signUp(page: Page) {
   await expect(page.locator('[data-task-input]')).toBeVisible()
 }
 
-// Pages (My progress, Profile, LLM config…) are in the AdaptAI menu at the top of the sidebar.
+// Pages (Assistant, My progress, Profile, LLM config) are listed at the top of the sidebar.
 export async function goTo(page: Page, name: 'Assistant' | 'My progress' | 'Profile' | 'LLM config') {
-  await page.locator('[data-nav-menu-trigger]').click()
-  await page.locator('[data-nav-menu] .menu-item', { hasText: name }).click()
+  await page.locator('[data-sidebar-nav] .menu-item', { hasText: name }).click()
 }
 
 export async function analyse(page: Page, task: string) {

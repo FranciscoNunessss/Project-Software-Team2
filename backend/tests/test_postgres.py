@@ -3,6 +3,7 @@
 import hashlib
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -34,7 +35,8 @@ def test_migration_is_repeatable_and_concurrent():
     with ThreadPoolExecutor(max_workers=4) as pool:
         stores = list(pool.map(start, range(4)))
     with stores[0].connect() as db:
-        assert db.execute("SELECT count(*) FROM schema_migrations").fetchone()[0] == 3
+        migrations = len(list((Path(__file__).parents[1] / "migrations").glob("*.sql")))
+        assert db.execute("SELECT count(*) FROM schema_migrations").fetchone()[0] == migrations
 
 
 def test_modified_or_newer_migration_is_refused():

@@ -943,3 +943,7 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .outcome-metrics dd { margin: 4px 0 0; font-size: 18px; font-weight: 600; }
 .outcome-models { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 12px; }
 .outcome-models li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); padding: 4px 0; }
+.use-recommended { margin: 0 0 14px; }
+.use-recommended-state { margin: 0 0 14px; font-size: 12px; }
+.task-models { font-size: 12px; }
+.chat-recommendation .chat-link { margin-left: 8px; }

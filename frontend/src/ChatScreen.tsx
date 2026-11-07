@@ -3,7 +3,7 @@ import {
   api, createChat, deleteChat, renameChat, errorMessage, getChat, listChats, notifyProgressChange, streamChat, candidateLabel, putOutcome, ApiError,
   type Analysis, type ChatMessage, type ChatSummary, type HistoryItem, type LLMOption, type LLMOptions, type OutcomeReason, type TaskOutcome,
 } from './api'
-import { AnalysisDrawer } from './AnalysisDrawer'
+import { AnalysisDrawer, type UseRecommended } from './AnalysisDrawer'
 import { ChatMarkdown } from './ChatMarkdown'
 import { ModelPicker } from './ModelPicker'
 import { OpenRouterModelPicker } from './OpenRouterModelPicker'
@@ -115,6 +115,17 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
   }, [initialChatId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = options.find(item => item.id === (model === 'auto' ? autoId : model))
+  // "Use recommended" (ADR-014): following the recommendation is an explicit, visible choice.
+  const recommendedFor = (analysis: Analysis | null | undefined): UseRecommended | undefined => {
+    if (!analysis || !draftAnalysis || draftAnalysis.analysis.id !== analysis.id) return undefined
+    const best = analysis.recommendation
+    if (best.illustrative) return { state: 'illustrative' }
+    const target = best.configuration_id
+    if (!target || !options.some(item => item.id === target)) return { state: 'unavailable' }
+    if (target === selected?.id) return { state: 'selected' }
+    return { state: 'available', onUse: () => { setModel(target === autoId ? 'auto' : target); setRouterModel(null) } }
+  }
+  const useRecommended = recommendedFor(draftAnalysis?.analysis)
   // OpenRouter only: the exact catalogue id the user picked; null keeps the configured model.
   const [routerModel, setRouterModel] = useState<string | null>(null)
   const usesRouter = selected?.provider === 'openrouter'
@@ -156,11 +167,6 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
       })
       cache.current.set(result.id, result)
       setDraftAnalysis({ analysis: result, text: draft }); setShown(result); setShownFromHistory(false)
-      // Following the recommendation is one click away: it is selected for Send (ADR-014).
-      const recommended = result.recommendation.configuration_id
-      if (recommended && options.some(item => item.id === recommended) && recommended !== (model === 'auto' ? autoId : model)) {
-        setModel(recommended === autoId ? 'auto' : recommended); setRouterModel(null)
-      }
       notifyProgressChange(); refreshList()
     } catch (failure) {
       setError(failure instanceof ApiError ? failure.message : 'The analysis failed. Please retry.')
@@ -266,13 +272,13 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
             <Bubble key={message.id} message={message} last={index === messages.length - 1} busy={busy} onRetry={retry} onShowAnalysis={showAnalysis} />
           ))}
           {current && !busy && pending?.analysisId !== current.analysisId && current.answers.some(item => item.status === 'complete') && (
-            <div className="chat-message theirs"><SolvedButton disabled={savingOutcome} onAnswer={outcome => answerOutcome(current, outcome)} /></div>
+            <div className="chat-message theirs"><SolvedButton models={modelsLine(current)} disabled={savingOutcome} onAnswer={outcome => answerOutcome(current, outcome)} /></div>
           )}
           <div ref={end} />
         </div>
         {error && <p className="error-banner" role="alert">{error}</p>}
         {pending && (
-          <OutcomeCard title={pending.title} disabled={savingOutcome} onAnswer={(outcome, reason) => answerOutcome(pending, outcome, reason)} />
+          <OutcomeCard title={pending.title} models={modelsLine(pending)} disabled={savingOutcome} onAnswer={(outcome, reason) => answerOutcome(pending, outcome, reason)} />
         )}
         <section className="chat-composer composer" data-analysis-id={draftAnalysis?.analysis.id ?? ''} data-session-id={chatId ?? ''}>
           <PromptCoachBubble analysis={draftAnalysis?.analysis} analysisId={draftAnalysis?.analysis.id} task={draft}
@@ -281,11 +287,11 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
               onChange={event => setDraft(event.target.value)} onKeyDown={onKey} rows={3} data-chat-input="" data-task-input="" disabled={busy} />
           </PromptCoachBubble>
           <div className="composer-footer">
-            <ModelPicker options={options} value={model} autoId={autoId} loading={modelsLoading} disabled={locked} onChange={value => { setModel(value); setRouterModel(null); setDraftAnalysis(null) }} onConfigure={onConfigureModels} />
+            <ModelPicker options={options} value={model} autoId={autoId} loading={modelsLoading} disabled={locked} onChange={value => { setModel(value); setRouterModel(null) }} onConfigure={onConfigureModels} />
             {usesRouter && <OpenRouterModelPicker value={routerValue} disabled={locked} onChange={value => { setRouterModel(value); setDraftAnalysis(null) }} />}
             <div className="composer-actions">
               <span>{draft.length}/{MAX_CHARS}</span>
-              {draftAnalysis && draftAnalysis.text === draft && <span className="chat-recommendation" data-recommended-model="">Recommended: <strong>{candidateLabel(draftAnalysis.analysis.recommendation)}</strong>{draftAnalysis.analysis.recommendation.configuration_id && draftAnalysis.analysis.recommendation.configuration_id === selected?.id ? ' · selected' : ''}</span>}
+              {draftAnalysis && draftAnalysis.text === draft && <span className="chat-recommendation" data-recommended-model="">Recommended: <strong>{candidateLabel(draftAnalysis.analysis.recommendation)}</strong>{useRecommended?.state === 'selected' ? ' · selected' : ''}{useRecommended?.state === 'available' && <button type="button" className="chat-link" onClick={useRecommended.onUse} data-use-recommended="">Use</button>}</span>}
               <button type="button" className="button button-secondary" onClick={analyse} disabled={locked || !draft.trim() || modelsLoading || !selected} data-analyse-button="">
                 {analysing ? 'Analysing…' : 'Analyse'}
               </button>
@@ -298,13 +304,23 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
         {selected?.external && <p className="processing-notice">Selecting <strong>Analyse</strong> or <strong>Send</strong> sends your text to <strong>{selected.provider}</strong>. Messages are saved in this chat until you delete it.</p>}
       </section>
       <div className="drawer-slot">
-        <AnalysisDrawer open={drawer} onToggle={setDrawer} analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory} />
+        <AnalysisDrawer open={drawer} onToggle={setDrawer} useRecommended={recommendedFor(shown)} analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory} />
       </div>
     </main>
   )
 }
 
-type OpenTask = { analysisId: string; title: string; answers: ChatMessage[] }
+type OpenTask = { analysisId: string; title: string; answers: ChatMessage[]; recommended: ChatMessage['recommended'] }
+
+/** "You used X · Recommended Y": what the feedback is about. */
+function modelsLine(task: OpenTask) {
+  const used = [...task.answers].reverse().find(item => item.status === 'complete' && item.model)
+  const models = new Set(task.answers.filter(item => item.model).map(item => item.model))
+  const usedText = used ? `You used ${used.model}${models.size > 1 ? ` (and ${models.size - 1} other)` : ''}` : 'Model used unknown'
+  const best = task.recommended
+  const bestText = !best?.name ? '' : best.illustrative ? ` · Recommended: ${best.name} (illustrative, not a real model)` : ` · Recommended: ${best.name}`
+  return usedText + bestText
+}
 
 /** The task still open in a chat: the last analysed message without feedback, and its answers. */
 function openTask(messages: ChatMessage[]): OpenTask | null {
@@ -313,7 +329,7 @@ function openTask(messages: ChatMessage[]): OpenTask | null {
   const question = messages[index]
   if (!question || !question.analysis_id || question.outcome) return null
   const rest = messages.slice(index + 1)
-  return { analysisId: question.analysis_id, title: titleFrom(question.content), answers: rest.filter(item => item.role === 'assistant') }
+  return { analysisId: question.analysis_id, title: titleFrom(question.content), answers: rest.filter(item => item.role === 'assistant'), recommended: question.recommended ?? null }
 }
 
 function titleFrom(text: string) {

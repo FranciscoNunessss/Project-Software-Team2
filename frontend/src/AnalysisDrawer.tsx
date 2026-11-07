@@ -9,7 +9,11 @@ import { PromptCoachTips } from './PromptCoachTips'
 // that slides in from the right. Its tab, on the panel's left edge, is part of the panel: it
 // stays visible when the panel is closed, widens on hover to say what it does, and opens or
 // closes the panel on click (or when dragged left or right).
-export function AnalysisDrawer({ open, onToggle, analysis, task, loading, stale, fromHistory }: {
+/** The "Use recommended" state of the analysis shown (chat only, current draft only). */
+export type UseRecommended = { state: 'available'; onUse: () => void } | { state: 'selected' | 'unavailable' | 'illustrative' }
+
+export function AnalysisDrawer({ open, onToggle, analysis, task, loading, stale, fromHistory, useRecommended }: {
+  useRecommended?: UseRecommended
   open: boolean
   onToggle: (open: boolean) => void
   analysis: Analysis | null
@@ -63,7 +67,7 @@ export function AnalysisDrawer({ open, onToggle, analysis, task, loading, stale,
                   <ul>{analysis.guidance.map(item => <li key={item}>{item}</li>)}</ul>
                 </Card>
               )}
-              <RecommendationCard analysis={analysis} />
+              <RecommendationCard analysis={analysis} useRecommended={useRecommended} />
               <TipsCard analysis={analysis} fromHistory={fromHistory} />
               {task !== undefined && <PromptCoachTips analysis={analysis} task={task} />}
               <ProfileCard analysis={analysis} />

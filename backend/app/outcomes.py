@@ -29,7 +29,7 @@ class OutcomeInput(BaseModel):
     outcome: Outcome
     reason: Reason | None = None
     # The model the answers came from, when known (the chat knows it).
-    provider: str | None = Field(default=None, max_length=32)
+    provider: str | None = Field(default=None, max_length=32, pattern=r"^[a-z]+$")
     model: str | None = Field(default=None, max_length=200, pattern=MODEL_ID)
     turns: int | None = Field(default=None, ge=0, le=1000)
     switched_model: bool | None = None
@@ -95,8 +95,14 @@ def record_decision(db, user_id: str, analysis_id: str, candidate_id: str) -> di
 def card_used(result: dict, provider: str | None, model: str | None, chosen: str | None):
     """The catalogue card of the model used: from provider and model, else the choice."""
     catalogue = active_catalogue()
-    card = catalogue.card_for(provider, model) if provider and model else None
-    if card is None and chosen:
+    if provider and model:
+        # The model actually used decides; without a card it has no levels.
+        card = catalogue.card_for(provider, model)
+        if card is None:
+            return None, None
+        return card.id, {name: card.level(name) for name in CAPABILITIES}
+    card = None
+    if chosen:
         card = catalogue.card(chosen)
         if card is None:
             # A card of an older catalogue version: keep its id, levels from the analysis.
@@ -111,12 +117,41 @@ def card_used(result: dict, provider: str | None, model: str | None, chosen: str
     return card.id, {name: card.level(name) for name in CAPABILITIES}
 
 
+def model_used(result: dict, provider: str | None, model: str | None, chosen: str | None):
+    """(provider, model) of the answers, else of the choice recorded for the analysis."""
+    if provider and model:
+        return provider, model
+    for item in [result["recommendation"], *result["alternatives"]]:
+        if item["id"] == chosen and item.get("provider") and item.get("model"):
+            return item["provider"], item["model"]
+    return None, None
+
+
+def followed(result: dict, used: tuple, card_id: str | None, chosen: str | None) -> bool | None:
+    """Whether the task was done with the recommended model.
+
+    None only when it could not be followed (an illustrative recommendation, no real model)
+    or when nothing is known about the model used.
+    """
+    recommendation = result["recommendation"]
+    if recommendation.get("illustrative") or recommendation.get("capacity") is not None:
+        return None
+    target = (recommendation.get("provider"), recommendation.get("model"))
+    if used != (None, None):
+        return used == target or (card_id is not None and card_id == recommendation["id"])
+    if chosen:
+        return chosen == recommendation["id"]
+    return None
+
+
 def public_outcome(row) -> dict:
     keys = (
         "analysis_id",
         "outcome",
         "reason",
         "model_card_id",
+        "used_provider",
+        "used_model",
         "recommended_card_id",
         "completeness",
         "turns",
@@ -136,7 +171,8 @@ def outcome_summary(store: Storage, user_id: str) -> dict:
     """Totals for My progress and the Educator: no text, only counts."""
     with store.connect() as db:
         rows = db.execute(
-            "SELECT outcome,reason,model_card_id,followed_recommendation,turns,completeness "
+            "SELECT outcome,reason,model_card_id,used_provider,used_model,"
+            "followed_recommendation,turns,completeness "
             "FROM task_outcomes WHERE user_id=%s",
             (user_id,),
         ).fetchall()
@@ -155,10 +191,11 @@ def outcome_summary(store: Storage, user_id: str) -> dict:
     turns = [row["turns"] for row in answered if row["turns"] is not None]
     by_model: dict[str, dict] = {}
     for row in answered:
-        entry = by_model.setdefault(
-            row["model_card_id"] or "unknown",
-            {"model": row["model_card_id"], "tasks": 0, "solved": 0},
+        # Per model actually used: its card when it has one, else provider and model id.
+        name = row["model_card_id"] or (
+            f"{row['used_provider']} · {row['used_model']}" if row["used_model"] else None
         )
+        entry = by_model.setdefault(name or "unknown", {"model": name, "tasks": 0, "solved": 0})
         entry["tasks"] += 1
         entry["solved"] += row["outcome"] in solved
     return {
@@ -192,15 +229,17 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None) -> None:
             decision = db.execute(
                 "SELECT candidate_id FROM decisions WHERE analysis_id=%s", (analysis_id,)
             ).fetchone()
-            card_id, levels = card_used(
-                result, body.provider, body.model, decision["candidate_id"] if decision else None
-            )
+            chosen = decision["candidate_id"] if decision else None
+            card_id, levels = card_used(result, body.provider, body.model, chosen)
+            used = model_used(result, body.provider, body.model, chosen)
             recommended = result["recommendation"]["id"]
+            follows = followed(result, used, card_id, chosen)
             db.execute(
                 """INSERT INTO task_outcomes(analysis_id,user_id,outcome,reason,model_card_id,
                    catalogue_version,recommended_card_id,followed_recommendation,needs_json,
-                   capabilities_json,completeness,turns,switched_model,retries,stops)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                   capabilities_json,completeness,turns,switched_model,retries,stops,
+                   used_provider,used_model)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                 (
                     analysis_id,
                     user["id"],
@@ -209,7 +248,7 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None) -> None:
                     card_id,
                     result.get("catalogue_version"),
                     recommended,
-                    None if card_id is None else int(card_id == recommended),
+                    None if follows is None else int(follows),
                     json.dumps(result.get("needs")) if result.get("needs") else None,
                     json.dumps(levels) if levels else None,
                     result.get("completeness"),
@@ -217,6 +256,8 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None) -> None:
                     None if body.switched_model is None else int(body.switched_model),
                     body.retries,
                     body.stops,
+                    used[0],
+                    used[1],
                 ),
             )
             row = db.execute(

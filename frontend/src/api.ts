@@ -247,6 +247,8 @@ export type ChatMessage = {
   analysis_id: string | null; status: ChatStatus; error: string | null; created_at: string; completeness: number | null
   /** Feedback for the task this analysed message starts (ADR-014); null while it is open. */
   outcome?: TaskOutcome | null
+  /** The model the analysis of this message recommended (ADR-014). */
+  recommended?: { name: string | null; provider: string | null; model: string | null; configuration_id: string | null; illustrative: boolean } | null
 }
 export type ChatSummary = { id: string; title: string; created_at: string; updated_at?: string; message_count: number }
 export type Chat = ChatSummary & { messages: ChatMessage[] }

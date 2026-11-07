@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { analyse, signUp } from './helpers'
+import { analyse, signUp, goTo } from './helpers'
 
 // The Prompt Coach bubble on the task field (AA-030), driven on the real app with the fake
 // models of e2e/server.py. FakeAssessor: a task with "board" and "risk" is complete.
@@ -105,7 +105,7 @@ test('without the Prompt Coach module only quick checks run', async ({ page }) =
 test('each user switches the Prompt Coach on or off in Profile', async ({ page }) => {
   const coachBodies = watchCoach(page)
   await signUp(page)
-  await page.locator('.nav-item', { hasText: 'Profile' }).first().click()
+  await goTo(page, 'Profile')
   const toggle = page.getByRole('switch', { name: 'Use the Prompt Coach' })
   await expect(toggle).toBeChecked() // On by default.
   const saved = page.waitForResponse(response => response.url().endsWith('/api/prompt-coach/settings') && response.request().method() === 'PUT')
@@ -113,7 +113,7 @@ test('each user switches the Prompt Coach on or off in Profile', async ({ page }
   expect((await saved).status()).toBe(200)
   await expect(toggle).not.toBeChecked()
 
-  await page.locator('.nav-item', { hasText: 'Assistant' }).first().click()
+  await goTo(page, 'Assistant')
   await page.locator('[data-task-input]').fill('aegwe')
   await expect(bubble(page)).toHaveText('✦') // No count, not even for quick checks: the Coach is off.
   await analyse(page, VAGUE)
@@ -125,10 +125,10 @@ test('each user switches the Prompt Coach on or off in Profile', async ({ page }
   expect(coachBodies).toHaveLength(0)
 
   await page.keyboard.press('Escape')
-  await page.locator('.nav-item', { hasText: 'Profile' }).first().click()
+  await goTo(page, 'Profile')
   await page.getByRole('switch', { name: 'Use the Prompt Coach' }).click()
   await expect(page.getByRole('switch', { name: 'Use the Prompt Coach' })).toBeChecked()
-  await page.locator('.nav-item', { hasText: 'Assistant' }).first().click()
+  await goTo(page, 'Assistant')
   await analyse(page, VAGUE)
   await expect(bubble(page)).toHaveText('4')
 })

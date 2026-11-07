@@ -12,6 +12,11 @@ export async function signUp(page: Page) {
   await expect(page.locator('[data-task-input]')).toBeVisible()
 }
 
+// Pages (Assistant, My progress, Profile, LLM config) are listed at the top of the sidebar.
+export async function goTo(page: Page, name: 'Assistant' | 'My progress' | 'Profile' | 'LLM config') {
+  await page.locator('[data-sidebar-nav] .menu-item', { hasText: name }).click()
+}
+
 export async function analyse(page: Page, task: string) {
   await page.locator('[data-task-input]').fill(task)
   const done = page.waitForResponse(response => response.url().endsWith('/api/analyze'))

@@ -1057,3 +1057,8 @@ button.chat-recommendation:hover { background: var(--blue-soft); color: var(--in
   .account-error { top: 64px; left: 8px; right: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .drawer-panel, .sheet-backdrop, .sidebar-panel, .sidebar-backdrop { transition: none !important; } }
+
+.use-recommended { margin: 0 0 14px; }
+.use-recommended-state { margin: 0 0 14px; font-size: 12px; }
+.task-models { font-size: 12px; }
+.chat-recommendation .chat-link { margin-left: 8px; }

@@ -487,8 +487,10 @@ models, ADR-012; the chosen id is sent as `model` with Analyse, Send and Retry),
 Coach bubble and two buttons. **Analyse** runs the usual
 analysis on the draft without sending it and opens the analysis panel on the right
 (`AnalysisDrawer.tsx`: completeness, what changed, clarification questions, recommended
-model with its coverage per need, tips, profile). The recommended model is selected for Send
-when it is one of the user's models. The panel slides in from the right; its tab, part of the panel's
+model with its coverage per need, tips, profile). **Use this model** in the recommendation card
+(or **Use** next to "Recommended" above the text box) selects it for Send when it is one of the
+user's models; otherwise the card says it is not among them, or that it is illustrative.
+Changing the model after an analysis keeps the analysis. The panel slides in from the right; its tab, part of the panel's
 left edge, stays visible when it is closed, widens on hover to read "Show analysis" or
 "Hide analysis", and opens or closes it on click (or drag left to open, right to close). Analysing an edited draft again
 shows what changed. **Send** sends the message (Enter sends, Shift+Enter adds a line) and
@@ -497,7 +499,10 @@ carries the analysis only if it was made from that exact text; the message then 
 the analysis compared. Under the answers of the open task a quiet **Task solved** asks once
 whether the user needed to refine it; when the next task starts (a new analysis, another chat)
 a card asks whether the previous one was solved (Solved, Solved after refining, Not solved
-with an optional reason, Skip). Never per answer, never twice. While an answer streams in, Send becomes **Stop**;
+with an optional reason, Skip). Never per answer, never twice. Both show the model used and the
+recommended one. The model actually used is always stored (provider and model id); "followed
+the recommendation" is yes when it was the recommended model, no otherwise, and unknown only
+when the recommendation was illustrative. While an answer streams in, Send becomes **Stop**;
 a stopped or failed answer offers **Retry**. Answers are rendered as GitHub-flavoured
 Markdown (`ChatMarkdown.tsx`, react-markdown with remark-gfm); raw HTML is dropped and unsafe
 links removed. The chat's system prompt asks every model for the same Markdown, so answers

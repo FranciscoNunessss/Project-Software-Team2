@@ -4,13 +4,14 @@ import { ApiError, notifyProgressChange, OUTCOME_REASONS, putOutcome, type Outco
 // Feedback per task (ADR-014): once per task, at the end, never per answer.
 
 /** A quiet "Task solved" under the answers of the open task. */
-export function SolvedButton({ disabled, onAnswer }: { disabled: boolean; onAnswer: (outcome: TaskOutcome) => void }) {
+export function SolvedButton({ models, disabled, onAnswer }: { models?: string; disabled: boolean; onAnswer: (outcome: TaskOutcome) => void }) {
   const [asking, setAsking] = useState(false)
   if (!asking) {
     return <button type="button" className="chat-link task-solved" onClick={() => setAsking(true)} disabled={disabled} data-task-solved="">✓ Task solved</button>
   }
   return (
     <div className="task-refine" role="group" aria-label="Did you need to refine it?" data-task-refine="">
+      {models && <span className="task-models" data-task-models="">{models}.</span>}
       <span>Did you need to refine it?</span>
       <button type="button" className="chat-link" disabled={disabled} onClick={() => onAnswer('resolved_with_refinement')}>Yes</button>
       <button type="button" className="chat-link" disabled={disabled} onClick={() => onAnswer('resolved')}>No</button>
@@ -19,8 +20,9 @@ export function SolvedButton({ disabled, onAnswer }: { disabled: boolean; onAnsw
 }
 
 /** "Did the previous task get solved?", asked once when the next task starts. */
-export function OutcomeCard({ title, question = 'Did the previous task get solved?', disabled, onAnswer }: {
+export function OutcomeCard({ title, models, question = 'Did the previous task get solved?', disabled, onAnswer }: {
   title: string
+  models?: string
   question?: string
   disabled: boolean
   onAnswer: (outcome: TaskOutcome, reason?: OutcomeReason | null) => void
@@ -30,6 +32,7 @@ export function OutcomeCard({ title, question = 'Did the previous task get solve
   return (
     <section className="outcome-card" aria-label="Feedback on the previous task" data-outcome-card="">
       <p><strong>{question}</strong> <span className="muted">{title}</span></p>
+      {models && <p className="muted task-models" data-task-models="">{models}</p>}
       {!failed ? (
         <div className="outcome-actions">
           <button type="button" className="button button-secondary" disabled={disabled} onClick={() => onAnswer('resolved')}>Solved</button>

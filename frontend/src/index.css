@@ -996,19 +996,27 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .chat-composer .composer-footer > * { flex-shrink: 0; max-width: 100%; }
 .chat-composer .model-picker { flex: 0 0 auto; }
 
-/* Analysis, wide screens: a docked column beside the chat. */
-.drawer-slot { position: relative; min-width: 0; height: 100%; overflow: hidden; }
-.analysis-drawer { position: static; width: auto; height: 100%; transform: none; transition: none; }
-.analysis-drawer .drawer-panel { width: 380px; height: 100%; }
+/* Analysis, wide screens: a panel floating over the right of the chat. The chat never moves. */
+.chat-layout.page, .chat-layout.page.with-drawer { gap: 0; grid-template-columns: minmax(0, 1fr); }
+.drawer-slot { display: contents; }
+.analysis-drawer { position: fixed; top: 16px; right: 16px; bottom: calc(var(--composer-space, 0px) + 12px); z-index: 35; width: min(400px, calc(100vw - 32px)); height: auto; transform: translateX(calc(100% + 24px)); transition: transform .28s ease; pointer-events: none; }
+.analysis-drawer.open { transform: none; pointer-events: auto; }
+/* The message box and its pop-ups (model picker, Prompt Coach), and the feedback card above it,
+   stay above the panel. */
+.chat-main > .chat-composer, .chat-main > .outcome-card { position: relative; z-index: 36; }
+.chat-main > .outcome-card { width: 100%; max-width: 860px; margin-inline: auto; }
+.analysis-drawer .drawer-panel { width: 100%; height: 100%; box-shadow: 0 24px 60px rgba(30,30,30,.18); }
+.theme-dark .analysis-drawer .drawer-panel { box-shadow: 0 24px 60px #000a; }
 .analysis-drawer .drawer-panel .drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .drawer-close { margin: -6px -8px 0 0; color: var(--muted); font-size: 22px; }
+.drawer-foot { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); background: var(--surface); }
+.drawer-foot p { margin: 0; color: var(--muted); font-size: 12px; }
+.drawer-foot .button { flex-shrink: 0; }
 .sheet-backdrop, .sheet-handle { display: none; }
 
 /* Analysis, narrower screens: a bottom sheet over the lower part of the chat. */
 @media (max-width: 1100px) {
-  .chat-layout.page, .chat-layout.page.with-drawer { gap: 0; grid-template-columns: minmax(0, 1fr); }
-  .drawer-slot { display: contents; }
-  .analysis-drawer { position: fixed; inset: 0; z-index: 45; height: auto; pointer-events: none; }
+  .analysis-drawer { position: fixed; inset: 0; z-index: 45; width: auto; height: auto; transform: none; transition: none; pointer-events: none; }
   .analysis-drawer.open { pointer-events: auto; }
   .sheet-backdrop { display: block; position: absolute; inset: 0; background: rgba(20,20,20,.28); opacity: 0; transition: opacity .25s ease; }
   .analysis-drawer.open .sheet-backdrop { opacity: 1; }

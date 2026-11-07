@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import {
   api, createChat, renameChat, errorMessage, getChat, notifyProgressChange, streamChat, candidateLabel, putOutcome, ApiError,
   type Analysis, type ChatMessage, type HistoryItem, type LLMOption, type LLMOptions, type OutcomeReason, type TaskOutcome,
@@ -237,13 +237,37 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
   }
 
   const stale = shown !== null && draftAnalysis?.analysis.id === shown.id && draftAnalysis.text !== draft
+  // The panel's own Send: only for the analysis of exactly the text in the composer.
+  const sendable = shown !== null && draftAnalysis?.analysis.id === shown.id && draftAnalysis.text === draft && !!draft.trim() && !!selected
   const locked = busy || analysing
+  // The analysis panel floats over the chat but stops above the message box, so Analyse,
+  // Send and the Prompt Coach stay usable while it is open. Track where the box starts.
+  const composer = useRef<HTMLElement>(null)
+  const [composerSpace, setComposerSpace] = useState(0)
+  const measureComposer = () => {
+    const element = composer.current
+    if (!element) return
+    // The feedback card (ADR-014) sits right above the box and must stay reachable too.
+    const card = element.parentElement?.querySelector<HTMLElement>(':scope > [data-outcome-card]')
+    const top = Math.min(element.getBoundingClientRect().top, card?.getBoundingClientRect().top ?? Infinity)
+    setComposerSpace(Math.max(0, Math.round(window.innerHeight - top)))
+  }
+  // After every render: notices and errors under the box move it without resizing it.
+  useLayoutEffect(measureComposer)
+  useLayoutEffect(() => {
+    const element = composer.current
+    if (!element) return
+    const observer = new ResizeObserver(measureComposer)
+    observer.observe(element)
+    window.addEventListener('resize', measureComposer)
+    return () => { observer.disconnect(); window.removeEventListener('resize', measureComposer) }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // The sidebar must not switch chats mid-answer: switching remounts this screen.
   useEffect(() => { onBusyChange(locked) }, [locked]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => onBusyChange(false), []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <main className={`page chat-layout${drawer ? ' with-drawer' : ''}`} data-chat-screen="">
+    <main className={`page chat-layout${drawer ? ' with-drawer' : ''}`} data-chat-screen="" style={{ '--composer-space': `${composerSpace}px` } as CSSProperties}>
       <section className="chat-main">
         <div className="chat-toolbar">
           <span className="muted chat-title">{chatId ? title : ''}</span>
@@ -267,7 +291,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
         {pending && (
           <OutcomeCard title={pending.title} disabled={savingOutcome} onAnswer={(outcome, reason) => answerOutcome(pending, outcome, reason)} />
         )}
-        <section className="chat-composer composer" data-analysis-id={draftAnalysis?.analysis.id ?? ''} data-session-id={chatId ?? ''}>
+        <section ref={composer} className="chat-composer composer" data-analysis-id={draftAnalysis?.analysis.id ?? ''} data-session-id={chatId ?? ''}>
           <PromptCoachBubble analysis={draftAnalysis?.analysis} analysisId={draftAnalysis?.analysis.id} task={draft}
             disabled={locked} onTaskChange={setDraft} onAnalyse={analyse}>
             <textarea aria-label="Message" placeholder="Message AdaptAI…" value={draft} maxLength={MAX_CHARS}
@@ -291,7 +315,8 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
         {selected?.external && <p className="processing-notice">Selecting <strong>Analyse</strong> or <strong>Send</strong> sends your text to <strong>{selected.provider}</strong>. Messages are saved in this chat until you delete it.</p>}
       </section>
       <div className="drawer-slot">
-        <AnalysisDrawer open={drawer} onClose={() => setDrawer(false)} analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory} />
+        <AnalysisDrawer open={drawer} onClose={() => setDrawer(false)} analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory}
+          onSend={sendable && !busy && !analysing ? () => { setDrawer(false); void send() } : undefined} />
       </div>
     </main>
   )

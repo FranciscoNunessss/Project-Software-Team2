@@ -9,7 +9,7 @@ import { PromptCoachTips } from './PromptCoachTips'
 // Wide screens: a column docked beside the chat, which narrows to make room (never on top).
 // Narrow screens: a bottom sheet over the lower part of the chat, closed by its button,
 // the backdrop or Escape. The chat toolbar's "Analysis" button opens and closes it.
-export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, fromHistory }: {
+export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, fromHistory, onSend }: {
   open: boolean
   onClose: () => void
   analysis: Analysis | null
@@ -18,6 +18,9 @@ export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, 
   loading: boolean
   stale: boolean
   fromHistory: boolean
+  // Present when the analysis describes the current draft: the panel covers the composer's
+  // Send button on most screens, so it offers its own.
+  onSend?: () => void
 }) {
   useEffect(() => {
     if (!open) return
@@ -66,6 +69,12 @@ export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, 
             </>
           )}
         </div>
+        {onSend && (
+          <div className="drawer-foot">
+            <p>Happy with the analysis?</p>
+            <button type="button" className="button button-primary" onClick={onSend} data-drawer-send="">Send this message</button>
+          </div>
+        )}
       </div>
     </aside>
   )

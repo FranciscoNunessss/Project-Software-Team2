@@ -28,6 +28,7 @@ export function LLMConfigScreen() {
   const load = async (signal?:AbortSignal) => {
     const [configs,options] = await Promise.all([api<LLMConfiguration[]>('llm-configs',undefined,signal),api<LLMOptions>('llm-options',undefined,signal)])
     setItems(configs);setServer(options.options.filter(item=>item.source==='server'))
+    if (!signal) window.dispatchEvent(new Event('adaptai-models-updated'))
   }
   useEffect(()=>{const controller=new AbortController();load(controller.signal).catch(failure=>{if(!controller.signal.aborted)setError(failure instanceof Error?failure.message:'Could not load providers')}).finally(()=>{if(!controller.signal.aborted)setLoading(false)});return()=>controller.abort()},[])
   useEffect(()=>{

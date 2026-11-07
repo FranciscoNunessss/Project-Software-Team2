@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { analyse, signUp } from './helpers'
+import { analyse, signUp, goTo } from './helpers'
 
 // FakeAssessor: VAGUE leaves context and risk undetermined (completeness 50); COMPLETE
 // determines everything (100). Each task is the first analysis of a new chat (a session).
@@ -16,7 +16,7 @@ test('My progress shows whether first descriptions improve over sessions', async
   }
   // A re-analysis in the same session does not count.
   await analyse(page, VAGUE)
-  await page.locator('.nav-item', { hasText: 'My progress' }).first().click()
+  await goTo(page, 'My progress')
   const card = page.locator('[data-learning-progress]')
   await expect(card).toContainText('Improving')
   await expect(card).toContainText('Average 50 in your first 3 sessions, 100 in the last 3 (+50')
@@ -28,7 +28,7 @@ test('My progress shows whether first descriptions improve over sessions', async
 test('With fewer than five sessions there is no verdict', async ({ page }) => {
   await signUp(page)
   await analyse(page, VAGUE)
-  await page.locator('.nav-item', { hasText: 'My progress' }).first().click()
+  await goTo(page, 'My progress')
   const card = page.locator('[data-learning-progress]')
   await expect(card).toContainText('Not enough history yet')
   await expect(card).toContainText('at least 5 sessions to see a trend (1 so far)')

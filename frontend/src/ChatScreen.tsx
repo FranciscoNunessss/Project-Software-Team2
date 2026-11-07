@@ -5,6 +5,7 @@ import {
 } from './api'
 import { AnalysisDrawer } from './AnalysisDrawer'
 import { ChatMarkdown } from './ChatMarkdown'
+import { ChatMenu, type ChatMenuHost } from './ChatMenu'
 import { ModelPicker } from './ModelPicker'
 import { OpenRouterModelPicker } from './OpenRouterModelPicker'
 import { PromptCoachBubble } from './PromptCoachBubble'
@@ -39,10 +40,11 @@ function Bubble({ message, last, busy, onRetry, onShowAnalysis }: { message: Cha
   )
 }
 
-export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
+export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, menu }: {
   onConfigureModels: () => void
   initialChatId?: string
   onNotAChat?: () => void
+  menu: ChatMenuHost
 }) {
   const [chats, setChats] = useState<ChatSummary[]>([])
   const [chatId, setChatId] = useState<string | null>(null)
@@ -243,21 +245,11 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat }: {
 
   return (
     <main className={`page chat-layout${drawer ? ' with-drawer' : ''}`} data-chat-screen="">
-      <aside className="chat-sidebar" aria-label="Chats">
-        <button type="button" className="button button-secondary chat-new" onClick={startNew} disabled={locked}>New chat</button>
-        <ul className="chat-list">
-          {chats.map(chat => (
-            <li key={chat.id} className={chat.id === chatId ? 'active' : ''}>
-              <button type="button" className="chat-open" onClick={() => open(chat.id)} disabled={locked}>{chat.title}</button>
-              <button type="button" className="chat-delete" aria-label={`Delete ${chat.title}`} onClick={() => remove(chat.id)} disabled={locked}>×</button>
-            </li>
-          ))}
-          {chats.length === 0 && <li className="chat-empty-list">No chats yet.</li>}
-        </ul>
-      </aside>
+      <ChatMenu host={menu} chats={chats} activeId={chatId} locked={locked} onNew={startNew} onOpen={open} onDelete={remove} />
       <section className="chat-main">
         <div className="chat-toolbar">
-          <span className="muted">{chats.find(chat => chat.id === chatId)?.title ?? 'New chat'}</span>
+          <span className="muted chat-title">{chats.find(chat => chat.id === chatId)?.title ?? 'New chat'}</span>
+          {chatId && <button type="button" className="button button-secondary chat-toolbar-new" onClick={startNew} disabled={locked}>New chat</button>}
         </div>
         <div className="chat-messages" aria-live="polite">
           {messages.length === 0 ? (

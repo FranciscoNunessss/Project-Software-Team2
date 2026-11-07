@@ -49,16 +49,21 @@ function Button({
   )
 }
 
+// When the chat is on screen, the brand opens the chat list; ChatScreen renders it into `slot`.
+type ChatMenuControl = { open: boolean; onToggle: () => void; slot: (element: HTMLDivElement | null) => void }
+
 function Header({
   screen,
   onNavigate,
   dark,
   onToggleTheme,
+  chatMenu,
 }: {
   screen: Screen
   onNavigate: (screen: Screen) => void
   dark: boolean
   onToggleTheme: () => void
+  chatMenu?: ChatMenuControl
 }) {
   const [online, setOnline] = useState<boolean | null>(null)
   useEffect(() => {
@@ -70,10 +75,21 @@ function Header({
   return (
     <header className="topbar">
       <div className="nav-shell">
-        <button className="brand" onClick={() => onNavigate('assistant')} aria-label="AdaptAI home">
-          <span className="brand-mark"><Icon name="spark" size={16} /></span>
-          <span>AdaptAI</span>
-        </button>
+        {chatMenu ? (
+          <div className="brand-menu">
+            <button className="brand" onClick={chatMenu.onToggle} aria-label="Your chats" aria-haspopup="true" aria-expanded={chatMenu.open} aria-controls="chat-menu" data-chat-menu-trigger="">
+              <span className="brand-mark"><Icon name="spark" size={16} /></span>
+              <span className="brand-name">AdaptAI</span>
+              <span className={`brand-caret${chatMenu.open ? ' open' : ''}`} aria-hidden="true" />
+            </button>
+            <div ref={chatMenu.slot} className="chat-menu-slot" />
+          </div>
+        ) : (
+          <button className="brand" onClick={() => onNavigate('assistant')} aria-label="AdaptAI home">
+            <span className="brand-mark"><Icon name="spark" size={16} /></span>
+            <span className="brand-name">AdaptAI</span>
+          </button>
+        )}
         <nav aria-label="Main navigation" className="main-nav">
           <button className={screen === 'assistant' ? 'nav-item active' : 'nav-item'} onClick={() => onNavigate('assistant')}>
             Assistant
@@ -386,7 +402,13 @@ export default function App() {
     getFeatures(controller.signal).then(features => setHasChat(features.chat === true)).catch(() => { if (!controller.signal.aborted) setHasChat(false) })
     return () => controller.abort()
   }, [])
-  const navigate = (next: Screen) => { setResume(null); setLegacy(false); setScreen(next) }
+  const [chatMenuOpen, setChatMenuOpen] = useState(false)
+  const [chatMenuSlot, setChatMenuSlot] = useState<HTMLDivElement | null>(null)
+  const navigate = (next: Screen) => { setResume(null); setLegacy(false); setChatMenuOpen(false); setScreen(next) }
+  const chatActive = screen === 'assistant' && hasChat === true && !legacy
+  const chatMenu: ChatMenuControl | undefined = chatActive
+    ? { open: chatMenuOpen, onToggle: () => setChatMenuOpen(current => !current), slot: setChatMenuSlot }
+    : undefined
   const [dark, setDark] = useState(() => window.localStorage.getItem('adaptai-theme') === 'dark')
   useEffect(() => {
     try { window.localStorage.setItem('adaptai-screen', screen) } catch { /* Storage may be disabled. */ }
@@ -401,15 +423,16 @@ export default function App() {
   }
   return (
     <div className={dark ? 'app theme-dark' : 'app'}>
-      <Account dark={dark} onToggleTheme={toggleTheme} header={<Header screen={screen} onNavigate={navigate} dark={dark} onToggleTheme={toggleTheme} />}>
+      <Account dark={dark} onToggleTheme={toggleTheme} header={<Header screen={screen} onNavigate={navigate} dark={dark} onToggleTheme={toggleTheme} chatMenu={chatMenu} />}>
       {/* With the chat module (ADR-011) the Assistant is the chat, with the analysis in a side panel. */}
-      {screen === 'assistant' && hasChat && !legacy && <ChatScreen key={resume?.sessionId ?? 'chat'} initialChatId={resume?.sessionId} onNotAChat={() => setLegacy(true)} onConfigureModels={() => navigate('llm')} />}
+      {chatActive && <ChatScreen key={resume?.sessionId ?? 'chat'} initialChatId={resume?.sessionId} onNotAChat={() => setLegacy(true)} onConfigureModels={() => navigate('llm')}
+        menu={{ open: chatMenuOpen, slot: chatMenuSlot, onClose: () => setChatMenuOpen(false) }} />}
       {screen === 'assistant' && (hasChat === false || legacy) && <AssistantScreen resume={resume} onConfigureModels={() => navigate('llm')} />}
       {screen === 'progress' && <ProgressScreen onResume={saved => { setResume(saved); setLegacy(false); setScreen('assistant') }} />}
       {screen === 'profile' && <ProfileScreen />}
       {screen === 'llm' && <LLMConfigScreen />}
       {/* The chat fills the window and scrolls only its conversation, so it has no footer. */}
-      {!(screen === 'assistant' && hasChat && !legacy) && <footer><span>AdaptAI</span><p>Clearer choices. Better AI judgement.</p><button>Privacy</button><button>How it works</button></footer>}
+      {!chatActive && <footer><span>AdaptAI</span><p>Clearer choices. Better AI judgement.</p><button>Privacy</button><button>How it works</button></footer>}
       </Account>
     </div>
   )

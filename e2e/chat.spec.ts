@@ -12,6 +12,13 @@ async function openChat(page: Page) {
   await expect(page.locator('[data-chat-screen]')).toBeVisible()
 }
 
+// The chat list is a dropdown opened from the AdaptAI brand in the header.
+async function chatList(page: Page) {
+  const trigger = page.locator('[data-chat-menu-trigger]')
+  if (await trigger.getAttribute('aria-expanded') !== 'true') await trigger.click()
+  return page.locator('[data-chat-menu] .chat-open')
+}
+
 async function send(page: Page, text: string) {
   await page.locator('[data-chat-input]').fill(text)
   await page.locator('[data-chat-send]').click()
@@ -22,7 +29,9 @@ test('a chat sends messages, shows the answers and keeps them after a reload', a
   await openChat(page)
   await expect(page.getByText('What do you need to do?')).toBeVisible()
   await send(page, 'Explain what an API is.')
-  await expect(page.locator('.chat-open')).toHaveText(['Explain what an API is.'])
+  await expect(await chatList(page)).toHaveText(['Explain what an API is.'])
+  await page.keyboard.press('Escape')
+  await expect(page.locator('[data-chat-menu]')).toHaveCount(0)
   // Enter sends, Shift+Enter would add a line.
   await page.locator('[data-chat-input]').fill('Give one example.')
   await page.keyboard.press('Enter')
@@ -30,7 +39,8 @@ test('a chat sends messages, shows the answers and keeps them after a reload', a
   await expect(page.locator('[data-chat-message="assistant"]').last()).toContainText('Give one example.')
 
   await page.reload()
-  await page.locator('.chat-open', { hasText: 'Explain what an API is.' }).click()
+  await (await chatList(page)).filter({ hasText: 'Explain what an API is.' }).click()
+  await expect(page.locator('[data-chat-menu]')).toHaveCount(0) // Choosing a chat closes the list.
   await expect(page.locator('[data-chat-message]')).toHaveCount(4)
 })
 
@@ -40,9 +50,9 @@ test('new chat starts empty and a chat can be deleted', async ({ page }) => {
   await page.getByRole('button', { name: 'New chat' }).click()
   await expect(page.locator('[data-chat-message]')).toHaveCount(0)
   await send(page, 'Second chat')
-  await expect(page.locator('.chat-open')).toHaveText(['Second chat', 'First chat'])
+  await expect(await chatList(page)).toHaveText(['Second chat', 'First chat'])
   await page.getByRole('button', { name: 'Delete First chat' }).click()
-  await expect(page.locator('.chat-open')).toHaveText(['Second chat'])
+  await expect(await chatList(page)).toHaveText(['Second chat'])
 })
 
 test('Analyse opens the analysis panel; Send carries the analysis with the message', async ({ page }) => {

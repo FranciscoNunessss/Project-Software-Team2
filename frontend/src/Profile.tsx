@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type MemorySettings } from './api'
+import { api, notifyProgressChange, type MemorySettings } from './api'
 import { PromptCoachToggle } from './PromptCoachToggle'
 
 export function ProfileScreen() {
@@ -20,19 +20,19 @@ export function ProfileScreen() {
   }, [])
   const update = async (changes: Partial<Pick<MemorySettings,'content'|'save_enabled'|'use_enabled'|'coaching_auto_enabled'|'conversation_memory_enabled'>>) => {
     setBusy(true); setError(''); setMessage('')
-    try {const saved = await api<MemorySettings>('context',changes,undefined,'PUT');setSettings(saved);if ('content' in changes) setContent(saved.content);setMessage('Settings saved.')}
+    try {const saved = await api<MemorySettings>('context',changes,undefined,'PUT');setSettings(saved);if ('content' in changes) setContent(saved.content);setMessage('Settings saved.');notifyProgressChange()}
     catch(failure) {setError(failure instanceof Error ? failure.message : 'Could not save settings')}
     finally {setBusy(false)}
   }
   const clear = async () => {
     setBusy(true);setError('');setMessage('')
-    try {setSettings(await api<MemorySettings>('context/memory',undefined,undefined,'DELETE'));setForget(false);setMessage('Learned memory cleared. Progress history and your preferences are unchanged.')}
+    try {setSettings(await api<MemorySettings>('context/memory',undefined,undefined,'DELETE'));setForget(false);setMessage('Learned memory cleared. Progress history and your preferences are unchanged.');notifyProgressChange()}
     catch(failure) {setError(failure instanceof Error ? failure.message : 'Could not clear memory')}
     finally {setBusy(false)}
   }
   const clearConversations = async () => {
     setBusy(true);setError('');setMessage('')
-    try {setSettings(await api<MemorySettings>('context/conversations',undefined,undefined,'DELETE'));setForgetConversations(false);setMessage('Saved conversation text and derived coaching cleared. Assessment metadata and choices remain.')}
+    try {setSettings(await api<MemorySettings>('context/conversations',undefined,undefined,'DELETE'));setForgetConversations(false);setMessage('Saved conversation text and derived coaching cleared. Assessment metadata and choices remain.');notifyProgressChange()}
     catch(failure){setError(failure instanceof Error?failure.message:'Could not delete conversations')}
     finally{setBusy(false)}
   }

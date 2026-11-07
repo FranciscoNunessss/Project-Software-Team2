@@ -4,11 +4,15 @@ import { api, notifyProgressChange, type SavedSession, type HistoryItem, type Re
 import { HistoryAnalysis } from './HistoryAnalysis'
 import { ProgressDashboard, type Summary } from './ProgressDashboard'
 import { TaskOutcomes } from './TaskOutcomes'
+import { usePageActive } from './PagePanel'
 type SessionDetail = SavedSession & { analyses: HistoryItem[] }
 const pageSize = 20
 const dateLabel = (date: string) => new Date(date).toLocaleString()
 
 export function ProgressScreen({ onResume }: { onResume: (resume: Resume) => void }) {
+  const activePage = usePageActive()
+  const lastRefresh = useRef(0)
+  const dirty = useRef(false)
   const [summary, setSummary] = useState<Summary>()
   const historySection = useRef<HTMLDetailsElement>(null)
   const pendingSection = useRef<HTMLElement>(null)
@@ -69,6 +73,7 @@ export function ProgressScreen({ onResume }: { onResume: (resume: Resume) => voi
       if(requestSignal.aborted)return
       setSummary(counts);setSessions(items);setMoreSessions(items.length===pageSize)
       setPending(waiting);setMorePending(waiting.length===pageSize);setUpdated(new Date())
+      lastRefresh.current = Date.now(); dirty.current = false
     } finally {if(!requestSignal.aborted)setRefreshing(false)}
   }
   useEffect(()=>{
@@ -78,8 +83,11 @@ export function ProgressScreen({ onResume }: { onResume: (resume: Resume) => voi
     return()=>{controller.abort();refreshRequest.current?.abort();active.current?.abort()}
   },[])
   useEffect(()=>{
-    const reload=()=>{
+    const reload=(event?:Event)=>{
+      const changed = event?.type === 'adaptai-progress-updated' || event?.type === 'storage'
+      if (!activePage) { if (changed) dirty.current = true; return }
       if(busy||document.visibilityState==='hidden')return
+      if (!changed && Date.now() - lastRefresh.current < 30000) return
       refresh().then(async()=>{
         if(selected){
           const detail=await api<SessionDetail>(`sessions/${selected.id}?limit=${Math.min(100,Math.max(pageSize,selected.analyses.length))}`)
@@ -87,11 +95,15 @@ export function ProgressScreen({ onResume }: { onResume: (resume: Resume) => voi
         }
       }).catch(failure=>{if(failure instanceof Error&&failure.name!=='AbortError')setError(failure.message)})
     }
-    const storage=(event:StorageEvent)=>{if(event.key==='adaptai-progress-updated')reload()}
+    const storage=(event:StorageEvent)=>{if(event.key==='adaptai-progress-updated')reload(event)}
     window.addEventListener('focus',reload);window.addEventListener('adaptai-progress-updated',reload)
     window.addEventListener('storage',storage);document.addEventListener('visibilitychange',reload)
     return()=>{window.removeEventListener('focus',reload);window.removeEventListener('adaptai-progress-updated',reload);window.removeEventListener('storage',storage);document.removeEventListener('visibilitychange',reload)}
-  },[busy,selected?.id,selected?.analyses.length])
+  },[activePage,busy,selected?.id,selected?.analyses.length])
+  useEffect(() => {
+    if (!activePage || !lastRefresh.current || (!dirty.current && Date.now() - lastRefresh.current < 30000)) return
+    void refresh().catch(failure => setError(failure instanceof Error ? failure.message : 'Refresh failed'))
+  }, [activePage])
   const confirm = async (item:HistoryItem,candidate:string) => {
     setBusy(true);setError('')
     try {

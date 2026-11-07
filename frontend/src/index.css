@@ -25,6 +25,9 @@
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: #f9f9f9; }
 .app { min-height: 100vh; background: #f9f9f9; color: #222222; transition: background-color .2s ease, color .2s ease; }
+.page-panel { display: contents; }
+.page-panel[hidden] { display: none; }
+.chart-loading { min-height: 230px; display: grid; place-items: center; color: #666; }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline: 3px solid #b1b1b1; outline-offset: 3px; }
@@ -979,7 +982,7 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 
 /* Pages sit centred in the space beside the sidebar. */
 .app-main { margin-left: 292px; min-width: 0; }
-.app-main > .page, .app-main > footer { margin-left: auto; margin-right: auto; }
+.app-main > .page, .app-main > .page-panel > .page, .app-main > footer { margin-left: auto; margin-right: auto; }
 .account-error { position: fixed; top: 16px; right: 16px; z-index: 50; margin: 0; }
 
 /* Chat: full height; the conversation is a centred column, whatever the screen width. */

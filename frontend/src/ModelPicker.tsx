@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
+import { usePageActive } from './PagePanel'
 import type { LLMOption } from './api'
 
 type Props = {
@@ -12,9 +13,11 @@ type Props = {
 }
 
 export function ModelPicker({ options, value, autoId, loading, disabled, onChange, onConfigure }: Props) {
+  const active = usePageActive()
   const trigger = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
+  useLayoutEffect(() => { if (!active) panel.current?.hidePopover() }, [active])
   const selected = options.find(option => option.id === value)
   const automatic = options.find(option => option.id === autoId)
   const title = loading ? 'Loading models…' : value === 'auto' ? 'Auto' : selected?.model || selected?.label || 'Choose model'

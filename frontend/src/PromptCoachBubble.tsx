@@ -110,6 +110,15 @@ export function PromptCoachBubble({ analysis, analysisId, task, disabled, onTask
   const active = useRef<AbortController | null>(null)
 
   useEffect(() => {
+    const changed = (event: Event) => {
+      setEnabled((event as CustomEvent<{ enabled: boolean }>).detail.enabled)
+      active.current?.abort(); setBusy(false); setOpen(false); setResult(null)
+    }
+    window.addEventListener('adaptai-coach-settings-updated', changed)
+    return () => window.removeEventListener('adaptai-coach-settings-updated', changed)
+  }, [])
+
+  useEffect(() => {
     const controller = new AbortController()
     coachAvailable(controller.signal)
       .then(available => { if (!controller.signal.aborted) setEnabled(available) })

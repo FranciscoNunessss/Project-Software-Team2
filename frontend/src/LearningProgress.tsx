@@ -32,6 +32,7 @@ export function LearningProgress({ summary }: { summary: unknown }) {
   const [data, setData] = useState<Learning>()
   const [error, setError] = useState('')
   useEffect(() => {
+    if (!summary) return
     const controller = new AbortController()
     api<Learning>('progress/learning', undefined, controller.signal)
       .then(result => { setData(result); setError('') })

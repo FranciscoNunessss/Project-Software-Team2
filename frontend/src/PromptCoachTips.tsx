@@ -27,6 +27,15 @@ export function PromptCoachTips({ analysis, task }: { analysis: Analysis; task: 
   const active = useRef<AbortController | null>(null)
 
   useEffect(() => {
+    const changed = (event: Event) => {
+      setEnabled((event as CustomEvent<{ enabled: boolean }>).detail.enabled)
+      active.current?.abort(); setState({ kind: 'idle' })
+    }
+    window.addEventListener('adaptai-coach-settings-updated', changed)
+    return () => window.removeEventListener('adaptai-coach-settings-updated', changed)
+  }, [])
+
+  useEffect(() => {
     const controller = new AbortController()
     coachAvailable(controller.signal)
       .then(available => { if (!controller.signal.aborted) setEnabled(available) })

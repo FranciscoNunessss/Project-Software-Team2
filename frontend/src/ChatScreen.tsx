@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { usePageActive } from './PagePanel'
 import {
   api, createChat, renameChat, errorMessage, getChat, notifyProgressChange, streamChat, candidateLabel, putOutcome, ApiError,
   type Analysis, type ChatMessage, type HistoryItem, type LLMOption, type LLMOptions, type OutcomeReason, type TaskOutcome,
@@ -46,7 +47,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
   onNotAChat?: () => void
   title?: string
   error?: string
-  onChatCreated: (id: string) => void
+  onChatCreated: (id: string | null) => void
   onChatsChanged: () => void
   onBusyChange: (locked: boolean) => void
   // Feedback per task (ADR-014) across chats: switching chat remounts this screen, so App
@@ -120,9 +121,41 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
     return () => { controller.abort(); active.current?.abort() }
   }, [])
 
-  useEffect(() => { end.current?.scrollIntoView({ block: 'end' }) }, [messages])
+  const activePage = usePageActive()
+  const historyDirty = useRef(false)
   useEffect(() => {
-    if (!initialChatId) return
+    const markChanged = () => { if (!activePage) historyDirty.current = true }
+    window.addEventListener('adaptai-progress-updated', markChanged)
+    return () => window.removeEventListener('adaptai-progress-updated', markChanged)
+  }, [activePage])
+  useEffect(() => {
+    if (!activePage || !historyDirty.current) return
+    historyDirty.current = false
+    const controller = new AbortController()
+    onChatsChanged()
+    if (chatId) void getChat(chatId, controller.signal).then(chat => setMessages(chat.messages))
+      .catch(failure => {
+        if (controller.signal.aborted) return
+        if (failure instanceof ApiError && failure.status === 404) {
+          setChatId(null); onChatCreated(null); setMessages([]); setShown(null); setDraftAnalysis(null); setDrawer(false)
+        } else setError('Could not refresh your chat.')
+      })
+    return () => controller.abort()
+  }, [activePage])
+  useEffect(() => {
+    const controller = new AbortController()
+    const refreshModels = () => {
+      void api<LLMOptions>('llm-options', undefined, controller.signal).then(result => {
+        setOptions(result.options); setAutoId(result.auto_configuration_id)
+        setModel(current => current === 'auto' || result.options.some(item => item.id === current) ? current : 'auto')
+      }).catch(() => { if (!controller.signal.aborted) setError('Could not refresh model settings.') })
+    }
+    window.addEventListener('adaptai-models-updated', refreshModels)
+    return () => { controller.abort(); window.removeEventListener('adaptai-models-updated', refreshModels) }
+  }, [])
+  useEffect(() => { if (activePage) end.current?.scrollIntoView({ block: 'end' }) }, [messages])
+  useEffect(() => {
+    if (!initialChatId || initialChatId === chatId) return
     getChat(initialChatId).then(chat => { setChatId(chat.id); setMessages(chat.messages) })
       .catch(failure => { if (failure instanceof ApiError && failure.status === 404) onNotAChat?.() })
   }, [initialChatId]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -245,6 +278,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
   const composer = useRef<HTMLElement>(null)
   const [composerSpace, setComposerSpace] = useState(0)
   const measureComposer = () => {
+    if (!activePage) return
     const element = composer.current
     if (!element) return
     // The feedback card (ADR-014) sits right above the box and must stay reachable too.

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { api, ApiError, candidateLabel, deleteChat, getFeatures, listChats, PROFILE_VERSION, notifyProgressChange, type Analysis, type Candidate, type ChatSummary, type LLMOption, type LLMOptions, type SavedSession, type Resume } from './api'
 import { Account, type AccountInfo } from './Account'
+import { PagePanel } from './PagePanel'
 import { AnalysisChanges } from './AnalysisChanges'
 
 import { ProgressScreen } from './Progress'
@@ -339,6 +340,8 @@ function Shell({ account, dark, onToggleTheme }: { account: AccountInfo; dark: b
     } catch { /* Navigation remains available without browser storage. */ }
     return 'assistant'
   })
+  const [visited, setVisited] = useState<Set<Screen>>(() => new Set([screen]))
+  const scrollPositions = useRef<Partial<Record<Screen, number>>>({})
   const [resume, setResume] = useState<Resume | null>(null)
   // The chat is optional (ADR-011): shown only when the server has the module.
   // null while unknown, so neither screen flashes before /api/features answers.
@@ -350,9 +353,9 @@ function Shell({ account, dark, onToggleTheme }: { account: AccountInfo; dark: b
     getFeatures(controller.signal).then(features => setHasChat(features.chat === true)).catch(() => { if (!controller.signal.aborted) setHasChat(false) })
     return () => controller.abort()
   }, [])
-  useEffect(() => {
+  useLayoutEffect(() => {
     try { window.localStorage.setItem('adaptai-screen', screen) } catch { /* Storage may be disabled. */ }
-    window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+    window.scrollTo({ top: scrollPositions.current[screen] ?? 0, behavior: 'instant' })
   }, [screen])
 
   // Chats: the list lives here so the sidebar shows it on every page.
@@ -370,9 +373,14 @@ function Shell({ account, dark, onToggleTheme }: { account: AccountInfo; dark: b
   const refreshChats = () => listChats().then(setChats).catch(() => setChatError('Could not load your chats.'))
   useEffect(() => { if (hasChat) refreshChats() }, [hasChat]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const navigate = (next: Screen) => { setResume(null); setLegacy(false); setScreen(next) }
-  const openChat = (id: string) => { if (id !== chat.id) carryOpenTask(); setResume(null); setLegacy(false); setChatError(''); setChat({ key: id, id }); setScreen('assistant') }
-  const newChat = () => { carryOpenTask(); setResume(null); setLegacy(false); setChatError(''); setChat({ key: `new-${Date.now()}`, id: null }); setScreen('assistant') }
+  const navigate = (next: Screen) => {
+    if (next === screen) return
+    scrollPositions.current[screen] = window.scrollY
+    setVisited(current => new Set([...current, next]))
+    setScreen(next)
+  }
+  const openChat = (id: string) => { if (id !== chat.id) carryOpenTask(); setResume(null); setLegacy(false); setChatError(''); setChat({ key: id, id }); navigate('assistant') }
+  const newChat = () => { carryOpenTask(); setResume(null); setLegacy(false); setChatError(''); setChat({ key: `new-${Date.now()}`, id: null }); navigate('assistant') }
   const removeChat = async (id: string) => {
     try { await deleteChat(id) } catch { setChatError('Could not delete the chat.'); return }
     if (id === chat.id) newChat()
@@ -386,18 +394,20 @@ function Shell({ account, dark, onToggleTheme }: { account: AccountInfo; dark: b
         chats={hasChat ? { list: chats, activeId: chat.id, locked: chatLocked, onOpen: openChat, onNew: newChat, onDelete: id => void removeChat(id) } : undefined} />
       <div className="app-main">
         {/* With the chat module (ADR-011) the Assistant is the chat, with the analysis in a side panel. */}
-        {chatActive && <ChatScreen key={chat.key} initialChatId={chat.id ?? undefined} title={chats.find(item => item.id === chat.id)?.title}
+        {visited.has('assistant') && <PagePanel active={screen === 'assistant'}>
+        {hasChat === true && !legacy && <ChatScreen key={chat.key} initialChatId={chat.id ?? undefined} title={chats.find(item => item.id === chat.id)?.title}
           error={chatError} onChatCreated={id => setChat(current => ({ ...current, id }))} onChatsChanged={refreshChats} onBusyChange={setChatLocked}
           carriedTask={carriedTask} onTaskState={onTaskState}
           onNotAChat={() => setLegacy(true)} onConfigureModels={() => navigate('llm')} />}
-        {screen === 'assistant' && (hasChat === false || legacy) && <AssistantScreen resume={resume} onConfigureModels={() => navigate('llm')} />}
-        {screen === 'progress' && <ProgressScreen onResume={saved => {
+        {(hasChat === false || legacy) && <AssistantScreen resume={resume} onConfigureModels={() => navigate('llm')} />}
+        </PagePanel>}
+        {visited.has('progress') && <PagePanel active={screen === 'progress'}><ProgressScreen onResume={saved => {
           setResume(saved); setLegacy(false)
           if (hasChat) setChat({ key: saved.sessionId, id: saved.sessionId })
-          setScreen('assistant')
-        }} />}
-        {screen === 'profile' && <ProfileScreen />}
-        {screen === 'llm' && <LLMConfigScreen />}
+          navigate('assistant')
+        }} /></PagePanel>}
+        {visited.has('profile') && <PagePanel active={screen === 'profile'}><ProfileScreen /></PagePanel>}
+        {visited.has('llm') && <PagePanel active={screen === 'llm'}><LLMConfigScreen /></PagePanel>}
         {/* The chat fills the window and scrolls only its conversation, so it has no footer. */}
         {!chatActive && <footer><span>AdaptAI</span><p>Clearer choices. Better AI judgement.</p><button>Privacy</button><button>How it works</button></footer>}
       </div>

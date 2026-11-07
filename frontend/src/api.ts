@@ -202,8 +202,10 @@ export type CoachSettings = { enabled: boolean }
 export function getCoachSettings(signal?: AbortSignal): Promise<CoachSettings> {
   return api<CoachSettings>('prompt-coach/settings', undefined, signal)
 }
-export function setCoachSettings(body: CoachSettings): Promise<CoachSettings> {
-  return api<CoachSettings>('prompt-coach/settings', body, undefined, 'PUT')
+export async function setCoachSettings(body: CoachSettings): Promise<CoachSettings> {
+  const settings = await api<CoachSettings>('prompt-coach/settings', body, undefined, 'PUT')
+  window.dispatchEvent(new CustomEvent<CoachSettings>('adaptai-coach-settings-updated', { detail: settings }))
+  return settings
 }
 // True when the module is installed on the server and this user has it switched on.
 export async function coachAvailable(signal?: AbortSignal): Promise<boolean> {

@@ -1,7 +1,6 @@
 """Feedback per task and the choice recorded on Send (ADR-014)."""
 
 import json
-import sqlite3
 
 import pytest
 from app.main import create_app
@@ -21,7 +20,7 @@ def account(client, email="alice@example.com"):
 
 @pytest.fixture
 def app(tmp_path):
-    return create_app(Settings(_env_file=None, database_path=str(tmp_path / "db.sqlite3")))
+    return create_app(Settings(_env_file=None))
 
 
 def analyse(client, task="Summarise the private report"):
@@ -44,7 +43,7 @@ def test_outcome_once_per_task_owner_only_and_without_text(app, tmp_path):
     assert body["turns"] == 3 and body["switched_model"] is True
     assert alice.put(path, json={"outcome": "resolved"}).status_code == 409
     assert alice.get(path).json()["outcome"] == "resolved_with_refinement"
-    with sqlite3.connect(tmp_path / "db.sqlite3") as db:
+    with app.state.storage.connect() as db:
         stored = json.dumps(db.execute("SELECT * FROM task_outcomes").fetchall())
     assert "private report" not in stored
 
@@ -77,7 +76,7 @@ def test_outcomes_are_deleted_with_the_session_and_the_history(app, tmp_path):
     other = analyse(client)
     client.put(f"/api/analyses/{other['id']}/outcome", json={"outcome": "resolved"})
     assert client.delete("/api/progress/history").status_code == 200
-    with sqlite3.connect(tmp_path / "db.sqlite3") as db:
+    with app.state.storage.connect() as db:
         assert db.execute("SELECT count(*) FROM task_outcomes").fetchone()[0] == 0
 
 
@@ -123,7 +122,6 @@ def test_send_records_the_choice_and_chat_shows_the_outcome(tmp_path, monkeypatc
 
     settings = Settings(
         _env_file=None,
-        database_path=str(tmp_path / "db.sqlite3"),
         groq_models="openai/gpt-oss-20b,openai/gpt-oss-120b",
         groq_api_key="synthetic",
     )

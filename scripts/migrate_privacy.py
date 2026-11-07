@@ -6,8 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
-from app.providers import Settings  # noqa: E402
-from app.storage import Storage  # noqa: E402
+from migration_tools.legacy_sqlite import LegacySQLiteStorage  # noqa: E402
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument(
@@ -17,6 +16,11 @@ parser.add_argument(
     help="Permanently remove task text, context and free explanations. "
     "Stop all backend workers before running this command.",
 )
-parser.parse_args()
-Storage(Settings().database_path, allow_legacy_redaction=True)
+parser.add_argument(
+    "--database", type=Path, required=True, help="Legacy SQLite database to upgrade"
+)
+args = parser.parse_args()
+if not args.database.is_file():
+    parser.error("SQLite database does not exist")
+LegacySQLiteStorage(str(args.database), allow_legacy_redaction=True)
 print("Privacy migration complete. Derived profiles and choices preserved; legacy text removed.")

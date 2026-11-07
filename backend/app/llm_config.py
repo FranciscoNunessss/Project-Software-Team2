@@ -76,11 +76,15 @@ class ModelConfigurations:
         self.store = store
         self.settings = settings
         self.key_path = Path(
-            settings.credentials_key_path
-            or str(Path(settings.database_path).with_suffix(".credentials.key"))
+            settings.credentials_key_path or "backend/data/adaptai.credentials.key"
         )
 
     def cipher(self, *, create=False):
+        if self.settings.credentials_key.get_secret_value():
+            try:
+                return Fernet(self.settings.credentials_key.get_secret_value().encode())
+            except ValueError:
+                raise HTTPException(503, "credentials_key_unavailable") from None
         if not self.key_path.exists() and create:
             with self.store.connect() as db:
                 if db.execute(
@@ -102,7 +106,7 @@ class ModelConfigurations:
     def owned(self, user_id, identifier):
         with self.store.connect() as db:
             row = db.execute(
-                "SELECT * FROM llm_configs WHERE id=? AND user_id=?", (identifier, user_id)
+                "SELECT * FROM llm_configs WHERE id=%s AND user_id=%s", (identifier, user_id)
             ).fetchone()
         if not row:
             raise HTTPException(404, "configuration_not_found")
@@ -113,7 +117,7 @@ class ModelConfigurations:
             return [
                 public_config(row)
                 for row in db.execute(
-                    "SELECT * FROM llm_configs WHERE user_id=? ORDER BY created_at,rowid",
+                    "SELECT * FROM llm_configs WHERE user_id=%s ORDER BY created_at,sequence_id",
                     (user_id,),
                 )
             ]
@@ -142,21 +146,21 @@ class ModelConfigurations:
         if body.is_default and not body.enabled:
             raise HTTPException(422, "default_must_be_enabled")
         with self.store.connect() as db:
-            db.execute("BEGIN IMMEDIATE")
+            self.store.lock_user(db, user_id)
             if body.is_default:
-                db.execute("UPDATE llm_configs SET is_default=0 WHERE user_id=?", (user_id,))
+                db.execute("UPDATE llm_configs SET is_default=0 WHERE user_id=%s", (user_id,))
             if previous:
                 cursor = db.execute(
-                    """UPDATE llm_configs SET label=?,provider=?,model=?,key_ciphertext=?,
-                       responses_api=?,enabled=?,is_default=? WHERE id=? AND user_id=?""",
+                    """UPDATE llm_configs SET label=%s,provider=%s,model=%s,key_ciphertext=%s,
+                       responses_api=%s,enabled=%s,is_default=%s WHERE id=%s AND user_id=%s""",
                     (
                         body.label,
                         body.provider,
                         body.model,
                         encrypted,
-                        body.responses_api,
-                        body.enabled,
-                        body.is_default,
+                        int(body.responses_api),
+                        int(body.enabled),
+                        int(body.is_default),
                         identifier,
                         user_id,
                     ),
@@ -166,7 +170,7 @@ class ModelConfigurations:
             else:
                 db.execute(
                     """INSERT INTO llm_configs(id,user_id,label,provider,model,key_ciphertext,
-                       responses_api,enabled,is_default) VALUES (?,?,?,?,?,?,?,?,?)""",
+                       responses_api,enabled,is_default) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (
                         identifier,
                         user_id,
@@ -174,9 +178,9 @@ class ModelConfigurations:
                         body.provider,
                         body.model,
                         encrypted,
-                        body.responses_api,
-                        body.enabled,
-                        body.is_default,
+                        int(body.responses_api),
+                        int(body.enabled),
+                        int(body.is_default),
                     ),
                 )
         return public_config(self.owned(user_id, identifier))
@@ -279,7 +283,9 @@ def install_routes(app: FastAPI, configurations: ModelConfigurations, enabled):
     def remove(identifier: str, user: AuthenticatedUser):
         configurations.owned(user["id"], identifier)
         with configurations.store.connect() as db:
-            db.execute("DELETE FROM llm_configs WHERE id=? AND user_id=?", (identifier, user["id"]))
+            db.execute(
+                "DELETE FROM llm_configs WHERE id=%s AND user_id=%s", (identifier, user["id"])
+            )
         return {"status": "deleted"}
 
     @app.get("/api/llm-options")

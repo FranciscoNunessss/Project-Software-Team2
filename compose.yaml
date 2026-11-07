@@ -1,0 +1,58 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "127.0.0.1:${ADAPTAI_HTTP_PORT:-8080}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - path: ${ADAPTAI_ENV_FILE:-.env}
+        required: false
+    environment:
+      # .env's native URL uses the host port; containers use the service hostname.
+      ADAPTAI_DATABASE_URL: postgresql://adaptai:adaptai@postgres:5432/adaptai
+      ADAPTAI_DATABASE_SCHEMA: ${ADAPTAI_DATABASE_SCHEMA:-adaptai}
+      ADAPTAI_BROWSER_ORIGIN: ${ADAPTAI_CONTAINER_BROWSER_ORIGIN:-http://127.0.0.1:8080}
+      ADAPTAI_CREDENTIALS_KEY_PATH: /data/adaptai.credentials.key
+      ADAPTAI_OLLAMA_BASE_URL: ${ADAPTAI_CONTAINER_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      ADAPTAI_LMSTUDIO_BASE_URL: ${ADAPTAI_CONTAINER_LMSTUDIO_BASE_URL:-http://host.docker.internal:1234/v1}
+      PORT: "8000"
+    volumes:
+      - backend-data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: adaptai
+      POSTGRES_USER: adaptai
+      POSTGRES_PASSWORD: adaptai
+    ports:
+      - "127.0.0.1:${ADAPTAI_POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adaptai -d adaptai"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  postgres-data:
+  backend-data:

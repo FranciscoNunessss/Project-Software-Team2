@@ -369,7 +369,11 @@ def test_nothing_is_written_to_the_database():
     def snapshot():
         with app.state.storage.connect() as db:
             tables = [
-                row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                row[0]
+                for row in db.execute(
+                    "SELECT tablename FROM pg_tables "
+                    "WHERE schemaname=current_schema() ORDER BY tablename"
+                )
             ]
             return {table: db.execute(f"SELECT * FROM {table}").fetchall() for table in tables}
 

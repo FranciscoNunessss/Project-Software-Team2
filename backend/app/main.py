@@ -1,12 +1,13 @@
 import json
-import sqlite3
 from time import perf_counter
 from uuid import uuid4
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from langsmith import tracing_context
+from psycopg.errors import ForeignKeyViolation
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.accounts import AuthenticatedUser, check_origin
@@ -68,10 +69,24 @@ def create_app(
     openrouter_catalogue: OpenRouterCatalogue | None = None,
 ) -> FastAPI:
     settings = with_server_models(settings or Settings())
+    if settings.auth_mode == "supabase":
+        if (
+            not settings.supabase_url.startswith("https://")
+            or not settings.supabase_publishable_key.get_secret_value()
+        ):
+            raise ValueError("Supabase Auth requires an HTTPS URL and publishable key")
     app = FastAPI(title="AdaptAI", version="0.1.0", dependencies=[Depends(check_origin)])
-    store = Storage(settings.database_path)
+    store = Storage(settings.database_url.get_secret_value(), settings.database_schema)
     app.state.storage = store
     app.state.settings = settings
+    if settings.auth_mode == "supabase":
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[settings.browser_origin.rstrip("/")],
+            allow_credentials=False,
+            allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+            allow_headers=["Authorization", "Content-Type", "Accept"],
+        )
     app.include_router(accounts_router)
     schedule_coaching = install_coaching(app, store, settings)
     install_outcomes(app, store)
@@ -196,10 +211,12 @@ def create_app(
             return [
                 dict(row)
                 for row in db.execute(
-                    "SELECT s.*,count(a.id) AS analysis_count,count(d.analysis_id) AS choice_count "
+                    "SELECT s.id,s.user_id,s.title,s.context,s.created_at,"
+                    "count(a.id) AS analysis_count,count(d.analysis_id) AS choice_count "
                     "FROM sessions s LEFT JOIN analyses a ON a.session_id=s.id "
-                    "LEFT JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=? "
-                    "GROUP BY s.id ORDER BY s.created_at DESC,s.rowid DESC LIMIT ? OFFSET ?",
+                    "LEFT JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=%s "
+                    "GROUP BY s.id ORDER BY s.created_at DESC,s.sequence_id DESC "
+                    "LIMIT %s OFFSET %s",
                     (user["id"], limit, offset),
                 )
             ]
@@ -216,21 +233,21 @@ def create_app(
             counts = db.execute(
                 """SELECT count(a.id) AS analyses, count(d.analysis_id) AS choices,
                    coalesce(sum(CASE WHEN d.candidate_id =
-                       json_extract(a.result_json, '$.recommendation.id') THEN 1 ELSE 0 END), 0)
+                       (a.result_json::jsonb #>> '{recommendation,id}') THEN 1 ELSE 0 END), 0)
                        AS matches
                    FROM sessions s LEFT JOIN analyses a ON a.session_id=s.id
-                   LEFT JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=?""",
+                   LEFT JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=%s""",
                 (user["id"],),
             ).fetchone()
             sessions = db.execute(
-                "SELECT count(*) FROM sessions WHERE user_id=?", (user["id"],)
+                "SELECT count(*) FROM sessions WHERE user_id=%s", (user["id"],)
             ).fetchone()[0]
             gaps = [
                 choice_gap(row)
                 for row in db.execute(
                     """SELECT a.result_json, d.candidate_id FROM sessions s
                        JOIN analyses a ON a.session_id=s.id
-                       JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=?""",
+                       JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=%s""",
                     (user["id"],),
                 )
             ]
@@ -252,8 +269,8 @@ def create_app(
                 """SELECT a.result_json,a.created_at,s.title FROM analyses a
                    JOIN sessions s ON s.id=a.session_id
                    LEFT JOIN decisions d ON d.analysis_id=a.id
-                   WHERE s.user_id=? AND d.analysis_id IS NULL
-                   ORDER BY a.created_at DESC,a.rowid DESC LIMIT ? OFFSET ?""",
+                   WHERE s.user_id=%s AND d.analysis_id IS NULL
+                   ORDER BY a.created_at DESC,a.sequence_id DESC LIMIT %s OFFSET %s""",
                 (user["id"], limit, offset),
             )
             return [
@@ -274,17 +291,17 @@ def create_app(
                 """SELECT s.id AS session_id,s.title,s.created_at,count(a.id) AS analyses,
                    count(d.analysis_id) AS choices FROM sessions s
                    JOIN analyses a ON a.session_id=s.id
-                   LEFT JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=?
-                   GROUP BY s.id ORDER BY s.created_at DESC,s.rowid DESC LIMIT 6""",
+                   LEFT JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=%s
+                   GROUP BY s.id ORDER BY s.created_at DESC,s.sequence_id DESC LIMIT 6""",
                 (user["id"],),
             ).fetchall()
         return list(reversed([dict(row) for row in rows]))
 
     @app.delete("/api/progress/history")
     def clear_history(user: AuthenticatedUser):
-        with store.connect() as db:
-            db.execute("DELETE FROM sessions WHERE user_id=?", (user["id"],))
-            db.execute("DELETE FROM coaching_reports WHERE user_id=?", (user["id"],))
+        with store.connect(user_id=user["id"]) as db:
+            db.execute("DELETE FROM sessions WHERE user_id=%s", (user["id"],))
+            db.execute("DELETE FROM coaching_reports WHERE user_id=%s", (user["id"],))
         return {"status": "deleted"}
 
     def context_for(user_id: str):
@@ -293,14 +310,14 @@ def create_app(
                 "SELECT content,updated_at,save_enabled,use_enabled,coaching_auto_enabled, "
                 "conversation_memory_enabled "
                 "FROM user_context "
-                "WHERE user_id=?",
+                "WHERE user_id=%s",
                 (user_id,),
             ).fetchone()
             entries = [
                 json.loads(item[0])
                 for item in db.execute(
-                    "SELECT metadata_json FROM memory_entries WHERE user_id=? "
-                    "ORDER BY rowid DESC LIMIT 20",
+                    "SELECT metadata_json FROM memory_entries WHERE user_id=%s "
+                    "ORDER BY sequence_id DESC LIMIT 20",
                     (user_id,),
                 )
             ]
@@ -331,7 +348,7 @@ def create_app(
             return db.execute(
                 "SELECT count(*) FROM conversation_content c "
                 "JOIN analyses a ON a.id=c.analysis_id JOIN sessions s ON s.id=a.session_id "
-                "WHERE s.user_id=?",
+                "WHERE s.user_id=%s",
                 (user_id,),
             ).fetchone()[0]
 
@@ -344,31 +361,32 @@ def create_app(
         current = context_for(user["id"])
         changes = body.model_dump(exclude_none=True)
         values = {**current, **changes}
-        with store.connect() as db:
+        with store.connect(user_id=user["id"]) as db:
             db.execute(
                 """INSERT INTO user_context
                    (user_id,content,save_enabled,use_enabled,coaching_auto_enabled,
                     conversation_memory_enabled)
-                   VALUES (?,?,?,?,?,?)
+                   VALUES (%s,%s,%s,%s,%s,%s)
                    ON CONFLICT(user_id) DO UPDATE SET content=excluded.content,
                    save_enabled=excluded.save_enabled,use_enabled=excluded.use_enabled,
                    coaching_auto_enabled=excluded.coaching_auto_enabled,
                    conversation_memory_enabled=excluded.conversation_memory_enabled,
-                   updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now')""",
+                   updated_at=to_char(clock_timestamp() AT TIME ZONE 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')""",
                 (
                     user["id"],
                     values["content"],
-                    values["save_enabled"],
-                    values["use_enabled"],
-                    values["coaching_auto_enabled"],
-                    values["conversation_memory_enabled"],
+                    int(values["save_enabled"]),
+                    int(values["use_enabled"]),
+                    int(values["coaching_auto_enabled"]),
+                    int(values["conversation_memory_enabled"]),
                 ),
             )
             if any(
                 getattr(body, field) is not None and getattr(body, field) != current[field]
                 for field in ("use_enabled", "conversation_memory_enabled")
             ):
-                db.execute("DELETE FROM coaching_reports WHERE user_id=?", (user["id"],))
+                db.execute("DELETE FROM coaching_reports WHERE user_id=%s", (user["id"],))
         if any(
             field in changes
             for field in ("coaching_auto_enabled", "use_enabled", "conversation_memory_enabled")
@@ -378,20 +396,20 @@ def create_app(
 
     @app.delete("/api/context/memory")
     def clear_memory(user: AuthenticatedUser):
-        with store.connect() as db:
-            db.execute("DELETE FROM memory_entries WHERE user_id=?", (user["id"],))
+        with store.connect(user_id=user["id"]) as db:
+            db.execute("DELETE FROM memory_entries WHERE user_id=%s", (user["id"],))
         return context_for(user["id"])
 
     @app.delete("/api/context/conversations")
     def clear_conversations(user: AuthenticatedUser):
-        with store.connect() as db:
+        with store.connect(user_id=user["id"]) as db:
             db.execute(
                 "DELETE FROM conversation_content WHERE analysis_id IN "
                 "(SELECT a.id FROM analyses a JOIN sessions s ON s.id=a.session_id "
-                "WHERE s.user_id=?)",
+                "WHERE s.user_id=%s)",
                 (user["id"],),
             )
-            db.execute("DELETE FROM coaching_reports WHERE user_id=?", (user["id"],))
+            db.execute("DELETE FROM coaching_reports WHERE user_id=%s", (user["id"],))
         return context_for(user["id"])
 
     @app.get("/api/progress/dashboard")
@@ -401,8 +419,8 @@ def create_app(
             rows = db.execute(
                 """SELECT a.result_json, s.id, s.title, s.created_at, d.candidate_id
                    FROM sessions s JOIN analyses a ON a.session_id=s.id
-                   JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=?
-                   ORDER BY s.created_at, s.rowid, a.created_at, a.rowid""",
+                   JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=%s
+                   ORDER BY s.created_at, s.sequence_id, a.created_at, a.sequence_id""",
                 (user["id"],),
             )
             points = {}
@@ -451,9 +469,9 @@ def create_app(
     @app.patch("/api/sessions/{identifier}")
     def update_session(identifier: str, body: SessionInput, user: AuthenticatedUser):
         owned_session(user, identifier)
-        with store.connect() as db:
+        with store.connect(user_id=user["id"]) as db:
             db.execute(
-                "UPDATE sessions SET context='' WHERE id=? AND user_id=?",
+                "UPDATE sessions SET context='' WHERE id=%s AND user_id=%s",
                 (identifier, user["id"]),
             )
         return owned_session(user, identifier)
@@ -461,19 +479,19 @@ def create_app(
     @app.delete("/api/sessions/{identifier}")
     def delete_session(identifier: str, user: AuthenticatedUser):
         owned_session(user, identifier)
-        with store.connect() as db:
-            db.execute("DELETE FROM sessions WHERE id=? AND user_id=?", (identifier, user["id"]))
-            db.execute("DELETE FROM coaching_reports WHERE user_id=?", (user["id"],))
+        with store.connect(user_id=user["id"]) as db:
+            db.execute("DELETE FROM sessions WHERE id=%s AND user_id=%s", (identifier, user["id"]))
+            db.execute("DELETE FROM coaching_reports WHERE user_id=%s", (user["id"],))
         return {"status": "deleted"}
 
     def previous_profile(user: dict, body: AnalysisRequest, session: dict) -> dict | None:
         """The stored profile a re-analysis is compared with, checked before any provider call."""
         if not body.previous_analysis_id:
             return None
-        with store.connect() as db:
+        with store.connect(user_id=user["id"]) as db:
             row = db.execute(
                 "SELECT a.session_id,a.result_json FROM analyses a "
-                "JOIN sessions s ON s.id=a.session_id WHERE a.id=? AND s.user_id=?",
+                "JOIN sessions s ON s.id=a.session_id WHERE a.id=%s AND s.user_id=%s",
                 (body.previous_analysis_id, user["id"]),
             ).fetchone()
         if not row:
@@ -501,7 +519,7 @@ def create_app(
             if created_session:
                 with store.connect() as db:
                     db.execute(
-                        "DELETE FROM sessions WHERE id=? AND user_id=? AND NOT EXISTS "
+                        "DELETE FROM sessions WHERE id=%s AND user_id=%s AND NOT EXISTS "
                         "(SELECT 1 FROM analyses WHERE session_id=sessions.id)",
                         (session["id"], user["id"]),
                     )
@@ -595,8 +613,8 @@ def create_app(
         notes = list(state["notes"])
         with store.connect() as db:
             last = db.execute(
-                "SELECT outcome,reason,completeness FROM task_outcomes WHERE user_id=? "
-                "AND outcome!='skipped' ORDER BY created_at DESC,rowid DESC LIMIT 1",
+                "SELECT outcome,reason,completeness FROM task_outcomes WHERE user_id=%s "
+                "AND outcome!='skipped' ORDER BY created_at DESC,sequence_id DESC LIMIT 1",
                 (user["id"],),
             ).fetchone()
         # ADR-014: a task not solved because of its description sends the user to the
@@ -654,9 +672,10 @@ def create_app(
             }
         )
         try:
-            with store.connect() as db:
+            with store.connect(user_id=user["id"]) as db:
                 db.execute(
-                    "INSERT INTO analyses(id,session_id,request_json,result_json) VALUES (?,?,?,?)",
+                    "INSERT INTO analyses(id,session_id,request_json,result_json) "
+                    "VALUES (%s,%s,%s,%s)",
                     (
                         identifier,
                         session["id"],
@@ -667,12 +686,12 @@ def create_app(
                 # Re-read opt-in after the provider call, so disabling during a request wins.
                 memory_settings = db.execute(
                     "SELECT save_enabled,conversation_memory_enabled FROM user_context "
-                    "WHERE user_id=?",
+                    "WHERE user_id=%s",
                     (user["id"],),
                 ).fetchone()
                 if memory_settings and memory_settings["conversation_memory_enabled"]:
                     db.execute(
-                        "INSERT INTO conversation_content VALUES (?,?,?,?)",
+                        "INSERT INTO conversation_content VALUES (%s,%s,%s,%s)",
                         (identifier, body.task, body.task_context, result.model_dump_json()),
                     )
                 if memory_settings and memory_settings[0]:
@@ -688,10 +707,11 @@ def create_app(
                         "chosen_gap": None,
                     }
                     db.execute(
-                        "INSERT INTO memory_entries VALUES (?,?,?)",
+                        "INSERT INTO memory_entries(analysis_id,user_id,metadata_json) "
+                        "VALUES (%s,%s,%s)",
                         (identifier, user["id"], json.dumps(memory)),
                     )
-        except sqlite3.IntegrityError:
+        except ForeignKeyViolation:
             # The owner may have deleted the session while the provider was running.
             raise HTTPException(404, "session_not_found") from None
         schedule_coaching(background, user["id"])
@@ -700,7 +720,7 @@ def create_app(
     @app.post("/api/decisions")
     def decide(body: Decision, user: AuthenticatedUser, background: BackgroundTasks):
         with store.connect() as db:
-            db.execute("BEGIN IMMEDIATE")
+            store.lock_user(db, user["id"])
             record_decision(db, user["id"], body.analysis_id, body.candidate_id)
         schedule_coaching(background, user["id"])
         return {

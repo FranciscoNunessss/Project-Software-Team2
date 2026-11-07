@@ -1,3 +1,5 @@
+import { apiUrl, authHeaders, apiCredentials } from './auth'
+
 export type Tier = 'Small' | 'Medium' | 'Large'
 export type NeedName = 'reasoning' | 'context' | 'domain' | 'reliability' | 'tools'
 export type CoverageState = 'covers' | 'covers_as_described' | 'short'
@@ -147,6 +149,10 @@ const errorMessages: Record<string, string> = {
   invalid_credentials: 'The email or password is incorrect. Please try again.',
   email_already_registered: 'This email already has an account. Sign in to continue.',
   authentication_required: 'Your session has expired. Please sign in again.',
+  authentication_unavailable: 'The sign-in service is temporarily unavailable. Please try again.',
+  verified_email_required: 'Confirm your email address before signing in.',
+  account_link_required: 'An existing AdaptAI account uses this email. Enter its previous password to keep your history.',
+  account_already_linked: 'This account is already linked. Sign in again or contact the project administrator.',
   provider_authentication: 'The assessment provider rejected the API key. Update the backend .env file and restart the API.',
   provider_not_configured: 'This provider is not configured. Add its credentials on the backend and restart the API.',
   external_processing_requires_consent: 'Allow external processing before requesting this assessment.',
@@ -174,12 +180,12 @@ export class ApiError extends Error {
   constructor(message: string, readonly status: number, readonly detail?: string) { super(message); this.name = 'ApiError' }
 }
 export async function api<T>(path: string, body?: unknown, signal?: AbortSignal, method?: string): Promise<T> {
-  const response = await fetch(`/api/${path}`, {
+  const response = await fetch(apiUrl(path), {
     method: method ?? (body === undefined ? 'GET' : 'POST'),
-    credentials: 'same-origin',
-    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    credentials: apiCredentials,
+    headers: { ...await authHeaders(), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
     body: body === undefined ? undefined : JSON.stringify(body),
-    signal: signal ?? AbortSignal.timeout(45000),
+    signal: signal ?? AbortSignal.timeout(120000),
   })
   if (!response.ok) {
     const failure = await response.json().catch(() => ({}))
@@ -257,16 +263,16 @@ export const createChat = () => api<Chat>('chats', {})
 export const getChat = (id: string, signal?: AbortSignal) => api<Chat>(`chats/${id}`, undefined, signal)
 export const renameChat = (id: string, title: string) => api<ChatSummary>(`chats/${id}`, { title }, undefined, 'PATCH')
 export async function deleteChat(id: string): Promise<void> {
-  const response = await fetch(`/api/chats/${id}`, { method: 'DELETE', credentials: 'same-origin' })
+  const response = await fetch(apiUrl(`chats/${id}`), { method: 'DELETE', credentials: apiCredentials, headers: await authHeaders() })
   if (!response.ok && response.status !== 404) throw new ApiError('Could not delete the chat', response.status)
 }
 
 // Sends (or retries) and reads the Server-Sent Events as they arrive. Aborting the signal is
 // Stop: the server keeps the text received so far with status "stopped".
 export async function streamChat(path: string, body: unknown, handlers: ChatHandlers, signal: AbortSignal): Promise<ChatTurn> {
-  const response = await fetch(`/api/${path}`, {
-    method: 'POST', credentials: 'same-origin', signal,
-    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+  const response = await fetch(apiUrl(path), {
+    method: 'POST', credentials: apiCredentials, signal,
+    headers: { ...await authHeaders(), 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify(body),
   })
   if (!response.ok || !response.body) {

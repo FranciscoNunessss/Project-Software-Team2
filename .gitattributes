@@ -1,3 +1,6 @@
 # Hashed or byte-compared files must keep LF line endings on every platform (ADR-009).
 backend/rubric/** -text
 backend/tests/fixtures/** -text
+# Entrypoints must be executable by Linux even when checked out on Windows.
+*.sh text eol=lf
+backend/data/catalogue/**/*.json text eol=lf

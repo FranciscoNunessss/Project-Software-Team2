@@ -46,7 +46,7 @@ class OutcomeInput(BaseModel):
 def owned_analysis(db, user_id: str, analysis_id: str) -> dict:
     row = db.execute(
         "SELECT a.id,a.session_id,a.result_json FROM analyses a "
-        "JOIN sessions s ON s.id=a.session_id WHERE a.id=? AND s.user_id=?",
+        "JOIN sessions s ON s.id=a.session_id WHERE a.id=%s AND s.user_id=%s",
         (analysis_id, user_id),
     ).fetchone()
     if not row:
@@ -61,18 +61,19 @@ def record_decision(db, user_id: str, analysis_id: str, candidate_id: str) -> di
     if candidate_id not in [item["id"] for item in eligible]:
         raise HTTPException(422, "candidate_not_eligible")
     previous = db.execute(
-        "SELECT candidate_id FROM decisions WHERE analysis_id=?", (analysis_id,)
+        "SELECT candidate_id FROM decisions WHERE analysis_id=%s", (analysis_id,)
     ).fetchone()
     if previous and previous["candidate_id"] != candidate_id:
         raise HTTPException(409, "decision_already_recorded")
     db.execute(
-        "INSERT OR IGNORE INTO decisions(analysis_id,candidate_id) VALUES (?,?)",
+        "INSERT INTO decisions(analysis_id,candidate_id) VALUES (%s,%s) "
+        "ON CONFLICT(analysis_id) DO NOTHING",
         (analysis_id, candidate_id),
     )
     saved_memory = db.execute(
         "SELECT m.metadata_json FROM memory_entries m "
         "JOIN user_context c ON c.user_id=m.user_id "
-        "WHERE m.analysis_id=? AND m.user_id=? AND c.save_enabled=1",
+        "WHERE m.analysis_id=%s AND m.user_id=%s AND c.save_enabled=1",
         (analysis_id, user_id),
     ).fetchone()
     if saved_memory:
@@ -85,7 +86,7 @@ def record_decision(db, user_id: str, analysis_id: str, candidate_id: str) -> di
             metadata["chosen_model"] = candidate_id
             metadata["chosen_gap"] = candidate_gap(result, candidate_id)
         db.execute(
-            "UPDATE memory_entries SET metadata_json=? WHERE analysis_id=?",
+            "UPDATE memory_entries SET metadata_json=%s WHERE analysis_id=%s",
             (json.dumps(metadata), analysis_id),
         )
     return result
@@ -136,7 +137,7 @@ def outcome_summary(store: Storage, user_id: str) -> dict:
     with store.connect() as db:
         rows = db.execute(
             "SELECT outcome,reason,model_card_id,followed_recommendation,turns,completeness "
-            "FROM task_outcomes WHERE user_id=?",
+            "FROM task_outcomes WHERE user_id=%s",
             (user_id,),
         ).fetchall()
     answered = [row for row in rows if row["outcome"] != "skipped"]
@@ -181,15 +182,15 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None) -> None:
     @app.put("/api/analyses/{analysis_id}/outcome")
     def put_outcome(analysis_id: str, body: OutcomeInput, user: AuthenticatedUser):
         with store.connect() as db:
-            db.execute("BEGIN IMMEDIATE")
+            store.lock_user(db, user["id"])
             analysis = owned_analysis(db, user["id"], analysis_id)
             if db.execute(
-                "SELECT 1 FROM task_outcomes WHERE analysis_id=?", (analysis_id,)
+                "SELECT 1 FROM task_outcomes WHERE analysis_id=%s", (analysis_id,)
             ).fetchone():
                 raise HTTPException(409, "outcome_already_recorded")
             result = json.loads(analysis["result_json"])
             decision = db.execute(
-                "SELECT candidate_id FROM decisions WHERE analysis_id=?", (analysis_id,)
+                "SELECT candidate_id FROM decisions WHERE analysis_id=%s", (analysis_id,)
             ).fetchone()
             card_id, levels = card_used(
                 result, body.provider, body.model, decision["candidate_id"] if decision else None
@@ -199,7 +200,7 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None) -> None:
                 """INSERT INTO task_outcomes(analysis_id,user_id,outcome,reason,model_card_id,
                    catalogue_version,recommended_card_id,followed_recommendation,needs_json,
                    capabilities_json,completeness,turns,switched_model,retries,stops)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                 (
                     analysis_id,
                     user["id"],
@@ -219,7 +220,7 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None) -> None:
                 ),
             )
             row = db.execute(
-                "SELECT * FROM task_outcomes WHERE analysis_id=?", (analysis_id,)
+                "SELECT * FROM task_outcomes WHERE analysis_id=%s", (analysis_id,)
             ).fetchone()
         if on_change:
             on_change(user["id"])
@@ -230,7 +231,7 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None) -> None:
         with store.connect() as db:
             owned_analysis(db, user["id"], analysis_id)
             row = db.execute(
-                "SELECT * FROM task_outcomes WHERE analysis_id=?", (analysis_id,)
+                "SELECT * FROM task_outcomes WHERE analysis_id=%s", (analysis_id,)
             ).fetchone()
         if not row:
             raise HTTPException(404, "outcome_not_found")

@@ -1,10 +1,34 @@
-"""SQLite persistence. Each operation owns its connection and transaction."""
+"""PostgreSQL persistence. Connections own a transaction; SQLite is import-only."""
 
+import hashlib
 import json
-import sqlite3
+import re
 from contextlib import contextmanager
 from pathlib import Path
 from uuid import uuid4
+
+import psycopg
+from psycopg import sql
+
+
+class Record(tuple):
+    """Rows support both named fields and positional access used by existing contracts."""
+
+    def __new__(cls, names, values):
+        row = super().__new__(cls, values)
+        row._names = names
+        return row
+
+    def keys(self):
+        return self._names
+
+    def __getitem__(self, key):
+        return super().__getitem__(self._names.index(key) if isinstance(key, str) else key)
+
+
+def record_row(cursor):
+    names = tuple(column.name for column in cursor.description) if cursor.description else ()
+    return lambda values: Record(names, values)
 
 
 def stored_result(result_json: str) -> dict:
@@ -38,189 +62,99 @@ def history_result(result: dict) -> dict:
 
 
 class Storage:
-    def __init__(self, path: str, *, allow_legacy_redaction: bool = False):
-        self.path = path
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        with self.connect() as db:
-            db.execute("PRAGMA journal_mode=WAL")
-            version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 8:
-                raise RuntimeError("Database schema is newer than this application")
-            if version in {1, 2} and not allow_legacy_redaction:
-                records = db.execute("SELECT count(*) FROM sessions").fetchone()[0]
-                if records:
-                    raise RuntimeError(
-                        "Legacy task content requires explicit removal. Review and run: "
-                        "uv run python scripts/migrate_privacy.py --remove-legacy-task-content"
-                    )
-            if version == 0:
-                db.executescript("""
-                    BEGIN IMMEDIATE;
-                    CREATE TABLE IF NOT EXISTS users (
-                        id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE,
-                        password_hash TEXT NOT NULL,
-                        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                    );
-                    CREATE TABLE IF NOT EXISTS auth_sessions (
-                        token_hash TEXT PRIMARY KEY,
-                        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                        expires_at INTEGER NOT NULL
-                    );
-                    CREATE INDEX IF NOT EXISTS auth_user ON auth_sessions(user_id);
-                    CREATE TABLE IF NOT EXISTS sessions (
-                        id TEXT PRIMARY KEY,
-                        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                        title TEXT NOT NULL,
-                        context TEXT NOT NULL DEFAULT '',
-                        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                    );
-                    CREATE INDEX IF NOT EXISTS session_user ON sessions(user_id, created_at);
-                    CREATE TABLE IF NOT EXISTS analyses (
-                        id TEXT PRIMARY KEY,
-                        session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-                        request_json TEXT NOT NULL, result_json TEXT NOT NULL,
-                        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                    );
-                    CREATE INDEX IF NOT EXISTS analysis_session ON analyses(session_id, created_at);
-                    CREATE TABLE IF NOT EXISTS decisions (
-                        analysis_id TEXT PRIMARY KEY REFERENCES analyses(id) ON DELETE CASCADE,
-                        candidate_id TEXT NOT NULL,
-                        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                    );
-                    PRAGMA user_version=1;
-                    COMMIT;
-                """)
-
-            if version < 2:
-                db.executescript("""
-                    BEGIN IMMEDIATE;
-                    CREATE TABLE IF NOT EXISTS user_context (
-                        user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-                        content TEXT NOT NULL DEFAULT '',
-                        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                    );
-                    PRAGMA user_version=2;
-                    COMMIT;
-                """)
-
-            if version < 3:
-                db.execute("PRAGMA secure_delete=ON")
-                db.execute("BEGIN IMMEDIATE")
-                db.execute(
-                    "ALTER TABLE user_context ADD COLUMN save_enabled INTEGER NOT NULL DEFAULT 0"
-                )
-                db.execute(
-                    "ALTER TABLE user_context ADD COLUMN use_enabled INTEGER NOT NULL DEFAULT 0"
-                )
-                db.execute("""CREATE TABLE memory_entries (
-                    analysis_id TEXT PRIMARY KEY REFERENCES analyses(id) ON DELETE CASCADE,
-                    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                    metadata_json TEXT NOT NULL
-                )""")
-                db.execute("CREATE INDEX memory_user ON memory_entries(user_id)")
-                for row in db.execute("SELECT id,result_json FROM analyses").fetchall():
-                    db.execute(
-                        "UPDATE analyses SET request_json='{}',result_json=? WHERE id=?",
-                        (json.dumps(history_result(json.loads(row["result_json"]))), row["id"]),
-                    )
-                for row in db.execute("SELECT id FROM sessions").fetchall():
-                    db.execute(
-                        "UPDATE sessions SET title=?,context='' WHERE id=?",
-                        (f"Session {row['id'][:8]}", row["id"]),
-                    )
-                db.execute("PRAGMA user_version=3")
-                db.commit()
-                db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-            if version < 4:
-                db.executescript("""
-                    BEGIN IMMEDIATE;
-                    CREATE TABLE llm_configs (
-                        id TEXT PRIMARY KEY,
-                        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                        label TEXT NOT NULL, provider TEXT NOT NULL, model TEXT NOT NULL,
-                        key_ciphertext TEXT,
-                        responses_api INTEGER NOT NULL DEFAULT 0,
-                        enabled INTEGER NOT NULL DEFAULT 1,
-                        is_default INTEGER NOT NULL DEFAULT 0,
-                        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                    );
-                    CREATE INDEX llm_user ON llm_configs(user_id);
-                    CREATE UNIQUE INDEX llm_default ON llm_configs(user_id) WHERE is_default=1;
-                    PRAGMA user_version=4;
-                    COMMIT;
-                """)
-            if version < 5:
-                db.executescript("""
-                    BEGIN IMMEDIATE;
-                    CREATE TABLE IF NOT EXISTS coaching_reports (
-                        user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-                        fingerprint TEXT NOT NULL, model TEXT NOT NULL, report_json TEXT NOT NULL,
-                        updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                    );
-                    PRAGMA user_version=5;
-                    COMMIT;
-                """)
-            if version < 6:
-                db.executescript("""
-                    BEGIN IMMEDIATE;
-                    ALTER TABLE user_context ADD COLUMN
-                        coaching_auto_enabled INTEGER NOT NULL DEFAULT 0;
-                    PRAGMA user_version=6;
-                    COMMIT;
-                """)
-            if version < 7:
-                db.executescript("""
-                    BEGIN IMMEDIATE;
-                    ALTER TABLE user_context ADD COLUMN
-                        conversation_memory_enabled INTEGER NOT NULL DEFAULT 0;
-                    CREATE TABLE IF NOT EXISTS conversation_content (
-                        analysis_id TEXT PRIMARY KEY REFERENCES analyses(id) ON DELETE CASCADE,
-                        task TEXT NOT NULL, task_context TEXT NOT NULL,
-                        response_json TEXT NOT NULL
-                    );
-                    ALTER TABLE coaching_reports ADD COLUMN source_json TEXT NOT NULL DEFAULT '{}';
-                    PRAGMA user_version=7;
-                    COMMIT;
-                """)
-            if version < 8:
-                # Feedback per task (ADR-014): choices, counts and identifiers, never text.
-                db.executescript("""
-                    BEGIN IMMEDIATE;
-                    CREATE TABLE IF NOT EXISTS task_outcomes (
-                        analysis_id TEXT PRIMARY KEY REFERENCES analyses(id) ON DELETE CASCADE,
-                        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                        outcome TEXT NOT NULL CHECK (outcome IN
-                            ('resolved','resolved_with_refinement','not_resolved','skipped')),
-                        reason TEXT CHECK (reason IN
-                            ('quality','instructions','description','other')),
-                        model_card_id TEXT, catalogue_version TEXT,
-                        recommended_card_id TEXT, followed_recommendation INTEGER,
-                        needs_json TEXT, capabilities_json TEXT,
-                        completeness INTEGER,
-                        turns INTEGER, switched_model INTEGER, retries INTEGER, stops INTEGER,
-                        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-                    );
-                    CREATE INDEX IF NOT EXISTS task_outcome_user ON task_outcomes(user_id);
-                    PRAGMA user_version=8;
-                    COMMIT;
-                """)
+    def __init__(self, database_url: str, schema: str = "adaptai"):
+        if not database_url.startswith(("postgresql://", "postgres://")):
+            raise ValueError("ADAPTAI_DATABASE_URL must be a PostgreSQL connection URL")
+        if (
+            not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", schema)
+            or schema == "public"
+            or schema.startswith("pg_")
+        ):
+            raise ValueError("Use a dedicated PostgreSQL schema, for example adaptai")
+        self._database_url = database_url
+        self.schema = schema
+        self.migrate()
 
     @contextmanager
-    def connect(self):
-        db = sqlite3.connect(self.path, timeout=15)
-        db.row_factory = sqlite3.Row
-        db.execute("PRAGMA foreign_keys=ON")
-        try:
-            with db:
-                yield db
-        finally:
-            db.close()
+    def connect(self, *, user_id: str | None = None):
+        # Disabling prepared statements also supports Supabase's transaction pooler.
+        # SET LOCAL scopes search_path to this transaction, including through a pooler.
+        with psycopg.connect(
+            self._database_url,
+            row_factory=record_row,
+            connect_timeout=10,
+            prepare_threshold=None,
+        ) as db:
+            db.execute(sql.SQL("SET LOCAL search_path TO {} ").format(sql.Identifier(self.schema)))
+            db.execute("SET LOCAL lock_timeout = '15s'")
+            if user_id is not None:
+                self.lock_user(db, user_id)
+            yield db
+
+    def lock_user(self, db, user_id: str):
+        # Transaction-scoped and shared between processes, unlike a Python lock.
+        db.execute(
+            "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
+            (f"{self.schema}:user:{user_id}",),
+        )
+
+    def _lock_schema(self, db):
+        db.execute(
+            "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (f"{self.schema}:schema",)
+        )
+
+    def migrate(self):
+        with self.connect() as db:
+            self._lock_schema(db)
+            db.execute(
+                sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(self.schema))
+            )
+            db.execute("""CREATE TABLE IF NOT EXISTS schema_migrations (
+                version INTEGER PRIMARY KEY, checksum TEXT NOT NULL,
+                applied_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp())""")
+            applied = {
+                row["version"]: row["checksum"]
+                for row in db.execute("SELECT version,checksum FROM schema_migrations")
+            }
+            migrations = sorted((Path(__file__).parent.parent / "migrations").glob("*.sql"))
+            known = {int(path.name.split("_", 1)[0]) for path in migrations}
+            if set(applied) - known:
+                raise RuntimeError("Database schema is newer than this application")
+            for path in migrations:
+                version = int(path.name.split("_", 1)[0])
+                contents = path.read_bytes()
+                checksum = hashlib.sha256(contents).hexdigest()
+                if version in applied:
+                    if applied[version] != checksum:
+                        raise RuntimeError(f"Applied database migration {version} was modified")
+                    continue
+                db.execute(contents.decode("utf-8"))
+                db.execute(
+                    "INSERT INTO schema_migrations(version,checksum) VALUES (%s,%s)",
+                    (version, checksum),
+                )
+
+    def install_module(self, statements):
+        with self.connect() as db:
+            self._lock_schema(db)
+            for statement in statements:
+                db.execute(statement)
+
+    def table_names(self):
+        with self.connect() as db:
+            return [
+                row[0]
+                for row in db.execute(
+                    "SELECT tablename FROM pg_tables WHERE schemaname=%s ORDER BY tablename",
+                    (self.schema,),
+                )
+            ]
 
     def create_session(self, user_id: str, title: str, context: str):
         identifier = str(uuid4())
         with self.connect() as db:
             db.execute(
-                "INSERT INTO sessions(id,user_id,title,context) VALUES (?,?,?,?)",
+                "INSERT INTO sessions(id,user_id,title,context) VALUES (%s,%s,%s,%s)",
                 (identifier, user_id, f"Session {identifier[:8]}", ""),
             )
         return self.session(user_id, identifier)
@@ -228,7 +162,9 @@ class Storage:
     def session(self, user_id: str, session_id: str):
         with self.connect() as db:
             row = db.execute(
-                "SELECT * FROM sessions WHERE id=? AND user_id=?", (session_id, user_id)
+                "SELECT id,user_id,title,context,created_at FROM sessions "
+                "WHERE id=%s AND user_id=%s",
+                (session_id, user_id),
             ).fetchone()
             return dict(row) if row else None
 
@@ -239,7 +175,8 @@ class Storage:
                    JOIN sessions s ON s.id=a.session_id
                    LEFT JOIN decisions d ON d.analysis_id=a.id
                    LEFT JOIN conversation_content c ON c.analysis_id=a.id
-                   WHERE s.user_id=? AND s.id=? ORDER BY a.created_at, a.rowid LIMIT ? OFFSET ?""",
+                   WHERE s.user_id=%s AND s.id=%s
+                   ORDER BY a.created_at, a.sequence_id LIMIT %s OFFSET %s""",
                 (user_id, session_id, limit, offset),
             ).fetchall()
             return [
@@ -266,8 +203,8 @@ class Storage:
                 """SELECT c.task,c.task_context,c.response_json FROM conversation_content c
                    JOIN analyses a ON a.id=c.analysis_id JOIN sessions s ON s.id=a.session_id
                    JOIN user_context u ON u.user_id=s.user_id
-                   WHERE s.user_id=? AND u.conversation_memory_enabled=1 AND u.use_enabled=1
-                   ORDER BY a.created_at DESC,a.rowid DESC LIMIT 5""",
+                   WHERE s.user_id=%s AND u.conversation_memory_enabled=1 AND u.use_enabled=1
+                   ORDER BY a.created_at DESC,a.sequence_id DESC LIMIT 5""",
                 (user_id,),
             ).fetchall()
         return [
@@ -280,3 +217,15 @@ class Storage:
             }
             for row in rows
         ]
+
+
+@contextmanager
+def temporary_database(settings):
+    """A schema owned exclusively by an explicit smoke-test tool; never application history."""
+    schema = "smoke_" + uuid4().hex
+    temporary = settings.model_copy(update={"database_schema": schema})
+    try:
+        yield temporary
+    finally:
+        with psycopg.connect(settings.database_url.get_secret_value(), autocommit=True) as db:
+            db.execute(sql.SQL("DROP SCHEMA IF EXISTS {} CASCADE").format(sql.Identifier(schema)))

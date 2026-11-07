@@ -135,7 +135,7 @@ def test_analyses_and_history_store_changes_without_evidence():
     before = post(client).json()
     after = post(client, session_id=before["session_id"], previous_analysis_id=before["id"]).json()
     with client.app.state.storage.connect() as db:
-        row = db.execute("SELECT result_json FROM analyses WHERE id=?", (after["id"],)).fetchone()
+        row = db.execute("SELECT result_json FROM analyses WHERE id=%s", (after["id"],)).fetchone()
     stored = json.loads(row["result_json"])
     assert stored["changes"] == [{"dimension": "risk", "before": None, "after": 3}]
     assert all("evidence" not in change for change in stored["changes"])
@@ -154,10 +154,10 @@ def test_change_evidence_is_kept_only_in_opted_in_conversations():
     evidence = after["changes"][0]["evidence"]
     with client.app.state.storage.connect() as db:
         result = db.execute(
-            "SELECT result_json FROM analyses WHERE id=?", (after["id"],)
+            "SELECT result_json FROM analyses WHERE id=%s", (after["id"],)
         ).fetchone()
         saved = db.execute(
-            "SELECT response_json FROM conversation_content WHERE analysis_id=?", (after["id"],)
+            "SELECT response_json FROM conversation_content WHERE analysis_id=%s", (after["id"],)
         ).fetchone()
     assert evidence not in result["result_json"]
     assert json.loads(saved["response_json"])["changes"][0]["evidence"] == evidence
@@ -226,8 +226,9 @@ def test_previous_analysis_with_other_profile_version_is_incompatible():
     first = post(client).json()
     with client.app.state.storage.connect() as db:
         db.execute(
-            "UPDATE analyses SET result_json=json_set(result_json,'$.profile_version','profile-1') "
-            "WHERE id=?",
+            "UPDATE analyses SET result_json="
+            "jsonb_set(result_json::jsonb,'{profile_version}','\"profile-1\"')::text "
+            "WHERE id=%s",
             (first["id"],),
         )
     response = post(client, session_id=first["session_id"], previous_analysis_id=first["id"])

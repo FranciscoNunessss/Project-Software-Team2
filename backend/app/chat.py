@@ -7,7 +7,7 @@ may analyse it first with the existing ``POST /api/analyze`` (passing the chat i
 
 ``app.main.create_app`` imports this module late, after every core route, and carries on
 without it if the file is missing. Deleting this file (with ``tests/test_chat*.py``) must
-leave the core working. The module never changes ``PRAGMA user_version``: its tables are
+leave the core working. The module never changes the core migration version: its tables are
 created with ``CREATE TABLE IF NOT EXISTS``, outside the core migrations.
 
 Privacy: the message text goes only to the model chosen for the answer (the click on Send is
@@ -54,7 +54,8 @@ SYSTEM_PROMPT = (
 TABLES = (
     "CREATE TABLE IF NOT EXISTS chat_sessions ("
     " session_id TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,"
-    " created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))",
+    " created_at TEXT NOT NULL DEFAULT "
+    "(to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"')))",
     "CREATE TABLE IF NOT EXISTS chat_messages ("
     " id TEXT PRIMARY KEY,"
     " session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,"
@@ -65,7 +66,10 @@ TABLES = (
     " status TEXT NOT NULL DEFAULT 'complete'"
     "  CHECK (status IN ('complete', 'stopped', 'failed')),"
     " error TEXT,"
-    " created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))",
+    " created_at TEXT NOT NULL DEFAULT "
+    "(to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"')))",
+    "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS "
+    "sequence_id BIGINT GENERATED ALWAYS AS IDENTITY UNIQUE",
     "CREATE INDEX IF NOT EXISTS chat_message_session ON chat_messages(session_id, created_at)",
     "CREATE TABLE IF NOT EXISTS chat_settings ("
     " user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,"
@@ -228,7 +232,8 @@ async def answer_events(
     finally:
         with store.connect() as db:
             db.execute(
-                "UPDATE chat_messages SET content=?,provider=?,model=?,status=?,error=? WHERE id=?",
+                "UPDATE chat_messages SET content=%s,provider=%s,model=%s,status=%s,error=%s "
+                "WHERE id=%s",
                 ("".join(parts), provider, model, status, error, answer_id),
             )
 
@@ -255,14 +260,12 @@ def install_chat(
     """
     factory = model_factory or ChatModel
     app.state.chat = {"store": store, "settings": settings, "model_factory": factory}
-    with store.connect() as db:
-        for statement in TABLES:
-            db.execute(statement)
+    store.install_module(TABLES)
 
     def owned_chat(db, user_id: str, chat_id: str) -> dict:
         row = db.execute(
             "SELECT s.id, s.title, s.created_at FROM sessions s "
-            "JOIN chat_sessions c ON c.session_id=s.id WHERE s.id=? AND s.user_id=?",
+            "JOIN chat_sessions c ON c.session_id=s.id WHERE s.id=%s AND s.user_id=%s",
             (chat_id, user_id),
         ).fetchone()
         if not row:
@@ -276,7 +279,7 @@ def install_chat(
                 "SELECT m.*, a.result_json, o.outcome FROM chat_messages m "
                 "LEFT JOIN analyses a ON a.id=m.analysis_id "
                 "LEFT JOIN task_outcomes o ON o.analysis_id=m.analysis_id "
-                "WHERE m.session_id=? ORDER BY m.created_at, m.rowid",
+                "WHERE m.session_id=%s ORDER BY m.created_at, m.sequence_id",
                 (chat_id,),
             )
         ]
@@ -288,8 +291,8 @@ def install_chat(
                 "SELECT s.id, s.title, s.created_at, count(m.id) AS message_count, "
                 "coalesce(max(m.created_at), s.created_at) AS updated_at "
                 "FROM sessions s JOIN chat_sessions c ON c.session_id=s.id "
-                "LEFT JOIN chat_messages m ON m.session_id=s.id WHERE s.user_id=? "
-                "GROUP BY s.id ORDER BY updated_at DESC, s.rowid DESC",
+                "LEFT JOIN chat_messages m ON m.session_id=s.id WHERE s.user_id=%s "
+                "GROUP BY s.id ORDER BY updated_at DESC, s.sequence_id DESC",
                 (user["id"],),
             )
             return [dict(row) for row in rows]
@@ -298,8 +301,8 @@ def install_chat(
     def create_chat(user: AuthenticatedUser):
         session = store.create_session(user["id"], NEW_CHAT_TITLE, "")
         with store.connect() as db:
-            db.execute("UPDATE sessions SET title=? WHERE id=?", (NEW_CHAT_TITLE, session["id"]))
-            db.execute("INSERT INTO chat_sessions(session_id) VALUES (?)", (session["id"],))
+            db.execute("UPDATE sessions SET title=%s WHERE id=%s", (NEW_CHAT_TITLE, session["id"]))
+            db.execute("INSERT INTO chat_sessions(session_id) VALUES (%s)", (session["id"],))
             chat = owned_chat(db, user["id"], session["id"])
         return {**chat, "message_count": 0, "messages": []}
 
@@ -314,14 +317,14 @@ def install_chat(
     def rename_chat(chat_id: str, body: ChatRename, user: AuthenticatedUser):
         with store.connect() as db:
             owned_chat(db, user["id"], chat_id)
-            db.execute("UPDATE sessions SET title=? WHERE id=?", (body.title, chat_id))
+            db.execute("UPDATE sessions SET title=%s WHERE id=%s", (body.title, chat_id))
             return owned_chat(db, user["id"], chat_id)
 
     @app.delete("/api/chats/{chat_id}", status_code=204)
     def delete_chat(chat_id: str, user: AuthenticatedUser):
-        with store.connect() as db:
+        with store.connect(user_id=user["id"]) as db:
             owned_chat(db, user["id"], chat_id)
-            db.execute("DELETE FROM sessions WHERE id=? AND user_id=?", (chat_id, user["id"]))
+            db.execute("DELETE FROM sessions WHERE id=%s AND user_id=%s", (chat_id, user["id"]))
         return Response(status_code=204)
 
     def record_send_choice(user_id: str, analysis_id: str, provider: str, model: str | None):
@@ -330,7 +333,7 @@ def install_chat(
         if card is None:
             return
         with store.connect() as db:
-            db.execute("BEGIN IMMEDIATE")
+            store.lock_user(db, user_id)
             try:
                 record_decision(db, user_id, analysis_id, card.id)
             except HTTPException:
@@ -411,7 +414,7 @@ def install_chat(
             if (
                 body.analysis_id
                 and not db.execute(
-                    "SELECT 1 FROM analyses WHERE id=? AND session_id=?",
+                    "SELECT 1 FROM analyses WHERE id=%s AND session_id=%s",
                     (body.analysis_id, chat_id),
                 ).fetchone()
             ):
@@ -424,17 +427,17 @@ def install_chat(
         with store.connect() as db:
             db.execute(
                 "INSERT INTO chat_messages(id,session_id,role,content,analysis_id) "
-                "VALUES (?,?,'user',?,?)",
+                "VALUES (%s,%s,'user',%s,%s)",
                 (question_id, chat_id, body.content, body.analysis_id),
             )
             if chat["title"] == NEW_CHAT_TITLE:
                 db.execute(
-                    "UPDATE sessions SET title=? WHERE id=?", (title_from(body.content), chat_id)
+                    "UPDATE sessions SET title=%s WHERE id=%s", (title_from(body.content), chat_id)
                 )
             history = history_for(messages_of(db, chat_id))
             db.execute(
                 "INSERT INTO chat_messages(id,session_id,role,content,status) "
-                "VALUES (?,?,'assistant','','stopped')",
+                "VALUES (%s,%s,'assistant','','stopped')",
                 (answer_id, chat_id),
             )
         return await respond(request, user["id"], chat_id, question_id, answer_id, target, history)
@@ -455,7 +458,7 @@ def install_chat(
         question_id = rows[-2]["id"]
         with store.connect() as db:
             db.execute(
-                "UPDATE chat_messages SET content='',status='stopped',error=NULL WHERE id=?",
+                "UPDATE chat_messages SET content='',status='stopped',error=NULL WHERE id=%s",
                 (answer_id,),
             )
         history = history_for(rows[:-1])
@@ -465,7 +468,7 @@ def install_chat(
     def get_chat_settings(user: AuthenticatedUser):
         with store.connect() as db:
             row = db.execute(
-                "SELECT auto_analyse FROM chat_settings WHERE user_id=?", (user["id"],)
+                "SELECT auto_analyse FROM chat_settings WHERE user_id=%s", (user["id"],)
             ).fetchone()
         return ChatSettings(auto_analyse=bool(row and row["auto_analyse"]))
 
@@ -473,7 +476,7 @@ def install_chat(
     def put_chat_settings(body: ChatSettings, user: AuthenticatedUser):
         with store.connect() as db:
             db.execute(
-                "INSERT INTO chat_settings(user_id, auto_analyse) VALUES (?, ?) "
+                "INSERT INTO chat_settings(user_id, auto_analyse) VALUES (%s, %s) "
                 "ON CONFLICT(user_id) DO UPDATE SET auto_analyse=excluded.auto_analyse",
                 (user["id"], int(body.auto_analyse)),
             )

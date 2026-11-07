@@ -90,7 +90,7 @@ def test_key_replacement_and_configuration_validation():
     assert local["has_key"] is False and local["external"] is False
     assert client.delete(f"/api/llm-configs/{item['id']}").status_code == 200
     with app.state.storage.connect() as db:
-        assert not db.execute("SELECT 1 FROM llm_configs WHERE id=?", (item["id"],)).fetchone()
+        assert not db.execute("SELECT 1 FROM llm_configs WHERE id=%s", (item["id"],)).fetchone()
 
 
 def test_legacy_default_flags_do_not_override_project_auto():
@@ -176,9 +176,9 @@ def test_missing_or_swapped_credentials_fail_closed():
     b = bob.post("/api/llm-configs", json={**BODY, "api_key": "other-synthetic-key"}).json()
     with app.state.storage.connect() as db:
         ciphertext = db.execute(
-            "SELECT key_ciphertext FROM llm_configs WHERE id=?", (b["id"],)
+            "SELECT key_ciphertext FROM llm_configs WHERE id=%s", (b["id"],)
         ).fetchone()[0]
-        db.execute("UPDATE llm_configs SET key_ciphertext=? WHERE id=?", (ciphertext, a["id"]))
+        db.execute("UPDATE llm_configs SET key_ciphertext=%s WHERE id=%s", (ciphertext, a["id"]))
     response = alice.post(
         "/api/analyze", json={"task": "Test", "configuration_id": a["id"], "allow_external": True}
     )

@@ -36,12 +36,78 @@ uv manages the virtual environment automatically; manual activation and
 `pip install` are not part of the project workflow. Upgrade packages deliberately
 with `uv lock --upgrade-package <package>`, then run the relevant checks.
 
-## Run locally
+## Run the complete stack with Docker
+
+From the repository root, with Docker Desktop's Linux engine running:
+
+```powershell
+docker compose up --build -d --wait
+```
+
+Open [AdaptAI](http://127.0.0.1:8080). The stack contains:
+
+- `frontend`: a locked React production build served by unprivileged Nginx on port 8080
+  inside the network, published only on `127.0.0.1:8080`.
+- `backend`: FastAPI/Python 3.12 with runtime dependencies from `uv.lock`, running as
+  a non-root user. Port 8000 is internal; the browser reaches it through `/api` on Nginx.
+- `postgres`: PostgreSQL 17, published on `127.0.0.1:55432` for native development tools.
+
+The frontend forwards API requests without changing their paths, cookies or Origin.
+Response buffering and proxy caching are disabled for the API so chat SSE streams and
+Stop keep working. Hashed frontend assets have long-lived caching; HTML is revalidated.
+Compose waits for PostgreSQL, then the backend, then the frontend health checks.
+
+Existing `postgres-data` is reused, including data imported from SQLite. `backend-data`
+persists the credential encryption key at `/data/adaptai.credentials.key`; both volumes
+survive container recreation. If existing encrypted credentials used another key, supply
+that same `ADAPTAI_CREDENTIALS_KEY` in the backend environment before using them.
+When deploying the backend image elsewhere, persist `/data` or provide that key as a secret.
+Native and Docker backends sharing one database must use the same credential key;
+their default key files live in different locations.
+
+An optional root `.env` is passed only to the backend at runtime. Neither image contains
+`.env`, local databases, backups, credential keys or host `node_modules`. No provider key
+is needed to start the stack; real analysis/chat still needs a configured model. For
+local Docker, Compose overrides the native database URL with `postgres:5432` and uses
+a local PostgreSQL instance. A hosted database is a later deployment configuration.
+
+```powershell
+docker compose ps
+docker compose logs -f backend frontend
+docker compose stop
+docker compose start --wait
+docker compose down
+```
+
+`down` keeps both data volumes. **`down -v` deletes the database and local encryption key.**
+Rebuild with `docker compose up --build -d --wait` after source or dependency changes;
+these are packaged images rather than development servers with hot reload. Source files
+on the host are not mounted into the running application.
+
+Use `ADAPTAI_HTTP_PORT` and `ADAPTAI_POSTGRES_PORT` to change published ports. When changing
+the HTTP port or hostname, set `ADAPTAI_CONTAINER_BROWSER_ORIGIN` to the exact browser origin too.
+The expected Docker URL is `http://127.0.0.1:8080`, rather than `localhost`.
+Native Vite development keeps port 8443 and its own `ADAPTAI_BROWSER_ORIGIN`.
+For Docker, Ollama and LM Studio use `host.docker.internal`; their native defaults remain
+localhost. Configure `ADAPTAI_CONTAINER_OLLAMA_BASE_URL` or
+`ADAPTAI_CONTAINER_LMSTUDIO_BASE_URL` for another server reachable from the backend.
+
+CI also builds and starts these images, checks static assets, authentication, CSRF,
+analysis and demo SSE through Nginx, recreates the app containers and verifies stored
+data plus the credential-key fingerprint. The container smoke test uses a disposable
+database and synthetic credentials; it makes no real provider calls.
+
+Cloud hosting is still being planned. See [the hosting proposal](docs/hosting-plan.md)
+for the free-tier recommendation and the planned Supabase Auth integration. It is
+separate from the working local Compose stack and has not been deployed.
+
+## Run locally with native development tools
 
 From the repository root:
 
 ```powershell
 uv sync --locked
+docker compose up -d --wait postgres
 uv run python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000
 ```
 
@@ -86,7 +152,8 @@ My progress also answers "Are you describing tasks better?": it compares the com
 The original progress dashboard uses actual per-session agreement and capacity comparison counts.
 My data exports the account's context and paginated session history as a local JSON file.
 Groq coaching uses derived metadata, on request or automatically when enabled in Profile. The optional Prompt Coach helps describe a task better (see "Prompt Coach (optional)"). Team aggregation remains unimplemented.
-Production reverse proxy and deployment are not configured.
+The local Docker stack includes a production-build frontend and an API reverse proxy.
+Cloud hosting and automatic deployments are not configured.
 
 ## Configure assessment providers
 
@@ -369,7 +436,7 @@ To remove the Prompt Coach:
    task field (keep the textarea); the `PromptCoachToggle` line in `Profile.tsx`;
    `prompt_coach_options` in `e2e/server.py`.
 3. Optionally run `DROP TABLE IF EXISTS prompt_coach_settings` (and
-   `prompt_coach_events`, if present) on the SQLite database; the core ignores them.
+   `prompt_coach_events`, if present) in PostgreSQL; the core ignores them.
 4. Run the full backend suite, `pnpm build` and the e2e tests.
 
 ## Chat (optional, backend only so far)
@@ -544,6 +611,32 @@ local persistent disk; a database on ephemeral storage will disappear on redeplo
 Avoid putting the live database on a network or cloud-synchronised filesystem;
 for this OneDrive checkout, set the path to an unsynchronised local data directory.
 
+The backend now uses PostgreSQL through psycopg 3. Start the local database with
+`docker compose up -d --wait postgres`; it listens only on `127.0.0.1:55432` and keeps
+its data in the `postgres-data` Docker volume. The Compose credentials are for local
+development only. `docker compose down` preserves the volume; `down -v` deletes it.
+
+`ADAPTAI_DATABASE_URL` holds the PostgreSQL URL (default
+`postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai`). `ADAPTAI_DATABASE_SCHEMA`
+defaults to `adaptai`; the application creates and uses this dedicated schema rather
+than `public`. The former `ADAPTAI_DATABASE_PATH` is no longer used by the running app.
+The schema owner needs CREATE on the database and access to its own schema/tables.
+
+Numbered SQL migrations live in `backend/migrations/`. Startup applies missing
+migrations in a transaction under a PostgreSQL advisory lock. Applied files are
+checksummed: add a new numbered file instead of editing a published migration.
+Unknown newer versions and changed checksums block startup. Optional Prompt Coach
+and chat tables remain outside the core migration version and are installed under
+the same schema lock. Each operation owns a connection/transaction; source-changing
+operations use per-user transaction advisory locks for the coaching freshness check.
+
+For Supabase, put its PostgreSQL connection URL in `ADAPTAI_DATABASE_URL`, with
+`sslmode=require`. Use the session pooler for IPv4-only hosts, or the direct URL
+when IPv6 is available. Prepared statements are disabled for compatibility with
+transaction pooling. Keep `adaptai` out of the Data API's exposed schemas; this
+application accesses PostgreSQL through FastAPI, not directly from the browser.
+This step does not switch authentication to Supabase Auth.
+
 Passwords use salted scrypt hashes. Only SHA-256 hashes of random login tokens are
 stored; login sessions expire after `ADAPTAI_SESSION_DAYS` (default 7). Logout revokes
 the current token. Set `ADAPTAI_BROWSER_ORIGIN` to the exact frontend origin (default
@@ -561,13 +654,50 @@ There is no shared global history or team aggregation in this increment.
 Deleting a session deletes its analyses and decisions from the active database.
 Backups retain their own copies; manage their access and retention separately.
 
-To back up, stop all backend workers and copy the database file to protected storage,
-then restart. To restore, stop all workers and restore the backup to the configured
-path, then restart. Do not copy just the main file while writers are active in WAL mode.
-Non-destructive schema migrations run on startup; legacy text removal requires
-`uv run python scripts/migrate_privacy.py --remove-legacy-task-content` with backend workers stopped; newer unknown schema versions fail
-explicitly. Back up before deploying future migrations. PostgreSQL and cross-host
-database deployment are not configured in this increment.
+Use PostgreSQL/provider backup and restore tools, and back up the matching credential
+key separately. A container image or a copy of the old SQLite file is not a backup of
+the new PostgreSQL installation.
+
+### Import existing SQLite data
+
+Stop the old backend and keep a consistent SQLite backup and its matching credential
+key. The import tool reads a private temporary snapshot without modifying the source,
+reports counts by default, and copies
+all rows in one transaction only with `--apply`. The PostgreSQL destination must be
+empty; any error rolls back all imported rows. IDs, timestamps, insertion order,
+sessions, choices, opted-in text, optional module records and ciphertexts are preserved.
+The importer verifies that the configured credential key decrypts existing keys before
+copying. It never prints task text, passwords or provider credentials.
+
+```powershell
+uv run python scripts/migrate_sqlite_to_postgres.py --source backend/data/adaptai.sqlite3
+uv run python scripts/migrate_sqlite_to_postgres.py --source backend/data/adaptai.sqlite3 --apply
+```
+
+Only SQLite v7 is accepted. For older versions, upgrade a **backup** first using the
+legacy tool; v1/v2 content removal is irreversible and requires its explicit flag:
+
+```powershell
+uv run python scripts/migrate_privacy.py --database path/to/backup.sqlite3 --remove-legacy-task-content
+```
+
+The original SQLite installation is never a runtime fallback. Switch back deliberately
+to the older application and its untouched database if needed; new PostgreSQL writes
+are not automatically copied back.
+
+### PostgreSQL tests
+
+The backend tests require a real PostgreSQL server (`docker compose up -d --wait postgres`).
+They use a unique schema per test and remove only those generated schemas. Set
+`ADAPTAI_TEST_DATABASE_URL` for a separate test server; tests never inherit the
+application's database URL. CI provisions PostgreSQL for backend, removal-drill and
+browser tests. Smoke tools use temporary schemas, and browser tests own a separate
+schema. Tests use synthetic records and fake models, not real provider accounts.
+
+On Windows, `./scripts/test_postgres.ps1` runs the same suite in a temporary Linux
+container, with the source mounted read-only and dedicated dependency-cache volumes.
+This also works when local application-control policies block psycopg's native DLLs.
+The local PostgreSQL volume stays running afterwards.
 
 Decisions: [ADR-007](https://docs.google.com/document/d/1nYv2V3qVu7JhkedKD31n-TyjsXwVnYHe5CZAvsG-JfI/edit)
 and [ADR-008](https://docs.google.com/document/d/14OXD4V0bvVtcoSMAqIJptNDTzpt6bDBlLk7qlKJZ4BU/edit).
@@ -633,8 +763,10 @@ responses. API responses expose only `has_key`. Leaving a key blank on edit reta
 when the provider is unchanged; replacing a provider requires its own credential. Ollama
 needs no API key in this increment.
 
-The master encryption key is created on the first credential save at the database path with
-suffix `.credentials.key`, or at `ADAPTAI_CREDENTIALS_KEY_PATH` when explicitly configured.
+The master encryption key comes from the `ADAPTAI_CREDENTIALS_KEY` secret when set.
+Otherwise it is created on first credential save at `backend/data/adaptai.credentials.key`,
+or at `ADAPTAI_CREDENTIALS_KEY_PATH` when configured. The same key must be preserved
+when moving ciphertexts from SQLite to PostgreSQL.
 The key file is ignored by Git. Keep it outside cloud sync with user-restricted filesystem
 access. Back up the database and matching key securely; losing the key makes stored provider
 credentials unusable. A missing key is not silently regenerated when encrypted entries exist.
@@ -694,8 +826,8 @@ and JSON exports include opted-in records; pending-choice cards do not include r
 `DELETE /api/context/conversations` removes the owner's saved task/response text and coaching
 while preserving numeric history, choices and settings. Session/all-history deletion cascades to
 conversation content. Clearing learned numeric memory is separate and does not delete text.
-As with other SQLite data, exports/backups/OneDrive versions may retain copies; deletion does not
-promise forensic erasure. The database is ignored by Git; text is not placed in browser storage.
+As with other persisted data, exports and backups may retain copies; deletion does not
+promise forensic erasure. Database dumps and local credential keys must stay outside Git; text is not placed in browser storage.
 
 Every successful analysis is saved before any tier choice. My progress immediately shows
 analysis counts, activity by session, and a paginated list of pending choices. Confirm an

@@ -53,7 +53,7 @@ def test_accounts_and_password_storage():
     assert "HttpOnly" in login.headers["set-cookie"]
     assert "SameSite=lax" in login.headers["set-cookie"]
     with app.state.storage.connect() as db:
-        db.execute("UPDATE auth_sessions SET expires_at=?", (int(time.time()) - 1,))
+        db.execute("UPDATE auth_sessions SET expires_at=%s", (int(time.time()) - 1,))
     assert client.get("/api/auth/me").status_code == 401
 
 
@@ -345,20 +345,23 @@ def test_dashboard_chart_and_capacity_counts_are_real():
 def test_schema_v1_migrates_without_losing_sessions(tmp_path):
     import sqlite3
 
-    from app.storage import Storage
+    from conftest import legacy_copy
+    from migration_tools.legacy_sqlite import LegacySQLiteStorage as Storage
 
     settings = Settings(_env_file=None)
     client = TestClient(create_app(settings))
     user = account(client)
     saved = client.post("/api/analyze", json={"task": "Keep this task"}).json()
-    with sqlite3.connect(settings.database_path) as db:
+    legacy_path = tmp_path / "legacy.sqlite3"
+    legacy_copy(client.app.state.storage, legacy_path)
+    with sqlite3.connect(legacy_path) as db:
         db.execute("DROP TABLE llm_configs")
         db.execute("DROP TABLE memory_entries")
         db.execute("DROP TABLE user_context")
         db.execute("DROP TABLE conversation_content")
         db.execute("DROP TABLE coaching_reports")
         db.execute("PRAGMA user_version=1")
-    store = Storage(settings.database_path, allow_legacy_redaction=True)
+    store = Storage(str(legacy_path), allow_legacy_redaction=True)
     assert store.session(user["id"], saved["session_id"])["title"].startswith("Session ")
     with store.connect() as db:
         assert db.execute("PRAGMA user_version").fetchone()[0] == 8
@@ -441,11 +444,12 @@ def test_history_never_retains_provider_free_text():
     assert app.state.storage.session(user["id"], result["session_id"])["context"] == ""
 
 
-def test_v2_migration_redacts_raw_content_preserving_decisions():
+def test_v2_migration_redacts_raw_content_preserving_decisions(tmp_path):
     import json
     import sqlite3
 
-    from app.storage import Storage
+    from conftest import legacy_copy
+    from migration_tools.legacy_sqlite import LegacySQLiteStorage as Storage
 
     settings = Settings(_env_file=None)
     app = create_app(settings)
@@ -459,7 +463,9 @@ def test_v2_migration_redacts_raw_content_preserving_decisions():
     marker = "LEGACY_PRIVATE_CONTENT"
     result["profile"]["explanation"] = marker
     result["profile"]["reasoning"]["evidence"] = marker
-    with sqlite3.connect(settings.database_path) as db:
+    legacy_path = tmp_path / "legacy.sqlite3"
+    legacy_copy(client.app.state.storage, legacy_path)
+    with sqlite3.connect(legacy_path) as db:
         db.execute(
             "UPDATE analyses SET request_json=?,result_json=?",
             (json.dumps({"task": marker}), json.dumps(result)),
@@ -475,8 +481,8 @@ def test_v2_migration_redacts_raw_content_preserving_decisions():
         db.execute("DROP TABLE coaching_reports")
         db.execute("PRAGMA user_version=2")
     with pytest.raises(RuntimeError, match="explicit removal"):
-        Storage(settings.database_path)
-    store = Storage(settings.database_path, allow_legacy_redaction=True)
+        Storage(str(legacy_path))
+    store = Storage(str(legacy_path), allow_legacy_redaction=True)
     history = store.history(user["id"], result["session_id"], 100, 0)
     assert marker not in str(history)
     assert history[0]["candidate_id"] == result["recommendation"]["id"]

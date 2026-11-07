@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
 from app.main import create_app  # noqa: E402
 from app.providers import Settings  # noqa: E402
+from app.storage import temporary_database  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 STREAM = {"Accept": "text/event-stream"}
@@ -143,8 +144,12 @@ def main() -> int:
                 with httpx.Client(base_url=args.url, timeout=30) as other:
                     run(client, args.provider, True, other)
         else:
-            with tempfile.TemporaryDirectory() as directory:
-                settings = Settings(database_path=str(Path(directory) / "check.sqlite3"))
+            with (
+                tempfile.TemporaryDirectory() as directory,
+                temporary_database(
+                    Settings(credentials_key_path=str(Path(directory) / "check.key"))
+                ) as settings,
+            ):
                 app = create_app(settings)
                 run(TestClient(app), args.provider, False, TestClient(app))
     except Failed:

@@ -198,3 +198,21 @@ with the analysis, the session or chat, the history and the account. The Educato
 the totals only; the calibration report of the second phase reads the counts and proposes catalogue
 changes without altering anything.
 
+
+7 November 2026: PostgreSQL persistence
+
+The running backend now uses PostgreSQL in a dedicated `adaptai` schema. This changes
+the storage engine, not what the application is permitted to retain or disclose.
+Profile sanitisation, owner checks, consent flags, deletion cascades, coaching cache
+invalidation and the separation between chat text and Educator input are preserved.
+SQLite v3-v7 references above describe the historical installation. Core PostgreSQL
+migrations have their own numbered/checksummed history; optional modules remain removable.
+
+The explicit SQLite v7 import opens the source read-only, refuses a populated destination,
+verifies existing credential ciphertexts with the configured key and imports all rows in
+one transaction. It neither reconstructs discarded text nor enables any consent flag.
+Legacy redaction remains a separate explicit tool operating on a reviewed backup.
+PostgreSQL/provider backups need their own retention/deletion policy; deleting active rows
+does not promise forensic removal from backups. PostgreSQL tests use generated schemas
+and synthetic data, independently of the application URL. No Supabase project or cloud
+data transfer is performed by this repository change.

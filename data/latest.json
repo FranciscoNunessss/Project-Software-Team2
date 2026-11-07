@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-07T19:27:47.126Z",
+  "generatedAt": "2026-11-07T19:33:47.969Z",
   "date": "2026-11-07",
   "repo": "FranciscoNunessss/Project-Software-Team2",
   "branch": "develop",
@@ -384,8 +384,14 @@
       "progress": null,
       "expected": 0,
       "status": "no-data",
-      "note": "Baseline 0 per PR (16 PRs). Baseline still being measured (weeks 7–8).",
+      "note": "Baseline 0 per PR (17 PRs). Baseline still being measured (weeks 7–8).",
       "evidence": [
+        {
+          "kind": "pr",
+          "title": "#43 ADR-014 feedback 1.1: Use this model, and the model actually used",
+          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/43",
+          "meta": "baseline · week 8 · 0 changes requested"
+        },
         {
           "kind": "pr",
           "title": "#42 Feature/chat dropdown responsive",
@@ -495,7 +501,7 @@
         "checked": 0
       },
       "completion": 100,
-      "lastModified": "2026-11-07T18:11:49Z",
+      "lastModified": "2026-11-07T19:33:20Z",
       "stale": false
     },
     {

@@ -195,6 +195,6 @@ removed by ADR-014.)
 model's levels as numbers, the completeness, and counts (answers, Retry, Stop, whether the
 model was switched). It holds **no text**: the chat sends only these values. Rows are deleted
 with the analysis, the session or chat, the history and the account. The Educator receives
-the totals only; `scripts/calibration_report.py` reads the counts and proposes catalogue
+the totals only; the calibration report of the second phase reads the counts and proposes catalogue
 changes without altering anything.
 

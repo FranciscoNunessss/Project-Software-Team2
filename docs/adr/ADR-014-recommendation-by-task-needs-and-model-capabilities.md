@@ -48,18 +48,22 @@ task, so nothing could improve the recommendation.
 
 ## How it works
 
+The work is in two phases. **Phase 1** (feedback and the way of recommending) is the table
+below minus the rows marked phase 2. **Phase 2** (how models get their levels: classification,
+automatic measurement, calibration) comes in its own pull request.
+
 | Part | Where |
 |---|---|
 | Catalogue v2: cards with facts, five ratings (level, status, source, date), aliases, versioned and hashed like the rubric | `backend/data/catalogue/`, `backend/app/catalogue.py` |
-| Classification: facts import, benchmark snapshot, mapping, provisional ratings | `docs/model-classification.md`, `backend/app/classification.py`, `scripts/import_openrouter_facts.py`, `scripts/snapshot_benchmarks.py`, `scripts/build_catalogue.py`, workflow "Catalogue sources" |
+| Classification: facts import, benchmark snapshot, mapping, provisional ratings | `docs/model-classification.md`, `backend/app/classification.py`, `scripts/import_openrouter_facts.py`, `scripts/snapshot_benchmarks.py`, `scripts/build_catalogue.py`, workflow "Catalogue sources" (phase 2) |
 | Task needs: an interval `[estimated, top]` per need: high or medium confidence `[s, s]`, low `[s, s+1]`, undetermined `[2, 3]` | `task_needs` in `backend/app/recommendation.py` |
 | The 8 steps: `available_cards`, `hard_filter`, `coverage`, `model_status`, `choose`, `fallback`, `extra_rules`, `explain` | `recommend` in `backend/app/recommendation.py`, policy `needs-capabilities-1` |
 | API: `recommendation` and `alternatives` carry the card, how to use it (`configuration_id`), coverage per need, shortfalls, cost band, `gap`; the result adds `needs` and `notes` | `AnalysisResult` in `backend/app/models.py` |
 | Old analyses keep their tier and are still shown and counted | `candidate_gap`, `TierCard` |
 | Feedback: `task_outcomes` (schema v8), `PUT /api/analyses/{id}/outcome`, totals in `GET /api/progress/outcomes`; Send records the choice | `backend/app/outcomes.py`, `backend/app/chat.py` |
 | Educator, Coach and My progress use the outcome totals | `backend/app/coaching.py`, `backend/app/main.py`, `frontend/src/TaskOutcomes.tsx` |
-| Automatic measurement: 60 generated tasks graded by a program, runner, apply script, "Measure models" workflow | `backend/app/measurement.py`, `scripts/measure_models.py`, `scripts/apply_measurements.py` |
-| Calibration report (proposes level changes, changes nothing) | `scripts/calibration_report.py` |
+| Automatic measurement: 60 generated tasks graded by a program, runner, apply script, "Measure models" workflow | `backend/app/measurement.py`, `scripts/measure_models.py`, `scripts/apply_measurements.py` (phase 2) |
+| Calibration report (proposes level changes, changes nothing) | `scripts/calibration_report.py` (phase 2) |
 
 Removed: `demand_estimate`, `tier_fit`, `capacity_target`, the graded parameters, the chat's
 `chat_model_tiers` table and routes (cards are linked by their aliases).

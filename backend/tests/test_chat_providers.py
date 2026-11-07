@@ -160,16 +160,3 @@ def test_personal_lmstudio_configuration_works_in_chat():
     response = send(client, chat, configuration_id=created.json()["id"])
     assert response.status_code == 200, response.text
     assert response.json()["answer"]["content"] == "lmstudio:my-local"
-
-
-def test_model_tiers_accept_lmstudio_and_a_personal_openrouter():
-    client, _ = build(lmstudio_model="local-model")
-    from app.workflow import CATALOGUE
-
-    tier = CATALOGUE["models"][0]["id"]
-    cfg = connect(client)
-    for identifier in ("server:lmstudio", cfg):
-        response = client.put(
-            "/api/chat/model-tiers", json={"configuration_id": identifier, "tier": tier}
-        )
-        assert response.status_code == 200, response.text

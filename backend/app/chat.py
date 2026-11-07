@@ -27,8 +27,10 @@ from langsmith import tracing_context
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.accounts import AuthenticatedUser
+from app.catalogue import active_catalogue
 from app.llm_config import ModelConfigurations
 from app.openrouter import CatalogueUnavailable
+from app.outcomes import record_decision
 from app.providers import Settings, chat_model, provider_error_code
 from app.storage import Storage
 
@@ -68,11 +70,8 @@ TABLES = (
     "CREATE TABLE IF NOT EXISTS chat_settings ("
     " user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,"
     " auto_analyse INTEGER NOT NULL DEFAULT 0)",
-    "CREATE TABLE IF NOT EXISTS chat_model_tiers ("
-    " user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,"
-    " configuration_id TEXT NOT NULL,"
-    " tier TEXT NOT NULL,"
-    " PRIMARY KEY (user_id, configuration_id))",
+    # Removed by ADR-014: models are linked to catalogue cards by their aliases.
+    "DROP TABLE IF EXISTS chat_model_tiers",
 )
 
 Provider = Literal["auto", "demo", "openai", "claude", "groq", "openrouter", "ollama", "lmstudio"]
@@ -122,12 +121,6 @@ class RetryInput(BaseModel):
 class ChatSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
     auto_analyse: bool
-
-
-class ModelTier(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    configuration_id: str = Field(min_length=1, max_length=64)
-    tier: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 # --- models --------------------------------------------------------------------------------
@@ -202,6 +195,8 @@ def public_message(row: dict) -> dict:
         message["completeness"] = json.loads(row["result_json"]).get("completeness")
     else:
         message["completeness"] = None
+    # Feedback for the task this analysed message starts (ADR-014), None while open.
+    message["outcome"] = row.get("outcome")
     return message
 
 
@@ -278,8 +273,9 @@ def install_chat(
         return [
             dict(row)
             for row in db.execute(
-                "SELECT m.*, a.result_json FROM chat_messages m "
+                "SELECT m.*, a.result_json, o.outcome FROM chat_messages m "
                 "LEFT JOIN analyses a ON a.id=m.analysis_id "
+                "LEFT JOIN task_outcomes o ON o.analysis_id=m.analysis_id "
                 "WHERE m.session_id=? ORDER BY m.created_at, m.rowid",
                 (chat_id,),
             )
@@ -327,6 +323,19 @@ def install_chat(
             owned_chat(db, user["id"], chat_id)
             db.execute("DELETE FROM sessions WHERE id=? AND user_id=?", (chat_id, user["id"]))
         return Response(status_code=204)
+
+    def record_send_choice(user_id: str, analysis_id: str, provider: str, model: str | None):
+        """Send is the choice (ADR-014): record it when the model is one the analysis compared."""
+        card = active_catalogue().card_for(provider, model)
+        if card is None:
+            return
+        with store.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                record_decision(db, user_id, analysis_id, card.id)
+            except HTTPException:
+                # Not a compared model, or a different choice was already recorded: keep it.
+                db.rollback()
 
     async def resolve_model(user_id: str, body) -> tuple[str, Settings, str | None]:
         provider, provider_settings, model, configuration_id = configurations.resolve(
@@ -408,6 +417,8 @@ def install_chat(
             ):
                 raise HTTPException(404, "analysis_not_found")
         target = await resolve_model(user["id"], body)
+        if body.analysis_id:
+            record_send_choice(user["id"], body.analysis_id, target[0], target[2])
 
         question_id, answer_id = str(uuid4()), str(uuid4())
         with store.connect() as db:
@@ -467,42 +478,3 @@ def install_chat(
                 (user["id"], int(body.auto_analyse)),
             )
         return body
-
-    @app.get("/api/chat/model-tiers")
-    def get_model_tiers(user: AuthenticatedUser):
-        with store.connect() as db:
-            rows = db.execute(
-                "SELECT configuration_id, tier FROM chat_model_tiers WHERE user_id=? "
-                "ORDER BY configuration_id",
-                (user["id"],),
-            )
-            return [dict(row) for row in rows]
-
-    @app.put("/api/chat/model-tiers")
-    def put_model_tier(body: ModelTier, user: AuthenticatedUser):
-        if not body.configuration_id.startswith("server:"):
-            configurations.owned(user["id"], body.configuration_id)
-        elif body.configuration_id.removeprefix("server:") not in enabled:
-            raise HTTPException(404, "configuration_not_found")
-        if body.tier is not None and body.tier not in tier_ids():
-            raise HTTPException(422, "tier_not_found")
-        with store.connect() as db:
-            if body.tier is None:
-                db.execute(
-                    "DELETE FROM chat_model_tiers WHERE user_id=? AND configuration_id=?",
-                    (user["id"], body.configuration_id),
-                )
-            else:
-                db.execute(
-                    "INSERT INTO chat_model_tiers(user_id, configuration_id, tier) "
-                    "VALUES (?, ?, ?) ON CONFLICT(user_id, configuration_id) "
-                    "DO UPDATE SET tier=excluded.tier",
-                    (user["id"], body.configuration_id, body.tier),
-                )
-        return get_model_tiers(user)
-
-
-def tier_ids() -> set[str]:
-    from app.workflow import CATALOGUE
-
-    return {item["id"] for item in CATALOGUE["models"]}

@@ -11,7 +11,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 
 from app.accounts import AuthenticatedUser
-from app.providers import LangChainProvider, ProviderFailure, Settings
+from app.providers import LangChainProvider, ProviderFailure, Settings, server_models
+from app.recommendation import Option
 from app.storage import Storage
 
 PROVIDERS = ("openai", "claude", "groq", "openrouter", "ollama", "lmstudio")
@@ -206,14 +207,59 @@ class ModelConfigurations:
                 raise HTTPException(409, "configuration_disabled")
             return row["provider"], self.configured_settings(row), row["model"], identifier
         provider = identifier.removeprefix("server:") if identifier else body.provider
+        model_name = None
+        if ":" in provider:
+            # server:<provider>:<model>, one of the server's listed models (ADR-014).
+            provider, model_name = provider.split(":", 1)
+            if model_name not in server_models(self.settings, provider):
+                raise HTTPException(404, "configuration_not_found")
         if provider not in {"demo", *PROVIDERS}:
             raise HTTPException(404, "configuration_not_found")
+        if model_name is not None:
+            settings = self.settings.model_copy(update={MODEL_FIELDS[provider]: model_name})
+            return provider, settings, model_name, f"server:{provider}:{model_name}"
         return (
             provider,
             self.settings,
             (getattr(self.settings, MODEL_FIELDS[provider]) if provider != "demo" else None),
             "server:" + provider,
         )
+
+    def server_options(self, enabled) -> "list[dict]":
+        """One entry per server model; the first model of a provider keeps ``server:<p>``."""
+        result = []
+        for key in ("groq", "openrouter", "openai", "claude", "ollama", "lmstudio", "demo"):
+            if not enabled.get(key):
+                continue
+            models = server_models(self.settings, key) if key != "demo" else [None]
+            if key != "demo" and not models:
+                models = [getattr(self.settings, MODEL_FIELDS[key]) or None]
+            for index, model in enumerate(models):
+                result.append(
+                    {
+                        "id": "server:" + key if index == 0 else f"server:{key}:{model}",
+                        "provider": key,
+                        "label": LABELS.get(key, "Demonstration"),
+                        "model": model,
+                        "external": key != "demo" and key not in LOCAL_PROVIDERS,
+                        "source": "server",
+                    }
+                )
+        return result
+
+    def send_options(self, user_id, enabled) -> "list[Option]":
+        """Every model the user can send to, for the recommendation (available_cards)."""
+        personal = [item for item in self.list(user_id) if item["enabled"]]
+        return [
+            Option(
+                provider=item["provider"],
+                model=item["model"],
+                configuration_id=item["id"],
+                label=f"{item['label']} · {item['model']}" if item["model"] else item["label"],
+            )
+            for item in [*self.server_options(enabled), *personal]
+            if item["provider"] != "demo"
+        ]
 
 
 def install_routes(app: FastAPI, configurations: ModelConfigurations, enabled):
@@ -239,20 +285,7 @@ def install_routes(app: FastAPI, configurations: ModelConfigurations, enabled):
     @app.get("/api/llm-options")
     def options(user: AuthenticatedUser):
         personal = [item for item in configurations.list(user["id"]) if item["enabled"]]
-        server = [
-            {
-                "id": "server:" + key,
-                "provider": key,
-                "label": LABELS.get(key, "Demonstration"),
-                "model": getattr(configurations.settings, MODEL_FIELDS[key])
-                if key != "demo"
-                else None,
-                "external": key != "demo" and key not in LOCAL_PROVIDERS,
-                "source": "server",
-            }
-            for key in ("groq", "openrouter", "openai", "claude", "ollama", "lmstudio", "demo")
-            if enabled.get(key)
-        ]
+        server = configurations.server_options(enabled)
         all_options = [*personal, *server]
         return {
             "options": all_options,

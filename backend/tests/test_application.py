@@ -30,7 +30,8 @@ def test_end_to_end_demo_and_override(client):
     result = response.json()
     assert result["mode"] == "demonstration"
     assert result["usage"] is None and result["observed_cost"] is None
-    assert result["recommendation"]["id"] == "demo-balanced"
+    # Unknown dimensions need [2, 3]: only the advanced demo card covers the upper estimate.
+    assert result["recommendation"]["id"] == "demo-advanced"
     alternative = result["alternatives"][0]["id"]
     decision = {"analysis_id": result["id"], "candidate_id": alternative}
     assert client.post("/api/decisions", json=decision).json()["persistence"] == "database"

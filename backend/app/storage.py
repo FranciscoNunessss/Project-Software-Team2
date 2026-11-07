@@ -44,7 +44,7 @@ class Storage:
         with self.connect() as db:
             db.execute("PRAGMA journal_mode=WAL")
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 7:
+            if version > 8:
                 raise RuntimeError("Database schema is newer than this application")
             if version in {1, 2} and not allow_legacy_redaction:
                 records = db.execute("SELECT count(*) FROM sessions").fetchone()[0]
@@ -180,6 +180,28 @@ class Storage:
                     );
                     ALTER TABLE coaching_reports ADD COLUMN source_json TEXT NOT NULL DEFAULT '{}';
                     PRAGMA user_version=7;
+                    COMMIT;
+                """)
+            if version < 8:
+                # Feedback per task (ADR-014): choices, counts and identifiers, never text.
+                db.executescript("""
+                    BEGIN IMMEDIATE;
+                    CREATE TABLE IF NOT EXISTS task_outcomes (
+                        analysis_id TEXT PRIMARY KEY REFERENCES analyses(id) ON DELETE CASCADE,
+                        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        outcome TEXT NOT NULL CHECK (outcome IN
+                            ('resolved','resolved_with_refinement','not_resolved','skipped')),
+                        reason TEXT CHECK (reason IN
+                            ('quality','instructions','description','other')),
+                        model_card_id TEXT, catalogue_version TEXT,
+                        recommended_card_id TEXT, followed_recommendation INTEGER,
+                        needs_json TEXT, capabilities_json TEXT,
+                        completeness INTEGER,
+                        turns INTEGER, switched_model INTEGER, retries INTEGER, stops INTEGER,
+                        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+                    );
+                    CREATE INDEX IF NOT EXISTS task_outcome_user ON task_outcomes(user_id);
+                    PRAGMA user_version=8;
                     COMMIT;
                 """)
 

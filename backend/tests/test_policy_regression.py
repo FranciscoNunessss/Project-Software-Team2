@@ -1,6 +1,7 @@
 """The ranking and clarification policy must not change unless an ADR says so.
 
-The golden file was produced by the e886924 policy (see policy_grid.py). Cards that touch
+The golden file was produced by the needs-capabilities-1 policy (ADR-014, see
+policy_grid.py). Cards that touch
 assessment.py or workflow.py keep this test green; an intended change regenerates the file
 in the same PR and names the ADR in the commit message.
 """
@@ -27,7 +28,8 @@ def test_policy_outcomes_match_the_recorded_baseline():
         ({}, "demo-small"),
         ({"reasoning": 3}, "demo-advanced"),
         ({"context": 2}, "demo-balanced"),
-        ({"reasoning": None}, "demo-balanced"),
+        # An undetermined dimension needs [2, 3]: only demo-advanced covers the top.
+        ({"reasoning": None}, "demo-advanced"),
     ],
 )
 def test_sample_profiles_keep_their_recommendation(scores, expected):

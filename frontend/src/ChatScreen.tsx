@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import {
-  api, createChat, deleteChat, renameChat, errorMessage, getChat, listChats, notifyProgressChange, streamChat, candidateLabel, putOutcome, ApiError,
-  type Analysis, type ChatMessage, type ChatSummary, type HistoryItem, type LLMOption, type LLMOptions, type OutcomeReason, type TaskOutcome,
+  api, createChat, renameChat, errorMessage, getChat, notifyProgressChange, streamChat, candidateLabel, putOutcome, ApiError,
+  type Analysis, type ChatMessage, type HistoryItem, type LLMOption, type LLMOptions, type OutcomeReason, type TaskOutcome,
 } from './api'
 import { AnalysisDrawer } from './AnalysisDrawer'
 import { ChatMarkdown } from './ChatMarkdown'
-import { ChatMenu, type ChatMenuHost } from './ChatMenu'
 import { ModelPicker } from './ModelPicker'
 import { OpenRouterModelPicker } from './OpenRouterModelPicker'
 import { PromptCoachBubble } from './PromptCoachBubble'
@@ -40,13 +39,21 @@ function Bubble({ message, last, busy, onRetry, onShowAnalysis }: { message: Cha
   )
 }
 
-export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, menu }: {
+// The chat list itself lives in the sidebar (App); this screen reports back what changes.
+export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title, error: listError, onChatCreated, onChatsChanged, onBusyChange, carriedTask, onTaskState }: {
   onConfigureModels: () => void
   initialChatId?: string
   onNotAChat?: () => void
-  menu: ChatMenuHost
+  title?: string
+  error?: string
+  onChatCreated: (id: string) => void
+  onChatsChanged: () => void
+  onBusyChange: (locked: boolean) => void
+  // Feedback per task (ADR-014) across chats: switching chat remounts this screen, so App
+  // keeps the task to ask about and hands it to the next chat.
+  carriedTask?: OpenTask | null
+  onTaskState: (state: TaskState) => void
 }) {
-  const [chats, setChats] = useState<ChatSummary[]>([])
   const [chatId, setChatId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
@@ -69,9 +76,14 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, menu 
   // Feedback per task (ADR-014): Retry clicks per task, and the task to ask about when the
   // next one starts.
   const retries = useRef(new Map<string, number>())
-  const [pending, setPending] = useState<OpenTask | null>(null)
+  const [pending, setPending] = useState<OpenTask | null>(carriedTask ?? null)
   const [savingOutcome, setSavingOutcome] = useState(false)
   const current = openTask(messages)
+  // Report the open task (if it has an answer) and the unanswered question, for App to carry.
+  const answered = current?.answers.filter(item => item.status === 'complete').length ?? 0
+  useEffect(() => {
+    onTaskState({ open: current && answered > 0 ? current : null, pending })
+  }, [current?.analysisId, answered, pending]) // eslint-disable-line react-hooks/exhaustive-deps
   // Ask about the open task once, when the user moves on to another one.
   const askAboutOpenTask = () => {
     if (current && current.answers.some(item => item.status === 'complete')) setPending(current)
@@ -97,11 +109,10 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, menu 
     setSavingOutcome(false); notifyProgressChange()
   }
 
-  const refreshList = () => listChats().then(setChats).catch(() => setError('Could not load your chats.'))
+  const refreshList = onChatsChanged
 
   useEffect(() => {
     const controller = new AbortController()
-    listChats(controller.signal).then(setChats).catch(() => { if (!controller.signal.aborted) setError('Could not load your chats.') })
     api<LLMOptions>('llm-options', undefined, controller.signal).then(result => {
       setOptions(result.options); setAutoId(result.auto_configuration_id)
     }).catch(() => { if (!controller.signal.aborted) setError('Could not load models. Check LLM config or refresh.') })
@@ -123,19 +134,10 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, menu 
   const routerValue = routerModel ?? selected?.model ?? ''
   const target = { provider: 'auto' as const, configuration_id: model === 'auto' ? undefined : model, model: usesRouter ? routerValue : undefined, allow_external: selected?.external === true }
 
-  const resetAnalysis = () => { setShown(null); setDraftAnalysis(null); setDrawer(false) }
-  const open = async (id: string) => {
-    if (busy) return
-    if (id !== chatId) askAboutOpenTask()
-    setError(''); setChatId(id); resetAnalysis()
-    try { setMessages((await getChat(id)).messages) } catch { setError('Could not open this chat.') }
-  }
-  const startNew = () => { if (busy) return; askAboutOpenTask(); setChatId(null); setMessages([]); setDraft(''); setError(''); resetAnalysis() }
-
   const ensureChat = async () => {
     if (chatId) return chatId
     const id = (await createChat()).id
-    setChatId(id)
+    setChatId(id); onChatCreated(id)
     return id
   }
 
@@ -178,12 +180,6 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, menu 
       const item = session.analyses.find(entry => entry.result.id === analysisId)
       if (item) { setShown(item.conversation?.response ?? item.result); setShownFromHistory(!item.conversation) }
     } catch { setError('Could not open this analysis.') }
-  }
-  const remove = async (id: string) => {
-    if (busy) return
-    try { await deleteChat(id) } catch { setError('Could not delete the chat.'); return }
-    if (id === chatId) startNew()
-    refreshList()
   }
 
   // Shared by Send and Retry: streams the answer into the last bubble.
@@ -242,14 +238,19 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, menu 
 
   const stale = shown !== null && draftAnalysis?.analysis.id === shown.id && draftAnalysis.text !== draft
   const locked = busy || analysing
+  // The sidebar must not switch chats mid-answer: switching remounts this screen.
+  useEffect(() => { onBusyChange(locked) }, [locked]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => onBusyChange(false), []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <main className={`page chat-layout${drawer ? ' with-drawer' : ''}`} data-chat-screen="">
-      <ChatMenu host={menu} chats={chats} activeId={chatId} locked={locked} onNew={startNew} onOpen={open} onDelete={remove} />
       <section className="chat-main">
         <div className="chat-toolbar">
-          <span className="muted chat-title">{chats.find(chat => chat.id === chatId)?.title ?? 'New chat'}</span>
-          {chatId && <button type="button" className="button button-secondary chat-toolbar-new" onClick={startNew} disabled={locked}>New chat</button>}
+          <span className="muted chat-title">{(chatId && title) || 'New chat'}</span>
+          <button type="button" className={`button button-secondary chat-analysis-toggle${drawer ? ' active' : ''}`} onClick={() => setDrawer(!drawer)}
+            aria-expanded={drawer} aria-controls="analysis-panel" aria-label={drawer ? 'Hide analysis' : 'Show analysis'} data-analysis-toggle="">
+            Analysis{shown && shown.completeness != null ? ` · ${shown.completeness}/100` : ''}
+          </button>
         </div>
         <div className="chat-messages" aria-live="polite">
           {messages.length === 0 ? (
@@ -262,7 +263,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, menu 
           )}
           <div ref={end} />
         </div>
-        {error && <p className="error-banner" role="alert">{error}</p>}
+        {(error || listError) && <p className="error-banner" role="alert">{error || listError}</p>}
         {pending && (
           <OutcomeCard title={pending.title} disabled={savingOutcome} onAnswer={(outcome, reason) => answerOutcome(pending, outcome, reason)} />
         )}
@@ -290,13 +291,14 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, menu 
         {selected?.external && <p className="processing-notice">Selecting <strong>Analyse</strong> or <strong>Send</strong> sends your text to <strong>{selected.provider}</strong>. Messages are saved in this chat until you delete it.</p>}
       </section>
       <div className="drawer-slot">
-        <AnalysisDrawer open={drawer} onToggle={setDrawer} analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory} />
+        <AnalysisDrawer open={drawer} onClose={() => setDrawer(false)} analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory} />
       </div>
     </main>
   )
 }
 
-type OpenTask = { analysisId: string; title: string; answers: ChatMessage[] }
+export type OpenTask = { analysisId: string; title: string; answers: ChatMessage[] }
+export type TaskState = { open: OpenTask | null; pending: OpenTask | null }
 
 /** The task still open in a chat: the last analysed message without feedback, and its answers. */
 function openTask(messages: ChatMessage[]): OpenTask | null {

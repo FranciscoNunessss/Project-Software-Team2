@@ -4,7 +4,10 @@ import { supabase } from './auth'
 
 type User = { id: string; email: string }
 
-export function Account({ children, header, dark, onToggleTheme }: { children: ReactNode; header: ReactNode; dark: boolean; onToggleTheme: () => void }) {
+// What the signed-in shell needs to show the account and sign out (in the AdaptAI menu).
+export type AccountInfo = { email: string; busy: boolean; signOut: () => void }
+
+export function Account({ children, dark, onToggleTheme }: { children: (account: AccountInfo) => ReactNode; dark: boolean; onToggleTheme: () => void }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [register, setRegister] = useState(false)
@@ -126,9 +129,9 @@ export function Account({ children, header, dark, onToggleTheme }: { children: R
     </main>
     <p className="auth-footer">Clearer choices. Better AI judgement.</p>
   </div>
-  return <>
-    {header}
-    <div className="page account-bar"><div><span className="account-indicator" aria-hidden="true" /><span className="account-email">{user.email}</span></div><button className="button button-secondary" disabled={busy} onClick={logout}>Sign out</button>{error && <p role="alert">{error}</p>}</div>
-    <div key={user.id}>{children}</div>
-  </>
+  // Keyed by user, so nothing of one account's state survives into the next.
+  return <div className="app-shell" key={user.id}>
+    {error && <p role="alert" className="api-error account-error">{error}</p>}
+    {children({ email: user.email, busy, signOut: () => void logout() })}
+  </div>
 }

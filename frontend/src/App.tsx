@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { api, ApiError, candidateLabel, getFeatures, PROFILE_VERSION, notifyProgressChange, type Analysis, type Candidate, type LLMOption, type LLMOptions, type SavedSession, type Resume } from './api'
-import { Account } from './Account'
+import { api, ApiError, candidateLabel, deleteChat, getFeatures, listChats, PROFILE_VERSION, notifyProgressChange, type Analysis, type Candidate, type ChatSummary, type LLMOption, type LLMOptions, type SavedSession, type Resume } from './api'
+import { Account, type AccountInfo } from './Account'
 import { AnalysisChanges } from './AnalysisChanges'
 
 import { ProgressScreen } from './Progress'
@@ -11,11 +11,11 @@ import { OpenRouterModelPicker } from './OpenRouterModelPicker'
 import { TipsCard } from './TipsCard'
 import { PromptCoachTips } from './PromptCoachTips'
 import { PromptCoachBubble } from './PromptCoachBubble'
-import { ChatScreen } from './ChatScreen'
+import { ChatScreen, type OpenTask, type TaskState } from './ChatScreen'
 import { Card, Icon, ProfileCard, RecommendationCard } from './AnalysisResult'
 import { AssistantOutcome } from './TaskOutcome'
+import { Sidebar, type Screen } from './Sidebar'
 
-type Screen = 'assistant' | 'progress' | 'profile' | 'llm'
 type ResultState = 'empty' | 'loading' | 'result'
 
 function Button({
@@ -46,77 +46,6 @@ function Button({
     >
       {children}
     </button>
-  )
-}
-
-// When the chat is on screen, the brand opens the chat list; ChatScreen renders it into `slot`.
-type ChatMenuControl = { open: boolean; onToggle: () => void; slot: (element: HTMLDivElement | null) => void }
-
-function Header({
-  screen,
-  onNavigate,
-  dark,
-  onToggleTheme,
-  chatMenu,
-}: {
-  screen: Screen
-  onNavigate: (screen: Screen) => void
-  dark: boolean
-  onToggleTheme: () => void
-  chatMenu?: ChatMenuControl
-}) {
-  const [online, setOnline] = useState<boolean | null>(null)
-  useEffect(() => {
-    const controller = new AbortController()
-    api('health', undefined, controller.signal).then(() => setOnline(true))
-      .catch(() => { if (!controller.signal.aborted) setOnline(false) })
-    return () => controller.abort()
-  }, [])
-  return (
-    <header className="topbar">
-      <div className="nav-shell">
-        {chatMenu ? (
-          <div className="brand-menu">
-            <button className="brand" onClick={chatMenu.onToggle} aria-label="Your chats" aria-haspopup="true" aria-expanded={chatMenu.open} aria-controls="chat-menu" data-chat-menu-trigger="">
-              <span className="brand-mark"><Icon name="spark" size={16} /></span>
-              <span className="brand-name">AdaptAI</span>
-              <span className={`brand-caret${chatMenu.open ? ' open' : ''}`} aria-hidden="true" />
-            </button>
-            <div ref={chatMenu.slot} className="chat-menu-slot" />
-          </div>
-        ) : (
-          <button className="brand" onClick={() => onNavigate('assistant')} aria-label="AdaptAI home">
-            <span className="brand-mark"><Icon name="spark" size={16} /></span>
-            <span className="brand-name">AdaptAI</span>
-          </button>
-        )}
-        <nav aria-label="Main navigation" className="main-nav">
-          <button className={screen === 'assistant' ? 'nav-item active' : 'nav-item'} onClick={() => onNavigate('assistant')}>
-            Assistant
-          </button>
-          <button className={screen === 'progress' ? 'nav-item active' : 'nav-item'} onClick={() => onNavigate('progress')}>
-            My progress
-          </button>
-          <button className={screen === 'profile' ? 'nav-item active secondary-nav' : 'nav-item secondary-nav'} onClick={() => onNavigate('profile')}>
-            Profile
-          </button>
-          <button className={screen === 'llm' ? 'nav-item active' : 'nav-item'} onClick={() => onNavigate('llm')}>LLM config</button>
-        </nav>
-        <button
-          className="theme-toggle"
-          onClick={onToggleTheme}
-          aria-label={`Switch to ${dark ? 'light' : 'dark'} mode`}
-          aria-pressed={dark}
-        >
-          <span className="theme-toggle-icon" aria-hidden="true" />
-          <span>{dark ? 'Light mode' : 'Dark mode'}</span>
-        </button>
-        <span className={`status ${online === false ? 'degraded' : ''}`} role="status">
-          <span className="status-dot" />
-          {online === null ? 'Checking API' : online ? 'API online' : 'API unavailable'}
-        </span>
-      </div>
-    </header>
   )
 }
 
@@ -384,6 +313,25 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
 }
 
 export default function App() {
+  const [dark, setDark] = useState(() => window.localStorage.getItem('adaptai-theme') === 'dark')
+  const toggleTheme = () => {
+    setDark((current) => {
+      const next = !current
+      window.localStorage.setItem('adaptai-theme', next ? 'dark' : 'light')
+      return next
+    })
+  }
+  return (
+    <div className={dark ? 'app theme-dark' : 'app'}>
+      <Account dark={dark} onToggleTheme={toggleTheme}>
+        {account => <Shell account={account} dark={dark} onToggleTheme={toggleTheme} />}
+      </Account>
+    </div>
+  )
+}
+
+// Everything shown once signed in. Remounted per user by Account.
+function Shell({ account, dark, onToggleTheme }: { account: AccountInfo; dark: boolean; onToggleTheme: () => void }) {
   const [screen, setScreen] = useState<Screen>(() => {
     try {
       const saved = window.localStorage.getItem('adaptai-screen')
@@ -402,38 +350,57 @@ export default function App() {
     getFeatures(controller.signal).then(features => setHasChat(features.chat === true)).catch(() => { if (!controller.signal.aborted) setHasChat(false) })
     return () => controller.abort()
   }, [])
-  const [chatMenuOpen, setChatMenuOpen] = useState(false)
-  const [chatMenuSlot, setChatMenuSlot] = useState<HTMLDivElement | null>(null)
-  const navigate = (next: Screen) => { setResume(null); setLegacy(false); setChatMenuOpen(false); setScreen(next) }
-  const chatActive = screen === 'assistant' && hasChat === true && !legacy
-  const chatMenu: ChatMenuControl | undefined = chatActive
-    ? { open: chatMenuOpen, onToggle: () => setChatMenuOpen(current => !current), slot: setChatMenuSlot }
-    : undefined
-  const [dark, setDark] = useState(() => window.localStorage.getItem('adaptai-theme') === 'dark')
   useEffect(() => {
     try { window.localStorage.setItem('adaptai-screen', screen) } catch { /* Storage may be disabled. */ }
     window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
   }, [screen])
-  const toggleTheme = () => {
-    setDark((current) => {
-      const next = !current
-      window.localStorage.setItem('adaptai-theme', next ? 'dark' : 'light')
-      return next
-    })
+
+  // Chats: the list lives here so the sidebar shows it on every page.
+  // `chat.key` remounts ChatScreen (open another chat, new chat); `chat.id` follows the open chat.
+  const [chats, setChats] = useState<ChatSummary[]>([])
+  const [chat, setChat] = useState<{ key: string; id: string | null }>({ key: 'new-0', id: null })
+  const [chatLocked, setChatLocked] = useState(false)
+  // Feedback per task (ADR-014): moving to another chat asks about the task left open, as the
+  // chat itself did before the list moved here. The next ChatScreen shows the question.
+  const taskState = useRef<TaskState>({ open: null, pending: null })
+  const [carriedTask, setCarriedTask] = useState<OpenTask | null>(null)
+  const onTaskState = (state: TaskState) => { taskState.current = state; setCarriedTask(state.pending) }
+  const carryOpenTask = () => setCarriedTask(taskState.current.open ?? taskState.current.pending)
+  const [chatError, setChatError] = useState('')
+  const refreshChats = () => listChats().then(setChats).catch(() => setChatError('Could not load your chats.'))
+  useEffect(() => { if (hasChat) refreshChats() }, [hasChat]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const navigate = (next: Screen) => { setResume(null); setLegacy(false); setScreen(next) }
+  const openChat = (id: string) => { if (id !== chat.id) carryOpenTask(); setResume(null); setLegacy(false); setChatError(''); setChat({ key: id, id }); setScreen('assistant') }
+  const newChat = () => { carryOpenTask(); setResume(null); setLegacy(false); setChatError(''); setChat({ key: `new-${Date.now()}`, id: null }); setScreen('assistant') }
+  const removeChat = async (id: string) => {
+    try { await deleteChat(id) } catch { setChatError('Could not delete the chat.'); return }
+    if (id === chat.id) newChat()
+    refreshChats()
   }
+  const chatActive = screen === 'assistant' && hasChat === true && !legacy
+
   return (
-    <div className={dark ? 'app theme-dark' : 'app'}>
-      <Account dark={dark} onToggleTheme={toggleTheme} header={<Header screen={screen} onNavigate={navigate} dark={dark} onToggleTheme={toggleTheme} chatMenu={chatMenu} />}>
-      {/* With the chat module (ADR-011) the Assistant is the chat, with the analysis in a side panel. */}
-      {chatActive && <ChatScreen key={resume?.sessionId ?? 'chat'} initialChatId={resume?.sessionId} onNotAChat={() => setLegacy(true)} onConfigureModels={() => navigate('llm')}
-        menu={{ open: chatMenuOpen, slot: chatMenuSlot, onClose: () => setChatMenuOpen(false) }} />}
-      {screen === 'assistant' && (hasChat === false || legacy) && <AssistantScreen resume={resume} onConfigureModels={() => navigate('llm')} />}
-      {screen === 'progress' && <ProgressScreen onResume={saved => { setResume(saved); setLegacy(false); setScreen('assistant') }} />}
-      {screen === 'profile' && <ProfileScreen />}
-      {screen === 'llm' && <LLMConfigScreen />}
-      {/* The chat fills the window and scrolls only its conversation, so it has no footer. */}
-      {!chatActive && <footer><span>AdaptAI</span><p>Clearer choices. Better AI judgement.</p><button>Privacy</button><button>How it works</button></footer>}
-      </Account>
-    </div>
+    <>
+      <Sidebar screen={screen} onNavigate={navigate} dark={dark} onToggleTheme={onToggleTheme} account={account}
+        chats={hasChat ? { list: chats, activeId: chat.id, locked: chatLocked, onOpen: openChat, onNew: newChat, onDelete: id => void removeChat(id) } : undefined} />
+      <div className="app-main">
+        {/* With the chat module (ADR-011) the Assistant is the chat, with the analysis in a side panel. */}
+        {chatActive && <ChatScreen key={chat.key} initialChatId={chat.id ?? undefined} title={chats.find(item => item.id === chat.id)?.title}
+          error={chatError} onChatCreated={id => setChat(current => ({ ...current, id }))} onChatsChanged={refreshChats} onBusyChange={setChatLocked}
+          carriedTask={carriedTask} onTaskState={onTaskState}
+          onNotAChat={() => setLegacy(true)} onConfigureModels={() => navigate('llm')} />}
+        {screen === 'assistant' && (hasChat === false || legacy) && <AssistantScreen resume={resume} onConfigureModels={() => navigate('llm')} />}
+        {screen === 'progress' && <ProgressScreen onResume={saved => {
+          setResume(saved); setLegacy(false)
+          if (hasChat) setChat({ key: saved.sessionId, id: saved.sessionId })
+          setScreen('assistant')
+        }} />}
+        {screen === 'profile' && <ProfileScreen />}
+        {screen === 'llm' && <LLMConfigScreen />}
+        {/* The chat fills the window and scrolls only its conversation, so it has no footer. */}
+        {!chatActive && <footer><span>AdaptAI</span><p>Clearer choices. Better AI judgement.</p><button>Privacy</button><button>How it works</button></footer>}
+      </div>
+    </>
   )
 }

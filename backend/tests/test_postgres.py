@@ -50,6 +50,26 @@ def test_modified_or_newer_migration_is_refused():
         store.migrate()
 
 
+@pytest.mark.parametrize("windows_versions", [(1,), (1, 2, 3)])
+def test_existing_windows_migration_checksums_remain_compatible(windows_versions):
+    from pathlib import Path
+
+    settings = Settings(_env_file=None)
+    store = Storage(settings.database_url.get_secret_value(), settings.database_schema)
+    root = Path(__file__).parents[1] / "migrations"
+    with store.connect() as db:
+        for path in root.glob("*.sql"):
+            version = int(path.name.split("_", 1)[0])
+            if version not in windows_versions:
+                continue
+            contents = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+            db.execute(
+                "UPDATE schema_migrations SET checksum=%s WHERE version=%s",
+                (hashlib.sha256(contents).hexdigest(), version),
+            )
+    store.migrate()
+
+
 def test_sqlite_v8_import_preserves_task_feedback(tmp_path, destination):
     app = create_app(Settings(_env_file=None))
     client = TestClient(app)

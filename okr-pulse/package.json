@@ -1,0 +1,42 @@
+{
+  "name": "okr-pulse",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "OKR progress dashboard for AdaptAI (Team 2), computed from GitHub and repo docs",
+  "scripts": {
+    "validate": "tsx collector/index.ts --validate-only",
+    "collect": "tsx collector/index.ts",
+    "summary": "tsx collector/weekly-summary.ts",
+    "mock": "tsx scripts/mock-data.ts",
+    "dev": "npm run mock && vite --config dashboard/vite.config.ts",
+    "build": "tsc --noEmit && vite build --config dashboard/vite.config.ts",
+    "preview": "vite preview --config dashboard/vite.config.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@octokit/plugin-retry": "^8.1.1",
+    "@octokit/plugin-throttling": "^11.0.5",
+    "@octokit/rest": "^22.0.1",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "fflate": "^0.8.3",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.4",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "recharts": "^3.10.1",
+    "tailwindcss": "^4.3.4",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.1.0"
+  }
+}

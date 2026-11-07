@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: adaptai-team2-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    # GitHub Actions deploys the checked commit, after all CI jobs succeed.
+    autoDeployTrigger: "off"
+    envVars:
+      - key: ADAPTAI_AUTH_MODE
+        value: supabase
+      - key: ADAPTAI_DATABASE_SCHEMA
+        value: adaptai
+      - key: ADAPTAI_DATABASE_URL
+        sync: false
+      - key: ADAPTAI_BROWSER_ORIGIN
+        sync: false
+      - key: ADAPTAI_SUPABASE_URL
+        sync: false
+      - key: ADAPTAI_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: ADAPTAI_CREDENTIALS_KEY
+        sync: false
+      - key: ADAPTAI_GROQ_MODEL
+        value: openai/gpt-oss-20b
+      - key: ADAPTAI_GROQ_API_KEY
+        sync: false

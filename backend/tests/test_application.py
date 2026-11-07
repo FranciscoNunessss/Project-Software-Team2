@@ -1,14 +1,27 @@
+from uuid import uuid4
+
 import pytest
 from app.main import create_app
 from app.models import Assessment, Profile
 from app.providers import ProviderFailure, Settings
 from app.workflow import rank
 from fastapi.testclient import TestClient
+from profile_samples import profile_data
+
+
+def authenticated_client(app):
+    client = TestClient(app)
+    response = client.post(
+        "/api/auth/register",
+        json={"email": f"{uuid4()}@example.com", "password": "test-password-123"},
+    )
+    assert response.status_code == 201
+    return client
 
 
 @pytest.fixture
 def client():
-    return TestClient(create_app(Settings(_env_file=None)))
+    return authenticated_client(create_app(Settings(_env_file=None)))
 
 
 def test_end_to_end_demo_and_override(client):
@@ -17,11 +30,12 @@ def test_end_to_end_demo_and_override(client):
     result = response.json()
     assert result["mode"] == "demonstration"
     assert result["usage"] is None and result["observed_cost"] is None
-    assert result["recommendation"]["id"] == "demo-balanced"
+    # Unknown dimensions need [2, 3]: only the advanced demo card covers the upper estimate.
+    assert result["recommendation"]["id"] == "demo-advanced"
     alternative = result["alternatives"][0]["id"]
     decision = {"analysis_id": result["id"], "candidate_id": alternative}
-    assert client.post("/api/decisions", json=decision).json()["persistence"] == "none"
-    assert client.post("/api/decisions", json=decision).status_code == 404
+    assert client.post("/api/decisions", json=decision).json()["persistence"] == "database"
+    assert client.post("/api/decisions", json=decision).status_code == 200
 
 
 @pytest.mark.parametrize("task", ["", "   ", "x" * 8001])
@@ -41,10 +55,7 @@ def test_capability_filter_precedes_ranking(client):
     ).json()
     assert result["recommendation"]["id"] == "demo-advanced"
     assert result["alternatives"] == []
-    assert (
-        rank(Profile(reasoning=3, context=1, ambiguity=1, explanation="Test"), ["unsupported"])
-        == []
-    )
+    assert rank(Profile.model_validate(profile_data(reasoning=3)), ["unsupported"]) == []
 
 
 def test_unconfigured_provider(client):
@@ -66,15 +77,13 @@ class FakeProvider:
 
     async def assess(self, task):
         self.calls += 1
-        return Assessment(
-            profile=Profile(reasoning=3, context=2, ambiguity=1, explanation="Multiple constraints")
-        )
+        return Assessment(profile=Profile.model_validate(profile_data(reasoning=3, context=2)))
 
 
-@pytest.mark.parametrize("provider_id", ["openai", "groq"])
+@pytest.mark.parametrize("provider_id", ["openai", "groq", "claude"])
 def test_external_consent_and_semantic_workflow(provider_id):
     provider = FakeProvider()
-    client = TestClient(create_app(Settings(_env_file=None), {provider_id: provider}))
+    client = authenticated_client(create_app(Settings(_env_file=None), {provider_id: provider}))
     body = {"task": "Sensitive task", "provider": provider_id}
     assert client.post("/api/analyze", json=body).status_code == 403
     assert provider.calls == 0
@@ -85,7 +94,9 @@ def test_external_consent_and_semantic_workflow(provider_id):
 
 
 def test_groq_configuration_is_public_but_credentials_are_not():
-    client = TestClient(create_app(Settings(_env_file=None, groq_api_key="private-test-key")))
+    client = authenticated_client(
+        create_app(Settings(_env_file=None, groq_api_key="private-test-key"))
+    )
     response = client.get("/api/providers")
     assert "private-test-key" not in response.text
     groq = next(item for item in response.json() if item["id"] == "groq")
@@ -96,6 +107,40 @@ def test_groq_configuration_is_public_but_credentials_are_not():
         "enabled": True,
         "external": True,
     }
+
+
+@pytest.mark.parametrize(
+    ("provider_id", "model_field", "key_field", "label"),
+    [
+        ("openai", "openai_model", "openai_api_key", "OpenAI"),
+        ("claude", "claude_model", "anthropic_api_key", "Claude · Anthropic"),
+    ],
+)
+def test_new_provider_configuration(provider_id, model_field, key_field, label):
+    for configuration, expected in [
+        ({}, False),
+        ({model_field: "configured-model"}, False),
+        ({key_field: "private-test-key"}, False),
+        ({model_field: "configured-model", key_field: "private-test-key"}, True),
+    ]:
+        client = authenticated_client(create_app(Settings(_env_file=None, **configuration)))
+        response = client.get("/api/providers")
+        assert "private-test-key" not in response.text
+        provider = next(item for item in response.json() if item["id"] == provider_id)
+        assert provider == {
+            "id": provider_id,
+            "label": label,
+            "model": configuration.get(model_field, ""),
+            "enabled": expected,
+            "external": True,
+        }
+        if not expected:
+            assert (
+                client.post(
+                    "/api/analyze", json={"task": "Test", "provider": provider_id}
+                ).status_code
+                == 409
+            )
 
 
 def test_invalid_profile_is_rejected():
@@ -110,7 +155,7 @@ def test_invalid_profile_is_rejected():
                 }
             }
 
-    client = TestClient(create_app(Settings(_env_file=None), {"groq": Malformed()}))
+    client = authenticated_client(create_app(Settings(_env_file=None), {"groq": Malformed()}))
     response = client.post(
         "/api/analyze", json={"task": "Test", "provider": "groq", "allow_external": True}
     )
@@ -132,7 +177,7 @@ def test_failures_do_not_silently_fallback(code):
         async def assess(self, task):
             raise ProviderFailure(code)
 
-    client = TestClient(create_app(Settings(_env_file=None), {"ollama": Broken()}))
+    client = authenticated_client(create_app(Settings(_env_file=None), {"ollama": Broken()}))
     response = client.post("/api/analyze", json={"task": "Private", "provider": "ollama"})
     assert response.status_code == 502
     assert response.json() == {"detail": code}

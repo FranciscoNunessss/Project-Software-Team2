@@ -1,0 +1,69 @@
+import { useEffect, useState, type ReactNode } from 'react'
+import { api } from './api'
+import { LearningProgress } from './LearningProgress'
+import { CoachingPanel } from './CoachingPanel'
+import { useCoaching } from './coaching'
+
+export type Summary = { sessions: number; analyses: number; choices: number; matches: number; agreement?: number | null; mean_gap?: number | null }
+type Point = { session_id: string; title: string; created_at: string; rate: number; score?: number | null; mean_gap?: number | null; choices: number; matches: number }
+const scoreOf = (point: Point) => point.score ?? point.rate
+function gapText(gap: number | null | undefined) {
+  if (gap === null || gap === undefined) return 'No confirmed choices yet'
+  if (gap === 0) return 'On average you chose the recommendation'
+  return `${gap > 0 ? '+' : ''}${gap} on average (${gap > 0 ? 'more than needed' : 'covering less'} than recommended)`
+}
+type Activity = {session_id:string;title:string;analyses:number;choices:number;created_at:string}
+
+type Dashboard = { over: number; under: number; series: Point[] }
+
+export function ProgressDashboard({ summary, onHistory, onExport, onDeleteAll, busy, onReviewPending, pendingContent }: { summary?: Summary; onHistory: () => void; onExport: () => void; onDeleteAll:()=>void; busy: boolean; onReviewPending:()=>void; pendingContent:ReactNode }) {
+  const [data, setData] = useState<Dashboard>()
+  const [error, setError] = useState('')
+  const [activity,setActivity]=useState<Activity[]>([])
+  const [chartMode,setChartMode]=useState<'activity'|'match'>('activity')
+  const coaching = useCoaching(summary)
+  const aiPatterns = coaching.saved?.report.patterns
+  const suggestions = coaching.saved?.report.suggestions ?? []
+  const promptSamples=coaching.saved?.source?.conversation_samples??0
+  const promptStatus=aiPatterns?.prompting.status==='possible_pattern'?'Possible pattern':aiPatterns?.prompting.status==='no_clear_pattern'?'No clear pattern':'Not assessed'
+  useEffect(() => {
+    const controller = new AbortController()
+    Promise.all([api<Dashboard>('progress/dashboard', undefined, controller.signal),api<Activity[]>('progress/activity',undefined,controller.signal)]).then(([dashboard,counts])=>{setData(dashboard);setActivity(counts);setError('')})
+      .catch(failure => { if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : 'Could not load chart') })
+    return () => controller.abort()
+  }, [summary])
+  const rate = summary?.choices ? `${Math.round(summary.matches / summary.choices * 100)}%` : '—'
+  const agreement = typeof summary?.agreement === 'number' ? `${summary.agreement}%` : '—'
+  const points = data?.series ?? []
+  const maxActivity=Math.max(1,...activity.map(item=>item.analyses))
+  const pending=summary?summary.analyses-summary.choices:0
+  const coordinates = points.map((point, i) => [points.length === 1 ? 450 : 20 + i * 860 / (points.length - 1), 200 - scoreOf(point) * 1.8])
+  const line = coordinates.map(([x,y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(' ')
+  const patterns = [
+    {title:'Over-provisioning', count:data?.over, text:'confirmed choices used a model that is more than the task needs.', insight:aiPatterns?.over_provisioning},
+    {title:'Under-provisioning', count:data?.under, text:'confirmed choices used a model that covers less than the recommendation.', insight:aiPatterns?.under_provisioning},
+    {title:'Inflated prompting', count:undefined, text:promptSamples?`Provisional review of ${promptSamples} opted-in conversation excerpts.`:'No opted-in text samples were available for this report.', insight:aiPatterns?.prompting},
+  ]
+  return <>
+    <div className="intro progress-intro"><div><p className="eyebrow">My progress</p><h1>Your judgement over time</h1><p>Understand your model choices and keep the context that helps personalise your experience.</p></div><div className="metric"><strong>{agreement}</strong><span>agreement score</span><em>{summary ? `${rate} exact matches · ${summary.matches}/${summary.choices} confirmed choices` : 'Loading your choices…'}</em><em>{summary ? gapText(summary.mean_gap) : ''}</em></div></div>
+    {error && <p className="api-error" role="alert">{error}</p>}
+    <div className="progress-metrics"><section className="card"><p>Analyses completed</p><strong>{summary?.analyses??'—'}</strong><span>Saved after every successful analysis</span></section><section className="card"><p>Choices confirmed</p><strong>{summary?.choices??'—'}</strong><span>Used in your match chart and patterns</span></section><section className="card"><p>Choices pending</p><strong>{summary?pending:'—'}</strong><button className="button button-secondary" disabled={busy||!pending} onClick={onReviewPending}>Review pending choices</button></section></div>
+    <section className="card chart-card"><div className="card-heading"><div><h2>{chartMode==='activity'?'Analysis activity':'Recommendation match'}</h2><p className="muted">{chartMode==='activity'?'Analyses and confirmed choices in your recent sessions':'Agreement score: full credit for the recommended model, half credit one step away'}</p></div><span className="period">{chartMode==='activity'?`Last ${activity.length} active sessions`:`${points.length} sessions with confirmed choices`}</span></div>
+      <div className="chart-tabs" role="group" aria-label="Progress chart"><button className="button button-secondary" aria-pressed={chartMode==='activity'} onClick={()=>setChartMode('activity')}>Activity</button><button className="button button-secondary" aria-pressed={chartMode==='match'} onClick={()=>setChartMode('match')}>Recommendation match</button></div>
+      {chartMode==='activity'?<div className="activity-chart">{activity.length?<><div className="activity-legend"><span>Analyses</span><span>Confirmed choices</span></div><div className="activity-bars">{activity.map((item,index)=><div className="activity-column" key={item.session_id}><div className="activity-bar-pair"><div className="activity-bar analysed" style={{height:`${item.analyses/maxActivity*100}%`}}><span>{item.analyses}</span></div><div className="activity-bar confirmed" style={{height:`${item.choices/maxActivity*100}%`}}><span>{item.choices}</span></div></div><span title={item.title}>Session {index+1}</span></div>)}</div></>:<div className="dashboard-empty"><h3>Your first analysis starts your progress</h3><p>Analyse a task in Assistant. It is saved automatically, even before you confirm a model.</p></div>}</div>:points.length ? <><div className="chart-wrap"><div className="chart-y"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div><svg className="chart" viewBox="0 0 900 220" preserveAspectRatio="none" role="img" aria-label="Recommendation match by saved session"><g className="grid-lines"><path d="M0 20H900M0 65H900M0 110H900M0 155H900M0 200H900" /></g>{coordinates.length > 1 && <><path className="chart-area" d={`${line} L${coordinates[coordinates.length - 1]![0]} 220 L20 220 Z`} /><path className="chart-line" d={line} /></>}{coordinates.map(([cx,cy], i) => <circle key={points[i].session_id} cx={cx} cy={cy} r="5"><title>{points[i].title}: {scoreOf(points[i])}% agreement · {points[i].rate}% exact ({points[i].matches}/{points[i].choices})</title></circle>)}</svg><div className="chart-x">{points.map((point, i) => <span key={point.session_id} title={point.title}>Session {i+1}</span>)}</div></div><details className="chart-data"><summary>View chart values</summary><ul>{points.map(point => <li key={point.session_id}>{point.title}: {scoreOf(point)}% agreement · {point.rate}% exact · {point.matches}/{point.choices} choices · {gapText(point.mean_gap)}</li>)}</ul></details></> : <div className="dashboard-empty"><h3>Confirm a choice to build this chart</h3><p>Your analyses are already saved. Confirm a model choice below to calculate agreement; pending choices are never counted as matches.</p>{pending>0&&<button className="button button-primary" disabled={busy} onClick={onReviewPending}>Review {pending} pending choices</button>}</div>}
+    </section>
+    <LearningProgress summary={summary} />
+    {pending>0&&pendingContent}
+    <div className="section-heading"><div><p className="eyebrow">Patterns</p><h2>What your choices reveal</h2></div><p>Based on {summary?.choices ?? 0} confirmed choices</p></div>
+    <p className="insight-source" role="status">{coaching.saved ? `Groq-generated advice · up to 50 recent assessments · ${coaching.saved.stale ? 'Earlier guidance, update available' : new Date(coaching.saved.updated_at).toLocaleString()}` : coaching.waiting}</p>
+    <div className="pattern-grid">{patterns.map(pattern => <section className={`card pattern-card${coaching.saved?.stale ? ' insight-stale' : ''}`} key={pattern.title}><div className="pattern-top"><span className="pattern-icon" aria-hidden="true">✦</span><span className="pattern-status neutral">{pattern.title === 'Inflated prompting' ? promptStatus : pattern.count === undefined ? 'Loading…' : summary?.choices ? `${pattern.count} choices` : 'Not enough data'}</span></div><h3>{pattern.title}</h3><p>{pattern.title === 'Inflated prompting' ? pattern.text : pattern.count === undefined ? 'Loading saved choices…' : `${pattern.count} ${pattern.text}`}</p>{pattern.insight ? <><p className="pattern-ai-explanation"><span className="ai-caption">Groq insight</span>{pattern.insight.explanation}</p><div className="next-time"><strong>Next time try…</strong><span>{pattern.insight.action}</span></div></> : <p className="insight-placeholder">{coaching.waiting}</p>}</section>)}</div>
+    <CoachingPanel coaching={coaching} analyses={summary?.analyses??0} />
+    <div className="lower-grid">
+      <section className="lessons"><div className="section-heading compact"><div><p className="eyebrow">Learning suggestions</p><h2>Build your model judgement</h2></div></div>
+        {suggestions.length > 0 ? <><p className="insight-source">Personalised by Groq{coaching.saved?.stale ? ' · earlier guidance, update available' : ''}</p>{suggestions.map((lesson,index) => <article className="card lesson" key={`${coaching.saved?.updated_at}-${index}`}><span className="lesson-icon" aria-hidden="true">↗</span><div><h3>{lesson.title}</h3><p>{lesson.explanation}</p><details><summary>Read guidance</summary><p>{lesson.action}</p></details></div></article>)}</> : <div className="card lessons-empty"><p>{coaching.waiting}</p></div>}
+      </section>
+      <section className="card data-card"><p className="eyebrow">Privacy controls</p><h2>My data</h2><p>{summary?.sessions ?? 0} sessions · {summary?.analyses ?? 0} analyses · {summary?.choices ?? 0} choices saved to your account.</p><p>Review saved profile metadata and choices, or delete individual sessions below.</p><div className="data-actions"><button className="button button-secondary" disabled={busy} onClick={onHistory}>See</button><button className="button button-secondary" disabled={busy} onClick={onExport}>Export</button><button className="button button-danger" disabled={busy} onClick={onDeleteAll}>Delete…</button></div></section>
+    </div>
+
+  </>
+}

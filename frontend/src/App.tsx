@@ -1,48 +1,22 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { api, tierOf, type Analysis, type Provider, type Tier } from './api'
+import { api, ApiError, candidateLabel, getFeatures, PROFILE_VERSION, notifyProgressChange, type Analysis, type Candidate, type LLMOption, type LLMOptions, type SavedSession, type Resume } from './api'
+import { Account } from './Account'
+import { AnalysisChanges } from './AnalysisChanges'
 
-type Screen = 'assistant' | 'progress' | 'team'
+import { ProgressScreen } from './Progress'
+import { ProfileScreen } from './Profile'
+import { LLMConfigScreen } from './LLMConfig'
+import { ModelPicker } from './ModelPicker'
+import { OpenRouterModelPicker } from './OpenRouterModelPicker'
+import { TipsCard } from './TipsCard'
+import { PromptCoachTips } from './PromptCoachTips'
+import { PromptCoachBubble } from './PromptCoachBubble'
+import { ChatScreen } from './ChatScreen'
+import { Card, Icon, ProfileCard, RecommendationCard } from './AnalysisResult'
+import { AssistantOutcome } from './TaskOutcome'
+
+type Screen = 'assistant' | 'progress' | 'profile' | 'llm'
 type ResultState = 'empty' | 'loading' | 'result'
-
-const sampleTask =
-  'Review a 20-page supplier contract, identify unusual liability clauses, and summarise the risks for a non-legal audience.'
-
-function Icon({
-  name,
-  size = 18,
-}: {
-  name: 'spark' | 'upload' | 'arrow' | 'check' | 'info' | 'book' | 'download' | 'trash' | 'eye' | 'users'
-  size?: number
-}) {
-  const paths: Record<typeof name, ReactNode> = {
-    spark: <path d="M12 2l1.35 4.65L18 8l-4.65 1.35L12 14l-1.35-4.65L6 8l4.65-1.35L12 2ZM5 14l.8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8L5 14Z" />,
-    upload: <><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" /><path d="M5 15v4h14v-4" /></>,
-    arrow: <path d="M5 12h14m-5-5 5 5-5 5" />,
-    check: <path d="m5 12 4 4L19 6" />,
-    info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5m0-8h.01" /></>,
-    book: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5v-16Z" /></>,
-    download: <><path d="M12 3v12m0 0 5-5m-5 5-5-5" /><path d="M4 19h16" /></>,
-    trash: <><path d="M4 7h16M9 3h6l1 4H8l1-4Zm-2 4 1 14h8l1-14M10 11v6m4-6v6" /></>,
-    eye: <><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" /><circle cx="12" cy="12" r="2.5" /></>,
-    users: <><path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20" /><circle cx="9" cy="7" r="4" /><path d="M16 4.5a4 4 0 0 1 0 7.5m2 2.5a4 4 0 0 1 4 4V20" /></>,
-  }
-  const filled = name === 'spark'
-  return (
-    <svg
-      aria-hidden="true"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill={filled ? 'currentColor' : 'none'}
-      stroke="currentColor"
-      strokeWidth={filled ? 0 : 1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {paths[name]}
-    </svg>
-  )
-}
 
 function Button({
   children,
@@ -51,6 +25,7 @@ function Button({
   disabled,
   className = '',
   ariaLabel,
+  dataAnalyseButton,
 }: {
   children: ReactNode
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -58,11 +33,13 @@ function Button({
   disabled?: boolean
   className?: string
   ariaLabel?: string
+  dataAnalyseButton?: boolean
 }) {
   return (
     <button
       type="button"
       aria-label={ariaLabel}
+      data-analyse-button={dataAnalyseButton ? '' : undefined}
       disabled={disabled}
       onClick={onClick}
       className={`button button-${variant} ${className}`}
@@ -70,10 +47,6 @@ function Button({
       {children}
     </button>
   )
-}
-
-function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`card ${className}`}>{children}</section>
 }
 
 function Header({
@@ -108,9 +81,10 @@ function Header({
           <button className={screen === 'progress' ? 'nav-item active' : 'nav-item'} onClick={() => onNavigate('progress')}>
             My progress
           </button>
-          <button className={screen === 'team' ? 'nav-item active secondary-nav' : 'nav-item secondary-nav'} onClick={() => onNavigate('team')}>
-            Team view
+          <button className={screen === 'profile' ? 'nav-item active secondary-nav' : 'nav-item secondary-nav'} onClick={() => onNavigate('profile')}>
+            Profile
           </button>
+          <button className={screen === 'llm' ? 'nav-item active' : 'nav-item'} onClick={() => onNavigate('llm')}>LLM config</button>
         </nav>
         <button
           className="theme-toggle"
@@ -127,91 +101,6 @@ function Header({
         </span>
       </div>
     </header>
-  )
-}
-
-function ProfileCard({ analysis }: { analysis: Analysis }) {
-  const profile = [
-    { label: 'Reasoning depth', value: analysis.profile.reasoning },
-    { label: 'Context demand', value: analysis.profile.context },
-    { label: 'Ambiguity', value: analysis.profile.ambiguity },
-  ]
-  return (
-    <Card className="profile-card">
-      <div className="card-heading">
-        <div>
-          <p className="eyebrow">Task analysis</p>
-          <h2>Complexity profile</h2>
-        </div>
-        <span className="confidence confidence-low">
-          {analysis.mode === 'demonstration' ? 'Heuristic demo' : 'Uncalibrated'}
-        </span>
-      </div>
-      <div className="profile-list">
-        {profile.map((item) => (
-          <div className="profile-row" key={item.label}>
-            <div className="profile-label">
-              <span>{item.label}</span>
-              <span className="info-tip" tabIndex={0} aria-label={`${item.label}: ${analysis.profile.explanation}`}>
-                <Icon name="info" size={14} />
-                <span role="tooltip">{analysis.profile.explanation}</span>
-              </span>
-            </div>
-            <div className="bar-track" role="meter" aria-label={item.label} aria-valuemin={0} aria-valuemax={3} aria-valuenow={item.value}>
-              <span className="bar-fill" style={{ width: `${item.value / 3 * 100}%` }} />
-            </div>
-          </div>
-        ))}
-      </div>
-      <p className="confidence-note">{analysis.profile.explanation}</p>
-      <p className="muted">Scale: 1 low · 2 medium · 3 high. Domain, risk, tools and modality scores are not implemented yet.</p>
-    </Card>
-  )
-}
-
-function TierCard({ analysis }: { analysis: Analysis }) {
-  const tier = tierOf(analysis.recommendation)
-  return (
-    <Card className="tier-card">
-      <p className="eyebrow">Recommended tier</p>
-      <div className="tier-title-row">
-        <div className="tier-orb"><span>{tier.slice(0, 1)}</span></div>
-        <div>
-          <h2>{tier}</h2>
-          <p className="muted">{analysis.recommendation.name}</p>
-        </div>
-      </div>
-      <div className="cost-row">
-        <span>Observed cost</span><strong>Unavailable</strong>
-      </div>
-      <div className="why">
-        <h3>Why this tier</h3>
-        <p>{analysis.rationale}</p>
-        <p className="muted">Capabilities: {analysis.recommendation.capabilities.join(', ')}</p>
-      </div>
-    </Card>
-  )
-}
-
-function TipsCard() {
-  const tips = [
-    ['Frame the outcome', 'State the result you need and how it will be used.'],
-    ['Add useful context', 'Describe constraints, audience and the impact of an error.'],
-    ['Review with intent', 'Compare eligible options; these prototype tiers are illustrative.'],
-  ]
-  return (
-    <Card className="tips-card">
-      <p className="eyebrow">Practical guidance</p>
-      <h2>How to use it</h2>
-      <div className="tips-list">
-        {tips.map(([title, text], index) => (
-          <div className="tip" key={title}>
-            <span className="tip-number">0{index + 1}</span>
-            <div><h3>{title}</h3><p>{text}</p></div>
-          </div>
-        ))}
-      </div>
-    </Card>
   )
 }
 
@@ -243,19 +132,20 @@ function LoadingResult() {
 }
 
 function Override({
-  tier,
+  selected,
   recommended,
   onChange,
-  eligible,
+  candidates,
   disabled,
 }: {
-  tier: Tier
-  recommended: Tier
-  onChange: (tier: Tier) => void
-  eligible: Tier[]
+  selected: string
+  recommended: string
+  onChange: (id: string) => void
+  candidates: Candidate[]
   disabled: boolean
 }) {
-  const applied = tier !== recommended
+  const applied = selected !== recommended
+  const chosen = candidates.find(item => item.id === selected)
   return (
     <div className={`override ${applied ? 'override-applied' : ''}`}>
       <div className="override-copy">
@@ -263,45 +153,79 @@ function Override({
           <h2>Override</h2>
           {applied && <span className="applied-badge"><Icon name="check" size={13} />Applied</span>}
         </div>
-        <p>You always choose. Selections are not persisted in this increment.</p>
+        <p>You always choose. Confirmed selections are saved to your account.</p>
       </div>
-      <div className="segments" role="group" aria-label="Choose a model tier">
-        {(['Small', 'Medium', 'Large'] as Tier[]).map((item) => (
+      <div className="segments" role="group" aria-label="Choose a model">
+        {candidates.map((item) => (
           <button
-            key={item}
-            disabled={disabled || !eligible.includes(item)}
-            className={tier === item ? 'selected' : ''}
-            onClick={() => onChange(item)}
-            aria-pressed={tier === item}
+            key={item.id}
+            disabled={disabled}
+            className={selected === item.id ? 'selected' : ''}
+            onClick={() => onChange(item.id)}
+            aria-pressed={selected === item.id}
           >
-            {item}
+            {candidateLabel(item)}
           </button>
         ))}
       </div>
-      {applied && <p className="override-message">Your choice is set to {tier}. The recommendation remains visible for comparison.</p>}
+      {applied && chosen && <p className="override-message">Your choice is set to {candidateLabel(chosen)}. The recommendation remains visible for comparison.</p>}
     </div>
   )
 }
 
-function AssistantScreen() {
-  const [task, setTask] = useState(sampleTask)
+const staleAnalysisErrors = new Set(['previous_analysis_incompatible', 'previous_analysis_other_session', 'analysis_not_found'])
+
+function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null; onConfigureModels: () => void }) {
+  const [session, setSession] = useState<SavedSession>()
+  const [sessionId, setSessionId] = useState('')
+  const [context, setContext] = useState('')
+  const [historyBusy, setHistoryBusy] = useState(false)
+  const [task, setTask] = useState('')
   const [state, setState] = useState<ResultState>('empty')
-  const [tier, setTier] = useState<Tier>('Large')
+  const [choice, setChoice] = useState('')
   const [analysis, setAnalysis] = useState<Analysis>()
-  const [providers, setProviders] = useState<Provider[]>([])
-  const [provider, setProvider] = useState('demo')
-  const [consent, setConsent] = useState(false)
+  // True when the shown analysis was opened from history, which never stores tips.
+  const [fromHistory, setFromHistory] = useState(false)
+  // Survives edits to the task text; cleared only by New task or a session change.
+  const [lastAnalysisId, setLastAnalysisId] = useState<string>()
+  const [providers, setProviders] = useState<LLMOption[]>([])
+  const [autoId, setAutoId] = useState<string|null>(null)
+  const [modelsLoading, setModelsLoading] = useState(true)
+  const [provider, setProvider] = useState('auto')
+  // OpenRouter only: the exact catalogue id chosen by the user; null keeps the configured model.
+  const [routerModel, setRouterModel] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const active = useRef<AbortController | null>(null)
   useEffect(() => {
+    if (!resume) return
     const controller = new AbortController()
-    api<Provider[]>('providers', undefined, controller.signal).then(items => {
-      setProviders(items)
-      if (items.some(item => item.id === 'groq' && item.enabled)) setProvider('groq')
-    })
-      .catch(() => { if (!controller.signal.aborted) setError('Cannot reach the backend. Start the API and refresh.') })
+    setHistoryBusy(true)
+    api<SavedSession>(`sessions/${resume.sessionId}`, undefined, controller.signal).then(saved => {
+      setSession(saved); setSessionId(saved.id); setContext(''); setLastAnalysisId(resume.analysis?.result.profile_version === PROFILE_VERSION ? resume.analysis.result.id : undefined)
+      if (resume.analysis) {
+        const item = resume.analysis
+        setTask(item.conversation?.task??'');setContext(item.conversation?.task_context??'');setAnalysis(item.conversation?.response??item.result); setFromHistory(!item.conversation); setState('result')
+        setProvider('auto')
+        const candidates = [item.result.recommendation, ...item.result.alternatives]
+        setChoice((candidates.find(candidate => candidate.id === item.candidate_id) ?? item.result.recommendation).id)
+        setSaved(item.candidate_id !== null)
+      } else { setTask('') }
+    }).catch(failure => { if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : 'Could not open saved session') })
+      .finally(() => { if (!controller.signal.aborted) setHistoryBusy(false) })
+    return () => controller.abort()
+  }, [resume])
+  const newTask = () => {
+    setSession(undefined); setSessionId(''); setContext(''); setTask(''); setLastAnalysisId(undefined)
+    setAnalysis(undefined); setState('empty'); setSaved(false); setError('')
+  }
+  useEffect(() => {
+    const controller = new AbortController()
+    api<LLMOptions>('llm-options', undefined, controller.signal).then(result => {
+      setProviders(result.options);setAutoId(result.auto_configuration_id)
+    }).catch(() => { if (!controller.signal.aborted) setError('Could not load models. Check LLM config or refresh.') })
+      .finally(() => {if (!controller.signal.aborted) setModelsLoading(false)})
     return () => { controller.abort(); active.current?.abort() }
   }, [])
 
@@ -314,26 +238,41 @@ function AssistantScreen() {
     setState('loading'); setAnalysis(undefined); setError(''); setSaved(false)
     try {
       const result = await api<Analysis>('analyze', {
-        task, provider, allow_external: consent, required_capabilities: ['text'],
+        task, provider: 'auto', configuration_id: provider === 'auto' ? undefined : provider,
+        expected_configuration_id: selectedProvider?.id, expected_provider: selectedProvider?.provider,
+        expected_model: (usesRouter ? routerValue : selectedProvider?.model) ?? undefined,
+        model: usesRouter ? routerValue : undefined,
+        task_context: context, session_id: sessionId || undefined,
+        previous_analysis_id: sessionId && lastAnalysisId ? lastAnalysisId : undefined, allow_external: requiresConsent, required_capabilities: ['text'],
       }, controller.signal)
       if (active.current !== controller) return
-      setAnalysis(result); setTier(tierOf(result.recommendation)); setState('result')
+      setAnalysis(result);setFromHistory(false);setSessionId(result.session_id);setLastAnalysisId(result.id);setChoice(result.recommendation.id);setState('result');notifyProgressChange()
     } catch (failure) {
       if (active.current !== controller) return
+      // A stale previous analysis cannot be compared; drop it so the user's next try starts fresh.
+      if (failure instanceof ApiError && staleAnalysisErrors.has(failure.detail ?? '')) setLastAnalysisId(undefined)
       setError(controller.signal.aborted ? 'Analysis cancelled or timed out. Please retry.' : failure instanceof Error ? failure.message : 'Analysis failed')
       setState('empty')
     } finally { window.clearTimeout(timeout) }
   }
+  // Any edit (typed or applied from the Prompt Coach) makes the shown analysis stale.
+  const editTask = (value: string) => {
+    setTask(value)
+    setState('empty'); setAnalysis(undefined); setSaved(false)
+  }
   const candidates = analysis ? [analysis.recommendation, ...analysis.alternatives] : []
-  const selectedProvider = providers.find(item => item.id === provider)
+  const selectedProvider = providers.find(item => item.id === (provider === 'auto' ? autoId : provider))
   const requiresConsent = selectedProvider?.external === true
+  const usesRouter = selectedProvider?.provider === 'openrouter'
+  // The exact id sent to the backend: the one picked from the catalogue, else the configured model.
+  const routerValue = routerModel ?? selectedProvider?.model ?? ''
   const confirm = async () => {
-    const selected = candidates.find(candidate => tierOf(candidate) === tier)
+    const selected = candidates.find(candidate => candidate.id === choice)
     if (!analysis || !selected) return
     setSaving(true); setError('')
     try {
       await api('decisions', { analysis_id: analysis.id, candidate_id: selected.id })
-      setSaved(true)
+      setSaved(true);notifyProgressChange()
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Selection failed') }
     finally { setSaving(false) }
   }
@@ -349,43 +288,35 @@ function AssistantScreen() {
         <span className="step-label">Research prototype</span>
       </div>
 
-      <section className="composer" aria-labelledby="task-label">
+      {sessionId && <div className="active-session"><span>Saved automatically in My progress{session ? ` · ${session.title}` : ''}</span><Button variant="secondary" disabled={state === 'loading' || saving || historyBusy} onClick={newTask}>New task</Button></div>}
+      {historyBusy && <p role="status">Opening your saved work…</p>}
+      <section className="composer" aria-labelledby="task-label" data-analysis-id={lastAnalysisId ?? ""} data-session-id={sessionId ?? ""}>
         <label id="task-label" htmlFor="task">Describe your task</label>
-        <textarea
-          id="task"
-          value={task}
-          maxLength={8000}
-          disabled={state === 'loading' || saving}
-          onChange={(event) => {
-            setTask(event.target.value)
-            setState('empty'); setAnalysis(undefined); setSaved(false)
-          }}
-          placeholder="For example: Compare three CRM proposals and recommend one for a 25-person sales team…"
-        />
+        <PromptCoachBubble analysis={analysis} analysisId={lastAnalysisId} task={task}
+          disabled={state === 'loading' || saving || historyBusy} onTaskChange={editTask} onAnalyse={analyse}>
+          <textarea
+            id="task"
+            data-task-input
+            value={task}
+            maxLength={8000}
+            disabled={state === 'loading' || saving}
+            onChange={(event) => editTask(event.target.value)}
+            placeholder="Describe what you need to do…"
+          />
+        </PromptCoachBubble>
+
         <div className="composer-footer">
-          <span className="muted">Text only · {task.length}/8,000 characters</span>
+          <ModelPicker options={providers} value={provider} autoId={autoId} loading={modelsLoading} disabled={state === 'loading' || saving || historyBusy} onChange={value => {setProvider(value);setRouterModel(null);setAnalysis(undefined);setState('empty');setSaved(false)}} onConfigure={onConfigureModels} />
+          {usesRouter && <OpenRouterModelPicker value={routerValue} disabled={state === 'loading' || saving || historyBusy} onChange={value => {setRouterModel(value);setAnalysis(undefined);setState('empty');setSaved(false)}} />}
           <div className="composer-actions">
-            <span>Be specific about the outcome</span>
-            <Button onClick={analyse} disabled={state === 'loading' || saving || !task.trim() || (requiresConsent && !consent)}>
+            <Button dataAnalyseButton onClick={analyse} disabled={state === 'loading' || saving || historyBusy || modelsLoading || !selectedProvider || !task.trim()}>
               {state === 'loading' ? 'Analysing…' : 'Analyse'} <Icon name="arrow" size={17} />
             </Button>
           </div>
         </div>
-        <div className="api-controls">
-          <label htmlFor="assessment-provider">Assessment provider</label>
-          <select id="assessment-provider" value={provider} disabled={state === 'loading' || saving} onChange={event => {
-            setProvider(event.target.value); setConsent(false); setAnalysis(undefined); setState('empty'); setSaved(false)
-          }}>
-            <option value="demo">Demonstration · local heuristic</option>
-            {providers.filter(item => item.id !== 'demo').map(item => <option key={item.id} value={item.id} disabled={!item.enabled}>
-              {item.label}{item.enabled ? '' : ' · not configured'}
-            </option>)}
-          </select>
-          {requiresConsent && <label className="consent"><input type="checkbox" checked={consent} disabled={state === 'loading'} onChange={event => setConsent(event.target.checked)} />I allow this task to be sent to {selectedProvider?.label} for assessment.</label>}
-          {selectedProvider?.model && <p className="muted">Assessment model: {selectedProvider.model}</p>}
-          <p className="muted">{provider === 'demo' ? 'Demo uses word count and provisional values, not semantic AI assessment.' : 'Semantic assessment is uncalibrated. Provider availability depends on server configuration.'}</p>
-        </div>
+        <p className="composer-meta muted">Text only · {task.length}/8,000 characters</p>
       </section>
+      {requiresConsent && <p className="processing-notice assistant-processing-notice">Selecting <strong>Analyse</strong> sends this task and memory enabled in Profile to <strong>{selectedProvider?.provider}</strong>. Task text is saved only with your conversation-storage permission in Profile.</p>}
 
       {error && <p className="api-error" role="alert">{error}</p>}
       {state === 'empty' && <EmptyResult />}
@@ -393,26 +324,42 @@ function AssistantScreen() {
       {state === 'result' && analysis && (
         <>
           <div className="results-heading">
-            <h2>Recommendation</h2>
+            <h2>{analysis.recommendation_provisional ? 'Provisional recommendation' : 'Recommendation'}</h2>
             <span>{analysis.mode} · {analysis.provider} · {analysis.latency_ms} ms</span>
           </div>
+          {analysis.clarification_questions.length > 0 && (
+            <Card className="assessment-advice">
+              <h3>Clarification suggested</h3>
+              <p>Add the relevant details to your task above and analyse it again. You can still choose one of the models.</p>
+              <ul>{analysis.clarification_questions.map(question => <li key={question}>{question}</li>)}</ul>
+            </Card>
+          )}
+          {analysis.guidance.length > 0 && (
+            <Card className="assessment-advice">
+              <h3>Assessment guidance</h3>
+              <ul>{analysis.guidance.map(item => <li key={item}>{item}</li>)}</ul>
+            </Card>
+          )}
+          <AnalysisChanges analysis={analysis} />
           <div className="result-grid">
             <ProfileCard analysis={analysis} />
-            <TierCard analysis={analysis} />
-            <TipsCard />
+            <RecommendationCard analysis={analysis} />
+            <TipsCard analysis={analysis} fromHistory={fromHistory} />
           </div>
+          <PromptCoachTips analysis={analysis} task={task} />
           <Override
-            tier={tier}
-            recommended={tierOf(analysis.recommendation)}
-            onChange={setTier}
-            eligible={candidates.map(tierOf)}
+            selected={choice}
+            recommended={analysis.recommendation.id}
+            onChange={setChoice}
+            candidates={candidates}
             disabled={saving || saved}
           />
-          <Button onClick={confirm} disabled={saving || saved}>{saved ? 'Choice acknowledged' : saving ? 'Confirming…' : 'Confirm choice'}</Button>
-          {saved && <p role="status">Choice acknowledged for this session. No task execution or persistent learning is performed.</p>}
+          <div className="choice-confirmation"><p>Choose a model above, then confirm it to update your progress. Analysing alone does not record a model choice.</p><Button onClick={confirm} disabled={saving || saved}>{saved ? 'Choice saved to My progress' : saving ? 'Saving…' : 'Confirm choice & update progress'}</Button></div>
+          {saved && <p role="status">Choice saved to your account. No task execution is performed.</p>}
+          {saved && <AssistantOutcome key={analysis.id} analysisId={analysis.id} />}
           {analysis.warnings.map(warning => <p className="confidence-note" key={warning}>{warning}</p>)}
-          <p className="privacy">No raw task text is persisted. Choices are acknowledged without permanent storage.</p>
-          <p className="muted">{analysis.confidence_basis} · Catalogue {analysis.catalogue_version} · Policy {analysis.policy_version}</p>
+          <p className="privacy">Profile metadata and choices are saved. Task text, context and AI responses are additionally saved only with explicit conversation-storage permission in Profile. Manage and delete saved sessions in My progress.</p>
+          <p className="muted">{analysis.confidence_basis} · Profile {analysis.profile_version} · Catalogue {analysis.catalogue_version} · Policy {analysis.policy_version}</p>
           {analysis.assessment_model && <p className="muted">Assessed by {analysis.assessment_model} · {analysis.usage?.total_tokens === undefined ? 'Token usage unavailable' : `${analysis.usage.total_tokens} tokens`}</p>}
         </>
       )}
@@ -420,110 +367,29 @@ function AssistantScreen() {
   )
 }
 
-function LineChart() {
-  return (
-    <div className="chart-wrap">
-      <div className="chart-y"><span>100%</span><span>75%</span><span>50%</span><span>25%</span></div>
-      <svg className="chart" viewBox="0 0 900 220" preserveAspectRatio="none" role="img" aria-label="Match rate increased from 56 percent in session one to 84 percent in session six">
-        <defs>
-          <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#3a3a3a" stopOpacity=".18" />
-            <stop offset="100%" stopColor="#3a3a3a" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <g className="grid-lines"><path d="M0 20H900M0 80H900M0 140H900M0 200H900" /></g>
-        <path className="chart-area" d="M20 153 C120 147 140 132 195 135 S310 125 370 111 S470 112 545 91 S670 90 720 64 S825 54 880 46 V220 H20Z" />
-        <path className="chart-line" d="M20 153 C120 147 140 132 195 135 S310 125 370 111 S470 112 545 91 S670 90 720 64 S825 54 880 46" />
-        {[[20,153],[195,135],[370,111],[545,91],[720,64],[880,46]].map(([cx,cy]) => <circle key={cx} cx={cx} cy={cy} r="5" />)}
-      </svg>
-      <div className="chart-x"><span>Session 1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>Session 6</span></div>
-    </div>
-  )
-}
-
-function ProgressScreen() {
-  const patterns = [
-    { title: 'Over-provisioning', status: 'Detected', tone: 'attention', text: 'You chose Large for 4 tasks where Medium was recommended.', example: 'Next time try Medium for summarising a short, well-structured report.' },
-    { title: 'Under-provisioning', status: 'Not enough data', tone: 'neutral', text: 'We need at least 5 comparable choices to identify a pattern.', example: 'Example: step up when errors carry financial or legal risk.' },
-    { title: 'Inflated prompting', status: 'Improving', tone: 'positive', text: 'Your prompts are 18% shorter with the same recommendation quality.', example: 'Keep stating the outcome first, then add only decision-relevant context.' },
-  ]
-  return (
-    <main className="page progress-page">
-      <p className="confidence-note" role="note">Design preview · All figures and patterns below are static examples. Progress tracking and data controls are not connected.</p>
-      <div className="intro progress-intro">
-        <div><p className="eyebrow">My progress</p><h1>Your judgement over time</h1><p>See where your model choices are becoming more precise—without tracking what your tasks were about.</p></div>
-        <div className="metric"><strong>84%</strong><span>match rate</span><em>+12% this month</em></div>
-      </div>
-      <Card className="chart-card">
-        <div className="card-heading"><div><h2>Recommendation match</h2><p className="muted">Share of tasks where your chosen tier matched the recommendation</p></div><span className="period">Last 6 sessions</span></div>
-        <LineChart />
-      </Card>
-      <div className="section-heading"><div><p className="eyebrow">Patterns</p><h2>What your choices reveal</h2></div><p>Based on 18 anonymised tier choices</p></div>
-      <div className="pattern-grid">
-        {patterns.map((pattern) => (
-          <Card className="pattern-card" key={pattern.title}>
-            <div className="pattern-top"><span className="pattern-icon"><Icon name="spark" size={15} /></span><span className={`pattern-status ${pattern.tone}`}>{pattern.status}</span></div>
-            <h3>{pattern.title}</h3><p>{pattern.text}</p>
-            <div className="next-time"><strong>Next time try…</strong><span>{pattern.example}</span></div>
-          </Card>
-        ))}
-      </div>
-      <div className="lower-grid">
-        <section className="lessons">
-          <div className="section-heading compact"><div><p className="eyebrow">Learning suggestions</p><h2>Build your model judgement</h2></div></div>
-          {[
-            ['When “more capable” is just more expensive', 'Learn to spot bounded tasks that smaller models handle well.'],
-            ['Context is not the same as complexity', 'Separate how much a model must read from how deeply it must reason.'],
-          ].map(([title, copy]) => (
-            <Card className="lesson" key={title}>
-              <span className="lesson-icon"><Icon name="book" /></span>
-              <div><h3>{title}</h3><p>{copy}</p><span className="read-time">2-minute read</span></div>
-              <Button variant="secondary">Try it <Icon name="arrow" size={15} /></Button>
-            </Card>
-          ))}
-        </section>
-        <Card className="data-card">
-          <p className="eyebrow">Privacy controls</p><h2>My data</h2>
-          <p>No tier choices or session data are stored in this prototype; persistent progress and data controls are design previews.</p>
-          <div className="data-actions">
-            <Button variant="secondary"><Icon name="eye" size={16} />See</Button>
-            <Button variant="secondary"><Icon name="download" size={16} />Export</Button>
-            <Button variant="danger"><Icon name="trash" size={16} />Delete</Button>
-          </div>
-        </Card>
-      </div>
-    </main>
-  )
-}
-
-function TeamScreen() {
-  return (
-    <main className="page team-page">
-      <p className="confidence-note" role="note">Design preview · Team aggregation is not implemented. No group data is being collected.</p>
-      <div className="intro">
-        <div><p className="eyebrow">Team view</p><h1>Shared judgement, not surveillance.</h1><p>Aggregate signals help your team use AI efficiently. Individual activity and task content are never shown.</p></div>
-        <span className="privacy-pill"><Icon name="users" size={16} />Aggregates only</span>
-      </div>
-      <div className="team-metrics">
-        <Card><p>Spend by task type</p><strong>—</strong><span>Awaiting group threshold</span></Card>
-        <Card><p>Over-provisioned tasks</p><strong>—%</strong><span>No individual breakdown</span></Card>
-        <Card><p>Team judgement trend</p><strong>—</strong><span>Compared across sessions</span></Card>
-      </div>
-      <Card className="team-empty">
-        <span className="empty-people"><Icon name="users" size={26} /></span>
-        <h2>Not enough people for an aggregate view</h2>
-        <p>The minimum group size has not been reached. Data will appear only when enough people participate to protect individual privacy.</p>
-        <div className="threshold"><span><i /><i /><i className="pending" /><i className="pending" /><i className="pending" /></span><strong>Group privacy threshold</strong></div>
-      </Card>
-      <div className="aggregate-note"><Icon name="info" size={17} /><span><strong>What team leads can see:</strong> grouped task types, tier efficiency, and shared trends. Never names, rankings, prompts, or task history.</span></div>
-    </main>
-  )
-}
-
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('assistant')
+  const [screen, setScreen] = useState<Screen>(() => {
+    try {
+      const saved = window.localStorage.getItem('adaptai-screen')
+      if (saved === 'assistant' || saved === 'progress' || saved === 'profile' || saved === 'llm') return saved
+    } catch { /* Navigation remains available without browser storage. */ }
+    return 'assistant'
+  })
+  const [resume, setResume] = useState<Resume | null>(null)
+  // The chat is optional (ADR-011): shown only when the server has the module.
+  // null while unknown, so neither screen flashes before /api/features answers.
+  const [hasChat, setHasChat] = useState<boolean | null>(null)
+  // A saved session that is not a chat (made before the chat existed) opens in the old Assistant.
+  const [legacy, setLegacy] = useState(false)
+  useEffect(() => {
+    const controller = new AbortController()
+    getFeatures(controller.signal).then(features => setHasChat(features.chat === true)).catch(() => { if (!controller.signal.aborted) setHasChat(false) })
+    return () => controller.abort()
+  }, [])
+  const navigate = (next: Screen) => { setResume(null); setLegacy(false); setScreen(next) }
   const [dark, setDark] = useState(() => window.localStorage.getItem('adaptai-theme') === 'dark')
   useEffect(() => {
+    try { window.localStorage.setItem('adaptai-screen', screen) } catch { /* Storage may be disabled. */ }
     window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
   }, [screen])
   const toggleTheme = () => {
@@ -535,11 +401,16 @@ export default function App() {
   }
   return (
     <div className={dark ? 'app theme-dark' : 'app'}>
-      <Header screen={screen} onNavigate={setScreen} dark={dark} onToggleTheme={toggleTheme} />
-      {screen === 'assistant' && <AssistantScreen />}
-      {screen === 'progress' && <ProgressScreen />}
-      {screen === 'team' && <TeamScreen />}
-      <footer><span>AdaptAI</span><p>Clearer choices. Better AI judgement.</p><button>Privacy</button><button>How it works</button></footer>
+      <Account dark={dark} onToggleTheme={toggleTheme} header={<Header screen={screen} onNavigate={navigate} dark={dark} onToggleTheme={toggleTheme} />}>
+      {/* With the chat module (ADR-011) the Assistant is the chat, with the analysis in a side panel. */}
+      {screen === 'assistant' && hasChat && !legacy && <ChatScreen key={resume?.sessionId ?? 'chat'} initialChatId={resume?.sessionId} onNotAChat={() => setLegacy(true)} onConfigureModels={() => navigate('llm')} />}
+      {screen === 'assistant' && (hasChat === false || legacy) && <AssistantScreen resume={resume} onConfigureModels={() => navigate('llm')} />}
+      {screen === 'progress' && <ProgressScreen onResume={saved => { setResume(saved); setLegacy(false); setScreen('assistant') }} />}
+      {screen === 'profile' && <ProfileScreen />}
+      {screen === 'llm' && <LLMConfigScreen />}
+      {/* The chat fills the window and scrolls only its conversation, so it has no footer. */}
+      {!(screen === 'assistant' && hasChat && !legacy) && <footer><span>AdaptAI</span><p>Clearer choices. Better AI judgement.</p><button>Privacy</button><button>How it works</button></footer>}
+      </Account>
     </div>
   )
 }

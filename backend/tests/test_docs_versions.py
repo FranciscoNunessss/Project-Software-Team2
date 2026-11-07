@@ -17,7 +17,7 @@ DOCS = [
 
 def mentioned(pattern: str) -> set[str]:
     found = set()
-    for path in [item for item in DOCS if item.exists()]:
+    for path in DOCS:
         found |= set(re.findall(pattern, path.read_text(encoding="utf-8")))
     return found
 
@@ -37,6 +37,8 @@ def test_every_catalogue_version_named_in_the_docs_is_registered_or_the_next_one
 
 
 def test_the_benchmark_mapping_named_in_the_docs_is_the_catalogues_or_still_to_be_built():
+    names = mentioned(r"benchmark-mapping-\d+")
     mapping = load_catalogue().benchmark_mapping
+    assert "benchmark-mapping-1" in names
     if mapping:
         assert (CATALOGUE_DIR / "mappings" / f"{mapping}.json").exists()

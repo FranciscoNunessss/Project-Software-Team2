@@ -476,8 +476,7 @@ reliability (from risk) and tools, plus modalities and length. Each need is an i
 version in `ACTIVE`): one card per model with provider facts (context window, modalities, tools,
 prices), five levels (each with status `provisional`, `calibrated` or `unrated`, a source and a
 date) and its aliases per provider (`groq`, `openrouter`, `lmstudio`...). An alias may carry the
-provider's own price. How models get their levels is the second phase of ADR-014 (separate
-pull request); until then the catalogue holds only the illustrative demo cards.
+provider's own price. How levels are assigned: [`docs/model-classification.md`](docs/model-classification.md).
 
 | Step | Rule |
 |---|---|
@@ -502,7 +501,7 @@ Several server models per provider: `ADAPTAI_GROQ_MODELS=openai/gpt-oss-20b,open
 recommendation, 0 the recommendation, +1 more than needed); My progress scores agreement as
 `max(0, 1 − |gap| / 2)`. Analyses stored with the old tier policy keep their tiers and are
 still counted. Feedback per task is stored in `task_outcomes` (no text) and feeds My progress
-("Your solved tasks"), the Educator and the Coach. In the second phase a calibration report proposes
+("Your solved tasks"), the Educator and the Coach. `scripts/calibration_report.py` proposes
 level changes from it (at least 10 tasks, completeness >= 75); it never changes the catalogue.
 
 ## Architecture and limits

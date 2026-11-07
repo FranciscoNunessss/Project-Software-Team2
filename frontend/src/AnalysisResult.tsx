@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { fitPercent, tierOf, type Analysis } from './api'
+import { COST_BAND_LABELS, NEED_LABELS, STATUS_LABELS, fitPercent, isLegacy, tierOf, type Analysis, type Candidate, type Coverage } from './api'
 
 // Result cards shared by the Assistant page and the chat's analysis panel.
 export function Icon({
@@ -120,6 +120,85 @@ function FitBars({ analysis }: { analysis: Analysis }) {
       <p className="muted">Estimated fit — uncalibrated, not a probability</p>
     </div>
   )
+}
+
+function needText(entry: Coverage) {
+  return entry.estimated === entry.top ? String(entry.top) : `${entry.estimated}–${entry.top}`
+}
+
+function costText(candidate: Candidate) {
+  const parts = []
+  if (candidate.cost_band) parts.push(COST_BAND_LABELS[candidate.cost_band])
+  if (candidate.local) parts.push('local')
+  else if (candidate.free) parts.push('free, rate-limited')
+  if (candidate.illustrative) parts.push('illustrative')
+  return parts.join(' · ')
+}
+
+function shortText(candidate: Candidate) {
+  if (candidate.status === 'short') return `Falls short in ${(candidate.shortfalls ?? []).map(need => NEED_LABELS[need].toLowerCase()).join(', ')}`
+  return STATUS_LABELS[candidate.status ?? 'short']
+}
+
+/** The recommended model, how it covers each need of the task, and the alternatives (ADR-014). */
+export function ModelRecommendationCard({ analysis }: { analysis: Analysis }) {
+  const best = analysis.recommendation
+  const coverage = best.coverage ?? []
+  return (
+    <Card className="tier-card model-card">
+      <p className="eyebrow">Recommended model</p>
+      <div className="model-title-row">
+        <div>
+          <h2>{best.name}</h2>
+          <p className="muted">{[best.label && best.label !== best.name ? best.label : null, costText(best)].filter(Boolean).join(' · ')}</p>
+        </div>
+        <span className={`status-pill status-${best.status}`}>{STATUS_LABELS[best.status ?? 'short']}</span>
+      </div>
+      {coverage.length > 0 && (
+        <table className="coverage-table">
+          <caption className="sr-only">How the recommended model covers each need of the task</caption>
+          <thead><tr><th scope="col">Need</th><th scope="col">Task</th><th scope="col">Model</th><th scope="col">Covers</th></tr></thead>
+          <tbody>
+            {coverage.map(entry => (
+              <tr key={entry.need} className={`coverage-${entry.state}`}>
+                <th scope="row">{NEED_LABELS[entry.need]}</th>
+                <td>{needText(entry)}</td>
+                <td>{entry.capability ?? 'n/a'}{entry.provisional && <span className="provisional-mark" title="Not reviewed by the team yet"> *</span>}</td>
+                <td>{entry.state === 'covers' ? 'Yes' : entry.state === 'covers_as_described' ? 'As described' : 'No'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {coverage.some(entry => entry.provisional) && <p className="muted">{best.illustrative ? '* Illustrative level of a demo model, not a real measurement.' : '* Level from public benchmarks or the automatic measurement, not reviewed by the team yet.'}</p>}
+      {(analysis.notes ?? []).length > 0 && (
+        <ul className="recommendation-notes">{(analysis.notes ?? []).map(note => <li key={note}>{note}</li>)}</ul>
+      )}
+      <div className="why">
+        <h3>Why this model</h3>
+        <p>{analysis.rationale}</p>
+      </div>
+      {analysis.alternatives.length > 0 && (
+        <div className="alternatives">
+          <h3>Other models you can use</h3>
+          <ul>
+            {analysis.alternatives.map(item => (
+              <li key={item.id}>
+                <strong>{item.name}</strong>
+                <span>{shortText(item)}{item.status !== 'short' && item.gap === 1 ? ', more than needed' : ''}</span>
+                <span className="muted">{costText(item)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+/** The recommendation card for any analysis: a model, or a tier for analyses stored before ADR-014. */
+export function RecommendationCard({ analysis }: { analysis: Analysis }) {
+  return isLegacy(analysis.recommendation) ? <TierCard analysis={analysis} /> : <ModelRecommendationCard analysis={analysis} />
 }
 
 export function TierCard({ analysis }: { analysis: Analysis }) {

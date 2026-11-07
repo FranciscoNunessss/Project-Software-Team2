@@ -1,6 +1,7 @@
 """Deterministic grid of synthetic profiles for the policy regression test.
 
-The golden file records what the e886924 policy returned for every profile in this grid.
+The golden file records what the needs-capabilities-1 policy (ADR-014) returned for
+every profile in this grid.
 Regenerate it only when a policy change is intended and recorded in an ADR:
 
     cd backend && uv run python tests/policy_grid.py --write
@@ -45,15 +46,16 @@ def grid():
 
 
 def outcome(data):
-    from app.assessment import assessment_advice, capacity_target, required_capabilities
+    from app.assessment import assessment_advice, required_capabilities
     from app.models import Profile
     from app.workflow import rank
 
     profile = Profile.model_validate(data)
     questions, guidance, provisional = assessment_advice(profile)
+    ranking = rank(profile, required_capabilities(profile, ["text"]))
     return {
-        "target": capacity_target(profile),
-        "ranking": [item.id for item in rank(profile, required_capabilities(profile, ["text"]))],
+        "status": ranking[0].status if ranking else None,
+        "ranking": [item.id for item in ranking],
         "questions": questions,
         "guidance": guidance,
         "provisional": provisional,

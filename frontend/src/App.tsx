@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { api, ApiError, getFeatures, PROFILE_VERSION, tierOf, fitPercent, notifyProgressChange, type Analysis, type LLMOption, type LLMOptions, type Tier, type SavedSession, type Resume } from './api'
+import { api, ApiError, candidateLabel, getFeatures, PROFILE_VERSION, notifyProgressChange, type Analysis, type Candidate, type LLMOption, type LLMOptions, type SavedSession, type Resume } from './api'
 import { Account } from './Account'
 import { AnalysisChanges } from './AnalysisChanges'
 
@@ -12,7 +12,8 @@ import { TipsCard } from './TipsCard'
 import { PromptCoachTips } from './PromptCoachTips'
 import { PromptCoachBubble } from './PromptCoachBubble'
 import { ChatScreen } from './ChatScreen'
-import { Card, Icon, ProfileCard, TierCard } from './AnalysisResult'
+import { Card, Icon, ProfileCard, RecommendationCard } from './AnalysisResult'
+import { AssistantOutcome } from './TaskOutcome'
 
 type Screen = 'assistant' | 'progress' | 'profile' | 'llm'
 type ResultState = 'empty' | 'loading' | 'result'
@@ -131,19 +132,20 @@ function LoadingResult() {
 }
 
 function Override({
-  tier,
+  selected,
   recommended,
   onChange,
-  eligible,
+  candidates,
   disabled,
 }: {
-  tier: Tier
-  recommended: Tier
-  onChange: (tier: Tier) => void
-  eligible: Tier[]
+  selected: string
+  recommended: string
+  onChange: (id: string) => void
+  candidates: Candidate[]
   disabled: boolean
 }) {
-  const applied = tier !== recommended
+  const applied = selected !== recommended
+  const chosen = candidates.find(item => item.id === selected)
   return (
     <div className={`override ${applied ? 'override-applied' : ''}`}>
       <div className="override-copy">
@@ -153,20 +155,20 @@ function Override({
         </div>
         <p>You always choose. Confirmed selections are saved to your account.</p>
       </div>
-      <div className="segments" role="group" aria-label="Choose a model tier">
-        {(['Small', 'Medium', 'Large'] as Tier[]).map((item) => (
+      <div className="segments" role="group" aria-label="Choose a model">
+        {candidates.map((item) => (
           <button
-            key={item}
-            disabled={disabled || !eligible.includes(item)}
-            className={tier === item ? 'selected' : ''}
-            onClick={() => onChange(item)}
-            aria-pressed={tier === item}
+            key={item.id}
+            disabled={disabled}
+            className={selected === item.id ? 'selected' : ''}
+            onClick={() => onChange(item.id)}
+            aria-pressed={selected === item.id}
           >
-            {item}
+            {candidateLabel(item)}
           </button>
         ))}
       </div>
-      {applied && <p className="override-message">Your choice is set to {tier}. The recommendation remains visible for comparison.</p>}
+      {applied && chosen && <p className="override-message">Your choice is set to {candidateLabel(chosen)}. The recommendation remains visible for comparison.</p>}
     </div>
   )
 }
@@ -180,7 +182,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
   const [historyBusy, setHistoryBusy] = useState(false)
   const [task, setTask] = useState('')
   const [state, setState] = useState<ResultState>('empty')
-  const [tier, setTier] = useState<Tier>('Large')
+  const [choice, setChoice] = useState('')
   const [analysis, setAnalysis] = useState<Analysis>()
   // True when the shown analysis was opened from history, which never stores tips.
   const [fromHistory, setFromHistory] = useState(false)
@@ -207,7 +209,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
         setTask(item.conversation?.task??'');setContext(item.conversation?.task_context??'');setAnalysis(item.conversation?.response??item.result); setFromHistory(!item.conversation); setState('result')
         setProvider('auto')
         const candidates = [item.result.recommendation, ...item.result.alternatives]
-        setTier(tierOf(candidates.find(candidate => candidate.id === item.candidate_id) ?? item.result.recommendation))
+        setChoice((candidates.find(candidate => candidate.id === item.candidate_id) ?? item.result.recommendation).id)
         setSaved(item.candidate_id !== null)
       } else { setTask('') }
     }).catch(failure => { if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : 'Could not open saved session') })
@@ -244,7 +246,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
         previous_analysis_id: sessionId && lastAnalysisId ? lastAnalysisId : undefined, allow_external: requiresConsent, required_capabilities: ['text'],
       }, controller.signal)
       if (active.current !== controller) return
-      setAnalysis(result);setFromHistory(false);setSessionId(result.session_id);setLastAnalysisId(result.id);setTier(tierOf(result.recommendation));setState('result');notifyProgressChange()
+      setAnalysis(result);setFromHistory(false);setSessionId(result.session_id);setLastAnalysisId(result.id);setChoice(result.recommendation.id);setState('result');notifyProgressChange()
     } catch (failure) {
       if (active.current !== controller) return
       // A stale previous analysis cannot be compared; drop it so the user's next try starts fresh.
@@ -265,7 +267,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
   // The exact id sent to the backend: the one picked from the catalogue, else the configured model.
   const routerValue = routerModel ?? selectedProvider?.model ?? ''
   const confirm = async () => {
-    const selected = candidates.find(candidate => tierOf(candidate) === tier)
+    const selected = candidates.find(candidate => candidate.id === choice)
     if (!analysis || !selected) return
     setSaving(true); setError('')
     try {
@@ -328,7 +330,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
           {analysis.clarification_questions.length > 0 && (
             <Card className="assessment-advice">
               <h3>Clarification suggested</h3>
-              <p>Add the relevant details to your task above and analyse it again. You can still choose an eligible tier.</p>
+              <p>Add the relevant details to your task above and analyse it again. You can still choose one of the models.</p>
               <ul>{analysis.clarification_questions.map(question => <li key={question}>{question}</li>)}</ul>
             </Card>
           )}
@@ -341,19 +343,20 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
           <AnalysisChanges analysis={analysis} />
           <div className="result-grid">
             <ProfileCard analysis={analysis} />
-            <TierCard analysis={analysis} />
+            <RecommendationCard analysis={analysis} />
             <TipsCard analysis={analysis} fromHistory={fromHistory} />
           </div>
           <PromptCoachTips analysis={analysis} task={task} />
           <Override
-            tier={tier}
-            recommended={tierOf(analysis.recommendation)}
-            onChange={setTier}
-            eligible={candidates.map(tierOf)}
+            selected={choice}
+            recommended={analysis.recommendation.id}
+            onChange={setChoice}
+            candidates={candidates}
             disabled={saving || saved}
           />
-          <div className="choice-confirmation"><p>Choose a tier above, then confirm it to update your progress. Analysing alone does not record a model choice.</p><Button onClick={confirm} disabled={saving || saved}>{saved ? 'Choice saved to My progress' : saving ? 'Saving…' : 'Confirm choice & update progress'}</Button></div>
+          <div className="choice-confirmation"><p>Choose a model above, then confirm it to update your progress. Analysing alone does not record a model choice.</p><Button onClick={confirm} disabled={saving || saved}>{saved ? 'Choice saved to My progress' : saving ? 'Saving…' : 'Confirm choice & update progress'}</Button></div>
           {saved && <p role="status">Choice saved to your account. No task execution is performed.</p>}
+          {saved && <AssistantOutcome key={analysis.id} analysisId={analysis.id} />}
           {analysis.warnings.map(warning => <p className="confidence-note" key={warning}>{warning}</p>)}
           <p className="privacy">Profile metadata and choices are saved. Task text, context and AI responses are additionally saved only with explicit conversation-storage permission in Profile. Manage and delete saved sessions in My progress.</p>
           <p className="muted">{analysis.confidence_basis} · Profile {analysis.profile_version} · Catalogue {analysis.catalogue_version} · Policy {analysis.policy_version}</p>

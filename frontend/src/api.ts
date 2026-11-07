@@ -1,5 +1,18 @@
 export type Tier = 'Small' | 'Medium' | 'Large'
-export type Candidate = { id: string; name: string; capacity: number; capabilities: string[]; sufficiency?: number | null; fit?: number | null }
+export type NeedName = 'reasoning' | 'context' | 'domain' | 'reliability' | 'tools'
+export type CoverageState = 'covers' | 'covers_as_described' | 'short'
+export type Coverage = { need: NeedName; estimated: number; top: number; capability: number | null; state: CoverageState; provisional: boolean }
+/** A model the analysis compared (ADR-014). Analyses stored before needs-capabilities-1 carry an
+ * illustrative tier instead: `capacity` 1-3 and the graded `fit`. */
+export type Candidate = {
+  id: string; name: string; capabilities: string[]
+  capacity?: number | null; sufficiency?: number | null; fit?: number | null
+  provider?: string | null; model?: string | null; configuration_id?: string | null; label?: string | null
+  status?: CoverageState | null; shortfalls?: NeedName[]; coverage?: Coverage[]
+  blended_price?: number | null; cost_band?: 'low' | 'medium' | 'high' | null
+  free?: boolean; local?: boolean; illustrative?: boolean; calibrated?: boolean; gap?: number | null
+}
+export type TaskNeeds = { needs: Record<NeedName, { estimated: number; top: number; determined: boolean }>; modalities: string[]; capabilities: string[]; length_tokens: number; ambiguous: boolean }
 export type Grading = { demand: number; spread: number; parameters: Record<string, unknown>; basis: string }
 export type Provider = { id: string; label: string; model: string | null; enabled: boolean; external: boolean }
 export type LLMOption = {id:string;label:string;provider:string;model:string|null;external:boolean;source:'server'|'personal'}
@@ -64,6 +77,8 @@ export type Analysis = {
   catalogue_version: string
   policy_version: string
   grading?: Grading | null
+  needs?: TaskNeeds | null
+  notes?: string[]
   previous_analysis_id?: string | null
   completeness?: number | null
   changes?: Change[]
@@ -95,10 +110,21 @@ export type CoachResponse = {
 export type SavedSession = { id: string; title: string; context: string; created_at: string; analysis_count?:number; choice_count?:number }
 export type HistoryItem = { request: { task?: string; session_context?: string; personal_context?: string }; result: Analysis; candidate_id: string | null; created_at: string; conversation?: {task:string;task_context:string;response:Analysis}|null }
 export type Resume = { sessionId: string; analysis?: HistoryItem }
-export type MemorySettings = {content:string; updated_at:string|null; save_enabled:boolean; use_enabled:boolean; coaching_auto_enabled:boolean; conversation_memory_enabled:boolean;saved_conversations:number; memory:{analysis_id:string; profile:Record<string,number|string[]|null>; recommended_capacity:number; chosen_capacity:number|null}[]}
+export type MemorySettings = {content:string; updated_at:string|null; save_enabled:boolean; use_enabled:boolean; coaching_auto_enabled:boolean; conversation_memory_enabled:boolean;saved_conversations:number; memory:{analysis_id:string; profile:Record<string,number|string[]|null>; recommended_capacity?:number; chosen_capacity?:number|null; recommended_model?:string; chosen_model?:string|null; chosen_gap?:number|null}[]}
 export function tierOf(candidate: Candidate): Tier {
   return candidate.capacity === 1 ? 'Small' : candidate.capacity === 2 ? 'Medium' : 'Large'
 }
+/** True for analyses recommended by the old tier policy (stored before ADR-014). */
+export function isLegacy(candidate: Candidate): boolean {
+  return typeof candidate.capacity === 'number' && !candidate.status
+}
+/** How a candidate is named in the UI: the model, or the tier for old analyses. */
+export function candidateLabel(candidate: Candidate): string {
+  return isLegacy(candidate) ? tierOf(candidate) : candidate.name
+}
+export const NEED_LABELS: Record<NeedName, string> = { reasoning: 'Reasoning', context: 'Context', domain: 'Domain knowledge', reliability: 'Reliability', tools: 'Tools' }
+export const COST_BAND_LABELS = { low: 'Low cost', medium: 'Medium cost', high: 'High cost' } as const
+export const STATUS_LABELS: Record<CoverageState, string> = { covers: 'Covers the task', covers_as_described: 'Covers it as described', short: 'Falls short' }
 export function fitPercent(candidate: Candidate): number | null {
   return typeof candidate.fit === 'number' ? Math.round(candidate.fit * 100) : null
 }
@@ -191,11 +217,30 @@ export function errorMessage(code: string | null | undefined): string {
   return errorMessages[code] ?? code.replace(/_/g, ' ')
 }
 
+// Feedback per task (ADR-014). Mirrors backend/app/outcomes.py.
+export type TaskOutcome = 'resolved' | 'resolved_with_refinement' | 'not_resolved' | 'skipped'
+export type OutcomeReason = 'quality' | 'instructions' | 'description' | 'other'
+export type OutcomeInput = {
+  outcome: TaskOutcome; reason?: OutcomeReason | null; provider?: string | null; model?: string | null
+  turns?: number; switched_model?: boolean; retries?: number; stops?: number
+}
+export type OutcomeSummary = {
+  tasks: number; skipped: number; resolved: number; resolved_with_refinement: number; not_resolved: number
+  described_poorly: number; solved_rate_following: number | null; solved_rate_not_following: number | null
+  followed: number; mean_turns: number | null; by_model: { model: string | null; tasks: number; solved: number }[]
+}
+export const putOutcome = (analysisId: string, body: OutcomeInput) => api(`analyses/${analysisId}/outcome`, body, undefined, 'PUT')
+export const OUTCOME_REASONS: Record<OutcomeReason, string> = {
+  quality: 'Not good or deep enough', instructions: 'Did not follow my request', description: 'I described it poorly', other: 'Other',
+}
+
 // Optional chat (ADR-011). Mirrors backend/app/chat.py.
 export type ChatStatus = 'complete' | 'stopped' | 'failed'
 export type ChatMessage = {
   id: string; role: 'user' | 'assistant'; content: string; provider: string | null; model: string | null
   analysis_id: string | null; status: ChatStatus; error: string | null; created_at: string; completeness: number | null
+  /** Feedback for the task this analysed message starts (ADR-014); null while it is open. */
+  outcome?: TaskOutcome | null
 }
 export type ChatSummary = { id: string; title: string; created_at: string; updated_at?: string; message_count: number }
 export type Chat = ChatSummary & { messages: ChatMessage[] }

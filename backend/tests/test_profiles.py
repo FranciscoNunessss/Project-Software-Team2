@@ -77,9 +77,12 @@ def test_unknown_modality_is_explicit():
     assert result["clarification_questions"]
 
 
-def test_risk_domain_tools_and_ambiguity_do_not_automatically_raise_tier():
+def test_risk_domain_and_tools_need_capable_models_but_ambiguity_does_not():
+    # ADR-014: risk needs reliability, domain and tools need their capability. Ambiguity is
+    # missing information, not a model capability, so it never raises the model.
+    assert rank(Profile.model_validate(profile_data(ambiguity=3)), ["text"])[0].id == "demo-small"
     profile = Profile.model_validate(profile_data(domain=3, risk=3, tools=3, ambiguity=3))
-    assert rank(profile, ["text"])[0].id == "demo-small"
+    assert rank(profile, ["text"])[0].id == "demo-advanced"
     result = analyse(profile.model_dump()).json()
     assert result["clarification_questions"]
     assert result["guidance"]

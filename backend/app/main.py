@@ -11,15 +11,24 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.accounts import AuthenticatedUser, check_origin
 from app.accounts import router as accounts_router
-from app.assessment import POLICY_VERSION, PROFILE_VERSION, RUBRIC_VERSION, explain_changes
+from app.assessment import PROFILE_VERSION, RUBRIC_VERSION, explain_changes
+from app.catalogue import active_catalogue
 from app.coaching import install_coaching
 from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
 from app.openrouter import CatalogueUnavailable, OpenRouterCatalogue, fetch_models
+from app.outcomes import install_outcomes, record_decision
 from app.prompt_builder import active_rubric, public_rubric
-from app.providers import DemonstrationProvider, LangChainProvider, ProviderFailure, Settings
+from app.providers import (
+    DemonstrationProvider,
+    LangChainProvider,
+    ProviderFailure,
+    Settings,
+    with_server_models,
+)
+from app.recommendation import POLICY_VERSION, candidate_gap
 from app.storage import Storage, history_result, stored_result
-from app.workflow import CATALOGUE, build_workflow
+from app.workflow import build_workflow
 
 
 class SessionInput(BaseModel):
@@ -38,17 +47,14 @@ class PersonalContext(BaseModel):
 
 
 def choice_gap(row) -> int:
-    """Chosen capacity minus recommended capacity for a confirmed choice."""
-    result = json.loads(row["result_json"])
-    recommended = result["recommendation"]
-    chosen = next(
-        item for item in [recommended, *result["alternatives"]] if item["id"] == row["candidate_id"]
-    )
-    return chosen["capacity"] - recommended["capacity"]
+    """Chosen minus recommended for a confirmed choice: tiers apart for analyses stored with
+    the tier policy, -1/0/+1 (covers less / the recommendation / more than needed) for model
+    recommendations (ADR-014)."""
+    return candidate_gap(json.loads(row["result_json"]), row["candidate_id"])
 
 
 def agreement_percent(gaps: list[int]) -> int | None:
-    """Partial credit per choice: 0 tiers apart = 100, 1 = 50, 2 or more = 0."""
+    """Partial credit per choice: gap 0 = 100, 1 = 50, 2 or more = 0."""
     if not gaps:
         return None
     return round(100 * sum(max(0.0, 1 - abs(gap) / 2) for gap in gaps) / len(gaps))
@@ -61,13 +67,14 @@ def create_app(
     chat_options: dict | None = None,
     openrouter_catalogue: OpenRouterCatalogue | None = None,
 ) -> FastAPI:
-    settings = settings or Settings()
+    settings = with_server_models(settings or Settings())
     app = FastAPI(title="AdaptAI", version="0.1.0", dependencies=[Depends(check_origin)])
     store = Storage(settings.database_path)
     app.state.storage = store
     app.state.settings = settings
     app.include_router(accounts_router)
     schedule_coaching = install_coaching(app, store, settings)
+    install_outcomes(app, store)
 
     @app.middleware("http")
     async def private_responses(request: Request, call_next):
@@ -77,6 +84,7 @@ def create_app(
                 "/api/auth",
                 "/api/sessions",
                 "/api/analyze",
+                "/api/analyses",
                 "/api/decisions",
                 "/api/progress",
                 "/api/context",
@@ -168,7 +176,7 @@ def create_app(
 
     @app.get("/api/catalogue")
     def catalogue():
-        return CATALOGUE
+        return active_catalogue().model_dump()
 
     @app.get("/api/rubric")
     def rubric():
@@ -571,13 +579,38 @@ def create_app(
             )
         try:
             with tracing_context(enabled=False):
-                state = await build_workflow(provider).ainvoke({"request": assessment_request})
+                state = await build_workflow(provider).ainvoke(
+                    {
+                        "request": assessment_request,
+                        "options": configurations.send_options(user["id"], enabled),
+                        "task_chars": len(body.task),
+                    }
+                )
         except ProviderFailure as exc:
             raise HTTPException(502, exc.code) from None
         except ValidationError:
             raise HTTPException(502, "invalid_provider_output") from None
         candidates = state["candidates"]
         identifier = str(uuid4())
+        notes = list(state["notes"])
+        with store.connect() as db:
+            last = db.execute(
+                "SELECT outcome,reason,completeness FROM task_outcomes WHERE user_id=? "
+                "AND outcome!='skipped' ORDER BY created_at DESC,rowid DESC LIMIT 1",
+                (user["id"],),
+            ).fetchone()
+        # ADR-014: a task not solved because of its description sends the user to the
+        # description first on the next task, not to a bigger model.
+        if (
+            last
+            and last["outcome"] == "not_resolved"
+            and (last["reason"] == "description" or (last["completeness"] or 100) < 75)
+        ):
+            notes.insert(
+                0,
+                "Your last task was not solved and its description was incomplete: improve "
+                "this description first (clarifications, Coach) before choosing a bigger model.",
+            )
         result = AnalysisResult.model_validate(
             {
                 "id": identifier,
@@ -600,10 +633,10 @@ def create_app(
                 "alternatives": candidates[1:],
                 "rationale": state["rationale"],
                 "warnings": [
-                    "Illustrative catalogue: these tiers are not verified real models.",
-                    "Assessment and ranking policy have not been calibrated or validated.",
+                    "Model capability levels are provisional until the team calibrates them.",
+                    "The assessment has not been calibrated or validated.",
                 ],
-                "catalogue_version": CATALOGUE["version"],
+                "catalogue_version": active_catalogue().version,
                 "policy_version": POLICY_VERSION,
                 "latency_ms": round((perf_counter() - started) * 1000),
                 "confidence_basis": "Uncalibrated heuristic"
@@ -611,7 +644,8 @@ def create_app(
                 else "Uncalibrated model assessment",
                 "usage": state.get("usage"),
                 "observed_cost": None,
-                "grading": state.get("grading"),
+                "needs": state["needs"],
+                "notes": notes,
                 "previous_analysis_id": body.previous_analysis_id,
                 "completeness": state["completeness"],
                 "changes": explain_changes(previous, state["profile"])
@@ -649,8 +683,9 @@ def create_app(
                             for key, value in result.profile.model_dump().items()
                             if isinstance(value, dict)
                         },
-                        "recommended_capacity": result.recommendation.capacity,
-                        "chosen_capacity": None,
+                        "recommended_model": result.recommendation.id,
+                        "chosen_model": None,
+                        "chosen_gap": None,
                     }
                     db.execute(
                         "INSERT INTO memory_entries VALUES (?,?,?)",
@@ -666,41 +701,7 @@ def create_app(
     def decide(body: Decision, user: AuthenticatedUser, background: BackgroundTasks):
         with store.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            row = db.execute(
-                "SELECT a.result_json FROM analyses a JOIN sessions s ON s.id=a.session_id "
-                "WHERE a.id=? AND s.user_id=?",
-                (body.analysis_id, user["id"]),
-            ).fetchone()
-            if not row:
-                raise HTTPException(404, "analysis_not_found")
-            result = json.loads(row["result_json"])
-            eligible = [result["recommendation"], *result["alternatives"]]
-            if body.candidate_id not in [item["id"] for item in eligible]:
-                raise HTTPException(422, "candidate_not_eligible")
-            previous = db.execute(
-                "SELECT candidate_id FROM decisions WHERE analysis_id=?", (body.analysis_id,)
-            ).fetchone()
-            if previous and previous["candidate_id"] != body.candidate_id:
-                raise HTTPException(409, "decision_already_recorded")
-            db.execute(
-                "INSERT OR IGNORE INTO decisions(analysis_id,candidate_id) VALUES (?,?)",
-                (body.analysis_id, body.candidate_id),
-            )
-            saved_memory = db.execute(
-                "SELECT m.metadata_json FROM memory_entries m "
-                "JOIN user_context c ON c.user_id=m.user_id "
-                "WHERE m.analysis_id=? AND m.user_id=? AND c.save_enabled=1",
-                (body.analysis_id, user["id"]),
-            ).fetchone()
-            if saved_memory:
-                metadata = json.loads(saved_memory[0])
-                metadata["chosen_capacity"] = next(
-                    item["capacity"] for item in eligible if item["id"] == body.candidate_id
-                )
-                db.execute(
-                    "UPDATE memory_entries SET metadata_json=? WHERE analysis_id=?",
-                    (json.dumps(metadata), body.analysis_id),
-                )
+            record_decision(db, user["id"], body.analysis_id, body.candidate_id)
         schedule_coaching(background, user["id"])
         return {
             "status": "acknowledged",

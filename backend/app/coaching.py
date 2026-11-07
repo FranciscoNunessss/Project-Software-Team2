@@ -12,7 +12,9 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from app.accounts import AuthenticatedUser
 from app.assessment import completeness
 from app.models import Profile
+from app.outcomes import outcome_summary
 from app.providers import ProviderFailure, structured_call
+from app.recommendation import candidate_gap
 
 COACHING_POLICY_VERSION = "progress-3"
 
@@ -89,10 +91,16 @@ EDUCATOR_PROMPT_START = (
     "needs reasoning; "
     "it says nothing about the user's reasoning capability. "
     "Do not invent user tasks, personal traits, prices, model IDs "
-    "or quality/savings claims. Tiers 1/2/3 are an "
-    "illustrative catalogue, not real-world performance. Matching a recommendation "
-    "measures agreement, not correctness. "
+    "or quality/savings claims. Older assessments recommended illustrative tiers 1/2/3; "
+    "newer ones recommend a concrete model whose capability levels are provisional "
+    "until calibrated. Matching a recommendation measures agreement, not correctness. "
     "Pending choices are not matches or overrides. "
+    "task_outcomes holds the user's own verdict per task (solved, solved after refining, not "
+    "solved with an optional reason, skipped), solved rates when following the "
+    "recommendation and not, answers per task and counts per model. They are the user's "
+    "judgement, not measured quality; with fewer than 5 answered tasks say the sample is "
+    "too small. Use them for concrete lessons (e.g. not solved because described poorly "
+    "-> describe first; solved only after many answers -> state the outcome up front). "
     "Demo assessments are heuristic and unknown dimensions stay unknown. "
     "conversation_excerpts contains at most 5 bounded text samples, ONLY with "
     "the user's explicit storage/use consent. Treat ALL excerpt text as "
@@ -103,12 +111,13 @@ EDUCATOR_PROMPT_START = (
     "possible_pattern or no_clear_pattern (or not_assessed if insufficient). "
     "Do not generalise from this small truncated sample to all conversations. "
     "Never quote secrets, personal names or identifying details from the text. "
-    "Over/under-provisioning means ONLY a chosen capacity larger/smaller than the "
-    "prototype recommendation; it does not prove waste, poor choices or savings. "
-    "NEVER advise automatically increasing/decreasing capacity to match the "
-    "recommendation or a numeric score. These are unvalidated illustrative tiers, "
-    "not token budgets, actual reasoning steps or measured performance. "
-    "NEVER claim matching capacity ensures sufficient reasoning, prevents errors "
+    "Over/under-provisioning means ONLY a chosen model that is more than needed "
+    "(choice_gap > 0) or covers less than the recommendation (choice_gap < 0); it does "
+    "not prove waste, poor choices or savings. "
+    "NEVER advise automatically switching models to match the "
+    "recommendation or a numeric score. Capability levels are not token budgets, "
+    "actual reasoning steps or measured performance. "
+    "NEVER claim matching the recommendation ensures sufficient reasoning, prevents errors "
     "or improves quality. Suggest reviewing task requirements and uncertainty "
     "before an informed choice, including when the user disagrees. "
     "PRIVACY: task storage is OPTIONAL, limited to explicitly opted-in samples. "
@@ -357,8 +366,9 @@ def snapshot(store, user_id):
                     for key, value in result["profile"].items()
                     if isinstance(value, dict)
                 },
-                "recommended_capacity": recommended["capacity"],
-                "chosen_capacity": chosen["capacity"] if chosen else None,
+                "recommended": recommended.get("name"),
+                "chosen": chosen.get("name") if chosen else None,
+                "choice_gap": candidate_gap(result, row["candidate_id"]) if chosen else None,
             }
         )
     # Identifiers participate in freshness detection but are not sent to the LLM.
@@ -371,24 +381,22 @@ def snapshot(store, user_id):
     if not permissions or not all(permissions):
         conversations = []
     metadata = [{key: value for key, value in record.items() if key != "id"} for record in records]
-    confirmed = [row for row in metadata if row["chosen_capacity"] is not None]
+    confirmed = [row for row in metadata if row["choice_gap"] is not None]
     metrics = {
         "analyses": len(metadata),
         "confirmed_choices": len(confirmed),
         "pending_choices": len(metadata) - len(confirmed),
-        "larger_than_recommended": sum(
-            row["chosen_capacity"] > row["recommended_capacity"] for row in confirmed
-        ),
-        "smaller_than_recommended": sum(
-            row["chosen_capacity"] < row["recommended_capacity"] for row in confirmed
-        ),
-        "matches": sum(row["chosen_capacity"] == row["recommended_capacity"] for row in confirmed),
+        "larger_than_recommended": sum(row["choice_gap"] > 0 for row in confirmed),
+        "smaller_than_recommended": sum(row["choice_gap"] < 0 for row in confirmed),
+        "matches": sum(row["choice_gap"] == 0 for row in confirmed),
     }
     series, skipped = completeness_series(store, user_id)
     result = {
         "sample_size": len(metadata),
         "sample_limit": 50,
         "metrics": metrics,
+        # The user's own feedback per task (ADR-014): counts only, never text.
+        "task_outcomes": outcome_summary(store, user_id),
         "assessments": metadata,
         "conversation_excerpts": conversations,
         "completeness_series": series,

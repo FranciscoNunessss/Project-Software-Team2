@@ -4,7 +4,7 @@ import { supabase } from './auth'
 
 type User = { id: string; email: string }
 
-// What the signed-in shell needs to show the account and sign out (in the AdaptAI menu).
+// What the signed-in shell needs to show the account and sign out (at the bottom of the sidebar).
 export type AccountInfo = { email: string; busy: boolean; signOut: () => void }
 
 export function Account({ children, dark, onToggleTheme }: { children: (account: AccountInfo) => ReactNode; dark: boolean; onToggleTheme: () => void }) {

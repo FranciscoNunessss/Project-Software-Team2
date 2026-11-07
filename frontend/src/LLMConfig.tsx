@@ -1,3 +1,4 @@
+import { ModelEvaluations } from './ModelEvaluations'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { api, type LLMConfiguration, type LLMOptions } from './api'
 
@@ -100,5 +101,6 @@ export function LLMConfigScreen() {
         </>}
       </div>}
     </dialog>
+    <ModelEvaluations />
   </main>
 }

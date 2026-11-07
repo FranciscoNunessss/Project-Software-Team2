@@ -95,7 +95,8 @@ def test_an_illustrative_recommendation_cannot_be_followed(app):
     assert (body["used_provider"], body["used_model"]) == ("groq", "openai/gpt-oss-20b")
     summary = client.get("/api/progress/outcomes").json()
     assert summary["solved_rate_following"] is None and summary["followed"] == 0
-    assert summary["by_model"] == [{"model": "groq · openai/gpt-oss-20b", "tasks": 1, "solved": 1}]
+    # catalogue-2.1 has a card for this model, so it is counted under the card id.
+    assert summary["by_model"] == [{"model": "gpt-oss-20b", "tasks": 1, "solved": 1}]
 
 
 def real_models(monkeypatch):

@@ -111,7 +111,9 @@ def task_needs(
     )
 
 
-def available_cards(catalogue: Catalogue, options: list[Option]) -> tuple[list[Evaluated], list]:
+def available_cards(
+    catalogue: Catalogue, options: list[Option], resolve=None
+) -> tuple[list[Evaluated], list]:
     """Rated cards behind the user's models, one per card (server models first).
 
     Returns the evaluated shells and the options whose model has no rated card.
@@ -125,7 +127,7 @@ def available_cards(catalogue: Catalogue, options: list[Option]) -> tuple[list[E
         ),
     )
     for option in ordered:
-        card = catalogue.card_for(option.provider, option.model)
+        card = resolve(option) if resolve else catalogue.card_for(option.provider, option.model)
         if card is None or not card.rated or card.illustrative:
             unrated.append(option)
             continue
@@ -344,8 +346,11 @@ def candidate(item: Evaluated, chosen: Evaluated, catalogue: Catalogue) -> dict:
     }
 
 
-def recommend(needs: TaskNeeds, options: list[Option], catalogue: Catalogue) -> Recommendation:
-    items, unrated = available_cards(catalogue, options)
+def recommend(
+    needs: TaskNeeds, options: list[Option], catalogue: Catalogue, resolve=None
+) -> Recommendation:
+    """``resolve(option) -> Card | None`` gives each option its levels (app.evaluations)."""
+    items, unrated = available_cards(catalogue, options, resolve)
     illustrative = not items
     if illustrative:
         items = illustrative_cards(catalogue)

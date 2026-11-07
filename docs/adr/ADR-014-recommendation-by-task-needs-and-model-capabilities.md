@@ -45,6 +45,8 @@ task, so nothing could improve the recommendation.
 | A5 | First batch: gpt-oss-20b, gpt-oss-120b, the Gemma models the team uses, one Claude Sonnet and one GPT mini | The default model, a second level on the server, the references users configure |
 | A6 | Several server models per provider (`ADAPTAI_<PROVIDER>_MODELS`) | Without two levels on the server, users without their own models have no choice |
 | A7 | Automatic measurement suite `measure-suite-1` as the main source for the models we can call; status `measured` between `provisional` and `calibrated` | The free benchmark API had no values for our server models (108 of 726 models on index v5). Our own suite measures every model the same way, repeatably and without reviewers |
+| A8 | **Automatic evaluation of every configured model** (decided 7 Nov 2026): only models someone configured are evaluated, once, by a background worker with the adaptive suite (level 2 first, then 3 or 1; at most 40 tasks). Results of official cloud endpoints are shared; local models are per user. Paid models with a user's key wait for consent showing what, how, the estimated cost and a guaranteed maximum (unknown price: confirm twice). Levels, source and examples are visible; users can report disagreement but not edit levels | Every model that can be recommended has levels; users almost never pay because results are shared and the team evaluates common models first; the user decides before spending |
+| A9 | Order of sources for a model's levels: team-calibrated catalogue levels, then our measured levels, then the catalogue's provisional levels, then the Artificial Analysis overall index (confirmed name links only, one level for all five capabilities), then the lowest measured level of the same family, else never recommended | The best evidence wins; the cheap fallbacks are labelled provisional and replaced as soon as we measure |
 
 ## How it works
 
@@ -64,6 +66,7 @@ automatic measurement, calibration) comes in its own pull request.
 | Educator, Coach and My progress use the outcome totals | `backend/app/coaching.py`, `backend/app/main.py`, `frontend/src/TaskOutcomes.tsx` |
 | Automatic measurement: 60 generated tasks graded by a program, runner, apply script, "Measure models" workflow | `backend/app/measurement.py`, `scripts/measure_models.py`, `scripts/apply_measurements.py` (phase 2) |
 | Calibration report (proposes level changes, changes nothing) | `scripts/calibration_report.py` (phase 2) |
+| Automatic evaluation of configured models: inventory, queue with consent and cost, adaptive runner, shared results, order of sources, API and the LLM config section (phase 2, A8 and A9) | `backend/app/evaluations.py`, migration `005_model_evaluations.sql`, `frontend/src/ModelEvaluations.tsx`, `docs/testing-model-evaluations.md` |
 
 Removed: `demand_estimate`, `tier_fit`, `capacity_target`, the graded parameters, the chat's
 `chat_model_tiers` table and routes (cards are linked by their aliases).

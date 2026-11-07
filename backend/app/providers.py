@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     groq_models: str = ""
     ollama_models: str = ""
     lmstudio_models: str = ""
+    # Background evaluation of configured models (ADR-014); off in tests and scripts.
+    evaluations_worker: bool = True
     timeout_seconds: float = Field(default=30, gt=0, le=120)
     database_url: SecretStr = SecretStr("postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai")
     database_schema: str = "adaptai"

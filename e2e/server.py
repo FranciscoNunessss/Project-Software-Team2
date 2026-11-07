@@ -182,6 +182,20 @@ ROUTER_MODELS = [
 ]
 
 
+class FakeEvaluated:
+    """Answers the evaluation suite (ADR-014) for personal models only. The project's Groq
+    model always fails, so the shared server model stays unevaluated and the other tests
+    keep their illustrative recommendation."""
+
+    def __init__(self, provider, settings, max_tokens):
+        self.provider = provider
+
+    async def ainvoke(self, messages):
+        if self.provider == "groq":
+            raise ValueError("e2e: the project model is not evaluated")
+        return type("Reply", (), {"content": "I don't know.", "usage_metadata": None})()
+
+
 async def fetch_router_models():
     return ROUTER_MODELS
 
@@ -198,6 +212,12 @@ def build():
         prompt_coach_options={"model_factory": FakeCoach},
         chat_options={"model_factory": FakeChat},
         openrouter_catalogue=OpenRouterCatalogue(fetch_router_models),
+        evaluation_options={
+            "worker": True,
+            "model_factory": FakeEvaluated,
+            "poll_seconds": 0.5,
+            "inventory_seconds": float("inf"),
+        },
     )
 
 

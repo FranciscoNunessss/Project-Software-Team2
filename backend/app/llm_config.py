@@ -271,13 +271,20 @@ def install_routes(app: FastAPI, configurations: ModelConfigurations, enabled):
     def list_configs(user: AuthenticatedUser):
         return configurations.list(user["id"])
 
+    async def evaluate(user_id: str, saved: dict) -> dict:
+        # A new or changed model is evaluated (or waits for consent) right away (ADR-014).
+        hook = getattr(app.state, "on_configuration_saved", None)
+        if hook is not None:
+            await hook(user_id, saved)
+        return saved
+
     @app.post("/api/llm-configs", status_code=201)
-    def create(body: Configuration, user: AuthenticatedUser):
-        return configurations.save(user["id"], body)
+    async def create(body: Configuration, user: AuthenticatedUser):
+        return await evaluate(user["id"], configurations.save(user["id"], body))
 
     @app.put("/api/llm-configs/{identifier}")
-    def update(identifier: str, body: Configuration, user: AuthenticatedUser):
-        return configurations.save(user["id"], body, identifier)
+    async def update(identifier: str, body: Configuration, user: AuthenticatedUser):
+        return await evaluate(user["id"], configurations.save(user["id"], body, identifier))
 
     @app.delete("/api/llm-configs/{identifier}")
     def remove(identifier: str, user: AuthenticatedUser):

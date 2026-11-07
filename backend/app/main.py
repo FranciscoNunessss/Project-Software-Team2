@@ -15,6 +15,7 @@ from app.accounts import router as accounts_router
 from app.assessment import PROFILE_VERSION, RUBRIC_VERSION, explain_changes
 from app.catalogue import active_catalogue
 from app.coaching import install_coaching
+from app.evaluations import Ratings, install_evaluations
 from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
 from app.openrouter import CatalogueUnavailable, OpenRouterCatalogue, fetch_models
@@ -67,6 +68,7 @@ def create_app(
     prompt_coach_options: dict | None = None,
     chat_options: dict | None = None,
     openrouter_catalogue: OpenRouterCatalogue | None = None,
+    evaluation_options: dict | None = None,
 ) -> FastAPI:
     settings = with_server_models(settings or Settings())
     if settings.auth_mode == "supabase":
@@ -104,6 +106,7 @@ def create_app(
                 "/api/progress",
                 "/api/context",
                 "/api/llm-",
+                "/api/evaluations",
                 "/api/openrouter",
                 "/api/prompt-coach",
                 "/api/chat",
@@ -150,6 +153,16 @@ def create_app(
         lambda: fetch_models(settings.timeout_seconds)
     )
     app.state.openrouter_catalogue = router_models
+    # Automatic evaluation of the configured models (ADR-014). The worker starts with the
+    # server; tests and scripts pass {"worker": False} and drive it themselves.
+    install_evaluations(
+        app,
+        store,
+        configurations,
+        enabled,
+        router=router_models,
+        **({"worker": settings.evaluations_worker} | (evaluation_options or {})),
+    )
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, _exc: RequestValidationError):
@@ -601,6 +614,7 @@ def create_app(
                     {
                         "request": assessment_request,
                         "options": configurations.send_options(user["id"], enabled),
+                        "ratings": Ratings(store, active_catalogue(), user["id"]),
                         "task_chars": len(body.task),
                     }
                 )

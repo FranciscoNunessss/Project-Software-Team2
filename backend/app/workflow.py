@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
@@ -13,6 +13,8 @@ class State(TypedDict, total=False):
     request: AnalysisRequest
     # The models the user can send to (server and personal), for available_cards.
     options: list[Option]
+    # Gives each option its card and levels (app.evaluations.Ratings).
+    ratings: Any
     # Length of the user's own task text, without personal or session context.
     task_chars: int
     profile: Profile
@@ -50,7 +52,13 @@ def build_workflow(provider: AssessmentProvider):
         required = required_capabilities(profile, state["request"].required_capabilities)
         needs = task_needs(profile, state.get("task_chars", len(state["request"].task)), required)
         try:
-            result = recommend(needs, state.get("options", []), active_catalogue())
+            catalogue = active_catalogue()
+            ratings = state.get("ratings")
+            if ratings is not None:
+                ratings.catalogue = catalogue
+            result = recommend(
+                needs, state.get("options", []), catalogue, ratings.card if ratings else None
+            )
         except NoEligibleModel:
             raise ProviderFailure("no_eligible_candidate") from None
         questions, guidance, described_provisional = assessment_advice(profile)

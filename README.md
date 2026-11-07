@@ -582,6 +582,28 @@ still counted. Feedback per task is stored in `task_outcomes` (no text) and feed
 ("Your solved tasks"), the Educator and the Coach. In the second phase a calibration report proposes
 level changes from it (at least 10 tasks, completeness >= 75); it never changes the catalogue.
 
+## Automatic model evaluation (PROPOSED, ADR-014 A8/A9)
+
+Every model someone configured, and only those, is evaluated once by a background worker with
+the synthetic suite `measure-suite-1` (adaptive: level 2 first, then 3 or 1; at most 40 calls,
+1,024 output tokens each). Results of official cloud endpoints are shared by every user; local
+models are evaluated per user. A paid model with a user's key waits for consent that shows
+what, how, the estimated cost and a guaranteed maximum. LLM config › "How your models were
+evaluated" shows levels, sources, pass rates and example answers; "Disagree" is recorded but
+never changes a level. Sources of levels, best first: calibrated catalogue, measured,
+provisional catalogue, Artificial Analysis overall index (confirmed links only), same family.
+Details: [`docs/model-classification.md`](docs/model-classification.md); tests and manual
+check: [`docs/testing-model-evaluations.md`](docs/testing-model-evaluations.md).
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/evaluations` | The user's models with status, progress, estimate, levels and source |
+| POST | `/api/evaluations/{id}/consent` | `{accept, confirm_unknown_price}` for a paid evaluation |
+| POST | `/api/evaluations/reevaluate` | `{configuration_id}`: a new run (consent again when paid) |
+| POST | `/api/evaluations/{id}/disagree` | `{capability}`: recorded for the calibration report |
+
+`ADAPTAI_EVALUATIONS_WORKER=false` turns the worker off (tests and scripts).
+
 ## Architecture and limits
 
 `backend/app/models.py` owns domain contracts; `assessment.py` owns the provisional

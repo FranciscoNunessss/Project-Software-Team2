@@ -217,3 +217,12 @@ PostgreSQL/provider backups need their own retention/deletion policy; deleting a
 does not promise forensic removal from backups. PostgreSQL tests use generated schemas
 and synthetic data, independently of the application URL. No Supabase project or cloud
 data transfer is performed by this repository change.
+
+## Model evaluations (ADR-014 A8)
+
+`model_evaluations` holds, per evaluated model, its status, progress, cost estimate and spent
+amount, provider facts, levels and the answers to the **synthetic** evaluation tasks (truncated);
+no user text is ever sent or stored. `requested_by` is set to null when that account is
+deleted. `evaluation_disagreements` keeps only which user disagreed with which capability, and
+is deleted with the account or the evaluation.
+

@@ -15,7 +15,7 @@ from app.accounts import router as accounts_router
 from app.assessment import PROFILE_VERSION, RUBRIC_VERSION, explain_changes
 from app.catalogue import active_catalogue
 from app.coaching import install_coaching
-from app.evaluations import Ratings, install_evaluations
+from app.evaluations import Ratings, install_evaluations, pending_for
 from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
 from app.openrouter import CatalogueUnavailable, OpenRouterCatalogue, fetch_models
@@ -625,6 +625,14 @@ def create_app(
         candidates = state["candidates"]
         identifier = str(uuid4())
         notes = list(state["notes"])
+        # ADR-014 A8: say which of the user's models are still being evaluated.
+        waiting = pending_for(store, state.get("options", []), user["id"])
+        if waiting:
+            notes.append(
+                "Not in this recommendation yet: "
+                + "; ".join(waiting)
+                + ". They are used as soon as their evaluation finishes."
+            )
         with store.connect() as db:
             last = db.execute(
                 "SELECT outcome,reason,completeness FROM task_outcomes WHERE user_id=%s "

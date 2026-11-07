@@ -12,8 +12,10 @@ import { PromptCoachTips } from './PromptCoachTips'
 /** The "Use recommended" state of the analysis shown (chat only, current draft only). */
 export type UseRecommended = { state: 'available'; onUse: () => void } | { state: 'selected' | 'unavailable' | 'illustrative' }
 
-export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, fromHistory, onSend, useRecommended }: {
+export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, fromHistory, onSend, useRecommended, error }: {
   useRecommended?: UseRecommended
+  // The last analysis failed: said here, where the user is looking, with what to do.
+  error?: string
   open: boolean
   onClose: () => void
   analysis: Analysis | null
@@ -40,13 +42,14 @@ export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, 
         <div className="drawer-head">
           <div>
             <p className="eyebrow">Analysis</p>
-            <h2>{loading ? 'Analysing…' : analysis ? (analysis.recommendation_provisional ? 'Provisional recommendation' : 'Recommendation') : 'No analysis yet'}</h2>
+            <h2>{loading ? 'Analysing…' : error && !analysis ? 'Analysis failed' : analysis ? (analysis.recommendation_provisional ? 'Provisional recommendation' : 'Recommendation') : 'No analysis yet'}</h2>
           </div>
           <button type="button" className="icon-button drawer-close" aria-label="Close analysis" onClick={onClose}>×</button>
         </div>
         <div className="drawer-body">
           {loading && <p className="drawer-loading" role="status"><span className="spinner" />Assessing complexity, risk and context…</p>}
-          {!loading && !analysis && <p className="muted">Write a message and select <strong>Analyse</strong> to see how complete it is and which of your models fits it.</p>}
+          {!loading && error && <p className="api-error" role="alert" data-analysis-error="">The analysis failed: {error} Select <strong>Analyse</strong> to try again.</p>}
+          {!loading && !analysis && !error && <p className="muted">Write a message and select <strong>Analyse</strong> to see how complete it is and which of your models fits it.</p>}
           {!loading && analysis && (
             <>
               {stale && <p className="drawer-stale" role="status">The message changed since this analysis. Analyse again to update it.</p>}

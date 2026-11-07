@@ -341,8 +341,13 @@ async def run(
     configurations,
     model_factory: ModelFactory = chat_model,
     sleep: Callable = asyncio.sleep,
+    wait_turn: Callable | None = None,
 ) -> dict:
-    """Run one claimed evaluation to the end; never raises."""
+    """Run one claimed evaluation to the end; never raises.
+
+    ``wait_turn`` is awaited before every call: the worker gives way to the users' own
+    analyses and chats, which share the provider's rate limits.
+    """
     estimate_data = json.loads(row["estimate_json"] or "{}")
     facts = json.loads(row["facts_json"] or "null") or {}
     price_in = facts.get("price_in_per_mtok") or 0
@@ -362,6 +367,8 @@ async def run(
         chosen = [t for t in tasks if t.capability == name and t.level == level]
         passed = 0
         for task in chosen:
+            if wait_turn is not None:
+                await wait_turn()
             answer, reply = await _ask(llm, task, sleep)
             done += 1
             if answer is None:
@@ -469,11 +476,13 @@ def recover(store: Storage) -> None:
                 )
 
 
-async def run_next(store, configurations, model_factory=chat_model, sleep=asyncio.sleep):
+async def run_next(
+    store, configurations, model_factory=chat_model, sleep=asyncio.sleep, wait_turn=None
+):
     row = _claim(store)
     if row is None:
         return None
-    return await run(store, row, configurations, model_factory, sleep)
+    return await run(store, row, configurations, model_factory, sleep, wait_turn)
 
 
 # --- where the levels come from -------------------------------------------------------------
@@ -667,6 +676,30 @@ class Ratings:
         )
 
 
+def pending_for(store: Storage, options: list[Option], user_id: str) -> list[str]:
+    """Models of these options without levels yet, with what they wait for (for the notes)."""
+    found = []
+    with store.connect() as db:
+        for option in options:
+            if not option.model:
+                continue
+            server = (option.configuration_id or "").startswith("server:")
+            target = Target(
+                option.provider,
+                option.model,
+                option.configuration_id or "",
+                None if server else user_id,
+            )
+            row = _current(db, target)
+            if not row or row["status"] == "done":
+                continue
+            if row["status"] in {"queued", "running"}:
+                found.append(f"{option.model} (evaluating, {row['progress']}/{row['total']})")
+            elif row["status"] == "awaiting_consent":
+                found.append(f"{option.model} (waiting for your consent in LLM config)")
+    return found
+
+
 # --- API -----------------------------------------------------------------------------------
 
 
@@ -728,9 +761,26 @@ def install_evaluations(
     worker: bool = True,
     poll_seconds: float = 5.0,
     inventory_seconds: float = 3600.0,
+    pace_seconds: float = 2.0,
+    quiet_seconds: float = 20.0,
 ):
     """Routes, the hook for saved configurations and the background worker."""
     app.state.evaluation_configurations = configurations
+    app.state.last_user_call = 0.0
+
+    @app.middleware("http")
+    async def note_user_calls(request, call_next):
+        # Analyses and chat messages use the same provider quota as the evaluations.
+        path = request.url.path
+        if request.method == "POST" and (path == "/api/analyze" or path.startswith("/api/chats")):
+            app.state.last_user_call = time.monotonic()
+        return await call_next(request)
+
+    async def wait_turn():
+        """Pace the worker and pause it while users are analysing or chatting."""
+        await asyncio.sleep(pace_seconds)
+        while time.monotonic() - app.state.last_user_call < quiet_seconds:
+            await asyncio.sleep(1)
 
     def own_targets(user_id: str) -> list[Target]:
         return [
@@ -829,14 +879,16 @@ def install_evaluations(
         async def start_worker():
             async def loop():
                 recover(store)
-                last_inventory = 0.0
+                last_inventory = float("-inf")  # the first inventory runs at start-up
                 while True:
                     try:
                         if time.monotonic() - last_inventory > inventory_seconds:
                             for target in inventory(store, configurations, enabled):
                                 await ensure(store, target, router)
                             last_inventory = time.monotonic()
-                        while await run_next(store, configurations, model_factory):
+                        while await run_next(
+                            store, configurations, model_factory, wait_turn=wait_turn
+                        ):
                             pass
                     except Exception:  # noqa: BLE001 - the worker must never die
                         pass

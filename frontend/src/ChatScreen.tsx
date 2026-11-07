@@ -185,12 +185,13 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
     return id
   }
 
+  const [analysisError, setAnalysisError] = useState('')
   const analyse = async () => {
     const content = draft.trim()
     if (!content || busy || analysing || !selected) return
     // A new analysis starts a new task: the open one, if answered, gets its question now.
     if (!draftAnalysis) askAboutOpenTask()
-    setAnalysing(true); setDrawer(true); setError('')
+    setAnalysing(true); setDrawer(true); setError(''); setAnalysisError('')
     try {
       const fresh = !chatId
       const id = await ensureChat()
@@ -206,7 +207,8 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
       setDraftAnalysis({ analysis: result, text: draft }); setShown(result); setShownFromHistory(false)
       notifyProgressChange(); refreshList()
     } catch (failure) {
-      setError(failure instanceof ApiError ? failure.message : 'The analysis failed. Please retry.')
+      const message = failure instanceof ApiError ? failure.message : 'The analysis failed. Please retry.'
+      setError(message); setAnalysisError(message)
     } finally { setAnalysing(false) }
   }
 
@@ -361,7 +363,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
         {selected?.external && <p className="processing-notice">Selecting <strong>Analyse</strong> or <strong>Send</strong> sends your text to <strong>{selected.provider}</strong>. Messages are saved in this chat until you delete it.</p>}
       </section>
       <div className="drawer-slot">
-        <AnalysisDrawer open={drawer} onClose={() => setDrawer(false)} useRecommended={recommendedFor(shown)} analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory}
+        <AnalysisDrawer open={drawer} onClose={() => setDrawer(false)} error={analysisError || undefined} useRecommended={recommendedFor(shown)} analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory}
           onSend={sendable && !busy && !analysing ? () => { setDrawer(false); void send() } : undefined} />
       </div>
     </main>

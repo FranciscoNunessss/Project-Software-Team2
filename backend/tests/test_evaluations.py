@@ -411,3 +411,42 @@ def test_a_restart_retries_free_runs_and_fails_paid_ones():
     assert listed[GROQ]["evaluation"]["progress"] == 0
     assert listed["gpt-5.4-mini"]["evaluation"]["status"] == "failed"
     assert listed["gpt-5.4-mini"]["evaluation"]["failure"] == "interrupted"
+
+
+def test_the_analysis_says_which_models_are_still_being_evaluated():
+    app = make_app()
+    client = account(app)
+    by_model(client)  # queues the server model
+    result = client.post(
+        "/api/analyze", json={"task": "Plan a trip", "provider": "auto", "allow_external": True}
+    ).json()
+    assert any(
+        "Not in this recommendation yet" in note and GROQ in note for note in result["notes"]
+    )
+    drain(app)
+    result = client.post(
+        "/api/analyze", json={"task": "Plan a trip", "provider": "auto", "allow_external": True}
+    ).json()
+    assert not any("Not in this recommendation yet" in note for note in result["notes"])
+
+
+def test_the_worker_waits_for_its_turn_before_every_call():
+    app = make_app()
+    client = account(app)
+    by_model(client)
+    turns = []
+
+    async def wait_turn():
+        turns.append(1)
+
+    async def go():
+        return await run_next(
+            app.state.storage,
+            app.state.evaluation_configurations,
+            FakeModel(),
+            no_sleep,
+            wait_turn,
+        )
+
+    row = asyncio.run(go())
+    assert row["status"] == "done" and len(turns) == row["progress"]

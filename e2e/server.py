@@ -217,6 +217,8 @@ def build():
             "model_factory": FakeEvaluated,
             "poll_seconds": 0.5,
             "inventory_seconds": float("inf"),
+            "pace_seconds": 0,
+            "quiet_seconds": 0,
         },
     )
 

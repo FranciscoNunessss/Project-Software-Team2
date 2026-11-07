@@ -9,7 +9,11 @@ import { PromptCoachTips } from './PromptCoachTips'
 // Wide screens: a column docked beside the chat, which narrows to make room (never on top).
 // Narrow screens: a bottom sheet over the lower part of the chat, closed by its button,
 // the backdrop or Escape. The chat toolbar's "Analysis" button opens and closes it.
-export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, fromHistory, onSend }: {
+/** The "Use recommended" state of the analysis shown (chat only, current draft only). */
+export type UseRecommended = { state: 'available'; onUse: () => void } | { state: 'selected' | 'unavailable' | 'illustrative' }
+
+export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, fromHistory, onSend, useRecommended }: {
+  useRecommended?: UseRecommended
   open: boolean
   onClose: () => void
   analysis: Analysis | null
@@ -60,7 +64,7 @@ export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, 
                   <ul>{analysis.guidance.map(item => <li key={item}>{item}</li>)}</ul>
                 </Card>
               )}
-              <RecommendationCard analysis={analysis} />
+              <RecommendationCard analysis={analysis} useRecommended={useRecommended} />
               <TipsCard analysis={analysis} fromHistory={fromHistory} />
               {task !== undefined && <PromptCoachTips analysis={analysis} task={task} />}
               <ProfileCard analysis={analysis} />

@@ -80,23 +80,95 @@ def test_outcomes_are_deleted_with_the_session_and_the_history(app, tmp_path):
         assert db.execute("SELECT count(*) FROM task_outcomes").fetchone()[0] == 0
 
 
-def test_followed_recommendation_comes_from_the_model_used(app):
+def test_an_illustrative_recommendation_cannot_be_followed(app):
+    # Phase 1.1: the demo cards are not real models, so "followed" stays unknown (None),
+    # but the model used is always stored.
     client = account(TestClient(app))
     result = analyse(client)
-    best = result["recommendation"]["id"]
     other = result["alternatives"][0]["id"]
     client.post("/api/decisions", json={"analysis_id": result["id"], "candidate_id": other})
-    body = client.put(f"/api/analyses/{result['id']}/outcome", json={"outcome": "resolved"}).json()
-    assert body["model_card_id"] == other and body["followed_recommendation"] is False
-    second = analyse(client)
+    body = client.put(
+        f"/api/analyses/{result['id']}/outcome",
+        json={"outcome": "resolved", "provider": "groq", "model": "openai/gpt-oss-20b"},
+    ).json()
+    assert body["followed_recommendation"] is None
+    assert (body["used_provider"], body["used_model"]) == ("groq", "openai/gpt-oss-20b")
+    summary = client.get("/api/progress/outcomes").json()
+    assert summary["solved_rate_following"] is None and summary["followed"] == 0
+    assert summary["by_model"] == [{"model": "groq · openai/gpt-oss-20b", "tasks": 1, "solved": 1}]
+
+
+def real_models(monkeypatch):
+    small = card("small", 1, 0.1)
+    small["aliases"] = [{"provider": "groq", "model": "openai/gpt-oss-20b"}]
+    large = card("large", 3, 1.0)
+    large["aliases"] = [{"provider": "groq", "model": "openai/gpt-oss-120b"}]
+    test_catalogue = catalogue(small, large)
+    for target in ("app.workflow", "app.outcomes"):
+        monkeypatch.setattr(f"{target}.active_catalogue", lambda: test_catalogue)
+    try:  # the chat is optional and absent in the removal drill
+        monkeypatch.setattr("app.chat.active_catalogue", lambda: test_catalogue)
+    except ImportError:
+        pass
+
+    class Assessor:
+        async def assess(self, task):
+            return Assessment(profile=Profile.model_validate(profile_data(reasoning=3)))
+
+    settings = Settings(
+        _env_file=None,
+        groq_models="openai/gpt-oss-20b,openai/gpt-oss-120b",
+        groq_api_key="synthetic",
+    )
+    return account(TestClient(create_app(settings, {"groq": Assessor()})))
+
+
+def analyse_real(client):
+    return client.post(
+        "/api/analyze", json={"task": "Prove it", "provider": "auto", "allow_external": True}
+    ).json()
+
+
+def test_followed_is_yes_or_no_from_the_model_actually_used(monkeypatch):
+    client = real_models(monkeypatch)
+    first = analyse_real(client)
+    assert first["recommendation"]["model"] == "openai/gpt-oss-120b"
+    same = client.put(
+        f"/api/analyses/{first['id']}/outcome",
+        json={"outcome": "resolved", "provider": "groq", "model": "openai/gpt-oss-120b"},
+    ).json()
+    assert same["followed_recommendation"] is True and same["model_card_id"] == "large"
+    second = analyse_real(client)
+    other = client.put(
+        f"/api/analyses/{second['id']}/outcome",
+        json={"outcome": "not_resolved", "provider": "groq", "model": "openai/gpt-oss-20b"},
+    ).json()
+    assert other["followed_recommendation"] is False and other["model_card_id"] == "small"
+    # A model without a catalogue card: stored as used, and not the recommendation.
+    third = analyse_real(client)
+    unknown = client.put(
+        f"/api/analyses/{third['id']}/outcome",
+        json={"outcome": "resolved", "provider": "openrouter", "model": "some/other-model"},
+    ).json()
+    assert unknown["model_card_id"] is None and unknown["followed_recommendation"] is False
+    assert unknown["used_model"] == "some/other-model"
+    summary = client.get("/api/progress/outcomes").json()
+    assert summary["followed"] == 1
+    assert summary["solved_rate_following"] == 100 and summary["solved_rate_not_following"] == 50
+    names = {item["model"] for item in summary["by_model"]}
+    assert names == {"large", "small", "openrouter · some/other-model"}
+
+
+def test_without_the_model_used_the_recorded_choice_decides(monkeypatch):
+    client = real_models(monkeypatch)
+    result = analyse_real(client)
     client.post(
         "/api/decisions",
-        json={"analysis_id": second["id"], "candidate_id": second["recommendation"]["id"]},
+        json={"analysis_id": result["id"], "candidate_id": result["recommendation"]["id"]},
     )
-    body = client.put(f"/api/analyses/{second['id']}/outcome", json={"outcome": "resolved"}).json()
-    assert body["model_card_id"] == best and body["followed_recommendation"] is True
-    summary = client.get("/api/progress/outcomes").json()
-    assert summary["solved_rate_following"] == 100 and summary["solved_rate_not_following"] == 100
+    body = client.put(f"/api/analyses/{result['id']}/outcome", json={"outcome": "resolved"}).json()
+    assert body["followed_recommendation"] is True
+    assert body["used_model"] == "openai/gpt-oss-120b"
 
 
 @pytest.mark.chat

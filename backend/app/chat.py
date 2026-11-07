@@ -195,10 +195,20 @@ def public_message(row: dict) -> dict:
     keys = ("id", "role", "content", "provider", "model", "analysis_id", "status", "error")
     message = {key: row[key] for key in keys}
     message["created_at"] = row["created_at"]
+    message["completeness"] = None
+    message["recommended"] = None
     if "result_json" in row and row["result_json"]:
-        message["completeness"] = json.loads(row["result_json"]).get("completeness")
-    else:
-        message["completeness"] = None
+        result = json.loads(row["result_json"])
+        message["completeness"] = result.get("completeness")
+        best = result.get("recommendation") or {}
+        # Which model the analysis recommended, so the feedback can show it next to the one used.
+        message["recommended"] = {
+            "name": best.get("name"),
+            "provider": best.get("provider"),
+            "model": best.get("model"),
+            "configuration_id": best.get("configuration_id"),
+            "illustrative": bool(best.get("illustrative")),
+        }
     # Feedback for the task this analysed message starts (ADR-014), None while open.
     message["outcome"] = row.get("outcome")
     return message

@@ -23,6 +23,8 @@ test('the analysis names a model and shows how it covers each need', async ({ pa
   await expect(drawer.getByRole('row', { name: /Reasoning/ })).toBeVisible()
   await expect(drawer.getByText('Why this model')).toBeVisible()
   await expect(drawer.getByText(/illustrative demo models/)).toBeVisible()
+  // Use recommended: an illustrative card is not a real model, so it cannot be selected.
+  await expect(drawer.locator('[data-use-recommended-state="illustrative"]')).toBeVisible()
 })
 
 test('task solved is asked once, under the answers, never per answer', async ({ page }) => {
@@ -34,6 +36,8 @@ test('task solved is asked once, under the answers, never per answer', async ({ 
   await expect(page.locator('[data-chat-message="assistant"]')).toHaveCount(2)
   await expect(page.locator('[data-task-solved]')).toHaveCount(1)
   await page.locator('[data-task-solved]').click()
+  await expect(page.locator('[data-task-models]')).toContainText('You used')
+  await expect(page.locator('[data-task-models]')).toContainText('illustrative, not a real model')
   const saved = page.waitForRequest(request => request.method() === 'PUT' && request.url().endsWith('/outcome'))
   await page.locator('[data-task-refine]').getByRole('button', { name: 'Yes' }).click()
   const body = (await saved).postDataJSON()
@@ -54,6 +58,7 @@ test('starting the next task asks about the previous one, and Skip is final', as
   await page.locator('[data-analyse-button]').click()
   const card = page.locator('[data-outcome-card]')
   await expect(card).toBeVisible()
+  await expect(card.locator('[data-task-models]')).toContainText('You used')
   await card.getByRole('button', { name: 'Not solved' }).click()
   await card.getByRole('radio', { name: 'I described it poorly' }).click()
   const saved = page.waitForRequest(request => request.method() === 'PUT' && request.url().endsWith('/outcome'))

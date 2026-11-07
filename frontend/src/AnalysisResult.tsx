@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { UseRecommended } from './AnalysisDrawer'
 import { COST_BAND_LABELS, NEED_LABELS, STATUS_LABELS, fitPercent, isLegacy, tierOf, type Analysis, type Candidate, type Coverage } from './api'
 
 // Result cards shared by the Assistant page and the chat's analysis panel.
@@ -141,7 +142,14 @@ function shortText(candidate: Candidate) {
 }
 
 /** The recommended model, how it covers each need of the task, and the alternatives (ADR-014). */
-export function ModelRecommendationCard({ analysis }: { analysis: Analysis }) {
+function UseButton({ use }: { use?: UseRecommended }) {
+  if (!use) return null
+  if (use.state === 'available') return <button type="button" className="button button-primary use-recommended" onClick={use.onUse} data-use-recommended="">Use this model</button>
+  const text = { selected: '✓ Selected for Send', unavailable: 'Not among your models', illustrative: 'Illustrative: not a real model' }[use.state]
+  return <p className="use-recommended-state muted" data-use-recommended-state={use.state}>{text}</p>
+}
+
+export function ModelRecommendationCard({ analysis, useRecommended }: { analysis: Analysis; useRecommended?: UseRecommended }) {
   const best = analysis.recommendation
   const coverage = best.coverage ?? []
   return (
@@ -154,6 +162,7 @@ export function ModelRecommendationCard({ analysis }: { analysis: Analysis }) {
         </div>
         <span className={`status-pill status-${best.status}`}>{STATUS_LABELS[best.status ?? 'short']}</span>
       </div>
+      <UseButton use={useRecommended} />
       {coverage.length > 0 && (
         <table className="coverage-table">
           <caption className="sr-only">How the recommended model covers each need of the task</caption>
@@ -197,8 +206,8 @@ export function ModelRecommendationCard({ analysis }: { analysis: Analysis }) {
 }
 
 /** The recommendation card for any analysis: a model, or a tier for analyses stored before ADR-014. */
-export function RecommendationCard({ analysis }: { analysis: Analysis }) {
-  return isLegacy(analysis.recommendation) ? <TierCard analysis={analysis} /> : <ModelRecommendationCard analysis={analysis} />
+export function RecommendationCard({ analysis, useRecommended }: { analysis: Analysis; useRecommended?: UseRecommended }) {
+  return isLegacy(analysis.recommendation) ? <TierCard analysis={analysis} /> : <ModelRecommendationCard analysis={analysis} useRecommended={useRecommended} />
 }
 
 export function TierCard({ analysis }: { analysis: Analysis }) {

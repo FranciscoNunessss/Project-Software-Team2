@@ -163,14 +163,14 @@ export function ModelRecommendationCard({ analysis }: { analysis: Analysis }) {
               <tr key={entry.need} className={`coverage-${entry.state}`}>
                 <th scope="row">{NEED_LABELS[entry.need]}</th>
                 <td>{needText(entry)}</td>
-                <td>{entry.capability ?? 'n/a'}{entry.provisional && <span className="provisional-mark" title="Provisional level, not calibrated yet"> *</span>}</td>
+                <td>{entry.capability ?? 'n/a'}{entry.provisional && <span className="provisional-mark" title="Not reviewed by the team yet"> *</span>}</td>
                 <td>{entry.state === 'covers' ? 'Yes' : entry.state === 'covers_as_described' ? 'As described' : 'No'}</td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
-      {coverage.some(entry => entry.provisional) && <p className="muted">{best.illustrative ? '* Illustrative level of a demo model, not a real measurement.' : '* Provisional level from public benchmarks, not calibrated by the team yet.'}</p>}
+      {coverage.some(entry => entry.provisional) && <p className="muted">{best.illustrative ? '* Illustrative level of a demo model, not a real measurement.' : '* Level from public benchmarks or the automatic measurement, not reviewed by the team yet.'}</p>}
       {(analysis.notes ?? []).length > 0 && (
         <ul className="recommendation-notes">{(analysis.notes ?? []).map(note => <li key={note}>{note}</li>)}</ul>
       )}

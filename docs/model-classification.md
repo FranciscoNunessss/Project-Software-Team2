@@ -18,7 +18,14 @@ version, which never changes once registered.
 | `facts` | Context window, modalities, request capabilities, tool calling, structured output, input and output price per million tokens, free, local, source URL, `observed_on` |
 | `capabilities` | Reasoning, context, domain, reliability, tools: each `{level 1-3, status, source, observed_on}`; status `provisional`, `calibrated` or `unrated` |
 
-A card with an unrated capability can be used in the chat but is never recommended.
+A card with an unrated capability can be used in the chat but is never recommended. Order of
+trust: `calibrated` (reviewed by people) > `measured` (our automatic suite) > `provisional`
+(public benchmarks).
+
+Why the automatic measurement: on 6 November 2026 the free Artificial Analysis API published
+Intelligence Index v5 values for only 108 of 726 models; of our batch only Claude Sonnet 5.5
+and Gemma 4 31B had one, and the server models (gpt-oss) had none. Measuring the models
+ourselves covers every model we can call, with the same tasks and the same grader.
 
 ## The four steps
 
@@ -26,6 +33,7 @@ A card with an unrated capability can be used in the chat but is never recommend
 |---|---|---|---|
 | 1. Facts | `scripts/import_openrouter_facts.py` saves OpenRouter's public catalogue (no key) to `backend/data/catalogue/sources/openrouter-<date>.json`. `--search gemma` lists ids | Anyone; the "Catalogue sources" workflow does it on a `data/**` branch | Facts with date and source URL |
 | 2. Provisional levels | `scripts/snapshot_benchmarks.py` saves the Artificial Analysis results (needs `ADAPTAI_AA_API_KEY`, or the `ARTIFICIAL_ANALYSES_ADAPTAI` repository secret for the workflow) to `sources/aa-<date>.json`. `scripts/build_catalogue.py` creates `benchmark-mapping-1` from that snapshot the first time and rates every model of the batch | Anyone; AO approves the version | A new catalogue version with `provisional` levels |
+| 2b. Automatic measurement (main source for the models we serve) | `scripts/measure_models.py` puts every catalogue model a key can reach through `measure-suite-1` (60 tasks, 4 per capability and level, generated from a seed, graded by a program: numbers, exact text, JSON calls, format rules, "I don't know" on unanswerable questions). Level L needs at least 75% at L and every level below. `scripts/apply_measurements.py runs/*.json --version catalogue-2.x` writes the levels with status `measured`. On GitHub, the "Measure models" workflow does it on a `data/measure-*` branch with the `GROQ_API_KEY` and `OPENROUTER_API_KEY` secrets (paid models only with `[allow-paid]` in the commit message) | Anyone; AO approves the version | `measured` levels from our own test, the same for every model |
 | 3. Calibration | `scripts/run_calibration.py run --provider ... --model ...` answers the 30 tasks of `backend/eval/calibration/calibration-set-1.json`; two reviewers mark pass or fail; `run_calibration.py score <sheet>` gives the levels | Team | `calibrated` levels in a new version |
 | 4. Continuous review | `scripts/calibration_report.py` reads the task feedback and proposes raising or lowering levels (at least 10 tasks per model, capability and level, completeness >= 75) | AO and team | A new version when the team agrees |
 

@@ -44,6 +44,7 @@ task, so nothing could improve the recommendation.
 | A4 | Cost bands on the blended price `(3 x input + output) / 4` per million tokens: low up to 0.50 USD, medium up to 5.00, high above; local and free models cost 0 | Three bands show the order of magnitude; the choice uses the exact price |
 | A5 | First batch: gpt-oss-20b, gpt-oss-120b, the Gemma models the team uses, one Claude Sonnet and one GPT mini | The default model, a second level on the server, the references users configure |
 | A6 | Several server models per provider (`ADAPTAI_<PROVIDER>_MODELS`) | Without two levels on the server, users without their own models have no choice |
+| A7 | Automatic measurement suite `measure-suite-1` as the main source for the models we can call; status `measured` between `provisional` and `calibrated` | The free benchmark API had no values for our server models (108 of 726 models on index v5). Our own suite measures every model the same way, repeatably and without reviewers |
 
 ## How it works
 
@@ -57,6 +58,7 @@ task, so nothing could improve the recommendation.
 | Old analyses keep their tier and are still shown and counted | `candidate_gap`, `TierCard` |
 | Feedback: `task_outcomes` (schema v8), `PUT /api/analyses/{id}/outcome`, totals in `GET /api/progress/outcomes`; Send records the choice | `backend/app/outcomes.py`, `backend/app/chat.py` |
 | Educator, Coach and My progress use the outcome totals | `backend/app/coaching.py`, `backend/app/main.py`, `frontend/src/TaskOutcomes.tsx` |
+| Automatic measurement: 60 generated tasks graded by a program, runner, apply script, "Measure models" workflow | `backend/app/measurement.py`, `scripts/measure_models.py`, `scripts/apply_measurements.py` |
 | Calibration report (proposes level changes, changes nothing) | `scripts/calibration_report.py` |
 
 Removed: `demand_estimate`, `tier_fit`, `capacity_target`, the graded parameters, the chat's

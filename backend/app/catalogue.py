@@ -7,8 +7,9 @@ is invalid or does not match its hash.
 
 A card holds facts from the provider (context window, modalities, prices), five capability
 levels on the rubric's 1-3 scale and the aliases under which providers serve the model. A
-capability level is provisional (public benchmarks, docs/model-classification.md), calibrated
-(the team's calibration set) or unrated. Only fully rated cards are ever recommended.
+capability level is provisional (public benchmarks), measured (the automatic measurement suite,
+app/measurement.py), calibrated (reviewed by the team) or unrated. Only fully rated cards are
+ever recommended.
 """
 
 import hashlib
@@ -30,7 +31,7 @@ class CatalogueError(Exception):
 class Rating(BaseModel):
     model_config = ConfigDict(extra="forbid")
     level: int | None = Field(ge=1, le=3)
-    status: Literal["provisional", "calibrated", "unrated"]
+    status: Literal["provisional", "measured", "calibrated", "unrated"]
     source: str = ""
     observed_on: str | None = None
 

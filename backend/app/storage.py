@@ -122,10 +122,13 @@ class Storage:
                 raise RuntimeError("Database schema is newer than this application")
             for path in migrations:
                 version = int(path.name.split("_", 1)[0])
-                contents = path.read_bytes()
+                contents = path.read_bytes().replace(b"\r\n", b"\n")
                 checksum = hashlib.sha256(contents).hexdigest()
+                # Existing Windows installs may have recorded CRLF. Accept only
+                # that exact newline variant; changed SQL still fails verification.
+                windows_checksum = hashlib.sha256(contents.replace(b"\n", b"\r\n")).hexdigest()
                 if version in applied:
-                    if applied[version] != checksum:
+                    if applied[version] not in {checksum, windows_checksum}:
                         raise RuntimeError(f"Applied database migration {version} was modified")
                     continue
                 db.execute(contents.decode("utf-8"))

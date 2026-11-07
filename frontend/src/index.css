@@ -956,7 +956,8 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .nav-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 40; width: 250px; padding: 6px; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 18px 50px rgba(40,40,40,.14); }
 .nav-menu-account { margin: 0; padding: 8px 10px 10px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-bottom: 1px solid var(--line); }
 .account-indicator { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: var(--ink); }
-.nav-menu-pages { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.nav-menu-pages { display: flex; flex-direction: column; gap: 2px; padding-top: 6px; }
+.nav-menu-footer { display: none; }
 .nav-menu-footer { display: flex; flex-direction: column; gap: 2px; padding-top: 6px; }
 .menu-item { width: 100%; min-height: 38px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border: 0; border-radius: 9px; background: none; color: var(--ink); font-size: 13px; font-weight: 500; text-align: left; }
 .menu-item:hover { background: var(--blue-soft); }
@@ -968,6 +969,18 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .theme-dark .nav-menu { box-shadow: 0 18px 50px #0008; }
 .theme-dark .menu-item.active { background: #f2f2f2; color: #141414; }
 .theme-dark .brand-caret { border-color: #a9a9a9; }
+
+/* Bottom of the sidebar: theme, sign out, API status (as before the chat list moved here). */
+.sidebar-footer { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.sidebar-footer .theme-toggle { margin: 0; }
+.sidebar-signout { min-height: 40px; border: 1px solid #dfdfdf; border-radius: 10px; background: transparent; color: #555555; padding: 0 11px; font-size: 11px; font-weight: 600; text-align: left; }
+.sidebar-signout:hover { background: #eeeeee; color: #222222; }
+.sidebar-signout:disabled { opacity: .5; cursor: default; }
+.sidebar-footer .status { margin-top: 18px; padding: 12px 10px 2px; }
+.theme-dark .sidebar-signout { border-color: #383838; color: #d4d4d4; }
+.theme-dark .sidebar-signout:hover { background: #2b2b2b; color: #ffffff; }
+.sidebar-pages { flex: 1; min-height: 0; }
+.sidebar-pages .sidebar-footer { margin-top: auto; }
 
 /* Pages sit centred in the space beside the sidebar. */
 .app-main { margin-left: 292px; min-width: 0; }
@@ -984,6 +997,9 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .chat-toolbar .chat-title { min-width: 0; }
 .chat-analysis-toggle { min-height: 34px; padding: 0 12px; font-size: 12px; }
 .chat-analysis-toggle.active { background: var(--blue-soft); }
+/* The model picker keeps its size; the actions wrap onto their own row when space runs out. */
+.chat-composer .composer-footer > * { flex-shrink: 0; max-width: 100%; }
+.chat-composer .model-picker { flex: 0 0 auto; }
 
 /* Analysis, wide screens: a docked column beside the chat. */
 .drawer-slot { position: relative; min-width: 0; height: 100%; overflow: hidden; }
@@ -1024,6 +1040,12 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
   .sidebar-chats.open { transform: none; visibility: visible; transition: transform .28s ease, visibility 0s; }
   .sidebar-drawer-close { display: grid; }
   .sidebar-pages { display: none; }
+  .nav-menu-footer { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+  /* Undo the top-bar icon styles: in the chats drawer these are full buttons again. */
+  .sidebar-footer .theme-toggle { width: auto; min-height: 40px; padding: 0 11px; justify-content: flex-start; border-radius: 10px; }
+  .sidebar-footer .theme-toggle > span:last-child { display: inline; }
+  .sidebar-footer .theme-toggle-icon { width: 18px; height: 18px; }
+  .sidebar-footer .status { margin: 10px 0 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 12px 10px 2px; font-size: 11px; gap: 8px; }
   .chat-layout.page { height: calc(100vh - 56px); height: calc(100dvh - 56px); padding: 10px 12px; }
   .chat-messages { min-height: 120px; }
   .chat-composer { padding: 12px; }

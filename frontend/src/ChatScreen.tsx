@@ -246,7 +246,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
     <main className={`page chat-layout${drawer ? ' with-drawer' : ''}`} data-chat-screen="">
       <section className="chat-main">
         <div className="chat-toolbar">
-          <span className="muted chat-title">{(chatId && title) || 'New chat'}</span>
+          <span className="muted chat-title">{chatId ? title : ''}</span>
           <button type="button" className={`button button-secondary chat-analysis-toggle${drawer ? ' active' : ''}`} onClick={() => setDrawer(!drawer)}
             aria-expanded={drawer} aria-controls="analysis-panel" aria-label={drawer ? 'Hide analysis' : 'Show analysis'} data-analysis-toggle="">
             Analysis{shown && shown.completeness != null ? ` · ${shown.completeness}/100` : ''}

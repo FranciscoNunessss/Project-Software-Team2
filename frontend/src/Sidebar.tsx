@@ -42,6 +42,9 @@ export function Sidebar({ screen, onNavigate, dark, onToggleTheme, account, chat
     return () => document.removeEventListener('keydown', onKey)
   }, [drawer])
 
+  // Theme, sign out and API status sit at the bottom of the sidebar (inside the chats drawer on phones).
+  const footer = <SidebarFooter dark={dark} onToggleTheme={onToggleTheme} account={account} />
+
   return (
     <header className="topbar">
       <div className="nav-shell">
@@ -51,7 +54,7 @@ export function Sidebar({ screen, onNavigate, dark, onToggleTheme, account, chat
               <span className="hamburger" aria-hidden="true" />
             </button>
           )}
-          <NavMenu screen={screen} onNavigate={onNavigate} dark={dark} onToggleTheme={onToggleTheme} account={account} />
+          <NavMenu screen={screen} onNavigate={onNavigate} dark={dark} onToggleTheme={onToggleTheme} account={account} compactFooter={!chats} />
           {chats && (
             <button type="button" className="icon-button sidebar-new-icon" aria-label="New chat" onClick={chats.onNew} disabled={chats.locked}>
               <span aria-hidden="true">+</span>
@@ -79,6 +82,7 @@ export function Sidebar({ screen, onNavigate, dark, onToggleTheme, account, chat
                 ))}
                 {chats.list.length === 0 && <li className="chat-empty-list">No chats yet.</li>}
               </ul>
+              {footer}
             </nav>
           </>
         ) : (
@@ -86,6 +90,7 @@ export function Sidebar({ screen, onNavigate, dark, onToggleTheme, account, chat
             {PAGES.map(page => (
               <button key={page.screen} type="button" className={`menu-item${screen === page.screen ? ' active' : ''}`} onClick={() => onNavigate(page.screen)}>{page.label}</button>
             ))}
+            {footer}
           </nav>
         )}
       </div>
@@ -93,18 +98,36 @@ export function Sidebar({ screen, onNavigate, dark, onToggleTheme, account, chat
   )
 }
 
-function NavMenu({ screen, onNavigate, dark, onToggleTheme, account }: {
+function SidebarFooter({ dark, onToggleTheme, account }: { dark: boolean; onToggleTheme: () => void; account: AccountInfo }) {
+  const online = useApiStatus()
+  return (
+    <div className="sidebar-footer">
+      <button type="button" className="theme-toggle" onClick={onToggleTheme} aria-label={`Switch to ${dark ? 'light' : 'dark'} mode`} aria-pressed={dark}>
+        <span className="theme-toggle-icon" aria-hidden="true" />
+        <span>{dark ? 'Light mode' : 'Dark mode'}</span>
+      </button>
+      <button type="button" className="sidebar-signout" onClick={account.signOut} disabled={account.busy}>Sign out</button>
+      <span className={`status${online === false ? ' degraded' : ''}`} role="status">
+        <span className="status-dot" />
+        {online === null ? 'Checking API' : online ? 'API online' : 'API unavailable'}
+      </span>
+    </div>
+  )
+}
+
+// compactFooter: without the chat module there is no chats drawer on phones, so the menu
+// carries theme and sign out there instead.
+function NavMenu({ screen, onNavigate, dark, onToggleTheme, account, compactFooter }: {
   screen: Screen
   onNavigate: (screen: Screen) => void
   dark: boolean
   onToggleTheme: () => void
   account: AccountInfo
+  compactFooter: boolean
 }) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
-  const online = useApiStatus()
-
   useEffect(() => {
     if (!open) return
     root.current?.querySelector<HTMLButtonElement>('.menu-item.active, .menu-item')?.focus()
@@ -133,15 +156,14 @@ function NavMenu({ screen, onNavigate, dark, onToggleTheme, account }: {
                 onClick={() => { setOpen(false); onNavigate(page.screen) }}>{page.label}</button>
             ))}
           </nav>
-          <div className="nav-menu-footer">
-            <button type="button" className="menu-item menu-theme" onClick={onToggleTheme} aria-pressed={dark}>
-              <span className="theme-toggle-icon" aria-hidden="true" />{dark ? 'Light mode' : 'Dark mode'}
-            </button>
-            <button type="button" className="menu-item menu-signout" onClick={account.signOut} disabled={account.busy}>Sign out</button>
-            <p className={`menu-status${online === false ? ' degraded' : ''}`} role="status">
-              <span className="status-dot" />{online === null ? 'Checking API' : online ? 'API online' : 'API unavailable'}
-            </p>
-          </div>
+          {compactFooter && (
+            <div className="nav-menu-footer">
+              <button type="button" className="menu-item menu-theme" onClick={onToggleTheme} aria-pressed={dark}>
+                <span className="theme-toggle-icon" aria-hidden="true" />{dark ? 'Light mode' : 'Dark mode'}
+              </button>
+              <button type="button" className="menu-item menu-signout" onClick={account.signOut} disabled={account.busy}>Sign out</button>
+            </div>
+          )}
         </div>
       )}
     </div>

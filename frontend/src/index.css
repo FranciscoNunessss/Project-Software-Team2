@@ -695,7 +695,7 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
   .nav-item { padding-inline: 7px; }
 }
 @media (max-width: 430px) {
-  .brand > span:last-child { display: none; }
+  .brand-name { display: none; }
   .main-nav .nav-item { display: block; font-size: 11px; }
   .theme-toggle + .status { display: none; }
   .profile-card-settings, .personal-context { padding: 20px; }
@@ -792,9 +792,7 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 @media (max-width: 600px) { .learning-dimensions li { grid-template-columns: 1fr auto; } .learning-dimensions li span:nth-child(2) { display: none; } }
 
 /* Optional chat (ADR-011) */
-.chat-layout { display: grid; grid-template-columns: 220px 1fr; gap: 24px; padding-bottom: 28px; }
-.chat-sidebar { display: flex; flex-direction: column; gap: 12px; }
-.chat-new { width: 100%; }
+.chat-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; padding-bottom: 28px; }
 .chat-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; max-height: calc(100vh - 260px); }
 .chat-list li { display: flex; align-items: center; border-radius: 8px; }
 .chat-list li.active, .chat-list li:hover { background: var(--blue-soft); }
@@ -820,8 +818,8 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .chat-composer textarea { min-height: 64px; }
 .theme-dark .chat-composer { background: var(--surface); border-color: var(--line); }
 .theme-dark .chat-composer textarea { color: var(--ink); }
-@media (max-width: 760px) { .chat-layout { grid-template-columns: 1fr; } .chat-list { max-height: 160px; } .chat-message { max-width: 92%; } }
-.chat-layout.with-drawer { grid-template-columns: 200px minmax(0, 1fr) 400px; max-width: none; }
+@media (max-width: 760px) { .chat-message { max-width: 92%; } }
+.chat-layout.with-drawer { max-width: none; }
 .chat-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .chat-toolbar .muted { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chat-analysis-chip { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 600; }
@@ -836,10 +834,6 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .drawer-body { overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
 .drawer-body .card { min-height: 0; padding: 16px; box-shadow: none; }
 .drawer-stale { margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--blue-soft); color: var(--ink); font-size: 12px; }
-@media (max-width: 1100px) {
-  .chat-layout.with-drawer { grid-template-columns: 200px minmax(0, 1fr); }
-  .analysis-drawer { position: fixed; top: 16px; right: 16px; bottom: 16px; width: min(420px, calc(100vw - 32px)); max-height: none; z-index: 25; }
-}
 .drawer-body > * { flex-shrink: 0; }
 .chat-toolbar .button { white-space: nowrap; flex-shrink: 0; }
 .chat-composer .composer-footer { flex-wrap: wrap; row-gap: 10px; }
@@ -847,22 +841,15 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 
 /* The chat fills the window: only the conversation (and the panels) scroll. */
 .chat-layout.page { overflow-x: clip; min-height: 0; height: calc(100vh - 72px); padding-top: 16px; padding-bottom: 16px; grid-template-rows: minmax(0, 1fr); }
-.chat-sidebar, .chat-main { min-height: 0; }
-.chat-list { max-height: none; flex: 1; min-height: 0; }
+.chat-main { min-height: 0; }
 .chat-messages { max-height: none; min-height: 0; }
 .analysis-drawer { position: static; max-height: 100%; height: 100%; }
 .drawer-loading { display: flex; align-items: center; gap: 8px; margin: 8px 4px; color: var(--muted); font-size: 12px; font-weight: 600; }
-@media (max-width: 800px) { .chat-layout.page { height: auto; } .chat-messages { max-height: 60vh; } }
-.chat-layout.with-drawer { grid-template-columns: 180px minmax(0, 1fr) 340px; }
-@media (max-width: 1200px) {
-  .chat-layout.with-drawer { grid-template-columns: 200px minmax(0, 1fr); }
-  .analysis-drawer { position: fixed; top: 16px; right: 16px; bottom: 16px; width: min(420px, calc(100vw - 32px)); height: auto; max-height: none; z-index: 25; }
-}
 .drawer-body { position: relative; } /* Keeps absolutely positioned bits (sr-only labels) inside its scroll area. */
 
 /* Analysis panel: slides in from the right; its tab is part of the panel (click or drag). */
-.chat-layout.page { grid-template-columns: 200px minmax(0, 1fr) 0px; transition: grid-template-columns .28s ease; }
-.chat-layout.page.with-drawer { grid-template-columns: 180px minmax(0, 1fr) 340px; }
+.chat-layout.page { grid-template-columns: minmax(0, 1fr) 0px; transition: grid-template-columns .28s ease; }
+.chat-layout.page.with-drawer { grid-template-columns: minmax(0, 1fr) 340px; }
 .drawer-slot { position: relative; min-width: 0; height: 100%; }
 .analysis-drawer { position: absolute; align-self: stretch; top: 0; right: 0; bottom: 0; width: 340px; max-height: none; height: auto; display: block; overflow: visible; border: 0; background: none; box-shadow: none; transform: translateX(calc(100% + 28px)); transition: transform .28s ease; z-index: 6; }
 .analysis-drawer.open { transform: none; }
@@ -876,7 +863,7 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .drawer-tab:hover .drawer-tab-label, .drawer-tab:focus-visible .drawer-tab-label { max-width: 120px; opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .chat-layout.page, .analysis-drawer, .drawer-tab, .drawer-tab-label { transition: none; } }
 @media (max-width: 1200px) {
-  .chat-layout.page, .chat-layout.page.with-drawer { grid-template-columns: 200px minmax(0, 1fr); }
+  .chat-layout.page, .chat-layout.page.with-drawer { grid-template-columns: minmax(0, 1fr); }
   .drawer-slot { display: contents; }
   .analysis-drawer { position: fixed; top: 16px; right: 16px; bottom: 16px; width: min(420px, calc(100vw - 48px)); transform: translateX(calc(100% + 16px)); }
   .analysis-drawer:not(.open) .drawer-tab { right: calc(100% + 16px - 1px); }
@@ -943,3 +930,127 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .outcome-metrics dd { margin: 4px 0 0; font-size: 18px; font-weight: 600; }
 .outcome-models { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 12px; }
 .outcome-models li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); padding: 4px 0; }
+
+/* ---------- App shell: sidebar laid out like Claude's (pages on top, chats below) ---------- */
+.topbar { width: 260px; }
+.nav-shell { padding: 14px 10px 12px; gap: 10px; min-height: 0; }
+.sidebar-head { display: flex; align-items: center; gap: 4px; }
+.sidebar-head .brand { flex: 1; min-width: 0; padding: 6px 10px 8px; border-radius: 10px; }
+.icon-button { width: 36px; height: 36px; display: grid; place-items: center; flex-shrink: 0; border: 0; border-radius: 10px; background: transparent; color: var(--ink); font-size: 20px; line-height: 1; }
+.icon-button:hover { background: var(--blue-soft); }
+.icon-button:disabled { opacity: .45; cursor: default; }
+.sidebar-drawer-toggle, .sidebar-new-icon, .sidebar-backdrop, .sidebar-panel-head { display: none; }
+.hamburger { width: 16px; height: 2px; border-radius: 2px; background: currentColor; box-shadow: 0 -5px 0 currentColor, 0 5px 0 currentColor; }
+
+.sidebar-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 1px; }
+.menu-item { width: 100%; min-height: 36px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border: 0; border-radius: 9px; background: none; color: var(--ink); font-size: 13px; font-weight: 500; text-align: left; }
+.menu-item:hover { background: var(--blue-soft); }
+.menu-item.active { background: var(--blue-soft); font-weight: 650; }
+.menu-item:disabled { opacity: .5; cursor: default; }
+.sidebar-icon { flex-shrink: 0; color: var(--muted); }
+.menu-item.active .sidebar-icon, .menu-item:hover .sidebar-icon { color: var(--ink); }
+.sidebar-new { font-weight: 600; }
+.sidebar-new-mark { width: 22px; height: 22px; margin-left: -3px; display: grid; place-items: center; border-radius: 50%; background: #202020; }
+.sidebar-new-mark .sidebar-icon { color: #ffffff; }
+.sidebar-new:hover .sidebar-new-mark .sidebar-icon { color: #ffffff; }
+.theme-dark .sidebar-new-mark { background: #f2f2f2; }
+.theme-dark .sidebar-new-mark .sidebar-icon, .theme-dark .sidebar-new:hover .sidebar-new-mark .sidebar-icon { color: #141414; }
+
+.sidebar-chats { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 4px; margin-top: 14px; }
+.sidebar-section-title { margin: 0; padding: 0 10px 4px; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+.chat-list { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; max-height: none; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+.chat-list li { border-radius: 9px; }
+.chat-open { padding: 8px 10px; font-size: 13px; }
+.sidebar-spacer { flex: 1; }
+@media (hover: none) { .chat-delete { opacity: 1; } }
+
+/* Bottom of the sidebar: account, theme, sign out, API status. */
+.sidebar-footer { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.sidebar-account { margin: 0; padding: 0 4px; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-indicator { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: var(--ink); }
+.sidebar-footer .theme-toggle { margin: 0; }
+.sidebar-signout { min-height: 40px; border: 1px solid #dfdfdf; border-radius: 10px; background: transparent; color: #555555; padding: 0 11px; font-size: 11px; font-weight: 600; text-align: left; }
+.sidebar-signout:hover { background: #eeeeee; color: #222222; }
+.sidebar-signout:disabled { opacity: .5; cursor: default; }
+.sidebar-footer .status { margin-top: 18px; padding: 12px 10px 2px; }
+.theme-dark .sidebar-signout { border-color: #383838; color: #d4d4d4; }
+.theme-dark .sidebar-signout:hover { background: #2b2b2b; color: #ffffff; }
+
+/* Pages sit centred in the space beside the sidebar. */
+.app-main { margin-left: 292px; min-width: 0; }
+.app-main > .page, .app-main > footer { margin-left: auto; margin-right: auto; }
+.account-error { position: fixed; top: 16px; right: 16px; z-index: 50; margin: 0; }
+
+/* Chat: full height; the conversation is a centred column, whatever the screen width. */
+.chat-layout.page { max-width: none; height: 100vh; height: 100dvh; padding: 16px 24px; gap: 0; grid-template-columns: minmax(0, 1fr) 0px; }
+.chat-layout.page.with-drawer { gap: 20px; grid-template-columns: minmax(0, 1fr) 380px; }
+.chat-main { gap: 10px; }
+.chat-messages { padding-inline: max(4px, calc((100% - 860px) / 2)); }
+.chat-toolbar, .chat-main > .chat-composer, .chat-main > .processing-notice, .chat-main > .error-banner { width: 100%; max-width: 860px; margin-inline: auto; }
+.chat-toolbar { min-height: 36px; }
+.chat-toolbar .chat-title { min-width: 0; }
+button.chat-recommendation { border: 0; background: none; padding: 4px 6px; border-radius: 8px; cursor: pointer; }
+button.chat-recommendation:hover { background: var(--blue-soft); color: var(--ink); }
+/* The model picker keeps its size; the actions wrap onto their own row when space runs out. */
+.chat-composer .composer-footer > * { flex-shrink: 0; max-width: 100%; }
+.chat-composer .model-picker { flex: 0 0 auto; }
+
+/* Analysis, wide screens: a panel floating over the right of the chat. The chat never moves. */
+.chat-layout.page, .chat-layout.page.with-drawer { gap: 0; grid-template-columns: minmax(0, 1fr); }
+.drawer-slot { display: contents; }
+.analysis-drawer { position: fixed; top: 16px; right: 16px; bottom: calc(var(--composer-space, 0px) + 12px); z-index: 35; width: min(400px, calc(100vw - 32px)); height: auto; transform: translateX(calc(100% + 24px)); transition: transform .28s ease; pointer-events: none; }
+.analysis-drawer.open { transform: none; pointer-events: auto; }
+/* The message box and its pop-ups (model picker, Prompt Coach), and the feedback card above it,
+   stay above the panel. */
+.chat-main > .chat-composer, .chat-main > .outcome-card { position: relative; z-index: 36; }
+.chat-main > .outcome-card { width: 100%; max-width: 860px; margin-inline: auto; }
+.analysis-drawer .drawer-panel { width: 100%; height: 100%; box-shadow: 0 24px 60px rgba(30,30,30,.18); }
+.theme-dark .analysis-drawer .drawer-panel { box-shadow: 0 24px 60px #000a; }
+.analysis-drawer .drawer-panel .drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.drawer-close { margin: -6px -8px 0 0; color: var(--muted); font-size: 22px; }
+.drawer-foot { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); background: var(--surface); }
+.drawer-foot p { margin: 0; color: var(--muted); font-size: 12px; }
+.drawer-foot .button { flex-shrink: 0; }
+.sheet-backdrop, .sheet-handle { display: none; }
+
+/* Analysis, narrower screens: a bottom sheet over the lower part of the chat. */
+@media (max-width: 1100px) {
+  .analysis-drawer { position: fixed; inset: 0; z-index: 45; width: auto; height: auto; transform: none; transition: none; pointer-events: none; }
+  .analysis-drawer.open { pointer-events: auto; }
+  .sheet-backdrop { display: block; position: absolute; inset: 0; background: rgba(20,20,20,.28); opacity: 0; transition: opacity .25s ease; }
+  .analysis-drawer.open .sheet-backdrop { opacity: 1; }
+  .analysis-drawer .drawer-panel { position: absolute; left: 0; right: 0; bottom: 0; width: auto; max-width: 760px; height: calc(100vh - 40px); height: calc(100dvh - 40px); margin: 0 auto; border-bottom: 0; border-radius: 18px 18px 0 0; transform: translateY(100%); transition: transform .28s ease, visibility 0s linear .28s; }
+  .analysis-drawer.open .drawer-panel { transform: none; transition: transform .28s ease, visibility 0s; }
+  .sheet-handle { display: block; flex-shrink: 0; width: 40px; height: 4px; margin: 8px auto 0; border-radius: 4px; background: var(--line); }
+}
+
+/* Small screens: a top bar; the whole sidebar slides in from the left. */
+@media (max-width: 800px) {
+  /* No backdrop-filter here: it would trap the fixed drawer inside the bar. */
+  .topbar { width: auto; height: 56px; backdrop-filter: none; }
+  .nav-shell { padding: 0 8px; flex-direction: row; gap: 0; }
+  .sidebar-head { flex: 1; min-width: 0; }
+  .sidebar-head .brand { flex: 0 1 auto; width: auto; gap: 8px; padding: 6px 8px; }
+  .sidebar-drawer-toggle { display: grid; }
+  .sidebar-new-icon { display: grid; margin-left: auto; }
+  .app-main { margin-left: 0; }
+  .sidebar-backdrop { display: block; position: fixed; inset: 0; z-index: 44; background: rgba(20,20,20,.32); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+  .sidebar-backdrop.open { opacity: 1; pointer-events: auto; }
+  .sidebar-panel { position: fixed; top: 0; bottom: 0; left: 0; z-index: 45; width: min(300px, 86vw); padding: 10px 10px 12px; background: var(--surface); border-right: 1px solid var(--line); box-shadow: 12px 0 40px rgba(0,0,0,.12); transform: translateX(-100%); visibility: hidden; transition: transform .28s ease, visibility 0s linear .28s; }
+  .sidebar-panel.open { transform: none; visibility: visible; transition: transform .28s ease, visibility 0s; }
+  .sidebar-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 0 0 6px 10px; font-size: 16px; font-weight: 700; letter-spacing: -.03em; }
+  .sidebar-panel-head .brand-name { display: inline; }
+  /* Undo the top-bar icon styles: in the drawer these are full buttons again. */
+  .sidebar-footer .theme-toggle { width: auto; min-height: 40px; padding: 0 11px; justify-content: flex-start; border-radius: 10px; }
+  .sidebar-footer .theme-toggle > span:last-child { display: inline; }
+  .sidebar-footer .theme-toggle-icon { width: 18px; height: 18px; }
+  .sidebar-footer .status { margin: 10px 0 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 12px 10px 2px; font-size: 11px; gap: 8px; }
+  .chat-layout.page { height: calc(100vh - 56px); height: calc(100dvh - 56px); padding: 10px 12px; }
+  .chat-messages { min-height: 120px; }
+  .chat-composer { padding: 12px; }
+  .chat-composer textarea { min-height: 56px; }
+  .chat-composer .composer-actions > .chat-recommendation { display: inline; }
+  .account-error { top: 64px; left: 8px; right: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .drawer-panel, .sheet-backdrop, .sidebar-panel, .sidebar-backdrop { transition: none !important; } }

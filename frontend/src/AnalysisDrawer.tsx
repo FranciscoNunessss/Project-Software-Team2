@@ -1,47 +1,44 @@
-import { useRef } from 'react'
+import { useEffect } from 'react'
 import type { Analysis } from './api'
 import { AnalysisChanges } from './AnalysisChanges'
 import { Card, ProfileCard, RecommendationCard } from './AnalysisResult'
 import { TipsCard } from './TipsCard'
 import { PromptCoachTips } from './PromptCoachTips'
 
-// The chat's analysis panel (ADR-011): the same result the Assistant page shows, in a panel
-// that slides in from the right. Its tab, on the panel's left edge, is part of the panel: it
-// stays visible when the panel is closed, widens on hover to say what it does, and opens or
-// closes the panel on click (or when dragged left or right).
-export function AnalysisDrawer({ open, onToggle, analysis, task, loading, stale, fromHistory }: {
+// The chat's analysis panel (ADR-011): the same result the Assistant page shows.
+// Wide screens: a column docked beside the chat, which narrows to make room (never on top).
+// Narrow screens: a bottom sheet over the lower part of the chat, closed by its button,
+// the backdrop or Escape. The chat toolbar's "Analysis" button opens and closes it.
+export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, fromHistory, onSend }: {
   open: boolean
-  onToggle: (open: boolean) => void
+  onClose: () => void
   analysis: Analysis | null
   // The draft the analysis was made from; absent for an analysis of a sent message.
   task?: string
   loading: boolean
   stale: boolean
   fromHistory: boolean
+  // Present when the analysis describes the current draft: the panel covers the composer's
+  // Send button on most screens, so it offers its own.
+  onSend?: () => void
 }) {
-  const start = useRef<number | null>(null)
-  const dragged = useRef(false)
-  const label = open ? 'Hide analysis' : 'Show analysis'
+  useEffect(() => {
+    if (!open) return
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && !event.defaultPrevented) onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, onClose])
   return (
-    <aside className={`analysis-drawer${open ? ' open' : ''}`} aria-label="Analysis">
-      <button type="button" className="drawer-tab" aria-label={label} aria-expanded={open} data-analysis-toggle=""
-        onPointerDown={event => { start.current = event.clientX; dragged.current = false; event.currentTarget.setPointerCapture(event.pointerId) }}
-        onPointerUp={event => {
-          if (start.current === null) return
-          const moved = event.clientX - start.current
-          start.current = null
-          if (Math.abs(moved) > 24) { dragged.current = true; onToggle(moved < 0) }
-        }}
-        onClick={() => { if (dragged.current) { dragged.current = false; return } onToggle(!open) }}>
-        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <path d={open ? 'm9 6 6 6-6 6' : 'm15 6-6 6 6 6'} />
-        </svg>
-        <span className="drawer-tab-label">{label}</span>
-      </button>
+    <aside className={`analysis-drawer${open ? ' open' : ''}`} aria-label="Analysis" id="analysis-panel">
+      <div className="sheet-backdrop" onClick={onClose} aria-hidden="true" />
       <div className="drawer-panel" data-analysis-drawer="" aria-hidden={!open}>
+        <span className="sheet-handle" aria-hidden="true" />
         <div className="drawer-head">
-          <p className="eyebrow">Analysis</p>
-          <h2>{loading ? 'Analysing…' : analysis ? (analysis.recommendation_provisional ? 'Provisional recommendation' : 'Recommendation') : 'No analysis yet'}</h2>
+          <div>
+            <p className="eyebrow">Analysis</p>
+            <h2>{loading ? 'Analysing…' : analysis ? (analysis.recommendation_provisional ? 'Provisional recommendation' : 'Recommendation') : 'No analysis yet'}</h2>
+          </div>
+          <button type="button" className="icon-button drawer-close" aria-label="Close analysis" onClick={onClose}>×</button>
         </div>
         <div className="drawer-body">
           {loading && <p className="drawer-loading" role="status"><span className="spinner" />Assessing complexity, risk and context…</p>}
@@ -72,6 +69,12 @@ export function AnalysisDrawer({ open, onToggle, analysis, task, loading, stale,
             </>
           )}
         </div>
+        {onSend && (
+          <div className="drawer-foot">
+            <p>Happy with the analysis?</p>
+            <button type="button" className="button button-primary" onClick={onSend} data-drawer-send="">Send this message</button>
+          </div>
+        )}
       </div>
     </aside>
   )

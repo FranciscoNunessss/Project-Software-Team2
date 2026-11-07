@@ -12,6 +12,9 @@ async function openChat(page: Page) {
   await expect(page.locator('[data-chat-screen]')).toBeVisible()
 }
 
+// The chat list is the sidebar.
+const chatList = (page: Page) => page.locator('[data-chat-sidebar] .chat-open')
+
 async function send(page: Page, text: string) {
   await page.locator('[data-chat-input]').fill(text)
   await page.locator('[data-chat-send]').click()
@@ -22,7 +25,7 @@ test('a chat sends messages, shows the answers and keeps them after a reload', a
   await openChat(page)
   await expect(page.getByText('What do you need to do?')).toBeVisible()
   await send(page, 'Explain what an API is.')
-  await expect(page.locator('.chat-open')).toHaveText(['Explain what an API is.'])
+  await expect(chatList(page)).toHaveText(['Explain what an API is.'])
   // Enter sends, Shift+Enter would add a line.
   await page.locator('[data-chat-input]').fill('Give one example.')
   await page.keyboard.press('Enter')
@@ -30,7 +33,7 @@ test('a chat sends messages, shows the answers and keeps them after a reload', a
   await expect(page.locator('[data-chat-message="assistant"]').last()).toContainText('Give one example.')
 
   await page.reload()
-  await page.locator('.chat-open', { hasText: 'Explain what an API is.' }).click()
+  await chatList(page).filter({ hasText: 'Explain what an API is.' }).click()
   await expect(page.locator('[data-chat-message]')).toHaveCount(4)
 })
 
@@ -40,9 +43,9 @@ test('new chat starts empty and a chat can be deleted', async ({ page }) => {
   await page.getByRole('button', { name: 'New chat' }).click()
   await expect(page.locator('[data-chat-message]')).toHaveCount(0)
   await send(page, 'Second chat')
-  await expect(page.locator('.chat-open')).toHaveText(['Second chat', 'First chat'])
+  await expect(chatList(page)).toHaveText(['Second chat', 'First chat'])
   await page.getByRole('button', { name: 'Delete First chat' }).click()
-  await expect(page.locator('.chat-open')).toHaveText(['Second chat'])
+  await expect(chatList(page)).toHaveText(['Second chat'])
 })
 
 test('Analyse opens the analysis panel; Send carries the analysis with the message', async ({ page }) => {
@@ -68,18 +71,31 @@ test('Analyse opens the analysis panel; Send carries the analysis with the messa
   expect((await sent).postDataJSON().analysis_id).toBeTruthy()
   await expect(page.locator('[data-analysis-chip]')).toHaveText('Analysis 100/100')
 
-  // The tab on the panel's edge closes and reopens it.
-  const tab = page.locator('[data-analysis-toggle]')
-  await expect(tab).toHaveAttribute('aria-label', 'Hide analysis')
-  await tab.click()
+  // The panel closes with its own button; the message's chip reopens it.
+  const close = page.getByRole('button', { name: 'Close analysis' })
+  await close.click()
   await expect(drawer).toBeHidden()
-  await expect(tab).toHaveAttribute('aria-label', 'Show analysis')
   await page.locator('[data-analysis-chip]').click()
   await expect(drawer.getByText('100/100')).toBeVisible()
-  await tab.click()
+  await close.click()
   await expect(drawer).toBeHidden()
-  await tab.click()
-  await expect(drawer).toBeVisible()
+})
+
+test('while the panel is open the message box stays usable, and the panel can send', async ({ page }) => {
+  await openChat(page)
+  await page.locator('[data-chat-input]').fill(VAGUE)
+  await page.locator('[data-analyse-button]').click()
+  const drawer = page.locator('[data-analysis-drawer]')
+  await expect(drawer.getByText('50/100')).toBeVisible()
+  // The panel stops above the message box: editing and re-analysing work with it open.
+  await page.locator('[data-chat-input]').fill(COMPLETE)
+  await page.locator('[data-analyse-button]').click()
+  await expect(drawer.getByText('100/100')).toBeVisible()
+  const sent = page.waitForRequest(request => /\/api\/chats\/[^/]+\/messages$/.test(request.url()))
+  await drawer.locator('[data-drawer-send]').click()
+  expect((await sent).postDataJSON().analysis_id).toBeTruthy()
+  await expect(drawer).toBeHidden()
+  await expect(page.locator('[data-analysis-chip]')).toHaveText('Analysis 100/100')
 })
 
 test('a message sent without analysing it has no analysis chip', async ({ page }) => {
@@ -92,26 +108,17 @@ test('a message sent without analysing it has no analysis chip', async ({ page }
   await expect(page.locator('[data-analysis-chip]')).toHaveCount(0)
 })
 
-test('dragging the tab right closes the panel and left opens it', async ({ page }) => {
+test('the analysis panel closes with its own button', async ({ page }) => {
   await openChat(page)
   await page.locator('[data-chat-input]').fill(VAGUE)
   await page.locator('[data-analyse-button]').click()
   const drawer = page.locator('[data-analysis-drawer]')
   await expect(drawer.getByText('50/100')).toBeVisible()
-  const drag = async (dx: number) => {
-    // Let the panel finish sliding so the tab is where it will stay.
-    await page.waitForFunction(() => document.getAnimations().length === 0)
-    const box = await page.locator('[data-analysis-toggle]').boundingBox()
-    if (!box) throw new Error('no tab')
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
-    await page.mouse.down()
-    await page.mouse.move(box.x + box.width / 2 + dx, box.y + box.height / 2, { steps: 5 })
-    await page.mouse.up()
-  }
-  await drag(120)
+  await page.getByRole('button', { name: 'Close analysis' }).click()
   await expect(drawer).toBeHidden()
-  await drag(-120)
-  await expect(drawer).toBeVisible()
+  // Before sending, "Recommended: …" next to Analyse reopens it.
+  await page.locator('[data-analysis-open]').click()
+  await expect(drawer.getByText('50/100')).toBeVisible()
 })
 
 test('answers are rendered as Markdown and raw HTML is not', async ({ page }) => {

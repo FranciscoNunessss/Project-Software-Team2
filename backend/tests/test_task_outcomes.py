@@ -104,8 +104,12 @@ def real_models(monkeypatch):
     large = card("large", 3, 1.0)
     large["aliases"] = [{"provider": "groq", "model": "openai/gpt-oss-120b"}]
     test_catalogue = catalogue(small, large)
-    for target in ("app.workflow", "app.chat", "app.outcomes"):
+    for target in ("app.workflow", "app.outcomes"):
         monkeypatch.setattr(f"{target}.active_catalogue", lambda: test_catalogue)
+    try:  # the chat is optional and absent in the removal drill
+        monkeypatch.setattr("app.chat.active_catalogue", lambda: test_catalogue)
+    except ImportError:
+        pass
 
     class Assessor:
         async def assess(self, task):

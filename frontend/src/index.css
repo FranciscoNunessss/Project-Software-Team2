@@ -990,8 +990,8 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
 .chat-toolbar, .chat-main > .chat-composer, .chat-main > .processing-notice, .chat-main > .error-banner { width: 100%; max-width: 860px; margin-inline: auto; }
 .chat-toolbar { min-height: 36px; }
 .chat-toolbar .chat-title { min-width: 0; }
-.chat-analysis-toggle { min-height: 34px; padding: 0 12px; font-size: 12px; }
-.chat-analysis-toggle.active { background: var(--blue-soft); }
+button.chat-recommendation { border: 0; background: none; padding: 4px 6px; border-radius: 8px; cursor: pointer; }
+button.chat-recommendation:hover { background: var(--blue-soft); color: var(--ink); }
 /* The model picker keeps its size; the actions wrap onto their own row when space runs out. */
 .chat-composer .composer-footer > * { flex-shrink: 0; max-width: 100%; }
 .chat-composer .model-picker { flex: 0 0 auto; }

@@ -271,10 +271,6 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
       <section className="chat-main">
         <div className="chat-toolbar">
           <span className="muted chat-title">{chatId ? title : ''}</span>
-          <button type="button" className={`button button-secondary chat-analysis-toggle${drawer ? ' active' : ''}`} onClick={() => setDrawer(!drawer)}
-            aria-expanded={drawer} aria-controls="analysis-panel" aria-label={drawer ? 'Hide analysis' : 'Show analysis'} data-analysis-toggle="">
-            Analysis{shown && shown.completeness != null ? ` · ${shown.completeness}/100` : ''}
-          </button>
         </div>
         <div className="chat-messages" aria-live="polite">
           {messages.length === 0 ? (
@@ -302,7 +298,14 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
             {usesRouter && <OpenRouterModelPicker value={routerValue} disabled={locked} onChange={value => { setRouterModel(value); setDraftAnalysis(null) }} />}
             <div className="composer-actions">
               <span>{draft.length}/{MAX_CHARS}</span>
-              {draftAnalysis && draftAnalysis.text === draft && <span className="chat-recommendation" data-recommended-model="">Recommended: <strong>{candidateLabel(draftAnalysis.analysis.recommendation)}</strong>{draftAnalysis.analysis.recommendation.configuration_id && draftAnalysis.analysis.recommendation.configuration_id === selected?.id ? ' · selected' : ''}</span>}
+              {/* Names the recommended model (ADR-014) and reopens this draft's analysis after the panel was closed with ×. */}
+              {draftAnalysis && draftAnalysis.text === draft && (
+                <button type="button" className="chat-recommendation" title="Show analysis" data-recommended-model="" data-analysis-open=""
+                  onClick={() => { setShown(draftAnalysis.analysis); setShownFromHistory(false); setDrawer(true) }}>
+                  Recommended: <strong>{candidateLabel(draftAnalysis.analysis.recommendation)}</strong>
+                  {draftAnalysis.analysis.recommendation.configuration_id && draftAnalysis.analysis.recommendation.configuration_id === selected?.id ? ' · selected' : ''}
+                </button>
+              )}
               <button type="button" className="button button-secondary" onClick={analyse} disabled={locked || !draft.trim() || modelsLoading || !selected} data-analyse-button="">
                 {analysing ? 'Analysing…' : 'Analyse'}
               </button>

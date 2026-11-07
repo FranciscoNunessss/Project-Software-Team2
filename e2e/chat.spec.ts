@@ -71,20 +71,14 @@ test('Analyse opens the analysis panel; Send carries the analysis with the messa
   expect((await sent).postDataJSON().analysis_id).toBeTruthy()
   await expect(page.locator('[data-analysis-chip]')).toHaveText('Analysis 100/100')
 
-  // The panel floats over the chat (covering the toolbar's Analysis button), so it closes
-  // with its own button; the toolbar button and the message's chip reopen it.
-  const tab = page.locator('[data-analysis-toggle]')
+  // The panel closes with its own button; the message's chip reopens it.
   const close = page.getByRole('button', { name: 'Close analysis' })
-  await expect(tab).toHaveAttribute('aria-label', 'Hide analysis')
   await close.click()
   await expect(drawer).toBeHidden()
-  await expect(tab).toHaveAttribute('aria-label', 'Show analysis')
   await page.locator('[data-analysis-chip]').click()
   await expect(drawer.getByText('100/100')).toBeVisible()
   await close.click()
   await expect(drawer).toBeHidden()
-  await tab.click()
-  await expect(drawer).toBeVisible()
 })
 
 test('while the panel is open the message box stays usable, and the panel can send', async ({ page }) => {
@@ -122,7 +116,9 @@ test('the analysis panel closes with its own button', async ({ page }) => {
   await expect(drawer.getByText('50/100')).toBeVisible()
   await page.getByRole('button', { name: 'Close analysis' }).click()
   await expect(drawer).toBeHidden()
-  await expect(page.locator('[data-analysis-toggle]')).toHaveText(/Analysis · 50\/100/)
+  // Before sending, "Recommended: …" next to Analyse reopens it.
+  await page.locator('[data-analysis-open]').click()
+  await expect(drawer.getByText('50/100')).toBeVisible()
 })
 
 test('answers are rendered as Markdown and raw HTML is not', async ({ page }) => {

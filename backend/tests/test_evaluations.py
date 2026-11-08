@@ -8,7 +8,7 @@ import json
 
 import pytest
 from app import arena, evaluations
-from app.catalogue import CAPABILITIES
+from app.catalogue import CAPABILITIES, active_catalogue
 from app.evaluations import (
     Ratings,
     Target,
@@ -556,3 +556,119 @@ def test_openrouter_models_can_be_added_and_removed_from_the_evaluations():
         json={"label": "x", "provider": "openrouter", "model": "acme/base:free", "enabled": False},
     )
     assert "acme/other:free" not in by_model(client)
+
+
+# --- layer 3 (A10): the project's own key measures models no public source rates ----------
+
+
+def project(app):
+    store = app.state.storage
+    settings = app.state.evaluation_configurations.settings
+    return store, settings
+
+
+def queue_project(app):
+    store, settings = project(app)
+    return asyncio.run(
+        evaluations.ensure_project(store, settings, Ratings(store, active_catalogue()))
+    )
+
+
+def test_without_the_project_key_layer_3_does_nothing():
+    app = make_app()
+    store, settings = project(app)
+    assert evaluations.project_targets(settings, Ratings(store, active_catalogue())) == []
+    assert queue_project(app) is None
+
+
+def test_project_targets_are_models_without_public_levels_free_first():
+    app = make_app(evaluation_openrouter_key="sk-project")
+    store, settings = project(app)
+    targets = [
+        t.model for t in evaluations.project_targets(settings, Ratings(store, active_catalogue()))
+    ]
+    # The most used model without any public source comes first.
+    assert targets[0] == "stealth/crouton-alpha"
+    assert "liquid/lfm-3-1.7b:free" in targets
+    # Paid models need credit: off by default.
+    assert "tencent/hy4-preview" not in targets
+    paid = make_app(evaluation_openrouter_key="sk-project", evaluation_paid=True)
+    store, settings = project(paid)
+    assert "tencent/hy4-preview" in [
+        t.model for t in evaluations.project_targets(settings, Ratings(store, active_catalogue()))
+    ]
+
+
+def test_a_project_run_uses_the_project_key_and_its_result_is_shared():
+    app = make_app(evaluation_openrouter_key="sk-project")
+    row = queue_project(app)
+    assert row["status"] == "queued" and row["configuration_id"] == "project:openrouter"
+    assert row["scope"] == "shared" and row["requested_by"] is None
+    seen = {}
+
+    class Capture(FakeModel):
+        def __call__(self, provider, settings, max_tokens):
+            seen["key"] = settings.openrouter_api_key.get_secret_value()
+            seen["model"] = settings.openrouter_model
+            return self
+
+    finished = drain(app, Capture())
+    assert finished[0]["status"] == "done" and finished[0]["spent_usd"] == 0
+    assert seen == {"key": "sk-project", "model": "stealth/crouton-alpha"}
+    store, _ = project(app)
+    # Any user now gets measured levels for it.
+    found = Ratings(store, active_catalogue(), "someone").source(
+        "openrouter", "stealth/crouton-alpha"
+    )
+    assert found[0] == "measured"
+
+
+def test_project_runs_stay_within_the_daily_calls():
+    app = make_app(evaluation_openrouter_key="sk-project", evaluation_daily_calls=50)
+    queue_project(app)
+    drain(app)
+    assert queue_project(app) is None  # 40 used today; another 40 would pass 50
+    # Same database, a higher limit: the next model fits (40 used + 40 <= 100).
+    roomy = make_app(evaluation_openrouter_key="sk-project", evaluation_daily_calls=100)
+    second = queue_project(roomy)
+    assert second is not None and second["model"] != "stealth/crouton-alpha"
+
+
+def test_paid_project_runs_need_the_budget_for_their_maximum():
+    app = make_app(evaluation_openrouter_key="sk-project", evaluation_budget_usd=0.001)
+    store, settings = project(app)
+    assert evaluations.project_room(store, settings, {"free": True, "max_usd": 0})
+    assert not evaluations.project_room(store, settings, {"free": False, "max_usd": 0.05})
+    assert not evaluations.project_room(store, settings, {"free": False, "max_usd": None})
+    rich = make_app(evaluation_openrouter_key="sk-project", evaluation_budget_usd=5)
+    store, settings = project(rich)
+    assert evaluations.project_room(store, settings, {"free": False, "max_usd": 0.05})
+
+
+def test_a_refused_run_stops_early_and_waits_a_day():
+    class Refused(FakeModel):
+        async def ainvoke(self, messages):
+            FakeModel.calls += 1
+            raise RuntimeError("402 insufficient credits")
+
+    app = make_app(evaluation_openrouter_key="sk-project")
+    queue_project(app)
+    finished = drain(app, Refused())
+    assert finished[0]["failure"] == "provider_refused" and finished[0]["progress"] == 5
+    # The next model is tried, the refused one is not retried today.
+    nxt = queue_project(app)
+    assert nxt is not None and nxt["model"] != "stealth/crouton-alpha"
+
+
+def test_a_restart_requeues_project_runs():
+    app = make_app(evaluation_openrouter_key="sk-project")
+    row = queue_project(app)
+    store, _ = project(app)
+    with store.connect() as db:
+        db.execute("UPDATE model_evaluations SET status='running' WHERE id=%s", (row["id"],))
+    evaluations.recover(store)
+    with store.connect() as db:
+        status = db.execute(
+            "SELECT status FROM model_evaluations WHERE id=%s", (row["id"],)
+        ).fetchone()["status"]
+    assert status == "queued"

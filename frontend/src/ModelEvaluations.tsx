@@ -25,6 +25,7 @@ const SOURCE: Record<string, string> = {
 }
 const FAILURE: Record<string, string> = {
   cost_limit_reached: 'Stopped at the maximum cost.', too_many_failed_calls: 'Too many calls failed; it will be retried.',
+  provider_refused: 'The provider refused the calls (no credit, a daily limit or the model withdrawn).',
   configuration_gone: 'The configuration was removed or disabled.',
   interrupted: 'Interrupted by a restart. Re-evaluate when you want; nothing more was charged.',
 }

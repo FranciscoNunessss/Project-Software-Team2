@@ -609,7 +609,9 @@ check: [`docs/testing-model-evaluations.md`](docs/testing-model-evaluations.md).
 **Levels from public sources (ADR-014 A10):** before any measurement, a model gets
 provisional levels from the public LMArena leaderboards per category, else from the Artificial
 Analysis index; measured levels replace them. The most used models (`most-used.json`) always
-have levels; a test enforces it. Plan, mapping and decisions:
+have levels; a test enforces it. Models no public source rates are measured in the background
+with the project's evaluation-only key (`ADAPTAI_EVALUATION_OPENROUTER_KEY`, see `.env.example`);
+`uv run python scripts/project_evaluations.py` shows its progress. Plan, mapping and decisions:
 [`docs/plan-model-coverage.md`](docs/plan-model-coverage.md).
 
 Leaderboard data: LMArena (lmarena.ai), CC BY 4.0, dataset

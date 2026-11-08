@@ -1,7 +1,7 @@
 # Levels for every model, free and at once (ADR-014 A10)
 
-Status (8 November 2026): **layers 1, 2 and 4 implemented**; layer 3 waits for decisions 1
-to 3; layer 5 is the next pull request. The AO confirms A10.
+Status (8 November 2026): **layers 1 to 4 implemented**; layer 5 is the next pull request.
+The project's evaluation key exists (no bought credit). The AO confirms A10.
 
 ## The problem
 
@@ -17,9 +17,9 @@ source that has it; every level shows its source and date.
 
 | Layer | Source | Covers | Cost | State |
 |---|---|---|---|---|
-| 1 | LMArena, per category (public, CC BY 4.0) | 212 of 459 OpenRouter ids, and the same models at Groq, Anthropic and OpenAI | 0 | Implemented |
-| 2 | Artificial Analysis overall index (A9) | Models LMArena lacks, by checked links | 0 (free key) | Implemented (links for the most used added) |
-| 3 | Our measurement, `measure-suite-1` (A8) | Configured models; with a project key, free and new models no public source has | 0 for free models | Configured models: implemented. Project key: waits for decisions 1 to 3 |
+| 1 | LMArena, per category (public, CC BY 4.0) | 213 of 459 OpenRouter ids, and the same models at Groq, Anthropic and OpenAI | 0 | Implemented |
+| 2 | Artificial Analysis overall index (A9) | Models LMArena lacks, by checked links | 0 (free key) | Implemented: 14 more OpenRouter ids |
+| 3 | Our measurement, `measure-suite-1` (A8) | Every model someone configures or picks (their key, consent for paid ones); with the project key, the most used and the free models no public source has | 0 for free models | Implemented |
 | 4 | Feedback and calibration | Corrects any source; the report shows outcomes per source | 0 | Implemented |
 | 5 | One suggestion among all rated OpenRouter models | Users with an OpenRouter key | 0 | Next pull request |
 
@@ -85,17 +85,42 @@ the next source is tried.
 ## Layer 2: Artificial Analysis for the gaps
 
 Unchanged rule (A9): only checked links in `aa-aliases.json`. Added the links for the most
-used models LMArena lacks: `deepseek/deepseek-v4.1-flash-1017`, `tencent/hy4`,
-`minimax/minimax-m3.1-flash`, `qwen/qwen3.8-max-0902`. The newest AA snapshot is used.
+used models LMArena lacks (`deepseek/deepseek-v4.1-flash-1017`, `tencent/hy4`,
+`minimax/minimax-m3.1-flash`, `qwen/qwen3.8-max-0902`) and every other OpenRouter id whose
+name matches one Artificial Analysis model exactly after normalising (10 more, among them
+`openai/gpt-6.1-terra`, `moonshotai/kimi-k3.1-pro`, Nemotron 3 Ultra and 3.5 Lightning).
+Only 109 of AA's 726 models have the index in the free tier. The newest AA snapshot is used.
 
-## Layer 3: measurement in the background (decisions pending)
+## Layer 3: measurement in the background with the project key
 
-Unchanged for configured models (A8): they are still measured, and measured levels replace
-the public ones. With a **project OpenRouter key** on the server, used only for evaluation,
-the worker would also measure without anyone configuring them: the `:free` models no public
-source covers (about 10), the stealth and preview models in `no_public_source`, and, within a
-monthly budget, the paid models users pick most that no public source has. Each run keeps its
-guaranteed maximum (40 calls, 1,024 output tokens each).
+Configured and picked models are measured as before (A8), with the user's key and consent for
+paid ones; measured levels replace public ones. On top of that, the worker measures with the
+**project's own OpenRouter key** (`ADAPTAI_EVALUATION_OPENROUTER_KEY`), used only for this and
+never for chats, the models no user configured:
+
+| Rule | Value |
+|---|---|
+| Order | The most used models without a public source (`most-used.json` `no_public_source`); then every free OpenRouter model; then, only with `ADAPTAI_EVALUATION_PAID=true`, paid models without levels, cheapest first |
+| Free models | Measured even when a public source rates them: they cost nothing and measured levels are better |
+| One at a time | A project run starts only when no user run is queued; users come first |
+| Daily calls | `ADAPTAI_EVALUATION_DAILY_CALLS` (default 50, OpenRouter's limit for free models without bought credit). A run is 40 calls, so about one model a day |
+| Budget | `ADAPTAI_EVALUATION_BUDGET_USD` (default 5, the key's own limit too): a paid run starts only if the total spent plus its guaranteed maximum fits |
+| Refusals | 5 failed calls in a row (no credit, daily limit, model withdrawn) end the run as `provider_refused`; that model waits a day |
+| Shared | Results are shared: every user gets the measured levels |
+| Status | `uv run python scripts/project_evaluations.py`: key set or not (never the key), calls today, spend, models in line, every run |
+
+What "every model" costs, from the 8 November snapshot of 459 OpenRouter models:
+
+| Group | Models | How they get levels | Cost |
+|---|---|---|---|
+| Rated by a public source | 227 | LMArena or Artificial Analysis, at once | 0 |
+| Free, no public source | 9 (plus the free ones with public levels, measured anyway) | Project key, about one a day | 0 |
+| Most used, no public source | 2 (`stealth/crouton-alpha` free; `tencent/hy4-preview` paid) | Project key | 0 and about 0.06 USD at most |
+| Paid, no public source | 223 | Measured when a user configures or picks one (their key, with consent), or by the project key with credit | About 33 USD estimated, 90 USD at most, for all of them |
+
+So without bought credit every model a user actually uses gets measured levels (with their
+consent when paid), and the paid niche models nobody uses stay without levels until someone
+uses them or the team buys credit and turns `ADAPTAI_EVALUATION_PAID` on.
 
 ## Layer 4: feedback by source
 
@@ -117,9 +142,9 @@ pick.
 
 | # | Decision | Proposal |
 |---|---|---|
-| 1 | A project OpenRouter key on the server, used only for evaluation | Yes, as a server secret, never shown to users |
-| 2 | Monthly budget for paid evaluations with the project key | 5 USD |
-| 3 | Buy OpenRouter credit to raise the free models' daily limit | 10 USD once, if layer 3 is too slow |
+| 1 | A project OpenRouter key on the server, used only for evaluation | **Done** (8 Nov 2026): key limit 5 USD, 90 days, local `.env` and GitHub secret `OPENROUTER_EVALUATION_KEY` |
+| 2 | Budget for paid evaluations with the project key | 5 USD (`ADAPTAI_EVALUATION_BUDGET_USD`), only used with credit |
+| 3 | Buy OpenRouter credit | **Not now** (a billing address is required). Without it: free models only, about one a day. With 10 USD: more free calls a day and paid models within the budget |
 | 4 | Style-controlled leaderboard rather than the raw one | Implemented as proposed; the AO confirms |
 
 ## Risks

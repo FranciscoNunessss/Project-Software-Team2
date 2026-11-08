@@ -48,6 +48,7 @@ OUTPUT_CAP = 1024  # tokens per answer: makes the maximum cost a guarantee
 TYPICAL_OUTPUT = 300
 PROMPT_OVERHEAD = 40  # tokens of message framing per call
 MAX_ERROR_SHARE = 0.10
+REFUSED_STREAK = 5  # failed calls in a row (after retries) that end a run early
 REEVALUATE_AFTER_DAYS = 90
 NOW = "to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"')"
 
@@ -117,6 +118,107 @@ def add_user_model(store: Storage, user_id: str, configuration_id: str, model: s
             (user_id, configuration_id, model),
         )
     return Target("openrouter", model, configuration_id, user_id)
+
+
+# --- the project's own evaluations (A10, layer 3) -------------------------------------------
+
+PROJECT_CONFIGURATION = "project:openrouter"
+MOST_USED_FILE = CATALOGUE_DIR / "most-used.json"
+
+
+def project_targets(settings: Settings, ratings: "Ratings") -> list[Target]:
+    """Models no public source rates, measured with the project's key, best known first.
+
+    First the most used models without a public source (most-used.json), then every free
+    OpenRouter model in the committed snapshot that no source rates. Paid models only when
+    ``evaluation_paid`` is on (the key's account has credit). Empty without the key.
+    """
+    if not settings.evaluation_openrouter_key.get_secret_value():
+        return []
+    try:
+        most_used = json.loads(MOST_USED_FILE.read_text(encoding="utf-8"))["no_public_source"]
+    except (OSError, ValueError, KeyError):
+        most_used = []
+    snapshot, _ = _router_snapshot()
+    ids = [item["model"] for item in most_used if item.get("provider") == "openrouter"]
+    ids += sorted(model for model, item in snapshot.items() if item.get("free"))
+    if settings.evaluation_paid:
+        # Cheapest first: the budget then rates as many models as it can.
+        ids += sorted(
+            (m for m, item in snapshot.items() if not item.get("free")),
+            key=lambda m: (
+                (snapshot[m].get("price_input_per_million") or 1e9) * 3
+                + (snapshot[m].get("price_output_per_million") or 1e9)
+            ),
+        )
+    targets, seen = [], set()
+    for model in ids:
+        if model in seen or model not in snapshot:
+            continue
+        seen.add(model)
+        if not snapshot[model].get("free") and not settings.evaluation_paid:
+            continue
+        found = ratings.source("openrouter", model)
+        if found is None or found[0] in {"arena", "benchmark", "family"}:
+            # Public levels are provisional; free models are measured anyway (they cost 0).
+            if found is None or snapshot[model].get("free"):
+                targets.append(Target("openrouter", model, PROJECT_CONFIGURATION, None))
+    return targets
+
+
+def project_room(store: Storage, settings: Settings, row_estimate: dict) -> bool:
+    """True when a new project run fits today's call limit and the total budget."""
+    today = time.strftime("%Y-%m-%d", time.gmtime())
+    with store.connect() as db:
+        used = db.execute(
+            "SELECT COALESCE(SUM(progress),0) AS calls, COALESCE(SUM(spent_usd),0) AS usd "
+            "FROM model_evaluations WHERE configuration_id=%s",
+            (PROJECT_CONFIGURATION,),
+        ).fetchone()
+        calls_today = db.execute(
+            "SELECT COALESCE(SUM(progress),0) AS calls FROM model_evaluations "
+            "WHERE configuration_id=%s AND updated_at LIKE %s",
+            (PROJECT_CONFIGURATION, f"{today}%"),
+        ).fetchone()["calls"]
+        running = db.execute(
+            "SELECT COUNT(*) AS n FROM model_evaluations WHERE configuration_id=%s "
+            "AND status IN ('queued','running')",
+            (PROJECT_CONFIGURATION,),
+        ).fetchone()["n"]
+    if running or calls_today + max_calls() > settings.evaluation_daily_calls:
+        return False
+    if row_estimate.get("free"):
+        return True
+    worst = row_estimate.get("max_usd")
+    return worst is not None and float(used["usd"]) + worst <= settings.evaluation_budget_usd
+
+
+async def ensure_project(store: Storage, settings: Settings, ratings: "Ratings", router=None):
+    """Queue at most one project run, the first target without a current evaluation."""
+    for target in project_targets(settings, ratings):
+        with store.connect() as db:
+            current = _current(db, target)
+        if current and current["status"] in {"queued", "running"}:
+            return current
+        if current and current["status"] == "done" and not _stale(current):
+            continue
+        if (
+            current
+            and current["status"] == "failed"
+            and current["updated_at"]
+            > time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(time.time() - 86400))
+        ):
+            continue  # a failed project run waits a day: the daily limit has to reset
+        facts = await model_facts(target, active_catalogue(), router)
+        cost = estimate(
+            facts.get("price_in_per_mtok") if facts else None,
+            facts.get("price_out_per_mtok") if facts else None,
+            is_free(target, facts),
+        )
+        if not project_room(store, settings, cost):
+            return None
+        return await ensure(store, target, router, force=bool(current))
+    return None
 
 
 # --- cost ----------------------------------------------------------------------------------
@@ -196,6 +298,8 @@ async def model_facts(target: Target, catalogue: Catalogue, router=None) -> dict
         match = next((item for item in models if item["id"] == target.model), None)
         if match is not None:
             return facts_from_openrouter(match, time.strftime("%Y-%m-%d"))
+    if target.provider == "openrouter":
+        return router_snapshot_facts(target.model)
     return None
 
 
@@ -309,6 +413,13 @@ def _claim(store: Storage) -> dict | None:
 
 def _settings_for(row: dict, configurations) -> Settings:
     identifier = row["configuration_id"] or ""
+    if identifier == PROJECT_CONFIGURATION:
+        key = configurations.settings.evaluation_openrouter_key
+        if row["provider"] != "openrouter" or not key.get_secret_value():
+            raise LookupError("project_key_missing")
+        return configurations.settings.model_copy(
+            update={"openrouter_api_key": key, "openrouter_model": row["model"]}
+        )
     if identifier.startswith("server:"):
         from app.llm_config import MODEL_FIELDS
 
@@ -397,10 +508,10 @@ async def run(
     except Exception as exc:  # noqa: BLE001 - recorded on the row
         return _finish(store, row, "failed", failure=type(exc).__name__)
     tasks = suite()
-    results, rates, spent, done, errors = [], {}, 0.0, 0, 0
+    results, rates, spent, done, errors, streak = [], {}, 0.0, 0, 0, 0
 
     async def level(name: str, level: int) -> float:
-        nonlocal spent, done, errors
+        nonlocal spent, done, errors, streak
         chosen = [t for t in tasks if t.capability == name and t.level == level]
         passed = 0
         for task in chosen:
@@ -408,6 +519,7 @@ async def run(
                 await wait_turn()
             answer, reply = await _ask(llm, task, sleep)
             done += 1
+            streak = streak + 1 if answer is None else 0
             if answer is None:
                 errors += 1
                 results.append(
@@ -443,6 +555,8 @@ async def run(
                 )
             if limit and spent >= limit:  # free runs (limit 0) cost nothing
                 raise _OverBudget()
+            if streak >= REFUSED_STREAK:
+                raise _Refused()
         return passed / len(chosen)
 
     try:
@@ -452,6 +566,9 @@ async def run(
             rates[name][next_level] = await level(name, next_level)
     except _OverBudget:
         return _finish(store, row, "failed", failure="cost_limit_reached", results=results)
+    except _Refused:
+        # No credit, a daily limit reached, a model withdrawn: stop instead of 40 failures.
+        return _finish(store, row, "failed", failure="provider_refused", results=results)
     if errors > MAX_ERROR_SHARE * done:
         return _finish(store, row, "failed", failure="too_many_failed_calls", results=results)
     levels = adaptive_levels(rates)
@@ -467,6 +584,10 @@ async def run(
 
 
 class _OverBudget(Exception):
+    pass
+
+
+class _Refused(Exception):
     pass
 
 
@@ -498,7 +619,7 @@ def recover(store: Storage) -> None:
         ).fetchall()
         for row in rows:
             free = json.loads(row["estimate_json"] or "{}").get("free")
-            ours = (row["configuration_id"] or "").startswith("server:")
+            ours = (row["configuration_id"] or "").startswith(("server:", "project:"))
             if free or ours or row["provider"] in LOCAL_PROVIDERS:
                 db.execute(
                     f"UPDATE model_evaluations SET status='queued',progress=0,errors=0,"
@@ -511,6 +632,13 @@ def recover(store: Storage) -> None:
                     f"updated_at={NOW},finished_at={NOW} WHERE id=%s",
                     (row["id"],),
                 )
+
+
+def _has_queued(store: Storage) -> bool:
+    with store.connect() as db:
+        return bool(
+            db.execute("SELECT 1 FROM model_evaluations WHERE status='queued' LIMIT 1").fetchone()
+        )
 
 
 async def run_next(
@@ -998,6 +1126,15 @@ def install_evaluations(
                             for target in inventory(store, configurations, enabled):
                                 await ensure(store, target, router)
                             last_inventory = time.monotonic()
+                        # Layer 3: one model at a time with the project's key, within its
+                        # daily calls and budget; users' models come first.
+                        if not _has_queued(store):
+                            await ensure_project(
+                                store,
+                                configurations.settings,
+                                Ratings(store, active_catalogue()),
+                                router,
+                            )
                         while await run_next(
                             store, configurations, model_factory, wait_turn=wait_turn
                         ):

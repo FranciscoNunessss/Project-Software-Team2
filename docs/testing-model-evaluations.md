@@ -57,6 +57,18 @@ No network: the tests use the committed snapshot or a small fixture.
 
 Run: `uv run pytest backend/tests/test_arena.py -q`.
 
+## 1c. The project's evaluation key (`backend/tests/test_evaluations.py`, A10 layer 3)
+
+| # | Case | Test |
+|---|---|---|
+| 37 | Without the key nothing happens | `test_without_the_project_key_layer_3_does_nothing` |
+| 38 | Order: most used without a public source first, then free models; paid ones only with `ADAPTAI_EVALUATION_PAID` | `test_project_targets_are_models_without_public_levels_free_first` |
+| 39 | A project run uses the project key and the model, costs 0 for a free model, and every user gets the measured levels | `test_a_project_run_uses_the_project_key_and_its_result_is_shared` |
+| 40 | The daily call limit holds | `test_project_runs_stay_within_the_daily_calls` |
+| 41 | A paid run needs the budget for its guaranteed maximum; an unknown price never runs | `test_paid_project_runs_need_the_budget_for_their_maximum` |
+| 42 | No credit or a daily limit: the run stops after 5 refused calls, that model waits a day, the next one is tried | `test_a_refused_run_stops_early_and_waits_a_day` |
+| 43 | A restart puts a project run back in the queue | `test_a_restart_requeues_project_runs` |
+
 ## 2. Browser tests (`e2e/evaluations.spec.ts`, fake evaluator in `e2e/server.py`)
 
 | Test | Checks |
@@ -104,3 +116,31 @@ Report each step as OK or with the screenshot of what differed.
 
 If the workflow fails with "Refused", the dataset became gated, changed licence or columns:
 nothing is written and the levels in force stay as they are.
+
+## 5. Levels for every model, on your computer (step by step)
+
+What you get: public levels at once for 227 OpenRouter models and the most used ones; measured
+levels for every model you configure or pick; measured levels, about one a day, for the free
+models and the most used ones no public source rates. The other 223 paid models get levels when
+someone uses them, or with bought credit (section "Layer 3" of
+[`plan-model-coverage.md`](plan-model-coverage.md)).
+
+| # | Do | Expected |
+|---|---|---|
+| 1 | `git fetch && git checkout agent/model-coverage-plan && git pull` | Up to date |
+| 2 | `uv sync --locked` and `npm --prefix frontend install` | No errors |
+| 3 | PostgreSQL running (as before) | `pg_isready` answers |
+| 4 | `grep -c '^ADAPTAI_EVALUATION_OPENROUTER_KEY=.' .env` | `1` (the key is set; it is never printed) |
+| 5 | `uv run pytest backend -q` | All pass |
+| 6 | Start the backend and the frontend as usual | The app opens |
+| 7 | After a few minutes (your own models go first): `uv run python scripts/project_evaluations.py` | "Project key set: yes"; a run for `stealth/crouton-alpha`, `running` with n/40 calls; spend 0 |
+| 8 | In LLM config, add or check your configurations (Groq server models are already there; add OpenRouter with your own key and pick the models you use) | Each model shows "Evaluating…" then "Measured by AdaptAI"; a paid one asks for consent first with the cost |
+| 9 | Leave the backend running (the computer awake) | The project key measures one model a day; run step 7 each day to follow it |
+| 10 | Analyse a task in the chat | The drawer shows the recommended model and "Levels from: …" (Measured by AdaptAI, LMArena or Artificial Analysis) |
+| 11 | "Use this model", then Send | The answer shows that model's name |
+| 12 | "✓ Task solved", answer Yes or No | Saved; `uv run python scripts/calibration_report.py` lists it by source |
+| 13 | openrouter.ai › Activity, filtered by the evaluation key | Requests for free models only, cost 0.00 |
+| 14 | Once `stealth/crouton-alpha` is `done`: analyse a task with an OpenRouter configuration and pick that model | Its levels say "Measured by AdaptAI" |
+
+If step 7 shows `provider_refused`: OpenRouter refused the calls (daily limit reached, or the
+model needs credit). Nothing to do; that model waits a day and the next one is tried.

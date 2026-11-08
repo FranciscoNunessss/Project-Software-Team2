@@ -41,6 +41,56 @@
    "provider": "openrouter",
    "model": "qwen/qwen3.8-max-0902",
    "slug": "qwen3-8-max"
+  },
+  {
+   "provider": "openrouter",
+   "model": "cohere/command-a-plus",
+   "slug": "command-a-plus"
+  },
+  {
+   "provider": "openrouter",
+   "model": "cohere/north-mini-code:free",
+   "slug": "north-mini-code"
+  },
+  {
+   "provider": "openrouter",
+   "model": "meta/muse-spark-open",
+   "slug": "muse-spark-open"
+  },
+  {
+   "provider": "openrouter",
+   "model": "mistralai/mistral-small-2603",
+   "slug": "mistral-small-4"
+  },
+  {
+   "provider": "openrouter",
+   "model": "moonshotai/kimi-k3.1-pro",
+   "slug": "kimi-k3-1-pro"
+  },
+  {
+   "provider": "openrouter",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "slug": "nvidia-nemotron-3-ultra-550b-a55b"
+  },
+  {
+   "provider": "openrouter",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+   "slug": "nvidia-nemotron-3-ultra-550b-a55b"
+  },
+  {
+   "provider": "openrouter",
+   "model": "nvidia/nemotron-3.5-lightning",
+   "slug": "nemotron-3-5-lightning"
+  },
+  {
+   "provider": "openrouter",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "slug": "nemotron-3-5-lightning"
+  },
+  {
+   "provider": "openrouter",
+   "model": "openai/gpt-6.1-terra",
+   "slug": "gpt-6-1-terra"
   }
  ]
 }

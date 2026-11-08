@@ -37,8 +37,10 @@ reads the public LMArena leaderboards (dataset `lmarena-ai/leaderboard-dataset`,
 free, no account). Each capability takes the category closest to it (reasoning: the lower of
 math and hard prompts; context: longer queries; domain: expert; reliability: factuality;
 tools: the agent leaderboard, else at most 2), with thresholds frozen in `arena-mapping-1`.
-On 8 November 2026 this rates 212 of the 459 OpenRouter models and, with Artificial Analysis,
-all 26 of the most used models in `most-used.json`; a test keeps it that way. Every level
+On 8 November 2026 this rates 213 of the 459 OpenRouter models (227 with Artificial Analysis) and
+all 26 of the most used models in `most-used.json`; a test keeps it that way. Models no
+public source rates are measured in the background with the project's evaluation key
+(layer 3), free models first. Every level
 says "LMArena", the date and the licence, and is provisional: our measurement replaces it.
 
 How names are linked, the mapping, the weekly refresh and the decisions still open:

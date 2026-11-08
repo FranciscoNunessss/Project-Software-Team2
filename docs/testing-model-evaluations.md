@@ -128,11 +128,11 @@ someone uses them, or with bought credit (section "Layer 3" of
 | # | Do | Expected |
 |---|---|---|
 | 1 | `git fetch && git checkout agent/model-coverage-plan && git pull` | Up to date |
-| 2 | `uv sync --locked` and `npm --prefix frontend install` | No errors |
+| 2 | `uv sync --locked`, then `cd frontend && pnpm install --frozen-lockfile && cd ..` (pnpm, not npm) | No errors |
 | 3 | PostgreSQL running (as before) | `pg_isready` answers |
 | 4 | `grep -c '^ADAPTAI_EVALUATION_OPENROUTER_KEY=.' .env` | `1` (the key is set; it is never printed) |
 | 5 | `uv run pytest backend -q` | All pass |
-| 6 | Start the backend and the frontend as usual | The app opens |
+| 6 | Backend: `uv run python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000`; second terminal: `cd frontend && pnpm dev --host 127.0.0.1` | The app opens |
 | 7 | After a few minutes (your own models go first): `uv run python scripts/project_evaluations.py` | "Project key set: yes"; a run for `stealth/crouton-alpha`, `running` with n/40 calls; spend 0 |
 | 8 | In LLM config, add or check your configurations (Groq server models are already there; add OpenRouter with your own key and pick the models you use) | Each model shows "Evaluating…" then "Measured by AdaptAI"; a paid one asks for consent first with the cost |
 | 9 | Leave the backend running (the computer awake) | The project key measures one model a day; run step 7 each day to follow it |

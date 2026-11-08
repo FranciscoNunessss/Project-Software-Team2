@@ -92,6 +92,10 @@ Run: `uv run pytest backend/tests/test_arena.py -q`.
 | OpenRouter model | "Add an OpenRouter model": a paid catalogue model shows the consent with its cost; "Remove from my models" removes it |
 | Assessor (`e2e/openrouter.spec.ts`) | With an OpenRouter chat model, Analyse sends no configuration (the project assessor); the notice says where Analyse and Send go; the drawer says "Task assessed by openai/gpt-oss-20b" |
 | Model at its limit (`e2e/openrouter.spec.ts`) | The answer fails with "rate limit"; "Send with openai/gpt-oss-20b" answers; the chat model becomes Auto; the next analysis says "Not recommended now" |
+| In a public ranking (`e2e/coverage.spec.ts`) | Adding `anthropic/claude-opus-5.5` shows LMArena levels at once; after "Not now" it says "Not measured · Provisional (LMArena…)" and the analysis compares it |
+| Free, no public source (`e2e/coverage.spec.ts`) | `acme/gratis` is evaluated without asking ("Measured by AdaptAI") and then compared |
+| Paid, no public source (`e2e/coverage.spec.ts`) | `vendor/premium` after "Not now": no levels, not compared, but the chat answers with it at once; after "Evaluate" it is measured and compared |
+| Provider refuses (`e2e/coverage.spec.ts`) | `acme/limited:free` fails with "The provider refused the calls" and offers "Re-evaluate" |
 | Recommendation (`e2e/feedback.spec.ts`) | The Groq server model is recommended with "Levels from: LMArena public ranking … (CC BY 4.0), provisional"; "Use this model" works |
 
 ## 3. Manual check with real keys

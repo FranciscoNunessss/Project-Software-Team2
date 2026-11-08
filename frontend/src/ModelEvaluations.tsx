@@ -83,8 +83,8 @@ function Entry({ entry, reload }: { entry: ModelEntry; reload: () => void }) {
         <div><h3>{entry.model}</h3><p className="muted">{entry.provider}{entry.shared ? ' · shared result' : ' · only for you'}</p></div>
         <span className="period" data-evaluation-status={status ?? 'none'}>
           {status === 'running' || status === 'queued' ? `Evaluating… ${evaluation!.progress}/${evaluation!.total}`
-            : status === 'awaiting_consent' ? 'Waiting for your consent'
-            : status === 'declined' ? 'Not evaluated'
+            : status === 'awaiting_consent' ? (entry.levels_source ? `Waiting for your consent · ${SOURCE[entry.levels_source]}` : 'Waiting for your consent')
+            : status === 'declined' ? (entry.levels_source ? `Not measured · ${SOURCE[entry.levels_source]}` : 'Not evaluated')
             : status === 'failed' ? 'Evaluation failed'
             : entry.levels_source ? SOURCE[entry.levels_source] : 'Not evaluated'}
         </span>

@@ -178,7 +178,11 @@ ROUTER_MODELS = [
     router_entry("acme/swift:free", "Swift", "0", "0"),
     router_entry("acme/gratis", "Gratis (no suffix)", "0", "0"),
     router_entry("acme/limited:free", "Limited", "0", "0"),
+    # In the public LMArena snapshot (ADR-014 A10): rated before any evaluation.
+    router_entry("anthropic/claude-opus-5.5", "Claude Opus 5.5", "0.000005", "0.000025"),
     router_entry("vendor/deluxe", "Deluxe", "0.0000025", "0.00001"),
+    # Paid, in no public source; evaluated by e2e/coverage.spec.ts only (results are shared).
+    router_entry("vendor/premium", "Premium", "0.000003", "0.000012"),
     router_entry(
         "vendor/embedder",
         "Embedder",
@@ -196,10 +200,16 @@ class FakeEvaluated:
 
     def __init__(self, provider, settings, max_tokens):
         self.provider = provider
+        self.model = settings.openrouter_model if provider == "openrouter" else ""
 
     async def ainvoke(self, messages):
         if self.provider == "groq":
             raise ValueError("e2e: the project model is not evaluated")
+        if "limited" in self.model:
+            # OpenRouter refuses (no credit / daily limit): the run stops after 5 calls.
+            error = RuntimeError("Insufficient credits")
+            error.status_code = 402
+            raise error
         return type("Reply", (), {"content": "I don't know.", "usage_metadata": None})()
 
 

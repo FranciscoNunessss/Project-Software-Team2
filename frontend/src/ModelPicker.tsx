@@ -54,11 +54,11 @@ export function ModelPicker({ options, value, autoId, loading, disabled, onChang
   const choose = (id: string) => { onChange(id); close() }
 
   return <div className="model-picker">
-    <button ref={trigger} className="model-picker-trigger" type="button" popoverTarget="assessment-model-picker" aria-label={`Assessment model: ${title}`} aria-expanded={open} aria-controls="assessment-model-picker" disabled={loading || disabled}>
+    <button ref={trigger} className="model-picker-trigger" type="button" popoverTarget="assessment-model-picker" aria-label={`Chat model: ${title}`} aria-expanded={open} aria-controls="assessment-model-picker" disabled={loading || disabled}>
       <span className="model-picker-brand">Model</span><span className="model-picker-current">{title}</span><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
     </button>
     <div ref={panel} id="assessment-model-picker" className="model-picker-panel" popover="auto" role="dialog" aria-label="Choose assessment model" onToggle={event => setOpen(event.currentTarget.matches(':popover-open'))}>
-      <p className="model-picker-heading">Assessment model</p>
+      <p className="model-picker-heading">Chat model</p>
       <button className="model-picker-option" type="button" aria-pressed={value === 'auto'} disabled={disabled || !automatic} onClick={() => choose('auto')}>
         <span className="model-picker-symbol" aria-hidden="true">✦</span><span><strong>Auto <em>Default</em></strong><small>{automatic ? `Uses the project ${automatic.provider === 'groq' ? 'Groq' : automatic.label} model` : 'Project model is unavailable'}</small>{automatic?.model && <small className="model-picker-id">{automatic.model}</small>}</span><span className="model-picker-check" aria-hidden="true">{value === 'auto' ? '✓' : ''}</span>
       </button>

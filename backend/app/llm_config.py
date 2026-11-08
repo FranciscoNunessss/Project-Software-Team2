@@ -18,6 +18,8 @@ from app.storage import Storage
 PROVIDERS = ("openai", "claude", "groq", "openrouter", "ollama", "lmstudio")
 # Run on the backend machine: no API key, and nothing leaves it.
 LOCAL_PROVIDERS = {"ollama", "lmstudio"}
+# Providers whose server models give a strict JSON answer for the task assessment (A11).
+ASSESSMENT_PROVIDERS = ("groq", "openai", "claude")
 LABELS = {
     "openai": "OpenAI / Codex",
     "claude": "Claude",
@@ -251,6 +253,19 @@ class ModelConfigurations:
                 )
         return result
 
+    def assessment_chain(self, enabled) -> "list[dict]":
+        """The project's models that assess tasks, in order (ADR-014 A11).
+
+        The analysis always uses these, never the chat model: it needs a strict JSON answer
+        that only some models give, and the same assessor keeps every analysis comparable.
+        The first is the default; the next ones answer when it hits a limit or fails.
+        """
+        return [
+            item
+            for item in self.server_options(enabled)
+            if item["provider"] in ASSESSMENT_PROVIDERS and item["model"]
+        ]
+
     def send_options(self, user_id, enabled) -> "list[Option]":
         """Every model the user can send to, for the recommendation (available_cards)."""
         personal = [item for item in self.list(user_id) if item["enabled"]]
@@ -317,12 +332,16 @@ def install_routes(app: FastAPI, configurations: ModelConfigurations, enabled):
         personal = [item for item in configurations.list(user["id"]) if item["enabled"]]
         server = configurations.server_options(enabled)
         all_options = [*personal, *server]
+        chain = configurations.assessment_chain(enabled)
         return {
             "options": all_options,
             "auto_configuration_id": "server:groq" if enabled.get("groq") else None,
-            "auto_policy": "Auto uses the project's Groq configuration. Personal models are "
-            "optional and selected manually. No fallback after a provider failure. "
-            "Intelligent routing is not implemented.",
+            # ADR-014 A11: Analyse always uses the project's assessor; the picker is the chat
+            # model only. The next model of the chain answers if the first one fails.
+            "assessment": chain[0] if chain else None,
+            "assessment_chain": [item["id"] for item in chain],
+            "auto_policy": "Analyses use the project's assessment model (Groq first, then the "
+            "next project model if it hits a limit). The chat uses the model you pick.",
         }
 
     @app.post("/api/llm-configs/{identifier}/test")

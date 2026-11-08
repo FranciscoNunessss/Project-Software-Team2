@@ -19,37 +19,39 @@ async function configure(page: Page, model = 'acme/swift:free') {
 }
 
 async function chooseMine(page: Page, model = 'acme/swift:free') {
-  await page.getByRole('button', { name: /^Assessment model/ }).click()
+  await page.getByRole('button', { name: /^Chat model/ }).click()
   await page.locator('#assessment-model-picker').getByRole('button', { name: new RegExp(model) }).click()
 }
 
 test('OpenRouter is not offered until the user configures it', async ({ page }) => {
   await signUp(page)
-  await page.getByRole('button', { name: /^Assessment model/ }).click()
+  await page.getByRole('button', { name: /^Chat model/ }).click()
   const panel = page.locator('#assessment-model-picker')
   await expect(panel.getByRole('button', { name: /OpenRouter/ })).toHaveCount(0)
   await page.keyboard.press('Escape')
   await configure(page)
-  await page.getByRole('button', { name: /^Assessment model/ }).click()
+  await page.getByRole('button', { name: /^Chat model/ }).click()
   await expect(panel.getByRole('button', { name: /OpenRouter/ })).toHaveCount(1)
 })
 
-test('there is no Auto option: the configured model is the one sent', async ({ page }) => {
+test('there is no Auto option for OpenRouter; the analysis always uses the project assessor', async ({ page }) => {
   await signUp(page)
-  const id = await configure(page, 'acme/swift:free')
+  await configure(page, 'acme/swift:free')
   await chooseMine(page)
   // Until the list is opened the button shows the configured id, not a catalogue name.
   await expect(page.getByRole('button', { name: 'OpenRouter model: acme/swift:free' })).toBeVisible()
   await page.getByRole('button', { name: /^OpenRouter model/ }).click()
   await expect(page.locator('#openrouter-model-picker').getByText('Auto')).toHaveCount(0)
   await page.keyboard.press('Escape')
+  // ADR-014 A11: whatever answers in the chat, the project's assessor analyses the task.
+  await expect(page.locator('[data-processing-notice]')).toContainText('Analyse sends your text to groq')
+  await expect(page.locator('[data-processing-notice]')).toContainText('Send sends it to openrouter')
   const response = await analyse(page, TASK)
-  expect(response.request().postDataJSON()).toMatchObject({
-    configuration_id: id,
-    model: 'acme/swift:free',
-    expected_model: 'acme/swift:free',
-    allow_external: true,
-  })
+  const body = response.request().postDataJSON()
+  expect(body).toMatchObject({ provider: 'auto', allow_external: true })
+  expect(body.configuration_id).toBeUndefined()
+  expect(body.model).toBeUndefined()
+  await expect(page.locator('[data-assessed-by]')).toContainText('openai/gpt-oss-20b')
 })
 
 test('the live catalogue lists free and paid models and a manual choice is sent exactly', async ({ page }) => {
@@ -75,12 +77,10 @@ test('the live catalogue lists free and paid models and a manual choice is sent 
   await list.getByRole('button', { name: /Deluxe/ }).click()
   await expect(page.getByRole('button', { name: 'OpenRouter model: Deluxe' })).toBeVisible()
 
-  const response = await analyse(page, TASK)
-  expect(response.request().postDataJSON()).toMatchObject({
-    configuration_id: id,
-    model: 'vendor/deluxe',
-    expected_model: 'vendor/deluxe',
-  })
+  await page.locator('[data-chat-input]').fill('Explain what an API is.')
+  const sent = page.waitForRequest(request => /\/api\/chats\/[^/]+\/messages$/.test(request.url()))
+  await page.locator('[data-chat-send]').click()
+  expect((await sent).postDataJSON()).toMatchObject({ configuration_id: id, model: 'vendor/deluxe' })
 })
 
 test('a failing catalogue is explained and can be retried', async ({ page }) => {
@@ -119,4 +119,23 @@ test('the chat sends the chosen OpenRouter model with the message', async ({ pag
     allow_external: true,
   })
   await expect(page.locator('[data-chat-message="assistant"]').last()).toContainText('Fake answer')
+})
+
+test('a model at its limit: one click answers with the project model, and it is not recommended', async ({ page }) => {
+  await signUp(page)
+  await configure(page, 'acme/limited:free')
+  await chooseMine(page, 'acme/limited:free')
+  await page.locator('[data-chat-input]').fill('Explain what an API is.')
+  await page.locator('[data-chat-send]').click()
+  const failed = page.locator('[data-chat-message="assistant"]').last()
+  await expect(failed).toContainText('rate limit')
+  // The answer comes from the project's model only when the user asks for it.
+  await failed.locator('[data-send-with-assessor]').click()
+  await expect(page.locator('[data-chat-message="assistant"]').last()).toContainText('Fake answer')
+  await expect(page.locator('[data-chat-message="assistant"]').last()).toContainText('openai/gpt-oss-20b')
+  await expect(page.getByRole('button', { name: /^Chat model/ })).toContainText('Auto')
+  // The limited model is set aside in the next recommendation, and the analysis says so.
+  const response = await analyse(page, TASK)
+  expect(response.ok()).toBeTruthy()
+  await expect(page.locator('.recommendation-notes')).toContainText('Not recommended now')
 })

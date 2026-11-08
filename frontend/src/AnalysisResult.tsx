@@ -181,6 +181,7 @@ export function ModelRecommendationCard({ analysis, useRecommended }: { analysis
       )}
       {coverage.some(entry => entry.provisional) && <p className="muted">{best.illustrative ? '* Illustrative level of a demo model, not a real measurement.' : '* Level from public benchmarks or the automatic measurement, not reviewed by the team yet.'}</p>}
       {best.levels_from && <p className="muted" data-levels-from="">Levels from: {best.levels_from}</p>}
+      {analysis.assessment_model && <p className="muted" data-assessed-by="">Task assessed by {analysis.assessment_model} (the project's assessor; your chat model answers)</p>}
       {(analysis.notes ?? []).length > 0 && (
         <ul className="recommendation-notes">{(analysis.notes ?? []).map(note => <li key={note}>{note}</li>)}</ul>
       )}

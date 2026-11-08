@@ -14,7 +14,10 @@ import { OutcomeCard, SolvedButton } from './TaskOutcome'
 // Optional chat (ADR-011). Shown only when /api/features reports "chat".
 const MAX_CHARS = 8000
 
-function Bubble({ message, last, busy, onRetry, onShowAnalysis }: { message: ChatMessage; last: boolean; busy: boolean; onRetry: () => void; onShowAnalysis: (id: string) => void }) {
+// Failures that another model would not have: a limit or the credit of this model (A11).
+const LIMIT_ERRORS = new Set(['provider_rate_limit', 'provider_insufficient_credits', 'provider_model_unavailable', 'provider_timeout', 'empty_answer'])
+
+function Bubble({ message, last, busy, onRetry, onShowAnalysis, fallback }: { message: ChatMessage; last: boolean; busy: boolean; onRetry: () => void; onShowAnalysis: (id: string) => void; fallback?: { label: string; onUse: () => void } }) {
   const mine = message.role === 'user'
   const pending = !mine && busy && last
   return (
@@ -28,6 +31,9 @@ function Bubble({ message, last, busy, onRetry, onShowAnalysis }: { message: Cha
         <div className="chat-note" role="status">
           <span>{message.status === 'stopped' ? 'Stopped.' : errorMessage(message.error)}</span>
           {last && <button type="button" className="chat-link" onClick={onRetry} disabled={busy}>Retry</button>}
+          {last && fallback && message.status === 'failed' && LIMIT_ERRORS.has(message.error ?? '') && (
+            <button type="button" className="chat-link" onClick={fallback.onUse} disabled={busy} data-send-with-assessor="">Send with {fallback.label}</button>
+          )}
         </div>
       )}
       {!mine && message.model && message.status === 'complete' && <span className="chat-meta">{message.model}</span>}
@@ -62,6 +68,8 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
   const [error, setError] = useState('')
   const [options, setOptions] = useState<LLMOption[]>([])
   const [autoId, setAutoId] = useState<string | null>(null)
+  // ADR-014 A11: Analyse always uses the project's assessor; the picker is the chat model.
+  const [assessor, setAssessor] = useState<LLMOption | null>(null)
   const [model, setModel] = useState('auto')
   const [modelsLoading, setModelsLoading] = useState(true)
   const active = useRef<AbortController | null>(null)
@@ -115,7 +123,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
   useEffect(() => {
     const controller = new AbortController()
     api<LLMOptions>('llm-options', undefined, controller.signal).then(result => {
-      setOptions(result.options); setAutoId(result.auto_configuration_id)
+      setOptions(result.options); setAutoId(result.auto_configuration_id); setAssessor(result.assessment ?? null)
     }).catch(() => { if (!controller.signal.aborted) setError('Could not load models. Check LLM config or refresh.') })
       .finally(() => { if (!controller.signal.aborted) setModelsLoading(false) })
     return () => { controller.abort(); active.current?.abort() }
@@ -146,7 +154,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
     const controller = new AbortController()
     const refreshModels = () => {
       void api<LLMOptions>('llm-options', undefined, controller.signal).then(result => {
-        setOptions(result.options); setAutoId(result.auto_configuration_id)
+        setOptions(result.options); setAutoId(result.auto_configuration_id); setAssessor(result.assessment ?? null)
         setModel(current => current === 'auto' || result.options.some(item => item.id === current) ? current : 'auto')
       }).catch(() => { if (!controller.signal.aborted) setError('Could not refresh model settings.') })
     }
@@ -201,10 +209,18 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
       const id = await ensureChat()
       // A chat started by Analyse is named after the draft, as Send would name it.
       if (fresh) await renameChat(id, titleFrom(content)).catch(() => undefined)
+      // The project's assessor analyses every task, whatever model answers in the chat; only
+      // without one (no project model configured) does the chat model analyse.
+      const how = assessor
+        ? { provider: 'auto', allow_external: assessor.external }
+        : {
+            provider: 'auto', configuration_id: target.configuration_id,
+            expected_configuration_id: selected.id, expected_provider: selected.provider, expected_model: (usesRouter ? routerValue : selected.model) ?? undefined, model: target.model,
+            allow_external: target.allow_external,
+          }
       const result = await api<Analysis>('analyze', {
-        task: draft, provider: 'auto', configuration_id: target.configuration_id,
-        expected_configuration_id: selected.id, expected_provider: selected.provider, expected_model: (usesRouter ? routerValue : selected.model) ?? undefined, model: target.model,
-        session_id: id, previous_analysis_id: draftAnalysis?.analysis.id, allow_external: target.allow_external,
+        task: draft, ...how,
+        session_id: id, previous_analysis_id: draftAnalysis?.analysis.id,
         required_capabilities: ['text'],
       })
       cache.current.set(result.id, result)
@@ -276,6 +292,13 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
     if (current) retries.current.set(current.analysisId, (retries.current.get(current.analysisId) ?? 0) + 1)
     run(chatId, `chats/${chatId}/messages/${last.id}/retry`, target, [...messages.slice(0, -1), placeholder(last.id)])
   }
+  // ADR-014 A11: when the chat model hit a limit, one click answers with the project's model.
+  const retryWithAssessor = () => {
+    const last = messages[messages.length - 1]
+    if (!chatId || !last || last.role !== 'assistant' || !assessor) return
+    setModel(assessor.id === autoId ? 'auto' : assessor.id); setRouterModel(null)
+    run(chatId, `chats/${chatId}/messages/${last.id}/retry`, { provider: 'auto', configuration_id: assessor.id, model: undefined, allow_external: assessor.external }, [...messages.slice(0, -1), placeholder(last.id)])
+  }
   const stop = () => active.current?.abort()
   const onKey = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); send() }
@@ -322,7 +345,8 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
           {messages.length === 0 ? (
             <div className="chat-empty"><h2>What do you need to do?</h2><p>Write your prompt. <strong>Analyse</strong> shows how complete it is and which model fits; <strong>Send</strong> gets the answer.</p></div>
           ) : messages.map((message, index) => (
-            <Bubble key={message.id} message={message} last={index === messages.length - 1} busy={busy} onRetry={retry} onShowAnalysis={showAnalysis} />
+            <Bubble key={message.id} message={message} last={index === messages.length - 1} busy={busy} onRetry={retry} onShowAnalysis={showAnalysis}
+              fallback={assessor && message.model !== assessor.model ? { label: assessor.model ?? assessor.label, onUse: retryWithAssessor } : undefined} />
           ))}
           {current && !busy && pending?.analysisId !== current.analysisId && current.answers.some(item => item.status === 'complete') && (
             <div className="chat-message theirs"><SolvedButton models={modelsLine(current)} disabled={savingOutcome} onAnswer={outcome => answerOutcome(current, outcome)} /></div>
@@ -364,7 +388,9 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
             </div>
           </div>
         </section>
-        {selected?.external && <p className="processing-notice">Selecting <strong>Analyse</strong> or <strong>Send</strong> sends your text to <strong>{selected.provider}</strong>. Messages are saved in this chat until you delete it.</p>}
+        {assessor
+          ? (assessor.external || selected?.external) && <p className="processing-notice" data-processing-notice="">Selecting <strong>Analyse</strong> sends your text to <strong>{assessor.provider}</strong> (the project's assessor); <strong>Send</strong> sends it to <strong>{selected?.provider}</strong>. Messages are saved in this chat until you delete it.</p>
+          : selected?.external && <p className="processing-notice">Selecting <strong>Analyse</strong> or <strong>Send</strong> sends your text to <strong>{selected.provider}</strong>. Messages are saved in this chat until you delete it.</p>}
       </section>
       <div className="drawer-slot">
         <AnalysisDrawer open={drawer} onClose={() => setDrawer(false)} error={analysisError || undefined} useRecommended={recommendedFor(shown)} analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory}

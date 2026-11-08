@@ -10,6 +10,7 @@ from langsmith import tracing_context
 from psycopg.errors import ForeignKeyViolation
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from app import limits
 from app.accounts import AuthenticatedUser, check_origin
 from app.accounts import router as accounts_router
 from app.assessment import PROFILE_VERSION, RUBRIC_VERSION, explain_changes
@@ -60,6 +61,22 @@ def agreement_percent(gaps: list[int]) -> int | None:
     if not gaps:
         return None
     return round(100 * sum(max(0.0, 1 - abs(gap) / 2) for gap in gaps) / len(gaps))
+
+
+# Provider failures after which the next project assessor answers (ADR-014 A11).
+FALLBACK_CODES = {
+    "provider_rate_limit",
+    "provider_insufficient_credits",
+    "provider_timeout",
+    "provider_model_unavailable",
+    "provider_unavailable",
+    "provider_output_truncated",
+}
+
+
+def _provider_model(chain: list[dict], identifier: str) -> tuple[str, str | None]:
+    item = next(entry for entry in chain if entry["id"] == identifier)
+    return item["provider"], item["model"]
 
 
 def create_app(
@@ -547,8 +564,18 @@ def create_app(
         session: dict[str, object],
     ):
         previous = previous_profile(user, body, session)
+        # ADR-014 A11: "auto" without a configuration is the project's assessor; if it hits a
+        # limit or fails, the next model of the chain answers (said in the result).
+        automatic = body.provider == "auto" and not body.configuration_id and body.model is None
+        chain = configurations.assessment_chain(enabled) if automatic else []
+        attempts = [item["id"] for item in chain]
+        ready = [i for i in attempts if not limits.limited(*_provider_model(chain, i))]
+        attempts = ready or attempts
+        resolve_body = (
+            body.model_copy(update={"configuration_id": attempts[0]}) if attempts else body
+        )
         actual_provider, actual_settings, actual_model, configuration_id = configurations.resolve(
-            user["id"], body, enabled
+            user["id"], resolve_body, enabled
         )
         if body.model is not None:
             if actual_provider != "openrouter":
@@ -610,23 +637,65 @@ def create_app(
             assessment_request = assessment_request.model_copy(
                 update={"task": "\n\n".join([*parts, f"Task:\n{body.task}"])}
             )
-        try:
-            with tracing_context(enabled=False):
-                state = await build_workflow(provider).ainvoke(
-                    {
-                        "request": assessment_request,
-                        "options": configurations.send_options(user["id"], enabled),
-                        "ratings": Ratings(store, active_catalogue(), user["id"]),
-                        "task_chars": len(body.task),
-                    }
+        # The models the user can send to; one that just hit a limit is set aside (A11).
+        options = configurations.send_options(user["id"], enabled)
+        set_aside = [o for o in options if limits.limited(o.provider, o.model)]
+        if set_aside and len(set_aside) < len(options):
+            options = [o for o in options if o not in set_aside]
+        else:
+            set_aside = []
+        fallback_note = None
+        while True:
+            try:
+                with tracing_context(enabled=False):
+                    state = await build_workflow(provider).ainvoke(
+                        {
+                            "request": assessment_request,
+                            "options": options,
+                            "ratings": Ratings(store, active_catalogue(), user["id"]),
+                            "task_chars": len(body.task),
+                        }
+                    )
+                break
+            except ProviderFailure as exc:
+                limits.mark(actual_provider, actual_model, exc.code)
+                rest = attempts[attempts.index(configuration_id) + 1 :] if automatic else []
+                if exc.code not in FALLBACK_CODES or not rest:
+                    raise HTTPException(502, exc.code) from None
+                failed = actual_model
+                actual_provider, actual_settings, actual_model, configuration_id = (
+                    configurations.resolve(
+                        user["id"], body.model_copy(update={"configuration_id": rest[0]}), enabled
+                    )
                 )
-        except ProviderFailure as exc:
-            raise HTTPException(502, exc.code) from None
-        except ValidationError:
-            raise HTTPException(502, "invalid_provider_output") from None
+                if actual_provider in external_providers and not body.allow_external:
+                    raise HTTPException(502, exc.code) from None
+                provider = providers.get(actual_provider) or LangChainProvider(
+                    actual_provider, actual_settings
+                )
+                assessment_request = assessment_request.model_copy(
+                    update={"provider": actual_provider}
+                )
+                fallback_note = (
+                    f"Assessed by {actual_model}: the default assessor ({failed}) "
+                    f"failed ({exc.code.removeprefix('provider_').replace('_', ' ')})."
+                )
+            except ValidationError:
+                raise HTTPException(502, "invalid_provider_output") from None
         candidates = state["candidates"]
         identifier = str(uuid4())
         notes = list(state["notes"])
+        if fallback_note:
+            notes.insert(0, fallback_note)
+        if set_aside:
+            notes.append(
+                "Not recommended now: "
+                + "; ".join(
+                    f"{o.label} (limit or credit, back after {limits.until(o.provider, o.model)})"
+                    for o in set_aside
+                )
+                + "."
+            )
         # ADR-014 A8: say which of the user's models are still being evaluated.
         ratings = state.get("ratings")
         waiting = pending_for(

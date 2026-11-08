@@ -26,6 +26,7 @@ from fastapi.responses import StreamingResponse
 from langsmith import tracing_context
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app import limits
 from app.accounts import AuthenticatedUser
 from app.catalogue import active_catalogue
 from app.llm_config import ModelConfigurations
@@ -238,6 +239,8 @@ async def answer_events(
             yield {"event": "error", "code": error}
     except Exception as exc:  # noqa: BLE001 - every provider failure becomes a stored state.
         status, error = "failed", provider_error_code(exc)
+        # ADR-014 A11: a model that hit a limit is not recommended for a while.
+        limits.mark(provider, model, error)
         yield {"event": "error", "code": error}
     finally:
         with store.connect() as db:

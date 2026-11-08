@@ -137,9 +137,15 @@ class FakeChat:
 
     def __init__(self, provider, settings, model):
         self.provider = provider
+        self.model = settings.openrouter_model if provider == "openrouter" else model
 
     async def stream(self, messages):
         question = messages[-1][1]
+        if "limited" in str(self.model):
+            # A free model at its daily limit (ADR-014 A11): OpenRouter answers HTTP 429.
+            error = RuntimeError("Rate limit exceeded: free-models-per-day")
+            error.status_code = 429
+            raise error
         if "markdown" in question.lower():
             # Markdown as real models write it, plus raw HTML that must not be rendered.
             for part in (
@@ -171,6 +177,7 @@ def router_entry(identifier, name, prompt, completion, **extra):
 ROUTER_MODELS = [
     router_entry("acme/swift:free", "Swift", "0", "0"),
     router_entry("acme/gratis", "Gratis (no suffix)", "0", "0"),
+    router_entry("acme/limited:free", "Limited", "0", "0"),
     router_entry("vendor/deluxe", "Deluxe", "0.0000025", "0.00001"),
     router_entry(
         "vendor/embedder",

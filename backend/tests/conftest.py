@@ -53,6 +53,16 @@ atexit.register(cleanup_collection)
 
 
 @pytest.fixture(autouse=True)
+def no_rate_limits_between_tests():
+    """app.limits is per process: one test's rate-limited model must not affect the next."""
+    from app import limits
+
+    limits.clear()
+    yield
+    limits.clear()
+
+
+@pytest.fixture(autouse=True)
 def isolated_database(tmp_path, monkeypatch):
     schema = "test_" + uuid4().hex
     monkeypatch.setenv("ADAPTAI_DATABASE_URL", TEST_DATABASE_URL)

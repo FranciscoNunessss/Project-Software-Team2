@@ -69,6 +69,20 @@ Run: `uv run pytest backend/tests/test_arena.py -q`.
 | 42 | No credit or a daily limit: the run stops after 5 refused calls, that model waits a day, the next one is tried | `test_a_refused_run_stops_early_and_waits_a_day` |
 | 43 | A restart puts a project run back in the queue | `test_a_restart_requeues_project_runs` |
 
+## 1d. Two roles: the assessor and the chat model (`backend/tests/test_assessor.py`, A11)
+
+| # | Case | Test |
+|---|---|---|
+| 44 | `llm-options` names the assessor and its chain | `test_the_options_name_the_assessor_and_its_chain` |
+| 45 | With an OpenRouter chat model, the analysis still uses the project assessor | `test_the_analysis_uses_the_assessor_whatever_the_chat_model_is` |
+| 46 | The assessor hits a limit: the next one answers, the analysis says so, the limited one is skipped next time | `test_a_limited_assessor_hands_over_to_the_next_one_and_says_so` |
+| 47 | A wrong answer (invalid JSON) is not handed over | `test_a_wrong_answer_is_not_handed_over` |
+| 48 | Every assessor fails: the error is shown | `test_when_every_assessor_fails_the_error_is_shown` |
+| 49 | A configuration chosen by hand is never replaced | `test_a_manual_configuration_is_never_replaced` |
+| 50 | A model that hit a limit is not recommended for a while, with a note; other failures do not count; the pause ends | `test_a_model_that_hit_a_limit_is_not_recommended_for_a_while` |
+| 51 | A chat answer that hits a limit sets the model aside | `test_a_chat_answer_that_hits_a_limit_sets_the_model_aside` |
+| 52 | A free model of the user is evaluated with the project key; a paid one with the user's key | `test_a_free_model_of_the_user_is_measured_with_the_project_key` |
+
 ## 2. Browser tests (`e2e/evaluations.spec.ts`, fake evaluator in `e2e/server.py`)
 
 | Test | Checks |
@@ -76,6 +90,8 @@ Run: `uv run pytest backend/tests/test_arena.py -q`.
 | Paid model | The consent shows what, how, the cost with "never more than", what declining means; after "Evaluate" the model shows "Measured by AdaptAI" and its levels |
 | Unknown price | "price unknown", the second confirmation, then the evaluation |
 | OpenRouter model | "Add an OpenRouter model": a paid catalogue model shows the consent with its cost; "Remove from my models" removes it |
+| Assessor (`e2e/openrouter.spec.ts`) | With an OpenRouter chat model, Analyse sends no configuration (the project assessor); the notice says where Analyse and Send go; the drawer says "Task assessed by openai/gpt-oss-20b" |
+| Model at its limit (`e2e/openrouter.spec.ts`) | The answer fails with "rate limit"; "Send with openai/gpt-oss-20b" answers; the chat model becomes Auto; the next analysis says "Not recommended now" |
 | Recommendation (`e2e/feedback.spec.ts`) | The Groq server model is recommended with "Levels from: LMArena public ranking … (CC BY 4.0), provisional"; "Use this model" works |
 
 ## 3. Manual check with real keys
@@ -140,6 +156,8 @@ someone uses them, or with bought credit (section "Layer 3" of
 | 11 | "Use this model", then Send | The answer shows that model's name |
 | 12 | "✓ Task solved", answer Yes or No | Saved; `uv run python scripts/calibration_report.py` lists it by source |
 | 13 | openrouter.ai › Activity, filtered by the evaluation key | Requests for free models only, cost 0.00 |
+| 13b | With your OpenRouter Gemma as chat model, select Analyse | It works: "Task assessed by openai/gpt-oss-20b"; the notice says Analyse goes to groq and Send to openrouter |
+| 13c | Send with Gemma when its daily limit is reached | The answer shows the limit and a "Send with openai/gpt-oss-20b" button; it answers; the next analysis says "Not recommended now: … Gemma" |
 | 14 | Once `stealth/crouton-alpha` is `done`: analyse a task with an OpenRouter configuration and pick that model | Its levels say "Measured by AdaptAI" |
 
 If step 7 shows `provider_refused`: OpenRouter refused the calls (daily limit reached, or the

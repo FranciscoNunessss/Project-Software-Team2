@@ -283,8 +283,9 @@ tests were AI-assisted; human review and live verification remain to be recorded
 
 `GET /api/providers` lists configuration availability, not verified connectivity or
 model compatibility. Calling OpenAI or Groq also requires `allow_external: true` for each
-analysis. This consent also applies to Claude. There is no automatic cross-provider
-fallback or retry. Timeouts default
+analysis. This consent also applies to Claude. Analyses use the project's assessor and,
+if it hits a limit or fails, the next project model, said in the result (ADR-014 A11); a
+manually chosen configuration is never replaced. Timeouts default
 to 30 seconds. Provider errors return sanitised codes, never upstream messages.
 The frontend uses project Groq in Auto mode. The Analyse action sends the task to the
 displayed destination, with an adjacent disclosure; no separate Allow checkbox is needed. Results display the actual assessment model and token usage when
@@ -787,12 +788,23 @@ Model IDs are user-supplied; saved configuration is not evidence of provider acc
 compatibility. OpenAI configurations expose the existing Responses API switch for compatible
 models, including Codex; no subscription or CLI credentials are read.
 
-The Assistant offers Auto or an enabled personal/server model. Auto always selects the
-project's server Groq configuration. Optional personal models are selected manually and do
-not replace the project default. If project Groq is unavailable, Auto returns an explicit
-configuration error; it never silently selects a personal model or demo.
-The actual provider, model, configuration ID and selection mode appear in the result. Failures
-never trigger silent fallback. Intelligent task routing, capability-based routing across these
+**Two roles, two rules (ADR-014 A11).** *Analyse* always uses the project's assessor: the
+server models that give a strict JSON answer (`GET /api/llm-options` returns it as
+`assessment`, with `assessment_chain`), Groq first, then the next server model if the first
+hits a rate limit, runs out of credit, times out or is unavailable. The analysis says which
+model assessed it ("Task assessed by …", and a note when the next one answered). The JSON is
+what lets the app compute completeness, needs and the recommendation, and the same assessor
+keeps analyses comparable. *Send* uses the **chat model** picked in the composer: Auto or any
+enabled personal or server model, any model that writes text. "Use this model" changes only
+the chat model. When a chat answer fails because the model hit a limit, the answer offers
+"Send with <project model>"; nothing changes without that click. A model that hit a rate limit
+(one hour) or ran out of credit (one day) is not recommended meanwhile and the analysis says
+so (`app/limits.py`, per process). Free OpenRouter models are evaluated with the project's
+evaluation key when set, so the user's free daily calls stay for their chats. Without a project
+assessor (no server Groq, OpenAI or Claude), the chat model analyses as before. If project
+Groq is unavailable and nothing else is configured, Auto returns an explicit configuration
+error; it never silently selects a personal model or demo. The actual provider, model,
+configuration ID and selection mode appear in the result. Intelligent task routing, capability-based routing across these
 assessment models and custom endpoints remain future work. Assessment-provider selection is
 separate from the versioned catalogue's recommended task-execution tier.
 

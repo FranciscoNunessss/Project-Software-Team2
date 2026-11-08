@@ -439,6 +439,15 @@ def _settings_for(row: dict, configurations) -> Settings:
     if not config or config["provider"] != row["provider"]:
         raise LookupError("configuration_gone")
     settings = configurations.configured_settings(dict(config))
+    project_key = configurations.settings.evaluation_openrouter_key
+    if (
+        row["provider"] == "openrouter"
+        and json.loads(row.get("estimate_json") or "{}").get("free")
+        and project_key.get_secret_value()
+    ):
+        # A free model is measured with the project's key: the user's free daily calls stay
+        # for their own chats (A11). The result is shared either way.
+        settings = settings.model_copy(update={"openrouter_api_key": project_key})
     if config["model"] != row["model"]:
         # A model picked from OpenRouter's catalogue with this configuration's key.
         if row["provider"] != "openrouter":

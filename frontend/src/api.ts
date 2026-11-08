@@ -18,7 +18,7 @@ export type TaskNeeds = { needs: Record<NeedName, { estimated: number; top: numb
 export type Grading = { demand: number; spread: number; parameters: Record<string, unknown>; basis: string }
 export type Provider = { id: string; label: string; model: string | null; enabled: boolean; external: boolean }
 export type LLMOption = {id:string;label:string;provider:string;model:string|null;external:boolean;source:'server'|'personal'}
-export type LLMOptions = {options:LLMOption[];auto_configuration_id:string|null;auto_policy:string}
+export type LLMOptions = {options:LLMOption[];auto_configuration_id:string|null;auto_policy:string;assessment?:LLMOption|null;assessment_chain?:string[]}
 export type LLMConfiguration = LLMOption & {model:string;provider:'openai'|'claude'|'groq'|'openrouter'|'ollama'|'lmstudio';has_key:boolean;responses_api:boolean;enabled:boolean;is_default:boolean;created_at:string}
 export type OpenRouterModel = {
   id: string; name: string; organisation: string; description: string; context_length: number | null

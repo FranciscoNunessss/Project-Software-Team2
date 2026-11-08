@@ -1,0 +1,1612 @@
+{
+ "access": {
+  "disabled": false,
+  "downloaded_without_account": true,
+  "gated": false,
+  "last_modified": "2026-11-07T04:04:47.000Z",
+  "license": "cc-by-4.0",
+  "private": false
+ },
+ "dataset": "lmarena-ai/leaderboard-dataset",
+ "subsets": {
+  "agent": {
+   "categories": {
+    "overall": {
+     "median_ci_width": null,
+     "median_votes": null,
+     "models": 58
+    }
+   },
+   "columns": [
+    "category",
+    "cost_per_task_p50",
+    "leaderboard_publish_date",
+    "license",
+    "model_name",
+    "observation_count",
+    "organization",
+    "output_tokens_per_task_p50",
+    "rank",
+    "score",
+    "score_ci_lower",
+    "score_ci_upper",
+    "session_count"
+   ],
+   "download_bytes": 10483,
+   "examples_matched": {
+    "Beam 1.0 501B A23B": [
+     "reflection/beam-1.0-501b-a23b"
+    ],
+    "GLM-5.3-Flash": [
+     "z-ai/glm-5.3-flash",
+     "z-ai/glm-5.3-flash:batch"
+    ],
+    "Gemini 3.1 Pro Preview": [
+     "google/gemini-3.1-pro-preview",
+     "google/gemini-3.1-pro-preview:batch"
+    ],
+    "Hy3": [
+     "tencent/hy3",
+     "tencent/hy3-preview"
+    ],
+    "Hy4": [
+     "tencent/hy4",
+     "tencent/hy4-preview"
+    ],
+    "Hy4 preview": [
+     "tencent/hy4",
+     "tencent/hy4-preview"
+    ],
+    "Inkling": [
+     "thinkingmachines/inkling"
+    ],
+    "Inkling-Small": [
+     "thinkingmachines/inkling-small",
+     "thinkingmachines/inkling-small:batch"
+    ],
+    "MiMo-V2.5-Pro": [
+     "xiaomi/mimo-v2.5-pro"
+    ],
+    "MiMo-V2.6-Flash": [
+     "xiaomi/mimo-v2.6-flash"
+    ],
+    "MiMo-V2.6-Pro": [
+     "xiaomi/mimo-v2.6-pro"
+    ],
+    "MiniMax-M3": [
+     "minimax/minimax-m3",
+     "minimax/minimax-m3:batch"
+    ],
+    "MiniMax-M3.1-Flash": [
+     "minimax/minimax-m3.1-flash"
+    ],
+    "Mistral Medium 3.5": [
+     "mistralai/mistral-medium-3-5",
+     "mistralai/mistral-medium-3-5:batch"
+    ],
+    "Muse Spark 1.1": [
+     "meta/muse-spark-1.1"
+    ],
+    "Qwen3.7-Max": [
+     "qwen/qwen3.7-max"
+    ],
+    "Qwen3.7-Plus": [
+     "qwen/qwen3.7-plus",
+     "qwen/qwen3.7-plus:batch"
+    ],
+    "Qwen3.8-27B": [
+     "qwen/qwen3.8-27b",
+     "qwen/qwen3.8-27b:batch"
+    ],
+    "Qwen3.8-Max": [
+     "qwen/qwen3.8-max-0902"
+    ],
+    "Step 5 Preview": [
+     "stepfun/step-5-preview"
+    ]
+   },
+   "examples_unmatched": [
+    "Claude Fable 5 (High)",
+    "Claude Fable 5.1 (Max)",
+    "Claude Haiku 5.5 (High)",
+    "Claude Opus 5 (Max)",
+    "Claude Opus 5.5 (Max)",
+    "Claude Sonnet 5 (High)",
+    "Claude Sonnet 5.5 (Max)",
+    "DeepSeek-V4-Pro (High, 20260813)",
+    "DeepSeek-V4.1-Flash-20261017 (Max)",
+    "GLM-5.2 (Max)",
+    "GLM-5.3 (Max)",
+    "GPT-5.6 Sol (xHigh)",
+    "GPT-5.6 Terra (xHigh)",
+    "GPT-6 Astra (Max)",
+    "GPT-6 Luna (Low)",
+    "GPT-6 Luna (Max)",
+    "GPT-6 Luna (Medium)",
+    "GPT-6 Sol (Max)",
+    "GPT-6.1 Sol (Max)",
+    "GPT-6.1 Terra (Max)",
+    "Gemini 3.7 Flash (High)",
+    "Gemini 3.8 Flash (High)",
+    "Gemini 4 Argon (High)",
+    "Gemini 4 Carbon (High)",
+    "Grok 4.6 (xHigh)",
+    "Grok 4.7 (xHigh)",
+    "Kimi K3 (Max)",
+    "Kimi K3.1 Pro (Max)",
+    "Mistral Large 4",
+    "Muse Spark 1.2 (xHigh)",
+    "Muse Spark 1.3 (Max)",
+    "Muse Wonder (Max)",
+    "Muse Wonder Full (Max)",
+    "NVIDIA-Nemotron-3.5-Super-VL-120B-A12B (NVFP4)",
+    "Nemotron 3 Ultra",
+    "Qwen3.8-Flash-Next",
+    "Solar Pro 4",
+    "Spark-X2.6"
+   ],
+   "families": {
+    "deepseek": [
+     "DeepSeek-V4-Pro (High, 20260813)",
+     "DeepSeek-V4.1-Flash-20261017 (Max)"
+    ],
+    "gemma": [],
+    "gpt-oss": [],
+    "llama": [],
+    "mistral": [
+     "Mistral Large 4",
+     "Mistral Medium 3.5"
+    ],
+    "qwen": [
+     "Qwen3.7-Max",
+     "Qwen3.7-Plus",
+     "Qwen3.8-27B",
+     "Qwen3.8-Flash-Next",
+     "Qwen3.8-Max"
+    ]
+   },
+   "first_row": {
+    "category": "overall",
+    "cost_per_task_p50": 6.7819518,
+    "leaderboard_publish_date": "2026-11-04",
+    "license": "Proprietary",
+    "model_name": "Claude Opus 5.5 (Max)",
+    "observation_count": 2350984.0,
+    "organization": "anthropic",
+    "output_tokens_per_task_p50": 128551.75,
+    "rank": 1,
+    "score": 0.20144840119751856,
+    "score_ci_lower": 0.1805897726415885,
+    "score_ci_upper": 0.22230702975344863,
+    "session_count": 14169.0
+   },
+   "found": true,
+   "models_overall": 58,
+   "openrouter_exact_matches": 30,
+   "openrouter_models_in_snapshot": 459,
+   "publish_dates": [
+    "2026-11-04"
+   ],
+   "rows": 58
+  },
+  "agent_tool_hallucination": {
+   "categories": {
+    "overall": {
+     "median_ci_width": null,
+     "median_votes": null,
+     "models": 58
+    }
+   },
+   "columns": [
+    "category",
+    "leaderboard_publish_date",
+    "license",
+    "model_name",
+    "observation_count",
+    "organization",
+    "rank",
+    "score",
+    "score_ci_lower",
+    "score_ci_upper",
+    "session_count"
+   ],
+   "download_bytes": 8539,
+   "examples_matched": {
+    "Beam 1.0 501B A23B": [
+     "reflection/beam-1.0-501b-a23b"
+    ],
+    "GLM-5.3-Flash": [
+     "z-ai/glm-5.3-flash",
+     "z-ai/glm-5.3-flash:batch"
+    ],
+    "Gemini 3.1 Pro Preview": [
+     "google/gemini-3.1-pro-preview",
+     "google/gemini-3.1-pro-preview:batch"
+    ],
+    "Hy3": [
+     "tencent/hy3",
+     "tencent/hy3-preview"
+    ],
+    "Hy4": [
+     "tencent/hy4",
+     "tencent/hy4-preview"
+    ],
+    "Hy4 preview": [
+     "tencent/hy4",
+     "tencent/hy4-preview"
+    ],
+    "Inkling": [
+     "thinkingmachines/inkling"
+    ],
+    "Inkling-Small": [
+     "thinkingmachines/inkling-small",
+     "thinkingmachines/inkling-small:batch"
+    ],
+    "MiMo-V2.5-Pro": [
+     "xiaomi/mimo-v2.5-pro"
+    ],
+    "MiMo-V2.6-Flash": [
+     "xiaomi/mimo-v2.6-flash"
+    ],
+    "MiMo-V2.6-Pro": [
+     "xiaomi/mimo-v2.6-pro"
+    ],
+    "MiniMax-M3": [
+     "minimax/minimax-m3",
+     "minimax/minimax-m3:batch"
+    ],
+    "MiniMax-M3.1-Flash": [
+     "minimax/minimax-m3.1-flash"
+    ],
+    "Mistral Medium 3.5": [
+     "mistralai/mistral-medium-3-5",
+     "mistralai/mistral-medium-3-5:batch"
+    ],
+    "Muse Spark 1.1": [
+     "meta/muse-spark-1.1"
+    ],
+    "Qwen3.7-Max": [
+     "qwen/qwen3.7-max"
+    ],
+    "Qwen3.7-Plus": [
+     "qwen/qwen3.7-plus",
+     "qwen/qwen3.7-plus:batch"
+    ],
+    "Qwen3.8-27B": [
+     "qwen/qwen3.8-27b",
+     "qwen/qwen3.8-27b:batch"
+    ],
+    "Qwen3.8-Max": [
+     "qwen/qwen3.8-max-0902"
+    ],
+    "Step 5 Preview": [
+     "stepfun/step-5-preview"
+    ]
+   },
+   "examples_unmatched": [
+    "Claude Fable 5 (High)",
+    "Claude Fable 5.1 (Max)",
+    "Claude Haiku 5.5 (High)",
+    "Claude Opus 5 (Max)",
+    "Claude Opus 5.5 (Max)",
+    "Claude Sonnet 5 (High)",
+    "Claude Sonnet 5.5 (Max)",
+    "DeepSeek-V4-Pro (High, 20260813)",
+    "DeepSeek-V4.1-Flash-20261017 (Max)",
+    "GLM-5.2 (Max)",
+    "GLM-5.3 (Max)",
+    "GPT-5.6 Sol (xHigh)",
+    "GPT-5.6 Terra (xHigh)",
+    "GPT-6 Astra (Max)",
+    "GPT-6 Luna (Low)",
+    "GPT-6 Luna (Max)",
+    "GPT-6 Luna (Medium)",
+    "GPT-6 Sol (Max)",
+    "GPT-6.1 Sol (Max)",
+    "GPT-6.1 Terra (Max)",
+    "Gemini 3.7 Flash (High)",
+    "Gemini 3.8 Flash (High)",
+    "Gemini 4 Argon (High)",
+    "Gemini 4 Carbon (High)",
+    "Grok 4.6 (xHigh)",
+    "Grok 4.7 (xHigh)",
+    "Kimi K3 (Max)",
+    "Kimi K3.1 Pro (Max)",
+    "Mistral Large 4",
+    "Muse Spark 1.2 (xHigh)",
+    "Muse Spark 1.3 (Max)",
+    "Muse Wonder (Max)",
+    "Muse Wonder Full (Max)",
+    "NVIDIA-Nemotron-3.5-Super-VL-120B-A12B (NVFP4)",
+    "Nemotron 3 Ultra",
+    "Qwen3.8-Flash-Next",
+    "Solar Pro 4",
+    "Spark-X2.6"
+   ],
+   "families": {
+    "deepseek": [
+     "DeepSeek-V4-Pro (High, 20260813)",
+     "DeepSeek-V4.1-Flash-20261017 (Max)"
+    ],
+    "gemma": [],
+    "gpt-oss": [],
+    "llama": [],
+    "mistral": [
+     "Mistral Large 4",
+     "Mistral Medium 3.5"
+    ],
+    "qwen": [
+     "Qwen3.7-Max",
+     "Qwen3.7-Plus",
+     "Qwen3.8-27B",
+     "Qwen3.8-Flash-Next",
+     "Qwen3.8-Max"
+    ]
+   },
+   "first_row": {
+    "category": "overall",
+    "leaderboard_publish_date": "2026-11-04",
+    "license": "MIT",
+    "model_name": "GLM-5.3-Flash",
+    "observation_count": 11871656.0,
+    "organization": "zai",
+    "rank": 1,
+    "score": 0.008902640510079607,
+    "score_ci_lower": 0.00808054385911856,
+    "score_ci_upper": 0.009724737161040654,
+    "session_count": 93081
+   },
+   "found": true,
+   "models_overall": 58,
+   "openrouter_exact_matches": 30,
+   "openrouter_models_in_snapshot": 459,
+   "publish_dates": [
+    "2026-11-04"
+   ],
+   "rows": 58
+  },
+  "text": {
+   "categories": {
+    "chinese": {
+     "median_ci_width": 27.9,
+     "median_votes": 2015.0,
+     "models": 395
+    },
+    "coding": {
+     "median_ci_width": 19.2,
+     "median_votes": 4316.0,
+     "models": 414
+    },
+    "creative_writing": {
+     "median_ci_width": 21.3,
+     "median_votes": 3565.0,
+     "models": 417
+    },
+    "english": {
+     "median_ci_width": 13.2,
+     "median_votes": 11489.0,
+     "models": 419
+    },
+    "exclude_ties": {
+     "median_ci_width": 14.7,
+     "median_votes": 15663.0,
+     "models": 419
+    },
+    "expert": {
+     "median_ci_width": 29.5,
+     "median_votes": 1681.0,
+     "models": 369
+    },
+    "french": {
+     "median_ci_width": 50.9,
+     "median_votes": 604.0,
+     "models": 301
+    },
+    "german": {
+     "median_ci_width": 45.0,
+     "median_votes": 719.0,
+     "models": 320
+    },
+    "hard_prompts": {
+     "median_ci_width": 14.6,
+     "median_votes": 8790.0,
+     "models": 419
+    },
+    "hard_prompts_english": {
+     "median_ci_width": 18.9,
+     "median_votes": 4403.0,
+     "models": 417
+    },
+    "industry_business_and_management_and_financial_operations": {
+     "median_ci_width": 22.3,
+     "median_votes": 3261.0,
+     "models": 412
+    },
+    "industry_entertainment_and_sports_and_media": {
+     "median_ci_width": 19.5,
+     "median_votes": 4267.0,
+     "models": 417
+    },
+    "industry_legal_and_government": {
+     "median_ci_width": 30.7,
+     "median_votes": 1691.0,
+     "models": 392
+    },
+    "industry_life_and_physical_and_social_science": {
+     "median_ci_width": 20.7,
+     "median_votes": 3986.0,
+     "models": 417
+    },
+    "industry_mathematical": {
+     "median_ci_width": 28.7,
+     "median_votes": 1746.0,
+     "models": 402
+    },
+    "industry_medicine_and_healthcare": {
+     "median_ci_width": 32.3,
+     "median_votes": 1466.0,
+     "models": 390
+    },
+    "industry_software_and_it_services": {
+     "median_ci_width": 16.0,
+     "median_votes": 6692.0,
+     "models": 419
+    },
+    "industry_writing_and_literature_and_language": {
+     "median_ci_width": 17.4,
+     "median_votes": 5831.0,
+     "models": 418
+    },
+    "instruction_following": {
+     "median_ci_width": 15.7,
+     "median_votes": 7315.0,
+     "models": 419
+    },
+    "japanese": {
+     "median_ci_width": 49.7,
+     "median_votes": 631.0,
+     "models": 288
+    },
+    "korean": {
+     "median_ci_width": 48.0,
+     "median_votes": 712.0,
+     "models": 290
+    },
+    "longer_query": {
+     "median_ci_width": 17.9,
+     "median_votes": 5093.0,
+     "models": 397
+    },
+    "math": {
+     "median_ci_width": 27.5,
+     "median_votes": 1776.0,
+     "models": 404
+    },
+    "multi_turn": {
+     "median_ci_width": 21.4,
+     "median_votes": 3586.0,
+     "models": 417
+    },
+    "non_english": {
+     "median_ci_width": 13.1,
+     "median_votes": 11491.0,
+     "models": 419
+    },
+    "overall": {
+     "median_ci_width": 10.3,
+     "median_votes": 23314.0,
+     "models": 419
+    },
+    "polish": {
+     "median_ci_width": 41.1,
+     "median_votes": 809.0,
+     "models": 244
+    },
+    "russian": {
+     "median_ci_width": 23.7,
+     "median_votes": 2604.0,
+     "models": 383
+    },
+    "spanish": {
+     "median_ci_width": 45.1,
+     "median_votes": 808.0,
+     "models": 302
+    }
+   },
+   "columns": [
+    "category",
+    "leaderboard_publish_date",
+    "license",
+    "model_name",
+    "organization",
+    "rank",
+    "rating",
+    "rating_lower",
+    "rating_upper",
+    "variance",
+    "vote_count"
+   ],
+   "download_bytes": 624159,
+   "examples_matched": {
+    "Beam 1.0 501B A23B": [
+     "reflection/beam-1.0-501b-a23b"
+    ],
+    "Claude Opus 4.6": [
+     "anthropic/claude-opus-4.6",
+     "anthropic/claude-opus-4.6:batch"
+    ],
+    "Claude Opus 4.7": [
+     "anthropic/claude-opus-4.7",
+     "anthropic/claude-opus-4.7:batch"
+    ],
+    "Claude Opus 4.8": [
+     "anthropic/claude-opus-4.8",
+     "anthropic/claude-opus-4.8:batch"
+    ],
+    "Claude Sonnet 4.6": [
+     "anthropic/claude-sonnet-4.6",
+     "anthropic/claude-sonnet-4.6:batch"
+    ],
+    "DeepSeek-R1": [
+     "deepseek/deepseek-r1-0528"
+    ],
+    "DeepSeek-V3.1-Terminus": [
+     "deepseek/deepseek-v3.1-terminus"
+    ],
+    "DeepSeek-V3.2": [
+     "deepseek/deepseek-v3.2",
+     "deepseek/deepseek-v3.2-exp"
+    ],
+    "DeepSeek-V3.2-Exp": [
+     "deepseek/deepseek-v3.2",
+     "deepseek/deepseek-v3.2-exp"
+    ],
+    "DeepSeek-V4-Flash": [
+     "deepseek/deepseek-v4-flash",
+     "deepseek/deepseek-v4-flash-0731",
+     "deepseek/deepseek-v4-flash-0731:batch",
+     "~deepseek/deepseek-v4-flash-latest"
+    ],
+    "DeepSeek-V4-Pro": [
+     "deepseek/deepseek-v4-pro",
+     "deepseek/deepseek-v4-pro-0813"
+    ],
+    "GLM-4.5": [
+     "z-ai/glm-4.5"
+    ],
+    "GLM-4.5-Air": [
+     "z-ai/glm-4.5-air"
+    ],
+    "GLM-4.5V": [
+     "z-ai/glm-4.5v"
+    ],
+    "GLM-4.6": [
+     "z-ai/glm-4.6"
+    ],
+    "GLM-4.6V": [
+     "z-ai/glm-4.6v"
+    ],
+    "GLM-4.7": [
+     "z-ai/glm-4.7"
+    ],
+    "GLM-4.7-Flash": [
+     "z-ai/glm-4.7-flash"
+    ],
+    "GLM-5": [
+     "z-ai/glm-5"
+    ],
+    "GLM-5.1": [
+     "z-ai/glm-5.1"
+    ],
+    "GLM-5.3-Flash": [
+     "z-ai/glm-5.3-flash",
+     "z-ai/glm-5.3-flash:batch"
+    ],
+    "GLM-5V-Turbo": [
+     "z-ai/glm-5v-turbo"
+    ],
+    "GPT-5 Chat": [
+     "openai/gpt-5",
+     "openai/gpt-5:batch"
+    ],
+    "GPT-5.1": [
+     "openai/gpt-5.1",
+     "openai/gpt-5.1:batch"
+    ],
+    "GPT-5.2": [
+     "openai/gpt-5.2",
+     "openai/gpt-5.2:batch",
+     "openai/gpt-5.2-chat"
+    ]
+   },
+   "examples_unmatched": [
+    "Alpaca 13B",
+    "Amazon Nova 2 Lite",
+    "Amazon Nova Lite 1.0",
+    "Amazon Nova Micro 1.0",
+    "Amazon Nova Pro 1.0",
+    "Athene 70B (0725)",
+    "Athene V2 Chat",
+    "Aya Expanse 32B",
+    "Aya Expanse 8B",
+    "ChatGLM 6B",
+    "ChatGLM2 6B",
+    "ChatGLM3 6B",
+    "ChatGPT-4o Latest (20250326)",
+    "Claude 3 Haiku (20240307)",
+    "Claude 3 Opus (20240229)",
+    "Claude 3 Sonnet (20240229)",
+    "Claude 3.5 Haiku (20241022)",
+    "Claude 3.5 Sonnet (20240620)",
+    "Claude 3.5 Sonnet (20241022)",
+    "Claude 3.7 Sonnet (20250219)",
+    "Claude 3.7 Sonnet (Thinking 32K, 20250219)",
+    "Claude Fable 5 (High)",
+    "Claude Fable 5.1 (Max)",
+    "Claude Haiku 4.5 (20251001)",
+    "Claude Haiku 5.5 (High)",
+    "Claude Opus 4 (20250514)",
+    "Claude Opus 4 (Thinking 16K, 20250514)",
+    "Claude Opus 4.1 (20250805)",
+    "Claude Opus 4.1 (Thinking 16K, 20250805)",
+    "Claude Opus 4.5 (20251101)",
+    "Claude Opus 4.5 (High, 32K, 20251101)",
+    "Claude Opus 4.6 (High)",
+    "Claude Opus 4.7 (High)",
+    "Claude Opus 4.8 (High)",
+    "Claude Opus 5 (High)",
+    "Claude Opus 5 (Max)",
+    "Claude Opus 5.5 (High)",
+    "Claude Sonnet 4 (20250514)",
+    "Claude Sonnet 4 (Thinking 32K, 20250514)",
+    "Claude Sonnet 4.5 (20250929)",
+    "Claude Sonnet 4.5 (High, 32K, 20250929)",
+    "Claude Sonnet 5 (High)",
+    "Claude Sonnet 5.5 (xHigh)",
+    "Code Llama 34B Instruct",
+    "Code Llama 70B Instruct",
+    "Command A (03-2025)",
+    "Command R",
+    "Command R (08-2024)",
+    "Command R+",
+    "Command R+ (08-2024)",
+    "DBRX Instruct Preview",
+    "DeepSeek LLM 67B Chat",
+    "DeepSeek-Coder-V2",
+    "DeepSeek-R1 (0528)",
+    "DeepSeek-V2.5",
+    "DeepSeek-V2.5 (1210)",
+    "DeepSeek-V3",
+    "DeepSeek-V3 (0324)",
+    "DeepSeek-V3.1",
+    "DeepSeek-V3.1 (Thinking)"
+   ],
+   "families": {
+    "deepseek": [
+     "DeepSeek LLM 67B Chat",
+     "DeepSeek-Coder-V2",
+     "DeepSeek-R1",
+     "DeepSeek-R1 (0528)",
+     "DeepSeek-V2.5",
+     "DeepSeek-V2.5 (1210)",
+     "DeepSeek-V3",
+     "DeepSeek-V3 (0324)",
+     "DeepSeek-V3.1",
+     "DeepSeek-V3.1 (Thinking)",
+     "DeepSeek-V3.1-Terminus",
+     "DeepSeek-V3.1-Terminus (Thinking)",
+     "DeepSeek-V3.2",
+     "DeepSeek-V3.2 (Thinking)",
+     "DeepSeek-V3.2-Exp"
+    ],
+    "gemma": [
+     "Gemma 1.1 2B IT",
+     "Gemma 1.1 7B IT",
+     "Gemma 2 27B IT",
+     "Gemma 2 2B IT",
+     "Gemma 2 9B IT",
+     "Gemma 2 9B IT SimPO",
+     "Gemma 2B IT",
+     "Gemma 3 12B IT",
+     "Gemma 3 27B IT",
+     "Gemma 3 4B IT",
+     "Gemma 3n E4B IT",
+     "Gemma 4 26B A4B",
+     "Gemma 4 31B",
+     "Gemma 7B IT"
+    ],
+    "gpt-oss": [
+     "gpt-oss-120b",
+     "gpt-oss-20b"
+    ],
+    "llama": [
+     "Code Llama 34B Instruct",
+     "Code Llama 70B Instruct",
+     "LLaMA 13B",
+     "Llama 2 13B Chat",
+     "Llama 2 70B Chat",
+     "Llama 2 70B SteerLM Chat",
+     "Llama 2 7B Chat",
+     "Llama 3 70B Instruct",
+     "Llama 3 8B Instruct",
+     "Llama 3.1 405B Instruct (BF16)",
+     "Llama 3.1 405B Instruct (FP8)",
+     "Llama 3.1 70B Instruct",
+     "Llama 3.1 8B Instruct",
+     "Llama 3.1 Nemotron 51B Instruct",
+     "Llama 3.1 Nemotron 70B Instruct"
+    ],
+    "mistral": [
+     "Dolphin 2.2.1 Mistral 7B",
+     "Mistral 7B Instruct",
+     "Mistral 7B Instruct v0.2",
+     "Mistral Large (2402)",
+     "Mistral Large (2411)",
+     "Mistral Large 2 (2407)",
+     "Mistral Large 3",
+     "Mistral Large 4",
+     "Mistral Medium",
+     "Mistral Medium 3 (2505)",
+     "Mistral Medium 3.1 (2508)",
+     "Mistral Medium 3.5",
+     "Mistral Small 24B Instruct (2501)",
+     "Mistral Small 3.1 24B Instruct (2503)",
+     "Mistral Small 3.2 (2506)"
+    ],
+    "qwen": [
+     "Qwen-14B-Chat",
+     "Qwen-Max (0919)",
+     "Qwen-Plus (0125)",
+     "Qwen1.5-110B-Chat",
+     "Qwen1.5-14B-Chat",
+     "Qwen1.5-32B-Chat",
+     "Qwen1.5-4B-Chat",
+     "Qwen1.5-72B-Chat",
+     "Qwen1.5-7B-Chat",
+     "Qwen2-72B-Instruct",
+     "Qwen2.5-72B-Instruct",
+     "Qwen2.5-Coder-32B-Instruct",
+     "Qwen2.5-Max",
+     "Qwen2.5-Plus (1127)",
+     "Qwen3-235B-A22B"
+    ]
+   },
+   "first_row": {
+    "category": "overall",
+    "leaderboard_publish_date": "2026-11-06",
+    "license": "Proprietary",
+    "model_name": "Gemini 4 Carbon (High)",
+    "organization": "google",
+    "rank": 1.0,
+    "rating": 1539.077948051864,
+    "rating_lower": 1529.7579049657247,
+    "rating_upper": 1548.3979911380031,
+    "variance": 22.61203547453283,
+    "vote_count": 4483.0
+   },
+   "found": true,
+   "models_overall": 419,
+   "openrouter_exact_matches": 120,
+   "openrouter_models_in_snapshot": 459,
+   "publish_dates": [
+    "2026-11-06"
+   ],
+   "rows": 11139
+  },
+  "text_factuality": {
+   "categories": {
+    "chinese": {
+     "median_ci_width": 23.6,
+     "median_votes": 2533,
+     "models": 123
+    },
+    "coding": {
+     "median_ci_width": 14.5,
+     "median_votes": 7193,
+     "models": 168
+    },
+    "creative_writing": {
+     "median_ci_width": 15.4,
+     "median_votes": 5339,
+     "models": 155
+    },
+    "english": {
+     "median_ci_width": 10.9,
+     "median_votes": 13125,
+     "models": 183
+    },
+    "exclude_ties": {
+     "median_ci_width": 10.1,
+     "median_votes": 22012,
+     "models": 187
+    },
+    "expert": {
+     "median_ci_width": 20.4,
+     "median_votes": 3244,
+     "models": 130
+    },
+    "french": {
+     "median_ci_width": 31.0,
+     "median_votes": 1312,
+     "models": 93
+    },
+    "german": {
+     "median_ci_width": 44.6,
+     "median_votes": 605,
+     "models": 56
+    },
+    "hard_prompts": {
+     "median_ci_width": 9.6,
+     "median_votes": 19267,
+     "models": 186
+    },
+    "hard_prompts_english": {
+     "median_ci_width": 14.1,
+     "median_votes": 7083,
+     "models": 171
+    },
+    "industry_business_and_management_and_financial_operations": {
+     "median_ci_width": 16.7,
+     "median_votes": 5089,
+     "models": 162
+    },
+    "industry_entertainment_and_sports_and_media": {
+     "median_ci_width": 15.4,
+     "median_votes": 6151,
+     "models": 163
+    },
+    "industry_legal_and_government": {
+     "median_ci_width": 23.1,
+     "median_votes": 2700,
+     "models": 129
+    },
+    "industry_life_and_physical_and_social_science": {
+     "median_ci_width": 16.8,
+     "median_votes": 5035,
+     "models": 153
+    },
+    "industry_mathematical": {
+     "median_ci_width": 24.4,
+     "median_votes": 2128,
+     "models": 116
+    },
+    "industry_medicine_and_healthcare": {
+     "median_ci_width": 23.0,
+     "median_votes": 2417,
+     "models": 125
+    },
+    "industry_software_and_it_services": {
+     "median_ci_width": 11.9,
+     "median_votes": 10979,
+     "models": 176
+    },
+    "industry_writing_and_literature_and_language": {
+     "median_ci_width": 14.5,
+     "median_votes": 6216,
+     "models": 168
+    },
+    "instruction_following": {
+     "median_ci_width": 13.1,
+     "median_votes": 8899,
+     "models": 173
+    },
+    "japanese": {
+     "median_ci_width": 43.3,
+     "median_votes": 501,
+     "models": 51
+    },
+    "korean": {
+     "median_ci_width": 43.1,
+     "median_votes": 636,
+     "models": 60
+    },
+    "longer_query": {
+     "median_ci_width": 12.4,
+     "median_votes": 10317,
+     "models": 173
+    },
+    "math": {
+     "median_ci_width": 25.5,
+     "median_votes": 1914,
+     "models": 121
+    },
+    "multi_turn": {
+     "median_ci_width": 17.2,
+     "median_votes": 4889,
+     "models": 156
+    },
+    "non_english": {
+     "median_ci_width": 9.8,
+     "median_votes": 17130,
+     "models": 186
+    },
+    "overall": {
+     "median_ci_width": 7.8,
+     "median_votes": 30199,
+     "models": 188
+    },
+    "polish": {
+     "median_ci_width": 39.9,
+     "median_votes": 826,
+     "models": 70
+    },
+    "russian": {
+     "median_ci_width": 18.6,
+     "median_votes": 4034,
+     "models": 141
+    },
+    "spanish": {
+     "median_ci_width": 31.8,
+     "median_votes": 1285,
+     "models": 96
+    }
+   },
+   "columns": [
+    "category",
+    "leaderboard_publish_date",
+    "license",
+    "model_name",
+    "organization",
+    "rank",
+    "rating",
+    "rating_lower",
+    "rating_upper",
+    "variance",
+    "vote_count"
+   ],
+   "download_bytes": 210348,
+   "examples_matched": {
+    "Beam 1.0 501B A23B": [
+     "reflection/beam-1.0-501b-a23b"
+    ],
+    "Claude Opus 4.6": [
+     "anthropic/claude-opus-4.6",
+     "anthropic/claude-opus-4.6:batch"
+    ],
+    "Claude Opus 4.7": [
+     "anthropic/claude-opus-4.7",
+     "anthropic/claude-opus-4.7:batch"
+    ],
+    "Claude Opus 4.8": [
+     "anthropic/claude-opus-4.8",
+     "anthropic/claude-opus-4.8:batch"
+    ],
+    "Claude Sonnet 4.6": [
+     "anthropic/claude-sonnet-4.6",
+     "anthropic/claude-sonnet-4.6:batch"
+    ],
+    "DeepSeek-V3.2": [
+     "deepseek/deepseek-v3.2",
+     "deepseek/deepseek-v3.2-exp"
+    ],
+    "DeepSeek-V3.2-Exp": [
+     "deepseek/deepseek-v3.2",
+     "deepseek/deepseek-v3.2-exp"
+    ],
+    "DeepSeek-V4-Flash": [
+     "deepseek/deepseek-v4-flash",
+     "deepseek/deepseek-v4-flash-0731",
+     "deepseek/deepseek-v4-flash-0731:batch",
+     "~deepseek/deepseek-v4-flash-latest"
+    ],
+    "DeepSeek-V4-Pro": [
+     "deepseek/deepseek-v4-pro",
+     "deepseek/deepseek-v4-pro-0813"
+    ],
+    "GLM-4.5-Air": [
+     "z-ai/glm-4.5-air"
+    ],
+    "GLM-4.6": [
+     "z-ai/glm-4.6"
+    ],
+    "GLM-4.6V": [
+     "z-ai/glm-4.6v"
+    ],
+    "GLM-4.7": [
+     "z-ai/glm-4.7"
+    ],
+    "GLM-4.7-Flash": [
+     "z-ai/glm-4.7-flash"
+    ],
+    "GLM-5": [
+     "z-ai/glm-5"
+    ],
+    "GLM-5.1": [
+     "z-ai/glm-5.1"
+    ],
+    "GLM-5.3-Flash": [
+     "z-ai/glm-5.3-flash",
+     "z-ai/glm-5.3-flash:batch"
+    ],
+    "GLM-5V-Turbo": [
+     "z-ai/glm-5v-turbo"
+    ],
+    "GPT-5 Chat": [
+     "openai/gpt-5",
+     "openai/gpt-5:batch"
+    ],
+    "GPT-5.1": [
+     "openai/gpt-5.1",
+     "openai/gpt-5.1:batch"
+    ],
+    "GPT-5.2": [
+     "openai/gpt-5.2",
+     "openai/gpt-5.2:batch",
+     "openai/gpt-5.2-chat"
+    ],
+    "GPT-5.4": [
+     "openai/gpt-5.4",
+     "openai/gpt-5.4:batch"
+    ],
+    "GPT-5.5": [
+     "openai/gpt-5.5",
+     "openai/gpt-5.5:batch"
+    ],
+    "Gemini 2.5 Flash": [
+     "google/gemini-2.5-flash"
+    ],
+    "Gemini 2.5 Pro": [
+     "google/gemini-2.5-pro",
+     "google/gemini-2.5-pro-preview"
+    ]
+   },
+   "examples_unmatched": [
+    "Amazon Nova 2 Lite",
+    "ChatGPT-4o Latest (20250326)",
+    "Claude Fable 5 (High)",
+    "Claude Fable 5.1 (Max)",
+    "Claude Haiku 4.5 (20251001)",
+    "Claude Haiku 5.5 (High)",
+    "Claude Opus 4.1 (20250805)",
+    "Claude Opus 4.1 (Thinking 16K, 20250805)",
+    "Claude Opus 4.5 (20251101)",
+    "Claude Opus 4.5 (High, 32K, 20251101)",
+    "Claude Opus 4.6 (High)",
+    "Claude Opus 4.7 (High)",
+    "Claude Opus 4.8 (High)",
+    "Claude Opus 5 (High)",
+    "Claude Opus 5 (Max)",
+    "Claude Opus 5.5 (High)",
+    "Claude Sonnet 4.5 (20250929)",
+    "Claude Sonnet 4.5 (High, 32K, 20250929)",
+    "Claude Sonnet 5 (High)",
+    "Claude Sonnet 5.5 (xHigh)",
+    "Command A (03-2025)",
+    "DeepSeek-V3.2 (Thinking)",
+    "DeepSeek-V3.2-Exp (Thinking)",
+    "DeepSeek-V4-Flash Preview (High)",
+    "DeepSeek-V4-Pro (High, 20260813)",
+    "DeepSeek-V4-Pro Preview (High)",
+    "DeepSeek-V4.1-Flash-20260910 (Max)",
+    "Dola Seed 2.0 Pro",
+    "ERNIE 5.0 (0110)",
+    "ERNIE 5.1",
+    "ERNIE-5.0-Preview (1022)",
+    "ERNIE-5.0-Preview (1203)",
+    "GLM-5.2 (Max)",
+    "GLM-5.3 (Max)",
+    "GPT-4.1 (2025-04-14)",
+    "GPT-5 (High)",
+    "GPT-5 mini (High)",
+    "GPT-5.1 (High)",
+    "GPT-5.2 (High)",
+    "GPT-5.2 Chat (20260210)",
+    "GPT-5.3 Chat",
+    "GPT-5.4 (High)",
+    "GPT-5.4 mini (High)",
+    "GPT-5.4 nano (High)",
+    "GPT-5.5 (High)",
+    "GPT-5.5 Instant",
+    "GPT-5.6 Luna (xHigh)",
+    "GPT-5.6 Sol (xHigh)",
+    "GPT-5.6 Terra (xHigh)",
+    "GPT-6 Astra (Max)",
+    "GPT-6 Luna (Max)",
+    "GPT-6 Sol (Max)",
+    "GPT-6.1 Sol (Max)",
+    "Gemini 2.5 Flash Preview (09-2025)",
+    "Gemini 2.5 Flash-Lite Preview (Non-Thinking, 09-2025)",
+    "Gemini 3 Flash (Minimal)",
+    "Gemini 3 Pro",
+    "Gemini 3.5 Flash (High)",
+    "Gemini 3.5 Flash (Medium)",
+    "Gemini 3.6 Flash (High)"
+   ],
+   "families": {
+    "deepseek": [
+     "DeepSeek-V3.2",
+     "DeepSeek-V3.2 (Thinking)",
+     "DeepSeek-V3.2-Exp",
+     "DeepSeek-V3.2-Exp (Thinking)",
+     "DeepSeek-V4-Flash",
+     "DeepSeek-V4-Flash Preview (High)",
+     "DeepSeek-V4-Pro",
+     "DeepSeek-V4-Pro (High, 20260813)",
+     "DeepSeek-V4-Pro Preview (High)",
+     "DeepSeek-V4.1-Flash-20260910 (Max)"
+    ],
+    "gemma": [
+     "Gemma 3 27B IT",
+     "Gemma 4 26B A4B",
+     "Gemma 4 31B"
+    ],
+    "gpt-oss": [
+     "gpt-oss-120b"
+    ],
+    "llama": [],
+    "mistral": [
+     "Mistral Large 3",
+     "Mistral Large 4",
+     "Mistral Medium 3.1 (2508)",
+     "Mistral Medium 3.5"
+    ],
+    "qwen": [
+     "Qwen3-235B-A22B-Instruct (2507)",
+     "Qwen3-Coder-480B-A35B-Instruct",
+     "Qwen3-Max-Preview",
+     "Qwen3-Next-80B-A3B-Instruct",
+     "Qwen3-VL-235B-A22B-Instruct",
+     "Qwen3.5-122B-A10B",
+     "Qwen3.5-27B",
+     "Qwen3.5-35B-A3B",
+     "Qwen3.5-397B-A17B",
+     "Qwen3.5-Flash",
+     "Qwen3.5-Max-Preview",
+     "Qwen3.6-Max-Preview",
+     "Qwen3.6-Plus",
+     "Qwen3.7-Max-Preview",
+     "Qwen3.7-Plus"
+    ]
+   },
+   "first_row": {
+    "category": "overall",
+    "leaderboard_publish_date": "2026-11-06",
+    "license": "Proprietary",
+    "model_name": "Gemini 4 Carbon (High)",
+    "organization": "google",
+    "rank": 1,
+    "rating": 1521.6115925303784,
+    "rating_lower": 1513.434960269723,
+    "rating_upper": 1529.7882247910338,
+    "variance": 17.404147290562392,
+    "vote_count": 4483
+   },
+   "found": true,
+   "models_overall": 188,
+   "openrouter_exact_matches": 99,
+   "openrouter_models_in_snapshot": 459,
+   "publish_dates": [
+    "2026-11-06"
+   ],
+   "rows": 4059
+  },
+  "text_style_control": {
+   "categories": {
+    "chinese": {
+     "median_ci_width": 28.1,
+     "median_votes": 2015.0,
+     "models": 395
+    },
+    "coding": {
+     "median_ci_width": 19.4,
+     "median_votes": 4316.0,
+     "models": 414
+    },
+    "creative_writing": {
+     "median_ci_width": 21.5,
+     "median_votes": 3565.0,
+     "models": 417
+    },
+    "english": {
+     "median_ci_width": 13.3,
+     "median_votes": 11489.0,
+     "models": 419
+    },
+    "exclude_ties": {
+     "median_ci_width": 14.9,
+     "median_votes": 15663.0,
+     "models": 419
+    },
+    "expert": {
+     "median_ci_width": 29.7,
+     "median_votes": 1681.0,
+     "models": 369
+    },
+    "french": {
+     "median_ci_width": 51.0,
+     "median_votes": 604.0,
+     "models": 301
+    },
+    "german": {
+     "median_ci_width": 45.3,
+     "median_votes": 719.0,
+     "models": 320
+    },
+    "hard_prompts": {
+     "median_ci_width": 14.7,
+     "median_votes": 8790.0,
+     "models": 419
+    },
+    "hard_prompts_english": {
+     "median_ci_width": 19.0,
+     "median_votes": 4403.0,
+     "models": 417
+    },
+    "industry_business_and_management_and_financial_operations": {
+     "median_ci_width": 22.5,
+     "median_votes": 3261.0,
+     "models": 412
+    },
+    "industry_entertainment_and_sports_and_media": {
+     "median_ci_width": 19.7,
+     "median_votes": 4267.0,
+     "models": 417
+    },
+    "industry_legal_and_government": {
+     "median_ci_width": 30.8,
+     "median_votes": 1691.0,
+     "models": 392
+    },
+    "industry_life_and_physical_and_social_science": {
+     "median_ci_width": 20.9,
+     "median_votes": 3986.0,
+     "models": 417
+    },
+    "industry_mathematical": {
+     "median_ci_width": 29.0,
+     "median_votes": 1746.0,
+     "models": 402
+    },
+    "industry_medicine_and_healthcare": {
+     "median_ci_width": 32.6,
+     "median_votes": 1466.0,
+     "models": 390
+    },
+    "industry_software_and_it_services": {
+     "median_ci_width": 16.1,
+     "median_votes": 6692.0,
+     "models": 419
+    },
+    "industry_writing_and_literature_and_language": {
+     "median_ci_width": 17.5,
+     "median_votes": 5831.0,
+     "models": 418
+    },
+    "instruction_following": {
+     "median_ci_width": 15.7,
+     "median_votes": 7315.0,
+     "models": 419
+    },
+    "japanese": {
+     "median_ci_width": 49.9,
+     "median_votes": 631.0,
+     "models": 288
+    },
+    "korean": {
+     "median_ci_width": 48.6,
+     "median_votes": 712.0,
+     "models": 290
+    },
+    "longer_query": {
+     "median_ci_width": 18.1,
+     "median_votes": 5093.0,
+     "models": 397
+    },
+    "math": {
+     "median_ci_width": 27.6,
+     "median_votes": 1776.0,
+     "models": 404
+    },
+    "multi_turn": {
+     "median_ci_width": 21.5,
+     "median_votes": 3586.0,
+     "models": 417
+    },
+    "non_english": {
+     "median_ci_width": 13.2,
+     "median_votes": 11491.0,
+     "models": 419
+    },
+    "overall": {
+     "median_ci_width": 10.4,
+     "median_votes": 23314.0,
+     "models": 419
+    },
+    "polish": {
+     "median_ci_width": 41.3,
+     "median_votes": 809.0,
+     "models": 244
+    },
+    "russian": {
+     "median_ci_width": 23.7,
+     "median_votes": 2604.0,
+     "models": 383
+    },
+    "spanish": {
+     "median_ci_width": 45.2,
+     "median_votes": 808.0,
+     "models": 302
+    }
+   },
+   "columns": [
+    "category",
+    "leaderboard_publish_date",
+    "license",
+    "model_name",
+    "organization",
+    "rank",
+    "rating",
+    "rating_lower",
+    "rating_upper",
+    "variance",
+    "vote_count"
+   ],
+   "download_bytes": 624439,
+   "examples_matched": {
+    "Beam 1.0 501B A23B": [
+     "reflection/beam-1.0-501b-a23b"
+    ],
+    "Claude Opus 4.6": [
+     "anthropic/claude-opus-4.6",
+     "anthropic/claude-opus-4.6:batch"
+    ],
+    "Claude Opus 4.7": [
+     "anthropic/claude-opus-4.7",
+     "anthropic/claude-opus-4.7:batch"
+    ],
+    "Claude Opus 4.8": [
+     "anthropic/claude-opus-4.8",
+     "anthropic/claude-opus-4.8:batch"
+    ],
+    "Claude Sonnet 4.6": [
+     "anthropic/claude-sonnet-4.6",
+     "anthropic/claude-sonnet-4.6:batch"
+    ],
+    "DeepSeek-R1": [
+     "deepseek/deepseek-r1-0528"
+    ],
+    "DeepSeek-V3.1-Terminus": [
+     "deepseek/deepseek-v3.1-terminus"
+    ],
+    "DeepSeek-V3.2": [
+     "deepseek/deepseek-v3.2",
+     "deepseek/deepseek-v3.2-exp"
+    ],
+    "DeepSeek-V3.2-Exp": [
+     "deepseek/deepseek-v3.2",
+     "deepseek/deepseek-v3.2-exp"
+    ],
+    "DeepSeek-V4-Flash": [
+     "deepseek/deepseek-v4-flash",
+     "deepseek/deepseek-v4-flash-0731",
+     "deepseek/deepseek-v4-flash-0731:batch",
+     "~deepseek/deepseek-v4-flash-latest"
+    ],
+    "DeepSeek-V4-Pro": [
+     "deepseek/deepseek-v4-pro",
+     "deepseek/deepseek-v4-pro-0813"
+    ],
+    "GLM-4.5": [
+     "z-ai/glm-4.5"
+    ],
+    "GLM-4.5-Air": [
+     "z-ai/glm-4.5-air"
+    ],
+    "GLM-4.5V": [
+     "z-ai/glm-4.5v"
+    ],
+    "GLM-4.6": [
+     "z-ai/glm-4.6"
+    ],
+    "GLM-4.6V": [
+     "z-ai/glm-4.6v"
+    ],
+    "GLM-4.7": [
+     "z-ai/glm-4.7"
+    ],
+    "GLM-4.7-Flash": [
+     "z-ai/glm-4.7-flash"
+    ],
+    "GLM-5": [
+     "z-ai/glm-5"
+    ],
+    "GLM-5.1": [
+     "z-ai/glm-5.1"
+    ],
+    "GLM-5.3-Flash": [
+     "z-ai/glm-5.3-flash",
+     "z-ai/glm-5.3-flash:batch"
+    ],
+    "GLM-5V-Turbo": [
+     "z-ai/glm-5v-turbo"
+    ],
+    "GPT-5 Chat": [
+     "openai/gpt-5",
+     "openai/gpt-5:batch"
+    ],
+    "GPT-5.1": [
+     "openai/gpt-5.1",
+     "openai/gpt-5.1:batch"
+    ],
+    "GPT-5.2": [
+     "openai/gpt-5.2",
+     "openai/gpt-5.2:batch",
+     "openai/gpt-5.2-chat"
+    ]
+   },
+   "examples_unmatched": [
+    "Alpaca 13B",
+    "Amazon Nova 2 Lite",
+    "Amazon Nova Lite 1.0",
+    "Amazon Nova Micro 1.0",
+    "Amazon Nova Pro 1.0",
+    "Athene 70B (0725)",
+    "Athene V2 Chat",
+    "Aya Expanse 32B",
+    "Aya Expanse 8B",
+    "ChatGLM 6B",
+    "ChatGLM2 6B",
+    "ChatGLM3 6B",
+    "ChatGPT-4o Latest (20250326)",
+    "Claude 3 Haiku (20240307)",
+    "Claude 3 Opus (20240229)",
+    "Claude 3 Sonnet (20240229)",
+    "Claude 3.5 Haiku (20241022)",
+    "Claude 3.5 Sonnet (20240620)",
+    "Claude 3.5 Sonnet (20241022)",
+    "Claude 3.7 Sonnet (20250219)",
+    "Claude 3.7 Sonnet (Thinking 32K, 20250219)",
+    "Claude Fable 5 (High)",
+    "Claude Fable 5.1 (Max)",
+    "Claude Haiku 4.5 (20251001)",
+    "Claude Haiku 5.5 (High)",
+    "Claude Opus 4 (20250514)",
+    "Claude Opus 4 (Thinking 16K, 20250514)",
+    "Claude Opus 4.1 (20250805)",
+    "Claude Opus 4.1 (Thinking 16K, 20250805)",
+    "Claude Opus 4.5 (20251101)",
+    "Claude Opus 4.5 (High, 32K, 20251101)",
+    "Claude Opus 4.6 (High)",
+    "Claude Opus 4.7 (High)",
+    "Claude Opus 4.8 (High)",
+    "Claude Opus 5 (High)",
+    "Claude Opus 5 (Max)",
+    "Claude Opus 5.5 (High)",
+    "Claude Sonnet 4 (20250514)",
+    "Claude Sonnet 4 (Thinking 32K, 20250514)",
+    "Claude Sonnet 4.5 (20250929)",
+    "Claude Sonnet 4.5 (High, 32K, 20250929)",
+    "Claude Sonnet 5 (High)",
+    "Claude Sonnet 5.5 (xHigh)",
+    "Code Llama 34B Instruct",
+    "Code Llama 70B Instruct",
+    "Command A (03-2025)",
+    "Command R",
+    "Command R (08-2024)",
+    "Command R+",
+    "Command R+ (08-2024)",
+    "DBRX Instruct Preview",
+    "DeepSeek LLM 67B Chat",
+    "DeepSeek-Coder-V2",
+    "DeepSeek-R1 (0528)",
+    "DeepSeek-V2.5",
+    "DeepSeek-V2.5 (1210)",
+    "DeepSeek-V3",
+    "DeepSeek-V3 (0324)",
+    "DeepSeek-V3.1",
+    "DeepSeek-V3.1 (Thinking)"
+   ],
+   "families": {
+    "deepseek": [
+     "DeepSeek LLM 67B Chat",
+     "DeepSeek-Coder-V2",
+     "DeepSeek-R1",
+     "DeepSeek-R1 (0528)",
+     "DeepSeek-V2.5",
+     "DeepSeek-V2.5 (1210)",
+     "DeepSeek-V3",
+     "DeepSeek-V3 (0324)",
+     "DeepSeek-V3.1",
+     "DeepSeek-V3.1 (Thinking)",
+     "DeepSeek-V3.1-Terminus",
+     "DeepSeek-V3.1-Terminus (Thinking)",
+     "DeepSeek-V3.2",
+     "DeepSeek-V3.2 (Thinking)",
+     "DeepSeek-V3.2-Exp"
+    ],
+    "gemma": [
+     "Gemma 1.1 2B IT",
+     "Gemma 1.1 7B IT",
+     "Gemma 2 27B IT",
+     "Gemma 2 2B IT",
+     "Gemma 2 9B IT",
+     "Gemma 2 9B IT SimPO",
+     "Gemma 2B IT",
+     "Gemma 3 12B IT",
+     "Gemma 3 27B IT",
+     "Gemma 3 4B IT",
+     "Gemma 3n E4B IT",
+     "Gemma 4 26B A4B",
+     "Gemma 4 31B",
+     "Gemma 7B IT"
+    ],
+    "gpt-oss": [
+     "gpt-oss-120b",
+     "gpt-oss-20b"
+    ],
+    "llama": [
+     "Code Llama 34B Instruct",
+     "Code Llama 70B Instruct",
+     "LLaMA 13B",
+     "Llama 2 13B Chat",
+     "Llama 2 70B Chat",
+     "Llama 2 70B SteerLM Chat",
+     "Llama 2 7B Chat",
+     "Llama 3 70B Instruct",
+     "Llama 3 8B Instruct",
+     "Llama 3.1 405B Instruct (BF16)",
+     "Llama 3.1 405B Instruct (FP8)",
+     "Llama 3.1 70B Instruct",
+     "Llama 3.1 8B Instruct",
+     "Llama 3.1 Nemotron 51B Instruct",
+     "Llama 3.1 Nemotron 70B Instruct"
+    ],
+    "mistral": [
+     "Dolphin 2.2.1 Mistral 7B",
+     "Mistral 7B Instruct",
+     "Mistral 7B Instruct v0.2",
+     "Mistral Large (2402)",
+     "Mistral Large (2411)",
+     "Mistral Large 2 (2407)",
+     "Mistral Large 3",
+     "Mistral Large 4",
+     "Mistral Medium",
+     "Mistral Medium 3 (2505)",
+     "Mistral Medium 3.1 (2508)",
+     "Mistral Medium 3.5",
+     "Mistral Small 24B Instruct (2501)",
+     "Mistral Small 3.1 24B Instruct (2503)",
+     "Mistral Small 3.2 (2506)"
+    ],
+    "qwen": [
+     "Qwen-14B-Chat",
+     "Qwen-Max (0919)",
+     "Qwen-Plus (0125)",
+     "Qwen1.5-110B-Chat",
+     "Qwen1.5-14B-Chat",
+     "Qwen1.5-32B-Chat",
+     "Qwen1.5-4B-Chat",
+     "Qwen1.5-72B-Chat",
+     "Qwen1.5-7B-Chat",
+     "Qwen2-72B-Instruct",
+     "Qwen2.5-72B-Instruct",
+     "Qwen2.5-Coder-32B-Instruct",
+     "Qwen2.5-Max",
+     "Qwen2.5-Plus (1127)",
+     "Qwen3-235B-A22B"
+    ]
+   },
+   "first_row": {
+    "category": "overall",
+    "leaderboard_publish_date": "2026-11-06",
+    "license": "Proprietary",
+    "model_name": "Gemini 4 Carbon (High)",
+    "organization": "google",
+    "rank": 1,
+    "rating": 1526.4956666412315,
+    "rating_lower": 1517.1216463504343,
+    "rating_upper": 1535.8696869320288,
+    "variance": 22.87470997708115,
+    "vote_count": 4483.0
+   },
+   "found": true,
+   "models_overall": 419,
+   "openrouter_exact_matches": 120,
+   "openrouter_models_in_snapshot": 459,
+   "publish_dates": [
+    "2026-11-06"
+   ],
+   "rows": 11139
+  }
+ }
+}

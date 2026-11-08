@@ -57,3 +57,9 @@ what you should see in LLM config › "How your models were evaluated".
 | 9 | Stop the backend during an evaluation and start it again | A free run starts again by itself; a paid run shows "Evaluation failed" (interrupted) and waits for you to press "Re-evaluate", so nothing is charged twice without your consent |
 
 Report each step as OK or with the screenshot of what differed.
+
+## Planned: tests for A10 (not implemented)
+
+The tests for levels from LMArena, the background measurement with a project key and the
+OpenRouter suggestions are listed in [`docs/plan-model-coverage.md`](plan-model-coverage.md)
+("Tests"). They will be added here with the code.

@@ -29,6 +29,15 @@ maximum come from the model's price and are shown before consent.
 
 How to test it: [`docs/testing-model-evaluations.md`](testing-model-evaluations.md).
 
+## Next: levels for every OpenRouter model (A10, proposed)
+
+Only configured models have levels today. The proposal adds a free public source with
+per-category ratings, LMArena (CC BY 4.0), between the catalogue's provisional levels and
+Artificial Analysis. It was checked on 8 November 2026: no account, 0.6 MB, 419 models, 220
+of the 459 OpenRouter ids linked by name. The rest stay with Artificial Analysis, our
+background measurement and feedback. Layers, mapping (`arena-mapping-1`), thresholds, name
+linking, tests and the decisions needed: [`docs/plan-model-coverage.md`](plan-model-coverage.md).
+
 # Team procedures
 
 Procedure from ADR-014. Anyone in the team can follow it; the Architecture Owner (AO) approves

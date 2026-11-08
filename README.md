@@ -606,6 +606,11 @@ check: [`docs/testing-model-evaluations.md`](docs/testing-model-evaluations.md).
 
 `ADAPTAI_EVALUATIONS_WORKER=false` turns the worker off (tests and scripts).
 
+**Next (PROPOSED, ADR-014 A10, not implemented):** levels for every OpenRouter model at no
+cost, from the public LMArena leaderboard per category (CC BY 4.0, credited wherever a level
+comes from it), then Artificial Analysis, then our measurement in the background, corrected by
+feedback. Plan and decisions: [`docs/plan-model-coverage.md`](docs/plan-model-coverage.md).
+
 ## Architecture and limits
 
 `backend/app/models.py` owns domain contracts; `assessment.py` owns the provisional

@@ -20,6 +20,7 @@ levels measured in the same family. Without any of them the model is never recom
 
 import asyncio
 import json
+import logging
 import re
 import time
 from collections.abc import Callable
@@ -41,6 +42,7 @@ from app.providers import Settings, chat_model
 from app.recommendation import LOCAL_PROVIDERS, Option
 from app.storage import Storage
 
+LOGGER = logging.getLogger("adaptai.evaluations")
 SHARED_PROVIDERS = {"groq", "openrouter", "openai", "claude"}
 SEED = 1
 PASS = 0.75
@@ -158,6 +160,8 @@ def project_targets(settings: Settings, ratings: "Ratings") -> list[Target]:
         seen.add(model)
         if not snapshot[model].get("free") and not settings.evaluation_paid:
             continue
+        if snapshot[model].get("output_modalities", ["text"]) != ["text"]:
+            continue  # music, image or speech generators: not chat models
         found = ratings.source("openrouter", model)
         if found is None or found[0] in {"arena", "benchmark", "family"}:
             # Public levels are provisional; free models are measured anyway (they cost 0).
@@ -217,7 +221,9 @@ async def ensure_project(store: Storage, settings: Settings, ratings: "Ratings",
         )
         if not project_room(store, settings, cost):
             return None
-        return await ensure(store, target, router, force=bool(current))
+        row = await ensure(store, target, router, force=bool(current))
+        LOGGER.info("Project evaluation queued: %s", target.model)
+        return row
     return None
 
 
@@ -293,8 +299,8 @@ async def model_facts(target: Target, catalogue: Catalogue, router=None) -> dict
 
         try:
             models, _ = await router.models()
-        except Exception:  # noqa: BLE001 - facts are optional; the price stays unknown
-            return None
+        except Exception:  # noqa: BLE001 - offline: the committed snapshot below answers
+            models = []
         match = next((item for item in models if item["id"] == target.model), None)
         if match is not None:
             return facts_from_openrouter(match, time.strftime("%Y-%m-%d"))
@@ -1140,7 +1146,7 @@ def install_evaluations(
                         ):
                             pass
                     except Exception:  # noqa: BLE001 - the worker must never die
-                        pass
+                        LOGGER.exception("Evaluation worker step failed; retrying")
                     await asyncio.sleep(poll_seconds)
 
             app.state.evaluation_worker = asyncio.create_task(loop())

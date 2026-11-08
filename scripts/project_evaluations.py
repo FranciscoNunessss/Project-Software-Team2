@@ -36,6 +36,14 @@ def main() -> int:
                 (PROJECT_CONFIGURATION,),
             ).fetchall()
         ]
+        queue = [
+            dict(row)
+            for row in db.execute(
+                "SELECT provider,model,status,progress,total,configuration_id FROM "
+                "model_evaluations WHERE status IN ('queued','running','awaiting_consent') "
+                "ORDER BY sequence_id"
+            ).fetchall()
+        ]
     calls_today = sum(r["progress"] for r in rows if r["updated_at"].startswith(today))
     spent = sum(float(r["spent_usd"] or 0) for r in rows)
     print(f"Project key set: {'yes' if has_key else 'NO (ADAPTAI_EVALUATION_OPENROUTER_KEY)'}")
@@ -48,6 +56,12 @@ def main() -> int:
     measured = {r["model"] for r in rows if r["status"] == "done"}
     waiting = [model for model in waiting if model not in measured]
     print(f"In line ({len(waiting)}): {', '.join(waiting[:8])}{' …' if len(waiting) > 8 else ''}")
+    others = [r for r in queue if r["configuration_id"] != PROJECT_CONFIGURATION]
+    if others:
+        print("Users' and server models first (the project waits for them):")
+        for row in others:
+            calls = f"{row['progress']}/{row['total']}"
+            print(f"  {row['provider']} {row['model']}: {row['status']} {calls}")
     print("\n| Model | Status | Calls | Levels or failure | Updated |\n|---|---|---|---|---|")
     for row in rows:
         levels = json.loads(row["levels_json"] or "null")

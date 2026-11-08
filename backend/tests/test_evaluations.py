@@ -672,3 +672,24 @@ def test_a_restart_requeues_project_runs():
             "SELECT status FROM model_evaluations WHERE id=%s", (row["id"],)
         ).fetchone()["status"]
     assert status == "queued"
+
+
+def test_without_openrouter_reachable_the_snapshot_gives_the_facts():
+    """A failed catalogue call must not leave a free model with an unknown price."""
+
+    class Down:
+        async def models(self):
+            raise OSError("offline")
+
+    target = evaluations.Target("openrouter", "stealth/crouton-alpha", "project:openrouter", None)
+    facts = asyncio.run(evaluations.model_facts(target, active_catalogue(), Down()))
+    assert facts is not None and facts["free"] is True
+
+
+def test_music_and_image_generators_are_not_project_targets():
+    app = make_app(evaluation_openrouter_key="sk-project")
+    store, settings = project(app)
+    models = [
+        t.model for t in evaluations.project_targets(settings, Ratings(store, active_catalogue()))
+    ]
+    assert not any("lyria" in model for model in models)

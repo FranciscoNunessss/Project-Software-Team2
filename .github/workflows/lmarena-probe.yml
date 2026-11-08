@@ -1,0 +1,27 @@
+name: LMArena probe
+# Checks what the public LMArena leaderboard dataset offers before we build on it
+# (ADR-014 A10, docs/plan-model-coverage.md). No key. Commits the report to the data branch.
+on:
+  workflow_dispatch:
+  push:
+    branches: ["data/lmarena-**"]
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyarrow==17.0.0
+      - run: python scripts/probe_lmarena.py
+      - name: Commit the report to the data branch
+        if: startsWith(github.ref, 'refs/heads/data/')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add backend/data/catalogue/sources/lmarena-probe.json
+          git commit -m "LMArena probe report" || exit 0
+          git push

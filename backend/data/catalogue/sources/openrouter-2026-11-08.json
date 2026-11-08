@@ -16291,7 +16291,7 @@
    "output_modalities": [
     "text"
    ],
-   "price_input_per_million": 0.1567,
+   "price_input_per_million": 0.1662,
    "price_output_per_million": 10.1398,
    "structured_output": true,
    "supported_parameters": [

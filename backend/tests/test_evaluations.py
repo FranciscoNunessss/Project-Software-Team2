@@ -7,7 +7,7 @@ import asyncio
 import json
 
 import pytest
-from app import evaluations
+from app import arena, evaluations
 from app.catalogue import CAPABILITIES
 from app.evaluations import (
     Ratings,
@@ -27,6 +27,13 @@ from app.recommendation import Option
 from fastapi.testclient import TestClient
 from test_measurement import reference
 from test_recommendation import card, catalogue
+
+
+@pytest.fixture
+def no_arena(monkeypatch):
+    """A model without any public source: LMArena (A10) knows nothing about it."""
+    monkeypatch.setattr(arena, "reference", lambda: ({}, {}, {}))
+
 
 PASSWORD = "correct horse battery"
 GROQ = "openai/gpt-oss-20b"
@@ -166,7 +173,7 @@ def test_a_paid_model_waits_for_consent_with_an_estimate_and_a_maximum():
 
 
 # 4. declined: usable, never recommended; consent possible later
-def test_a_declined_model_stays_usable_but_is_not_recommended():
+def test_a_declined_model_stays_usable_but_is_not_recommended(no_arena):
     app = make_app()
     client = account(app)
     configure(client, "openai", "gpt-5.4-mini")
@@ -206,7 +213,7 @@ def test_the_run_stops_at_the_guaranteed_maximum():
 
 
 # 7. more than 10% failed calls: discarded
-def test_too_many_failed_calls_discard_the_run():
+def test_too_many_failed_calls_discard_the_run(no_arena):
     app = make_app()
     client = account(app)
     by_model(client)
@@ -285,7 +292,8 @@ def test_deleting_a_configuration_removes_it_from_the_users_list():
 # 14. Artificial Analysis as the fallback source, with its source named
 def test_artificial_analysis_is_the_fallback_for_unmeasured_models():
     ratings = Ratings(None, catalogue())
-    found = ratings.source("claude", "claude-sonnet-5-5")
+    # Not on LMArena, linked to Artificial Analysis in aa-aliases.json.
+    found = ratings.source("openrouter", "deepseek/deepseek-v4.1-flash-1017")
     assert found is not None and found[0] == "benchmark"
     assert all(item["status"] == "provisional" for item in found[1].values())
     assert "Artificial Analysis overall index" in found[1]["reasoning"]["source"]
@@ -413,7 +421,7 @@ def test_a_restart_retries_free_runs_and_fails_paid_ones():
     assert listed["gpt-5.4-mini"]["evaluation"]["failure"] == "interrupted"
 
 
-def test_the_analysis_says_which_models_are_still_being_evaluated():
+def test_the_analysis_says_which_models_are_still_being_evaluated(no_arena):
     app = make_app()
     client = account(app)
     by_model(client)  # queues the server model

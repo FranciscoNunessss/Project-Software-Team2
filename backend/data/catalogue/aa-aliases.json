@@ -1,10 +1,46 @@
 {
-  "description": "Confirmed links from a provider model id to its Artificial Analysis slug (ADR-014). Only these are used as a fallback source of provisional levels; a wrong link would give a model another model's levels, so each entry is checked by hand against the AA model page. The overall index gives one level for all five capabilities.",
-  "checked_on": "2026-11-07",
-  "aliases": [
-    {"provider": "claude", "model": "claude-sonnet-5-5", "slug": "claude-sonnet-5-5"},
-    {"provider": "openrouter", "model": "anthropic/claude-sonnet-5.5", "slug": "claude-sonnet-5-5"},
-    {"provider": "openrouter", "model": "google/gemma-4-31b-it", "slug": "gemma-4-31b"},
-    {"provider": "openrouter", "model": "google/gemma-4-31b-it:free", "slug": "gemma-4-31b"}
-  ]
+ "description": "Confirmed links from a provider model id to its Artificial Analysis slug (ADR-014). Only these are used as a fallback source of provisional levels; a wrong link would give a model another model's levels, so each entry is checked by hand against the AA model page. The overall index gives one level for all five capabilities.",
+ "checked_on": "2026-11-08",
+ "aliases": [
+  {
+   "provider": "claude",
+   "model": "claude-sonnet-5-5",
+   "slug": "claude-sonnet-5-5"
+  },
+  {
+   "provider": "openrouter",
+   "model": "anthropic/claude-sonnet-5.5",
+   "slug": "claude-sonnet-5-5"
+  },
+  {
+   "provider": "openrouter",
+   "model": "google/gemma-4-31b-it",
+   "slug": "gemma-4-31b"
+  },
+  {
+   "provider": "openrouter",
+   "model": "google/gemma-4-31b-it:free",
+   "slug": "gemma-4-31b"
+  },
+  {
+   "provider": "openrouter",
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "slug": "deepseek-v4-1-flash-1017"
+  },
+  {
+   "provider": "openrouter",
+   "model": "tencent/hy4",
+   "slug": "tencent-hy4"
+  },
+  {
+   "provider": "openrouter",
+   "model": "minimax/minimax-m3.1-flash",
+   "slug": "minimax-m3-1-flash"
+  },
+  {
+   "provider": "openrouter",
+   "model": "qwen/qwen3.8-max-0902",
+   "slug": "qwen3-8-max"
+  }
+ ]
 }

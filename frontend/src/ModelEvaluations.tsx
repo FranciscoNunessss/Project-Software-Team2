@@ -15,13 +15,13 @@ type Evaluation = {
 }
 type ModelEntry = {
   provider: string; model: string; configuration_id: string; shared: boolean; paid_by_you: boolean
-  levels_source: 'calibrated' | 'measured' | 'provisional' | 'benchmark' | 'family' | null
+  levels_source: 'calibrated' | 'measured' | 'provisional' | 'arena' | 'benchmark' | 'family' | null
   levels: Record<NeedName, Rating> | null; evaluation: Evaluation | null; picked?: boolean
 }
 
 const SOURCE: Record<string, string> = {
   calibrated: 'Calibrated by the team', measured: 'Measured by AdaptAI', provisional: 'Provisional (catalogue)',
-  benchmark: 'Provisional (Artificial Analysis overall index)', family: 'Provisional (same family)',
+  arena: 'Provisional (LMArena public ranking, CC BY 4.0)', benchmark: 'Provisional (Artificial Analysis overall index)', family: 'Provisional (same family)',
 }
 const FAILURE: Record<string, string> = {
   cost_limit_reached: 'Stopped at the maximum cost.', too_many_failed_calls: 'Too many calls failed; it will be retried.',

@@ -91,7 +91,9 @@ def create_app(
         )
     app.include_router(accounts_router)
     schedule_coaching = install_coaching(app, store, settings)
-    install_outcomes(app, store)
+    install_outcomes(
+        app, store, ratings_for=lambda user_id: Ratings(store, active_catalogue(), user_id)
+    )
 
     @app.middleware("http")
     async def private_responses(request: Request, call_next):
@@ -626,7 +628,17 @@ def create_app(
         identifier = str(uuid4())
         notes = list(state["notes"])
         # ADR-014 A8: say which of the user's models are still being evaluated.
-        waiting = pending_for(store, state.get("options", []), user["id"])
+        ratings = state.get("ratings")
+        waiting = pending_for(
+            store,
+            [
+                option
+                for option in state.get("options", [])
+                # Already rated from another source (catalogue, LMArena...): it is in.
+                if ratings is None or ratings.source(option.provider, option.model) is None
+            ],
+            user["id"],
+        )
         if waiting:
             notes.append(
                 "Not in this recommendation yet: "

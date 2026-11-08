@@ -257,3 +257,15 @@ def test_the_educator_receives_outcome_counts_without_text(app):
     _, metadata = snapshot(app.state.storage, owner)
     assert metadata["task_outcomes"]["tasks"] == 1
     assert "private report" not in json.dumps(metadata)
+
+
+def test_an_outcome_records_where_the_levels_came_from(app):
+    """A10: a model rated only by LMArena still feeds calibration, with its source."""
+    client = account(TestClient(app))
+    result = analyse(client)
+    body = client.put(
+        f"/api/analyses/{result['id']}/outcome",
+        json={"outcome": "resolved", "provider": "openrouter", "model": "openai/gpt-6-luna"},
+    ).json()
+    assert body["levels_source"] == "arena"
+    assert body["model_card_id"] == "openrouter-openai-gpt-6-luna"

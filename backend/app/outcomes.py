@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.accounts import AuthenticatedUser
 from app.catalogue import CAPABILITIES, active_catalogue
-from app.recommendation import candidate_gap
+from app.recommendation import Option, candidate_gap
 from app.storage import Storage
 
 Outcome = Literal["resolved", "resolved_with_refinement", "not_resolved", "skipped"]
@@ -152,6 +152,7 @@ def public_outcome(row) -> dict:
         "model_card_id",
         "used_provider",
         "used_model",
+        "levels_source",
         "recommended_card_id",
         "completeness",
         "turns",
@@ -215,7 +216,10 @@ def outcome_summary(store: Storage, user_id: str) -> dict:
     }
 
 
-def install_outcomes(app: FastAPI, store: Storage, on_change=None) -> None:
+def install_outcomes(app: FastAPI, store: Storage, on_change=None, ratings_for=None) -> None:
+    """ratings_for(user_id) -> app.evaluations.Ratings: levels of models without a catalogue
+    card (measured, LMArena, Artificial Analysis...), so their outcomes feed calibration."""
+
     @app.put("/api/analyses/{analysis_id}/outcome")
     def put_outcome(analysis_id: str, body: OutcomeInput, user: AuthenticatedUser):
         with store.connect() as db:
@@ -232,14 +236,24 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None) -> None:
             chosen = decision["candidate_id"] if decision else None
             card_id, levels = card_used(result, body.provider, body.model, chosen)
             used = model_used(result, body.provider, body.model, chosen)
+            source = None
+            if ratings_for is not None and used[0] and used[1]:
+                ratings = ratings_for(user["id"])
+                found = ratings.source(used[0], used[1])
+                source = found[0] if found else None
+                if card_id is None and found:
+                    card = ratings.card(Option(used[0], used[1], None, used[1]))
+                    if card is not None:
+                        card_id = card.id
+                        levels = {name: card.level(name) for name in CAPABILITIES}
             recommended = result["recommendation"]["id"]
             follows = followed(result, used, card_id, chosen)
             db.execute(
                 """INSERT INTO task_outcomes(analysis_id,user_id,outcome,reason,model_card_id,
                    catalogue_version,recommended_card_id,followed_recommendation,needs_json,
                    capabilities_json,completeness,turns,switched_model,retries,stops,
-                   used_provider,used_model)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                   used_provider,used_model,levels_source)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                 (
                     analysis_id,
                     user["id"],
@@ -258,6 +272,7 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None) -> None:
                     body.stops,
                     used[0],
                     used[1],
+                    source,
                 ),
             )
             row = db.execute(

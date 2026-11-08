@@ -15,9 +15,8 @@ import io
 import json
 import sys
 import urllib.request
+from datetime import date
 from pathlib import Path
-
-import pyarrow.parquet as pq
 
 DATASET = "lmarena-ai/leaderboard-dataset"
 LICENCE = "cc-by-4.0"
@@ -43,7 +42,33 @@ def get(url: str) -> bytes:
         return response.read()
 
 
+def carry_over(snapshot: dict, keep_days: int = 180) -> None:
+    """A model that left the leaderboard keeps its last entries for 180 days, with their date."""
+    previous = sorted(
+        path
+        for path in OUT_DIR.glob("lmarena-2*.json")
+        if path.stem.removeprefix("lmarena-") < snapshot["observed_on"]
+    )
+    if not previous:
+        return
+    old = json.loads(previous[-1].read_text(encoding="utf-8"))
+    today = date.fromisoformat(snapshot["observed_on"])
+    for subset, models in old["subsets"].items():
+        current = snapshot["subsets"].setdefault(subset, {})
+        for name, categories in models.items():
+            if name in current:
+                continue
+            seen = next(iter(categories.values())).get("seen_on") or old["publish_dates"][subset]
+            if (today - date.fromisoformat(seen)).days <= keep_days:
+                current[name] = {
+                    category: {**entry, "seen_on": seen} for category, entry in categories.items()
+                }
+        snapshot["subsets"][subset] = dict(sorted(current.items()))
+
+
 def main() -> int:
+    import pyarrow.parquet as pq  # only the workflow installs it
+
     info = json.loads(get(f"https://huggingface.co/api/datasets/{DATASET}"))
     licence = (info.get("cardData") or {}).get("license")
     if info.get("gated") or info.get("private") or licence != LICENCE:
@@ -85,6 +110,7 @@ def main() -> int:
         snapshot["subsets"][subset] = dict(sorted(models.items()))
         snapshot["publish_dates"][subset] = max(str(r["leaderboard_publish_date"]) for r in rows)
     snapshot["observed_on"] = snapshot["publish_dates"]["text_style_control"]
+    carry_over(snapshot)
     out = OUT_DIR / f"lmarena-{snapshot['observed_on']}.json"
     out.write_text(json.dumps(snapshot, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     print(

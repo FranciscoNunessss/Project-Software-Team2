@@ -28,6 +28,7 @@ def test_covered_but_mostly_unsolved_proposes_lowering():
     assert found == [
         {
             "model": "m",
+            "source": "catalogue",
             "capability": "reasoning",
             "level": 3,
             "tasks": 10,
@@ -74,3 +75,23 @@ def test_the_calibration_set_has_two_tasks_per_level_and_capability():
         counts[key] = counts.get(key, 0) + 1
         assert task["task"] and task["pass"]
     assert len(counts) == 15 and set(counts.values()) == {2}
+
+
+def test_outcomes_are_grouped_by_the_source_of_the_levels():
+    """A10: a public source that predicts outcomes badly shows up in the report."""
+    from app.calibration import by_source
+
+    data = rows(10, "resolved", 3)
+    for item in data[:4]:
+        item["levels_source"] = "arena"
+    for item in data[:3]:
+        item["outcome"] = "not_resolved"
+    assert by_source(data) == [
+        {"source": "arena", "tasks": 4, "solved": 0.25},
+        {"source": "catalogue", "tasks": 6, "solved": 1.0},
+    ]
+    found = proposals(
+        [{**row, "levels_source": "arena"} for row in rows(6, "not_resolved", 3)]
+        + [{**row, "levels_source": "arena"} for row in rows(4, "resolved", 3)]
+    )
+    assert found[0]["source"] == "arena" and found[0]["proposal"] == "lower"

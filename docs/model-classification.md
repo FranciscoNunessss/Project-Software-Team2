@@ -1,7 +1,8 @@
 # How a model gets its levels
 
-Procedure from ADR-014 (decisions A7 to A9). The app evaluates **every model someone has
-configured, and only those**, automatically. The steps further down (public sources, the
+Procedure from ADR-014 (decisions A7 to A10). Public leaderboards give provisional levels to
+most models at once (A10); the app also measures **every model someone has configured**,
+automatically, and measured levels replace the public ones. The steps further down (public sources, the
 team's measurement scripts, calibration) feed the same levels.
 
 ## Automatic evaluation of configured models
@@ -16,12 +17,12 @@ team's measurement scripts, calibration) feed the same levels.
 | Freshness | A new suite version, 90 days, or "Re-evaluate" opens a new run; the old levels stay until it finishes | `evaluations.ensure` |
 | Visible, not editable | Users see the five levels, their source, the pass rates and examples of answers. "Disagree" is recorded for the calibration report; levels change only through a new evaluation or the team's calibration | `/api/evaluations`, `evaluation_disagreements` |
 
-**Order of sources** for a model's levels (A9), best first: the team's calibrated catalogue
-levels; our measured levels; the catalogue's provisional levels; the Artificial Analysis
-overall index, only for name links confirmed in `backend/data/catalogue/aa-aliases.json`, one
-level for all five capabilities (thresholds at the 34th and 67th percentile of the snapshot);
-the lowest measured level of the same family (`gpt-oss`, `gemma`, `claude-sonnet`…). Without
-any of them a model works in the chat but is never recommended.
+**Order of sources** for a model's levels (A9, A10), best first: the team's calibrated
+catalogue levels; our measured levels; the catalogue's provisional levels; **the LMArena
+public leaderboards per category** (A10, below); the Artificial Analysis overall index, only
+for name links confirmed in `backend/data/catalogue/aa-aliases.json`, one level for all five
+capabilities; the lowest measured level of the same family (`gpt-oss`, `gemma`,
+`claude-sonnet`…). Without any of them a model works in the chat but is never recommended.
 
 **Cost of one paid evaluation** (worst case 40 calls, about 20,000 input tokens): GPT-5.4 mini
 about 0.10 to 0.30 USD, Claude Sonnet 5.5 about 0.25 to 0.65 USD; the exact estimate and
@@ -29,14 +30,20 @@ maximum come from the model's price and are shown before consent.
 
 How to test it: [`docs/testing-model-evaluations.md`](testing-model-evaluations.md).
 
-## Next: levels for every OpenRouter model (A10, proposed)
+## Levels from public sources, for every model at once (A10)
 
-Only configured models have levels today. The proposal adds a free public source with
-per-category ratings, LMArena (CC BY 4.0), between the catalogue's provisional levels and
-Artificial Analysis. It was checked on 8 November 2026: no account, 0.6 MB, 419 models, 220
-of the 459 OpenRouter ids linked by name. The rest stay with Artificial Analysis, our
-background measurement and feedback. Layers, mapping (`arena-mapping-1`), thresholds, name
-linking, tests and the decisions needed: [`docs/plan-model-coverage.md`](plan-model-coverage.md).
+So that a model is rated before anyone measures it, and without spending tokens, the app
+reads the public LMArena leaderboards (dataset `lmarena-ai/leaderboard-dataset`, CC BY 4.0,
+free, no account). Each capability takes the category closest to it (reasoning: the lower of
+math and hard prompts; context: longer queries; domain: expert; reliability: factuality;
+tools: the agent leaderboard, else at most 2), with thresholds frozen in `arena-mapping-1`.
+On 8 November 2026 this rates 212 of the 459 OpenRouter models and, with Artificial Analysis,
+all 26 of the most used models in `most-used.json`; a test keeps it that way. Every level
+says "LMArena", the date and the licence, and is provisional: our measurement replaces it.
+
+How names are linked, the mapping, the weekly refresh and the decisions still open:
+[`docs/plan-model-coverage.md`](plan-model-coverage.md). Tests and the weekly routine:
+[`docs/testing-model-evaluations.md`](testing-model-evaluations.md) sections 1b and 4.
 
 # Team procedures
 

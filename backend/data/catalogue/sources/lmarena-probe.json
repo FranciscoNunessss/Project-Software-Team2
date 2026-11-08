@@ -237,7 +237,7 @@
    "models_overall": 58,
    "openrouter_exact_matches": 86,
    "openrouter_free_ids_matched": 0,
-   "openrouter_free_ids_total": 12,
+   "openrouter_free_ids_total": 11,
    "openrouter_ids_matched": 80,
    "openrouter_ids_unmatched": [
     "aion-labs/aion-2.0",
@@ -345,8 +345,6 @@
     "liquid/lfm-2.5-2.6b",
     "liquid/lfm-2.5-2.6b:free",
     "liquid/lfm-2.5-24b-a2b",
-    "liquid/lfm-3-1.7b",
-    "liquid/lfm-3-1.7b:free",
     "mancer/weaver",
     "meituan/longcat-2.0",
     "meta-llama/llama-3.1-70b-instruct",
@@ -620,7 +618,7 @@
     "~z-ai/glm-flash-latest",
     "~z-ai/glm-latest"
    ],
-   "openrouter_models_in_snapshot": 459,
+   "openrouter_models_in_snapshot": 457,
    "publish_dates": [
     "2026-11-04"
    ],
@@ -850,7 +848,7 @@
    "models_overall": 58,
    "openrouter_exact_matches": 86,
    "openrouter_free_ids_matched": 0,
-   "openrouter_free_ids_total": 12,
+   "openrouter_free_ids_total": 11,
    "openrouter_ids_matched": 80,
    "openrouter_ids_unmatched": [
     "aion-labs/aion-2.0",
@@ -958,8 +956,6 @@
     "liquid/lfm-2.5-2.6b",
     "liquid/lfm-2.5-2.6b:free",
     "liquid/lfm-2.5-24b-a2b",
-    "liquid/lfm-3-1.7b",
-    "liquid/lfm-3-1.7b:free",
     "mancer/weaver",
     "meituan/longcat-2.0",
     "meta-llama/llama-3.1-70b-instruct",
@@ -1233,7 +1229,7 @@
     "~z-ai/glm-flash-latest",
     "~z-ai/glm-latest"
    ],
-   "openrouter_models_in_snapshot": 459,
+   "openrouter_models_in_snapshot": 457,
    "publish_dates": [
     "2026-11-04"
    ],
@@ -1729,7 +1725,7 @@
    "models_overall": 419,
    "openrouter_exact_matches": 293,
    "openrouter_free_ids_matched": 2,
-   "openrouter_free_ids_total": 12,
+   "openrouter_free_ids_total": 11,
    "openrouter_ids_matched": 220,
    "openrouter_ids_unmatched": [
     "aion-labs/aion-2.0",
@@ -1788,8 +1784,6 @@
     "liquid/lfm-2.5-2.6b",
     "liquid/lfm-2.5-2.6b:free",
     "liquid/lfm-2.5-24b-a2b",
-    "liquid/lfm-3-1.7b",
-    "liquid/lfm-3-1.7b:free",
     "mancer/weaver",
     "meituan/longcat-2.0",
     "meta-llama/llama-4-maverick",
@@ -1972,7 +1966,7 @@
     "~z-ai/glm-flash-latest",
     "~z-ai/glm-latest"
    ],
-   "openrouter_models_in_snapshot": 459,
+   "openrouter_models_in_snapshot": 457,
    "publish_dates": [
     "2026-11-06"
    ],
@@ -2421,7 +2415,7 @@
    "models_overall": 188,
    "openrouter_exact_matches": 224,
    "openrouter_free_ids_matched": 2,
-   "openrouter_free_ids_total": 12,
+   "openrouter_free_ids_total": 11,
    "openrouter_ids_matched": 174,
    "openrouter_ids_unmatched": [
     "aion-labs/aion-2.0",
@@ -2485,8 +2479,6 @@
     "liquid/lfm-2.5-2.6b",
     "liquid/lfm-2.5-2.6b:free",
     "liquid/lfm-2.5-24b-a2b",
-    "liquid/lfm-3-1.7b",
-    "liquid/lfm-3-1.7b:free",
     "mancer/weaver",
     "meituan/longcat-2.0",
     "meta-llama/llama-3.1-70b-instruct",
@@ -2710,7 +2702,7 @@
     "~z-ai/glm-flash-latest",
     "~z-ai/glm-latest"
    ],
-   "openrouter_models_in_snapshot": 459,
+   "openrouter_models_in_snapshot": 457,
    "publish_dates": [
     "2026-11-06"
    ],
@@ -3206,7 +3198,7 @@
    "models_overall": 419,
    "openrouter_exact_matches": 293,
    "openrouter_free_ids_matched": 2,
-   "openrouter_free_ids_total": 12,
+   "openrouter_free_ids_total": 11,
    "openrouter_ids_matched": 220,
    "openrouter_ids_unmatched": [
     "aion-labs/aion-2.0",
@@ -3265,8 +3257,6 @@
     "liquid/lfm-2.5-2.6b",
     "liquid/lfm-2.5-2.6b:free",
     "liquid/lfm-2.5-24b-a2b",
-    "liquid/lfm-3-1.7b",
-    "liquid/lfm-3-1.7b:free",
     "mancer/weaver",
     "meituan/longcat-2.0",
     "meta-llama/llama-4-maverick",
@@ -3449,7 +3439,7 @@
     "~z-ai/glm-flash-latest",
     "~z-ai/glm-latest"
    ],
-   "openrouter_models_in_snapshot": 459,
+   "openrouter_models_in_snapshot": 457,
    "publish_dates": [
     "2026-11-06"
    ],

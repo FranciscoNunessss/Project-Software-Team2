@@ -193,7 +193,8 @@ removed by ADR-014.)
 `resolved_with_refinement`, `not_resolved` with an optional reason from a fixed list, or
 `skipped`), the provider and model id actually used, the card id of that model and of the
 recommended one, the task needs and the
-model's levels as numbers, the completeness, and counts (answers, Retry, Stop, whether the
+model's levels as numbers, where those levels came from (`levels_source`, a name such as
+`measured` or `arena`), the completeness, and counts (answers, Retry, Stop, whether the
 model was switched). It holds **no text**: the chat sends only these values. Rows are deleted
 with the analysis, the session or chat, the history and the account. The Educator receives
 the totals only; the calibration report of the second phase reads the counts and proposes catalogue

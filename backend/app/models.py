@@ -145,6 +145,8 @@ class Candidate(BaseModel):
     local: bool = False
     illustrative: bool = False
     calibrated: bool = False
+    # Where the levels come from (ADR-014 A9, A10), e.g. "LMArena public ranking of 2026-11-06".
+    levels_from: str | None = None
     # Chosen minus recommended: -1 covers less, 0 the recommendation, +1 more than needed.
     gap: int | None = Field(None, ge=-1, le=1)
 

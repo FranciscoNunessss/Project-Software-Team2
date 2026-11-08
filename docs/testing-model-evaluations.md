@@ -1,7 +1,8 @@
-# Testing the automatic model evaluation (ADR-014 A8, A9)
+# Testing how models get levels and are recommended (ADR-014 A8, A9, A10)
 
 Three layers. The first two run in CI on every pull request and cost nothing; the third is
-a manual check with real keys (about 30 minutes, under 1 USD).
+a manual check with real keys (about 40 minutes, under 1 USD). Section 1b covers the levels
+from public sources (A10); section 4 is the routine that keeps them current.
 
 ## 1. Backend tests (`backend/tests/test_evaluations.py`, fake models)
 
@@ -10,16 +11,16 @@ a manual check with real keys (about 30 minutes, under 1 USD).
 | 1 | Free (server) model: evaluated without asking | `test_server_model_is_evaluated_without_consent_and_then_recommended` |
 | 2 | Already evaluated: reused by every user, no new calls | `test_an_evaluated_model_is_reused_by_every_user_without_new_calls` |
 | 3 | Paid model with the user's key: waits for consent, estimate < maximum, no call before consent | `test_a_paid_model_waits_for_consent_with_an_estimate_and_a_maximum` |
-| 4 | Declined: still usable in the chat, never recommended | `test_a_declined_model_stays_usable_but_is_not_recommended` |
+| 4 | Declined, and no public source has it: still usable in the chat, never recommended | `test_a_declined_model_stays_usable_but_is_not_recommended` |
 | 5 | Unknown price: second confirmation required | `test_an_unknown_price_needs_a_second_confirmation` |
 | 6 | Spending reaches the maximum: the run stops | `test_the_run_stops_at_the_guaranteed_maximum` |
-| 7 | More than 10% failed calls: discarded | `test_too_many_failed_calls_discard_the_run` |
+| 7 | More than 10% failed calls: discarded (a model no public source has stays without levels) | `test_too_many_failed_calls_discard_the_run` |
 | 8 | Rate limits: retried, the run finishes | `test_rate_limits_are_retried_and_the_run_finishes` |
 | 9 | Two requests at the same time: one run | `test_concurrent_requests_open_a_single_run` |
 | 10 | Local models: per user, never shared | `test_local_models_are_evaluated_per_user` |
 | 11 | New suite version: new run | `test_a_new_suite_version_needs_a_new_run` |
 | 12 | Configuration deleted: gone from the user's list, shared result kept | `test_deleting_a_configuration_removes_it_from_the_users_list` |
-| 13 | Artificial Analysis as fallback, with its source | `test_artificial_analysis_is_the_fallback_for_unmeasured_models` |
+| 13 | Artificial Analysis as fallback for a model LMArena does not have, with its source | `test_artificial_analysis_is_the_fallback_for_unmeasured_models` |
 | 14 | Family inheritance: lowest level, provisional; families do not mix | `test_family_inheritance_takes_the_lowest_measured_levels` |
 | 15 | Calibrated levels win over measured ones | `test_calibrated_levels_win` |
 | 16 | A finished evaluation enters the next recommendation | case 1 |
@@ -30,6 +31,32 @@ a manual check with real keys (about 30 minutes, under 1 USD).
 
 Run them with PostgreSQL up: `uv run pytest backend/tests/test_evaluations.py -q`.
 
+## 1b. Levels from public sources (`backend/tests/test_arena.py`, A10)
+
+No network: the tests use the committed snapshot or a small fixture.
+
+| # | Case | Test |
+|---|---|---|
+| 20 | Names of the same model link (`Claude Haiku 4.5 (20251001)` = `anthropic/claude-haiku-4.5`, `Gemma 4 31B` = `google/gemma-4-31b-it:free`, dates and `(High)` removed) | `test_names_of_the_same_model_normalise_to_the_same_key` |
+| 21 | Different models never link (`-1017` against the 0910 version, `-exp`, `-chat`, `-pro`) | `test_different_models_never_share_a_key` |
+| 22 | Variants (`High`, `Low`, `Max`) count as one model with the lowest rating | `test_variants_count_as_one_model_with_the_lowest_rating` |
+| 23 | Too few votes or too wide an interval: the next category is used | `test_an_uncertain_category_falls_to_the_next_one` |
+| 24 | Reasoning is the lower of math and hard prompts | `test_reasoning_takes_the_lower_of_math_and_hard_prompts` |
+| 25 | Tools: from agent data when present, else at most level 2 | `test_tools_are_capped_at_2_without_agent_data_and_use_it_when_present` |
+| 26 | Reliability from factuality when present | `test_factuality_decides_reliability_when_present` |
+| 27 | Confirmed links are used; blocked ids never link | `test_confirmed_links_are_used_and_blocked_ids_never_link` |
+| 28 | Every level names LMArena, the date and CC BY 4.0, status provisional | `test_the_source_names_lmarena_the_date_and_the_licence` |
+| 29 | Thresholds come from the frozen `arena-mapping-1`, never recomputed | `test_thresholds_come_from_the_frozen_mapping` |
+| 30 | Order of sources: measured beats LMArena; LMArena beats Artificial Analysis | `test_measured_levels_beat_lmarena_and_lmarena_beats_artificial_analysis` |
+| 31 | A model rated only by LMArena gets price and context from the OpenRouter snapshot | `test_a_model_rated_only_by_lmarena_gets_a_card_with_openrouter_facts` |
+| 32 | **Every model in `most-used.json` has levels** (the most used models in the world) | `test_most_used_models_have_levels` |
+| 33 | The committed mapping reads a committed snapshot with the licence | `test_the_committed_mapping_reads_a_committed_snapshot` |
+| 34 | A model that left the leaderboard keeps its levels for 180 days, then loses them | `test_a_model_that_left_the_leaderboard_keeps_its_last_entries` |
+| 35 | An outcome records where the levels came from (`levels_source`), also for a model without a catalogue card | `test_an_outcome_records_where_the_levels_came_from` (`test_task_outcomes.py`) |
+| 36 | The calibration report groups outcomes by source | `test_outcomes_are_grouped_by_the_source_of_the_levels` (`test_calibration.py`) |
+
+Run: `uv run pytest backend/tests/test_arena.py -q`.
+
 ## 2. Browser tests (`e2e/evaluations.spec.ts`, fake evaluator in `e2e/server.py`)
 
 | Test | Checks |
@@ -37,6 +64,7 @@ Run them with PostgreSQL up: `uv run pytest backend/tests/test_evaluations.py -q
 | Paid model | The consent shows what, how, the cost with "never more than", what declining means; after "Evaluate" the model shows "Measured by AdaptAI" and its levels |
 | Unknown price | "price unknown", the second confirmation, then the evaluation |
 | OpenRouter model | "Add an OpenRouter model": a paid catalogue model shows the consent with its cost; "Remove from my models" removes it |
+| Recommendation (`e2e/feedback.spec.ts`) | The Groq server model is recommended with "Levels from: LMArena public ranking … (CC BY 4.0), provisional"; "Use this model" works |
 
 ## 3. Manual check with real keys
 
@@ -49,17 +77,30 @@ what you should see in LLM config › "How your models were evaluated".
 | 2 | Add OpenRouter with `google/gemma-4-31b-it:free` | Evaluated at once (free), no question |
 | 2b | In the chat, pick another OpenRouter model (for example `google/gemma-4-26b-a4b-it:free`) and send a message | It appears in LLM config as evaluating; when done it can be recommended, and "Use this model" selects the configuration and that model |
 | 3 | Sign in with another account and add the same Gemma | Already "Measured by AdaptAI", no new run |
-| 4 | Add OpenRouter or OpenAI with GPT-5.4 mini (paid) | The consent with the cost in cents and the maximum. Choose "Not now": status "Not evaluated"; the model works in the chat but is not recommended |
+| 4 | Add OpenRouter or OpenAI with GPT-5.4 mini (paid) | The consent with the cost in cents and the maximum. Choose "Not now": status "Not evaluated", but its levels show "Provisional (LMArena public ranking, CC BY 4.0)" and it can be recommended. A paid model no public source has (step 13) is not recommended until evaluated |
 | 5 | Same model: "Evaluate" | Runs in the background; you can use the chat meanwhile |
 | 6 | Compare with your provider's usage page | The real cost is between zero and the maximum shown, close to the estimate |
 | 7 | "Show examples" and "Disagree" on one level | Examples of answers; "Noted…" and the level does not change |
 | 8 | Analyse a task in the chat | The recommendation names one of the evaluated models; "Use this model" selects it |
 | 9 | Stop the backend during an evaluation and start it again | A free run starts again by itself; a paid run shows "Evaluation failed" (interrupted) and waits for you to press "Re-evaluate", so nothing is charged twice without your consent |
 
+| 10 | Before Groq finishes measuring (or with the worker off: `ADAPTAI_EVALUATIONS_WORKER=false`), analyse a task | The recommendation already names `GPT-OSS 20B` with "Levels from: LMArena public ranking of 2026-11-06 (CC BY 4.0), provisional"; no "Not in this recommendation yet" note for it |
+| 11 | When Groq's measurement finishes, analyse again | "Levels from: Measured by AdaptAI": measured beats the public ranking |
+| 12 | In the chat, pick a popular OpenRouter model never configured (for example `openai/gpt-6-luna`), send, then analyse | It is compared at once with LMArena levels, without waiting for an evaluation |
+| 13 | Pick `deepseek/deepseek-v4.1-flash-1017` | Levels "Provisional (Artificial Analysis overall index)": LMArena does not have this version |
+| 14 | Mark a task solved after using that model, then run `uv run python scripts/calibration_report.py` | The report has "Outcomes by source of the levels" with a row `arena` |
+
 Report each step as OK or with the screenshot of what differed.
 
-## Planned: tests for A10 (not implemented)
+## 4. Keeping the public levels current (team routine, weekly)
 
-The tests for levels from LMArena, the background measurement with a project key and the
-OpenRouter suggestions are listed in [`docs/plan-model-coverage.md`](plan-model-coverage.md)
-("Tests"). They will be added here with the code.
+| Step | Command or place | Check |
+|---|---|---|
+| 1 | GitHub › Actions › "Catalogue sources" › Run workflow on a new branch `data/sources-<date>` (or push that branch) | The run is green; the branch gets `sources/lmarena-<date>.json`, `aa-<date>.json`, `openrouter-<date>.json` |
+| 2 | Locally on that branch: `uv run python scripts/build_arena_mapping.py --snapshot sources/lmarena-<date>.json` | "thresholds unchanged"; `arena-mapping-1.json` now points to the new file |
+| 3 | Update `backend/data/catalogue/most-used.json` from https://openrouter.ai/rankings (monthly) | New top models listed |
+| 4 | `uv run pytest backend/tests/test_arena.py -q` | Green. If `test_most_used_models_have_levels` fails, it names the models: add a checked link to `arena-aliases.json` or `aa-aliases.json`, or move them to `no_public_source` with the reason (layer 3 measures them) |
+| 5 | Pull request to `develop` | The diff shows which ratings changed; a reviewer checks every new link |
+
+If the workflow fails with "Refused", the dataset became gated, changed licence or columns:
+nothing is written and the levels in force stay as they are.

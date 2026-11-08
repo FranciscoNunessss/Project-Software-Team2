@@ -12,7 +12,7 @@ export type Candidate = {
   provider?: string | null; model?: string | null; configuration_id?: string | null; label?: string | null
   status?: CoverageState | null; shortfalls?: NeedName[]; coverage?: Coverage[]
   blended_price?: number | null; cost_band?: 'low' | 'medium' | 'high' | null
-  free?: boolean; local?: boolean; illustrative?: boolean; calibrated?: boolean; gap?: number | null
+  free?: boolean; local?: boolean; illustrative?: boolean; calibrated?: boolean; levels_from?: string | null; gap?: number | null
 }
 export type TaskNeeds = { needs: Record<NeedName, { estimated: number; top: number; determined: boolean }>; modalities: string[]; capabilities: string[]; length_tokens: number; ambiguous: boolean }
 export type Grading = { demand: number; spread: number; parameters: Record<string, unknown>; basis: string }

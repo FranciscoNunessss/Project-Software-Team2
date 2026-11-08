@@ -582,7 +582,7 @@ still counted. Feedback per task is stored in `task_outcomes` (no text) and feed
 ("Your solved tasks"), the Educator and the Coach. In the second phase a calibration report proposes
 level changes from it (at least 10 tasks, completeness >= 75); it never changes the catalogue.
 
-## Automatic model evaluation (PROPOSED, ADR-014 A8/A9)
+## Automatic model evaluation (PROPOSED, ADR-014 A8 to A10)
 
 Every model someone configured, and only those, is evaluated once by a background worker with
 the synthetic suite `measure-suite-1` (adaptive: level 2 first, then 3 or 1; at most 40 calls,
@@ -606,10 +606,15 @@ check: [`docs/testing-model-evaluations.md`](docs/testing-model-evaluations.md).
 
 `ADAPTAI_EVALUATIONS_WORKER=false` turns the worker off (tests and scripts).
 
-**Next (PROPOSED, ADR-014 A10, not implemented):** levels for every OpenRouter model at no
-cost, from the public LMArena leaderboard per category (CC BY 4.0, credited wherever a level
-comes from it), then Artificial Analysis, then our measurement in the background, corrected by
-feedback. Plan and decisions: [`docs/plan-model-coverage.md`](docs/plan-model-coverage.md).
+**Levels from public sources (ADR-014 A10):** before any measurement, a model gets
+provisional levels from the public LMArena leaderboards per category, else from the Artificial
+Analysis index; measured levels replace them. The most used models (`most-used.json`) always
+have levels; a test enforces it. Plan, mapping and decisions:
+[`docs/plan-model-coverage.md`](docs/plan-model-coverage.md).
+
+Leaderboard data: LMArena (lmarena.ai), CC BY 4.0, dataset
+[`lmarena-ai/leaderboard-dataset`](https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset).
+Benchmark data: Artificial Analysis (https://artificialanalysis.ai/).
 
 ## Architecture and limits
 

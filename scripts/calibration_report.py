@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
-from app.calibration import MIN_COMPLETENESS, MIN_TASKS, proposals  # noqa: E402
+from app.calibration import MIN_COMPLETENESS, MIN_TASKS, by_source, proposals  # noqa: E402
 from app.providers import Settings  # noqa: E402
 from app.storage import Storage  # noqa: E402
 
@@ -42,8 +42,9 @@ def main() -> int:
             "GROUP BY e.provider,e.model,d.capability ORDER BY users DESC"
         ).fetchall()
     found = proposals(rows)
+    sources = by_source(rows)
     if args.json:
-        print(json.dumps(found, indent=2))
+        print(json.dumps({"proposals": found, "by_source": sources}, indent=2))
         return 0
     answered = sum(row["outcome"] != "skipped" for row in rows)
     print(f"# Calibration report\n\n{answered} answered tasks, {len(rows) - answered} skipped.")
@@ -51,6 +52,11 @@ def main() -> int:
         f"Rules: at least {MIN_TASKS} tasks per model, capability and level, "
         f"completeness >= {MIN_COMPLETENESS}.\n"
     )
+    if sources:
+        print("## Outcomes by source of the levels\n\n| Source | Tasks | Solved |\n|---|---|---|")
+        for item in sources:
+            print(f"| {item['source']} | {item['tasks']} | {item['solved']:.0%} |")
+        print()
     if disagreements:
         print("## Users who disagree with a level\n\n| Model | Capability | Users |\n|---|---|---|")
         for row in disagreements:
@@ -59,10 +65,11 @@ def main() -> int:
     if not found:
         print("No proposal: not enough answered tasks yet, or nothing outside the thresholds.")
         return 0
-    print("| Model | Capability | Level | Tasks | Proposal |\n|---|---|---|---|---|")
+    print("| Model | Source | Capability | Level | Tasks | Proposal |\n|---|---|---|---|---|---|")
     for item in found:
         print(
-            f"| {item['model']} | {item.get('capability', '-')} | {item.get('level', '-')} "
+            f"| {item['model']} | {item.get('source', '-')} | {item.get('capability', '-')} "
+            f"| {item.get('level', '-')} "
             f"| {item['tasks']} | {TEXT[item['proposal']]} |"
         )
     return 0

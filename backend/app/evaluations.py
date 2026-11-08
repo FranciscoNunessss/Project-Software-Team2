@@ -33,6 +33,7 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+from app import arena
 from app.accounts import AuthenticatedUser
 from app.catalogue import CAPABILITIES, CATALOGUE_DIR, Card, Catalogue, active_catalogue
 from app.measurement import SUITE_VERSION, Task, build_suite, grade
@@ -523,7 +524,7 @@ async def run_next(
 
 # --- where the levels come from -------------------------------------------------------------
 
-AA_SNAPSHOT = CATALOGUE_DIR / "sources" / "aa-2026-11-06.json"
+AA_SNAPSHOT = max((CATALOGUE_DIR / "sources").glob("aa-2*.json"), default=CATALOGUE_DIR / "none")
 AA_ALIASES = CATALOGUE_DIR / "aa-aliases.json"
 INDEX = "artificial_analysis_intelligence_index"
 
@@ -556,6 +557,28 @@ def aa_reference() -> tuple[dict, dict, dict]:
     )
     mapping = {(item["provider"], item["model"]): item["slug"] for item in aliases}
     return mapping, values, limits
+
+
+@lru_cache(maxsize=1)
+def _router_snapshot() -> tuple[dict, str]:
+    path = max((CATALOGUE_DIR / "sources").glob("openrouter-2*.json"), default=None)
+    if path is None:
+        return {}, ""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}, ""
+    return {item["id"]: item for item in data.get("models", [])}, data.get("observed_on", "")
+
+
+def router_snapshot_facts(model: str) -> dict | None:
+    """Facts (price, context, tools) of an OpenRouter model from the committed public snapshot,
+    for models rated from a public source before anyone measured them."""
+    from app.classification import facts_from_openrouter
+
+    models, observed_on = _router_snapshot()
+    entry = models.get(model)
+    return facts_from_openrouter(entry, observed_on) if entry else None
 
 
 def family_of(model: str) -> str:
@@ -628,6 +651,10 @@ class Ratings:
                 if "measured" in names
                 else "provisional"
             ), ratings
+        # LMArena per category (A10): public, free, provisional, below everything measured.
+        arena_levels = arena.ratings(provider, model)
+        if arena_levels:
+            return "arena", arena_levels
         mapping, values, limits = aa_reference()
         slug = mapping.get((provider, model))
         if slug in values and limits:
@@ -687,6 +714,8 @@ class Ratings:
             )
         measured = self.measured.get((option.provider, option.model))
         facts = json.loads(measured["facts_json"]) if measured and measured["facts_json"] else None
+        if facts is None and option.provider == "openrouter":
+            facts = router_snapshot_facts(option.model)
         facts = facts or {
             "context_window": 128000,
             "modalities": ["text"],

@@ -1,166 +1,132 @@
-# Plan: levels for every OpenRouter model, free and at once (ADR-014 A10, PROPOSED)
+# Levels for every model, free and at once (ADR-014 A10)
 
-Status: **proposed, not implemented**. Needs the AO's confirmation of A10 and the three
-decisions in "Decisions needed". Written 8 November 2026.
+Status (8 November 2026): **layers 1, 2 and 4 implemented**; layer 3 waits for decisions 1
+to 3; layer 5 is the next pull request. The AO confirms A10.
 
 ## The problem
 
-Today a model gets levels only when someone configures it and the worker measures it
-(A8): 40 calls per model, and with a user's key that is the user's money. The OpenRouter
-catalogue has about 460 models; a user with an OpenRouter key can pick any of them in the
-chat, but a model nobody evaluated is never recommended. Measuring all of them ourselves
-would cost hundreds of thousands of calls.
+Before A10 a model got levels only after someone configured it and the worker measured it
+(A8): 40 calls per model, paid by the user for paid models. The OpenRouter catalogue has
+about 460 models; one nobody evaluated was never recommended. Measuring all of them would
+cost hundreds of thousands of calls.
 
-## What was checked, and how (8 November 2026)
+## The answer in one table
 
-The sandbox cannot reach Hugging Face, so the check ran in GitHub Actions: workflow
-"LMArena probe" (`.github/workflows/lmarena-probe.yml`, script `scripts/probe_lmarena.py`,
-report `backend/data/catalogue/sources/lmarena-probe.json` on branch `data/lmarena-probe`).
+Each layer covers the models the layers above miss. A model takes its levels from the best
+source that has it; every level shows its source and date.
 
-| Question | Answer from the probe |
-|---|---|
-| Free? | Yes. Public dataset `lmarena-ai/leaderboard-dataset` on Hugging Face, downloaded with no account and no key |
-| Gated or private? | `gated: false`, `private: false` |
-| Licence | CC BY 4.0: free use, including commercial, **with attribution** |
-| Immediate? | Yes. The `text` leaderboard is one parquet file of 0.6 MB (11,139 rows); the download and parse take seconds |
-| How fresh? | Dataset modified 7 Nov 2026; text leaderboard published 6 Nov 2026; agent leaderboard 4 Nov 2026 |
-| Models | 419 in `text` and `text_style_control`, 188 in `text_factuality`, 58 in `agent` and `agent_tool_hallucination` |
-| Categories in `text` | `overall`, `hard_prompts`, `expert` (369 models), `math` (404), `coding`, `instruction_following`, `longer_query` (397), `multi_turn`, `creative_writing`, 9 `industry_*`, 10 languages, `exclude_ties` |
-| Columns | `model_name, organization, license, rating, rating_lower, rating_upper, variance, vote_count, rank, category, leaderboard_publish_date` (agent subsets use `score`, `score_ci_lower/upper`, `session_count`) |
-| Our models | `gpt-oss-20b`, `gpt-oss-120b`, `Gemma 4 31B`, `Gemma 4 26B A4B`, Claude Sonnet and Opus versions are there |
-| Coverage of OpenRouter | Automatic name matching links **220 of the 459 OpenRouter ids** (48%), but only **2 of the 12 `:free` ids** |
-
-So "free and immediate" holds, with three caveats that shape the plan:
-
-1. **Half, not all.** About half of OpenRouter is covered; small, old, niche and most free
-   models are not. The other layers exist for those.
-2. **It is a public ranking, not our measurement.** Arena ratings are people's preferences
-   between two answers in a chat. They say little about tool calls and nothing about our
-   own tasks. So they are `provisional`, below our measured levels.
-3. **Attribution is a licence condition**, not a courtesy: every level from it shows the
-   source, and the README credits it.
-
-## The layers
-
-Each layer covers the models the layers above it miss. A model takes its levels from the
-best source that has it (order in A10 below). Layers 1, 2 and 4 cost nothing.
-
-| Layer | Source | Covers | Cost | When it updates |
+| Layer | Source | Covers | Cost | State |
 |---|---|---|---|---|
-| 1 | LMArena, per category | ~220 OpenRouter ids, and the same models at other providers | 0 | Weekly snapshot, reviewed in a PR |
-| 2 | Artificial Analysis, overall index (exists, A9) | Models AA rates that LMArena does not | 0 (free key, 100 requests a day) | With the catalogue sources |
-| 3 | Our measurement, `measure-suite-1` (exists, A8) | Models no public source has: `:free` models, local models, new releases | 0 for free models; paid only with a budget or consent | Background worker |
-| 4 | Feedback and calibration (exists, D9 to D11) | Corrects all of the above where users disagree or tasks fail | 0 | Calibration report, new catalogue version |
-| 5 | Use: recommend among all rated OpenRouter models | Users with an OpenRouter key | 0 | At each analysis |
+| 1 | LMArena, per category (public, CC BY 4.0) | 212 of 459 OpenRouter ids, and the same models at Groq, Anthropic and OpenAI | 0 | Implemented |
+| 2 | Artificial Analysis overall index (A9) | Models LMArena lacks, by checked links | 0 (free key) | Implemented (links for the most used added) |
+| 3 | Our measurement, `measure-suite-1` (A8) | Configured models; with a project key, free and new models no public source has | 0 for free models | Configured models: implemented. Project key: waits for decisions 1 to 3 |
+| 4 | Feedback and calibration | Corrects any source; the report shows outcomes per source | 0 | Implemented |
+| 5 | One suggestion among all rated OpenRouter models | Users with an OpenRouter key | 0 | Next pull request |
 
-### Layer 1: LMArena per category (new)
+**Order of sources (A10):** the team's calibrated levels; our measured levels; the
+catalogue's provisional levels; **LMArena per category**; Artificial Analysis overall index;
+the lowest measured level of the same family; else never recommended.
+
+## Guarantee: the most used models are always rated
+
+`backend/data/catalogue/most-used.json` lists the most used models in the world: OpenRouter's
+top 15 by tokens (rankings of the week from 24 October and of 6 November 2026), the flagship
+of each main developer (OpenAI, Anthropic, Google, xAI, Meta, DeepSeek, Mistral, Alibaba,
+Moonshot, Z.ai) and AdaptAI's server models. The test `test_most_used_models_have_levels`
+fails if any of them has no levels, so CI blocks a change that would drop one.
+
+Result on 8 November 2026: **26 of 26 rated** (22 by LMArena, 4 by Artificial Analysis).
+Two models in OpenRouter's top 10 have no public source and are listed under
+`no_public_source` with the reason: `stealth/crouton-alpha` (an anonymous preview model) and
+`tencent/hy4-preview` (Hy4 itself is rated). Layer 3 is the way to rate them.
+
+## What was checked before building (8 November 2026)
+
+The sandbox cannot reach Hugging Face; the check ran in GitHub Actions (workflow "LMArena
+probe", `scripts/probe_lmarena.py`, report `backend/data/catalogue/sources/lmarena-probe.json`).
+
+| Question | Answer |
+|---|---|
+| Free? | Yes: public dataset `lmarena-ai/leaderboard-dataset`, downloaded with no account and no key (`gated: false`, `private: false`) |
+| Licence | CC BY 4.0: free use, including commercial, **with attribution**. Every level names LMArena and the licence; the README credits it |
+| Immediate? | Yes: the text leaderboard is one 0.6 MB file; the download takes seconds and users see the levels as soon as the snapshot is merged, with no calls to any model |
+| Fresh? | Text leaderboard published 6 Nov 2026, agent leaderboard 4 Nov 2026; updated several times a week |
+| Models | 419 in `text_style_control`, 188 in `text_factuality`, 58 in `agent` |
+| Limits | A public ranking from people's votes between two answers, not our measurement: `provisional`, below measured levels. Little signal on tools (58 models), so tools stay at most 2 without agent data |
+
+## Layer 1 in detail
 
 | Step | What | Where |
 |---|---|---|
-| 1.1 Snapshot | Weekly workflow "Catalogue sources" also downloads `text_style_control/latest`, `text_factuality/latest` and `agent/latest`, keeps only the columns above and the categories we map, and writes `sources/lmarena-<publish date>.json` with the licence and publish date. On a `data/**` branch it commits the file for review | `scripts/snapshot_lmarena.py`, `.github/workflows/catalogue-sources.yml` |
-| 1.2 Name links | The normaliser of the probe (no vendor prefix, no `:variant`, no bracketed variant such as `(High)` or `(20250514)`, `.` `_` and spaces as `-`, no date or `-it`/`-instruct` suffix) proposes links from arena names to OpenRouter ids and to the providers' ids in our catalogue aliases. Exact matches are written with `method: normalised`; an arena name that matches two different OpenRouter models (`deepseek-v3.2` and `deepseek-v3.2-exp`) is a **collision** and is not used until a person resolves it in the PR | `scripts/link_lmarena.py`, `backend/data/catalogue/arena-aliases.json` |
-| 1.3 Variants | Several arena entries for one model (`(High)`, `(Max)`, `(Thinking)`) count as one model with the **lowest** rating: OpenRouter calls the default effort, and a lower level is the safe error | `classification.arena_levels` |
-| 1.4 Mapping `arena-mapping-1` | One category (or two, averaged as percentiles) per capability, see the table below | `backend/data/catalogue/arena-mapping-1.json` |
-| 1.5 Thresholds | Per category, the 34th and 67th percentile of the ratings of the **models available on OpenRouter** in the first snapshot (not of all 419, which include 2023 models that would inflate every level), frozen as absolute ratings in `arena-mapping-1`, like A3 | same file |
-| 1.6 Confidence | A rating counts only with at least 300 votes and an interval (`rating_upper - rating_lower`) of at most 60 points; otherwise that capability falls to the next category in the table, and then to the next source | `classification.arena_levels` |
-| 1.7 Source in `Ratings` | `Ratings.source` gets an `arena` step after the catalogue's provisional levels and before Artificial Analysis. Each rating: `status: provisional`, `source: "LMArena text (style control) 2026-11-06: math 1412, hard prompts 1398 (CC BY 4.0)"`, `observed_on` = the publish date | `backend/app/evaluations.py` |
-| 1.8 A model leaves the leaderboard | It keeps the levels of the last snapshot that had it, with that date; after 180 days they are dropped | `snapshot_lmarena.py` keeps the previous file |
+| Snapshot | The "Catalogue sources" workflow downloads the latest `text_style_control`, `text_factuality` and `agent` leaderboards and keeps, per model name and mapped category, the rating, its interval and the votes. It refuses (writes nothing) if the dataset is gated, the licence is not CC BY 4.0 or a column is missing | `scripts/snapshot_lmarena.py`, `sources/lmarena-<date>.json` |
+| Models that leave | A model missing from a new leaderboard keeps its last entries, with their date, for 180 days | `carry_over` in the same script |
+| Name links | Exact match after `normalise`: no vendor prefix, no `:free`/`:batch`, no bracketed variant (`(High)`, `(20250514)`), `.` `_` and spaces as `-`, no 8-digit or ISO date, no `-preview`, `-latest`, `-instruct`, `-it`. **Kept**, because they are different models: `-exp`, `-chat`, `-pro` and 4-digit versions such as `-1017` | `backend/app/arena.py` |
+| Checked links | Names that do not normalise alike but are the same model (`nvidia/nemotron-3.5-super-vl` = `NVIDIA-Nemotron-3.5-Super-VL-120B-A12B`, Llama 4, `mistral-large-4-0`) are listed by hand; `blocked` lists ids that must never link | `backend/data/catalogue/arena-aliases.json` |
+| Variants | Arena entries of one model (`(High)`, `(Low)`, `(Max)`, `(Thinking)`) count as one model with the **lowest** rating of each category: OpenRouter calls the default effort and a lower level is the safe error | `merge_variants` |
+| Confidence | A category counts with at least 300 votes and an interval of at most 60 points (agent: 100 sessions); otherwise the next category of the chain is used | `arena-mapping-1.json` `rules` |
+| Thresholds | Per category, the 34th and 67th percentile of the arena models **available on OpenRouter** (135 models; all 419 would include 2023 models and inflate every level), frozen as absolute ratings. New thresholds need `arena-mapping-2`; a new weekly snapshot keeps them | `scripts/build_arena_mapping.py`, `backend/data/catalogue/arena-mapping-1.json` |
+| Facts | A model rated only by a public source takes price, context and tool support from the committed OpenRouter snapshot, so its cost band is known | `router_snapshot_facts` |
+| In the app | `Ratings.source` returns `arena` after the catalogue's provisional levels and before Artificial Analysis. The analysis shows "Levels from: LMArena public ranking of 2026-11-06 (CC BY 4.0), provisional"; LLM config shows "Provisional (LMArena public ranking, CC BY 4.0)" with the categories and ratings of each level | `backend/app/evaluations.py`, `frontend/src/AnalysisResult.tsx`, `frontend/src/ModelEvaluations.tsx` |
 
-**Mapping `arena-mapping-1`** (subset `text_style_control`, which discounts answer length
-and formatting, so a verbose model does not look stronger):
+**Mapping `arena-mapping-1`** (style-controlled leaderboard, which discounts answer length and
+formatting so a verbose model does not look stronger):
 
-| Capability | Category, in order | Why |
+| Capability | Categories, first usable wins | Why |
 |---|---|---|
-| reasoning | average percentile of `math` and `hard_prompts` | Hard prompts are the top fifth by difficulty; math is the purest reasoning signal |
-| context | `longer_query` | Long prompts; the context window itself stays a fact and a hard filter |
-| domain | `expert`, then `hard_prompts` | Expert is the hardest, specialist prompts |
-| reliability | `text_factuality` subset `overall`, then `instruction_following` | Factuality is the closest to "does not invent"; following instructions is the next best |
-| tools | `agent` subset `overall`, then: level 1 if OpenRouter says the model has no `tools` parameter, else the `overall` level capped at 2 | Only 58 models have agent data; without it we do not claim level 3 for tools |
+| reasoning | the **lower** of `math` and `hard_prompts`; then `hard_prompts`; then `overall` | Hard prompts are the top fifth by difficulty; math is the purest reasoning signal |
+| context | `longer_query`; then `overall` | Long prompts; the context window itself stays a fact and a hard filter |
+| domain | `expert`; then `hard_prompts`; then `overall` | Expert holds the hardest specialist prompts |
+| reliability | factuality leaderboard; then `instruction_following`; then `overall` | Factuality is the closest to "does not invent" |
+| tools | agent leaderboard; then `overall` **capped at 2** | Only 58 models have agent data; without it we never claim level 3 |
 
-### Layer 2: Artificial Analysis for the gaps (exists, small change)
+A model is rated only if its `overall` rating is usable; otherwise LMArena gives nothing and
+the next source is tried.
 
-Kept as it is (A9). The only change: `scripts/link_lmarena.py` also proposes AA name links
-with the same normaliser into `aa-aliases.json`, still confirmed by a person.
+## Layer 2: Artificial Analysis for the gaps
 
-### Layer 3: our measurement in the background (exists, needs decisions)
+Unchanged rule (A9): only checked links in `aa-aliases.json`. Added the links for the most
+used models LMArena lacks: `deepseek/deepseek-v4.1-flash-1017`, `tencent/hy4`,
+`minimax/minimax-m3.1-flash`, `qwen/qwen3.8-max-0902`. The newest AA snapshot is used.
 
-The worker (A8) today measures only configured models. With a **project OpenRouter key**
-on the server, used only for evaluation, it also measures, without anyone configuring them:
+## Layer 3: measurement in the background (decisions pending)
 
-1. every `:free` OpenRouter model no public source covers (10 of 12 today), at no cost;
-2. the server models (already);
-3. with the budget, the paid models users pick most that no public source covers.
+Unchanged for configured models (A8): they are still measured, and measured levels replace
+the public ones. With a **project OpenRouter key** on the server, used only for evaluation,
+the worker would also measure without anyone configuring them: the `:free` models no public
+source covers (about 10), the stealth and preview models in `no_public_source`, and, within a
+monthly budget, the paid models users pick most that no public source has. Each run keeps its
+guaranteed maximum (40 calls, 1,024 output tokens each).
 
-A run stops at its guaranteed maximum (40 calls, 1,024 output tokens each). The project's
-monthly spend stops at the budget. The free models have daily request limits on OpenRouter;
-how many free models a day we can measure depends on them (to confirm on openrouter.ai
-before implementing).
+## Layer 4: feedback by source
 
-### Layer 4: feedback and calibration (exists, small change)
+`task_outcomes.levels_source` (migration 007) records where the levels of the model used
+came from. Models without a catalogue card (measured or public) now feed calibration too.
+`scripts/calibration_report.py` starts with "Outcomes by source of the levels" and every
+proposal names its source: if LMArena levels predict outcomes worse than measured ones, the
+team sees it and changes the mapping (`arena-mapping-2`) or measures those models.
 
-`scripts/calibration_report.py` groups outcomes and disagreements by **source** as well
-(`calibrated`, `measured`, `provisional`, `arena`, `benchmark`, `family`). If arena levels
-predict outcomes worse than measured ones, the report shows it and the team can change the
-mapping (a new `arena-mapping-2`) or measure those models.
+## Layer 5: one suggestion among all rated OpenRouter models (next)
 
-### Layer 5: recommend among all rated OpenRouter models (new)
-
-Today the recommendation compares only the models the user has (configured or picked). For a
-user with an enabled OpenRouter configuration, `send_options` also adds every OpenRouter
-model with levels from any source, marked `suggested`. The rules:
-
-| Rule | Why |
-|---|---|
-| The recommendation stays among the user's own models; a suggested model appears as "Also on OpenRouter: X covers this task better" only if it covers a need the best own model falls short on, or costs less for the same coverage | The user's choice of models is respected; the suggestion has to earn its place |
-| At most one suggestion per analysis | Not a catalogue to browse |
-| "Use" selects it in the chat, like a pick (and adds it to `user_models`, A8) | One click, and it then counts as one of their models |
-| Paid suggestions show the price band; a model above the user's highest current band is not suggested | No surprise costs |
-
-## A10, the order of sources (replaces A9's list)
-
-Best first: the team's calibrated levels; our measured levels; the catalogue's provisional
-levels; **LMArena per category** (confirmed or exact-normalised links, no collisions);
-Artificial Analysis overall index (confirmed links); the lowest measured level of the same
-family; else the model is never recommended. Every level shows its source and date.
-
-## Tests
-
-| Layer | Test |
-|---|---|
-| 1 | `snapshot_lmarena` on a small fixture parquet: keeps the columns, licence and date; rejects a gated or empty dataset |
-| 1 | Normaliser: the probe's examples (`Claude Haiku 4.5 (20251001)` = `anthropic/claude-haiku-4.5`, `Gemma 4 31B` = `google/gemma-4-31b-it:free`, `gpt-oss-20b` = `openai/gpt-oss-20b`); collisions are reported and not used |
-| 1 | Variants take the lowest rating; a row under 300 votes or wider than 60 points falls to the next category |
-| 1 | Thresholds are read from `arena-mapping-1`, never recomputed at run time |
-| 1 | `Ratings.source`: measured beats arena; arena beats AA; source text carries "CC BY 4.0" and the date |
-| 1 | A model missing from the new snapshot keeps the previous levels and date |
-| 3 | The worker with a project key queues free models without consent and paid ones only under the budget; the budget stops it |
-| 4 | Calibration report groups by source |
-| 5 | Suggested models only for users with an OpenRouter configuration; at most one; never above the user's highest band; "Use" adds it to `user_models` |
-| E2E | An analysis with only an OpenRouter key recommends among the user's models and shows one suggestion with its source |
-
-## Order of work
-
-| Pull request | Content | Depends on |
-|---|---|---|
-| A | Layer 1 (steps 1.1 to 1.8), A10 in `Ratings`, Layer 4 grouping, docs | AO confirms A10 |
-| B | Layer 5 | A |
-| C | Layer 3 with the project key and budget | Decisions 1 to 3 below |
-| D | Layer 2 link suggestions | A |
+For a user with an enabled OpenRouter configuration, the analysis would also compare every
+rated OpenRouter model and show at most one: "Also on OpenRouter: X covers this task better",
+only if it covers a need the best own model falls short on, or costs less for the same
+coverage, and never above the user's highest current price band. "Use" selects it like a
+pick.
 
 ## Decisions needed
 
 | # | Decision | Proposal |
 |---|---|---|
-| 1 | A project OpenRouter key on the server, used only for evaluation | Yes, as a GitHub and server secret, never shown to users |
+| 1 | A project OpenRouter key on the server, used only for evaluation | Yes, as a server secret, never shown to users |
 | 2 | Monthly budget for paid evaluations with the project key | 5 USD |
-| 3 | Buying OpenRouter credit to raise the free models' daily limit | 10 USD once, if the limits make Layer 3 too slow |
-| 4 | Subset `text_style_control` rather than `text` | Yes (discounts length and formatting) |
+| 3 | Buy OpenRouter credit to raise the free models' daily limit | 10 USD once, if layer 3 is too slow |
+| 4 | Style-controlled leaderboard rather than the raw one | Implemented as proposed; the AO confirms |
 
 ## Risks
 
 | Risk | Mitigation |
 |---|---|
-| A wrong name link gives a model another model's levels | Exact normalised match only; collisions excluded; the PR shows every new link |
-| Human preference is not capability (tools especially) | Provisional status, below measured; tools capped at 2 without agent data; calibration by source |
-| The dataset's format or licence changes | The snapshot script checks columns and licence and fails the workflow instead of writing |
-| Many models change level each week | Thresholds are frozen; weekly changes come only from ratings and are reviewed in the PR |
+| A wrong name link gives a model another model's levels | Exact normalised match; suffixes that mark other models kept; checked links by hand; `blocked` list; tests 20 and 21 |
+| Human preference is not capability | Provisional, below measured; tools capped at 2; calibration by source |
+| The dataset changes format or licence | The snapshot script refuses and writes nothing; the levels in force stay |
+| A popular new model has no levels | `most-used.json` and its test, updated monthly |

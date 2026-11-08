@@ -55,13 +55,20 @@ def proposals(rows: list[dict]) -> list[dict]:
                 if capability >= need["top"]
                 else ("short" if capability < need["estimated"] else "as_described")
             )
-            groups[(row["model_card_id"], name, need["estimated"], state)].append(row)
+            source = row.get("levels_source") or "catalogue"
+            groups[(row["model_card_id"], source, name, need["estimated"], state)].append(row)
     result = []
-    for (model, name, level, state), items in sorted(groups.items()):
+    for (model, source, name, level, state), items in sorted(groups.items()):
         if len(items) < MIN_TASKS:
             continue
         rate = sum(item["outcome"] in SOLVED for item in items) / len(items)
-        base = {"model": model, "capability": name, "level": level, "tasks": len(items)}
+        base = {
+            "model": model,
+            "source": source,
+            "capability": name,
+            "level": level,
+            "tasks": len(items),
+        }
         if state == "covers" and rate < LOWER_BELOW:
             result.append({**base, "solved": round(rate, 2), "proposal": "lower"})
         elif state == "short" and rate > RAISE_ABOVE:
@@ -98,3 +105,20 @@ def _json(value):
     if value is None or isinstance(value, dict):
         return value
     return json.loads(value)
+
+
+def by_source(rows: list[dict]) -> list[dict]:
+    """Answered tasks and solved rate per source of the levels (A10): shows whether a public
+    source (LMArena, Artificial Analysis) predicts outcomes worse than measured levels."""
+    groups: dict[str, list[dict]] = defaultdict(list)
+    for row in rows:
+        if row["outcome"] != "skipped":
+            groups[row.get("levels_source") or "catalogue"].append(row)
+    return [
+        {
+            "source": source,
+            "tasks": len(items),
+            "solved": round(sum(item["outcome"] in SOLVED for item in items) / len(items), 2),
+        }
+        for source, items in sorted(groups.items())
+    ]

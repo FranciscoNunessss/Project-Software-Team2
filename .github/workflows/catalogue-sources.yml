@@ -20,6 +20,8 @@ jobs:
       - run: uv sync --locked
       - name: OpenRouter facts (public, no key)
         run: uv run python scripts/import_openrouter_facts.py
+      - name: LMArena snapshot (public, no key, CC BY 4.0)
+        run: uv run --with pyarrow==17.0.0 python scripts/snapshot_lmarena.py
       - name: Artificial Analysis snapshot (needs the ARTIFICIAL_ANALYSES_ADAPTAI repository secret)
         env:
           ADAPTAI_AA_API_KEY: ${{ secrets.ARTIFICIAL_ANALYSES_ADAPTAI }}

@@ -221,7 +221,7 @@ def build():
     settings = Settings(
         _env_file=None,
         groq_api_key="e2e-fake-key",
-        browser_origin="http://127.0.0.1:8443",
+        browser_origin=os.environ.get("E2E_WEB_ORIGIN", "http://127.0.0.1:8543"),
     )
     return create_app(
         settings,
@@ -241,4 +241,4 @@ def build():
 
 
 if __name__ == "__main__":
-    uvicorn.run(build(), host="127.0.0.1", port=int(os.environ.get("E2E_API_PORT", "8000")))
+    uvicorn.run(build(), host="127.0.0.1", port=int(os.environ.get("E2E_API_PORT", "8100")))

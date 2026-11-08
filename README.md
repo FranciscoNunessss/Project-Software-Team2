@@ -393,6 +393,12 @@ pnpm exec playwright install chromium
 pnpm exec playwright test
 ```
 
+The tests start their own servers on ports 8100 (API) and 8543 (web) and never reuse a running
+app, so the app you run on 8000/8443 (real models, your data) can stay open. They need
+PostgreSQL: `ADAPTAI_TEST_DATABASE_URL` (default the Docker database on 55432; with a native
+PostgreSQL, for example `postgresql://adaptai:adaptai@127.0.0.1:5432/adaptai_test`). Each run
+uses a temporary schema, dropped at the end.
+
 The CI job `e2e` runs the same specs.
 
 ## Prompt Coach (optional)

@@ -10,7 +10,7 @@ const TASK = 'Compare two API designs and explain the trade-offs.'
 async function configure(page: Page, model = 'acme/swift:free') {
   const response = await page.request.post('/api/llm-configs', {
     data: { label: 'My OpenRouter', provider: 'openrouter', model, api_key: 'e2e-personal-key' },
-    headers: { Origin: 'http://127.0.0.1:8443' },
+    headers: { Origin: 'http://127.0.0.1:8543' },
   })
   expect(response.status()).toBe(201)
   await page.reload()

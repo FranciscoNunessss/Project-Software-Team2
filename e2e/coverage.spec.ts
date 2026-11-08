@@ -10,7 +10,7 @@ async function withOpenRouter(page: Page) {
   await signUp(page)
   const created = await page.request.post('/api/llm-configs', {
     data: { label: 'Router', provider: 'openrouter', model: 'acme/swift:free', api_key: 'sk-or-e2e-synthetic' },
-    headers: { Origin: 'http://127.0.0.1:8443' },
+    headers: { Origin: 'http://127.0.0.1:8543' },
   })
   expect(created.status()).toBe(201)
   await page.reload() // the chat model list is loaded with the page

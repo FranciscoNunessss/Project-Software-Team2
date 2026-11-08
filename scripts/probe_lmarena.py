@@ -37,8 +37,9 @@ def median(values: list):
 
 def normalise(name: str) -> str:
     """The comparison key: no vendor prefix, no :variant, no date or preview suffix, - for . _ space."""
-    name = name.lower().split("/")[-1].split(":")[0]
-    name = re.sub(r"[._ ]", "-", name)
+    name = re.sub(r"\s*\(.*?\)", "", name)  # "(High)", "(20250514)", "(Thinking 16K, ...)"
+    name = name.lower().lstrip("~").split("/")[-1].split(":")[0]
+    name = re.sub(r"[._ ]+", "-", name)
     name = re.sub(r"-(\d{8}|\d{4}-\d{2}-\d{2}|\d{4})$", "", name)
     name = re.sub(r"-(preview|latest|exp|instruct|it|chat)$", "", name)
     return name
@@ -110,7 +111,15 @@ def main() -> None:
             "models_overall": len(names),
             "openrouter_models_in_snapshot": len(router),
             "openrouter_exact_matches": sum(len(ids) for ids in matched.values()),
-            "examples_matched": dict(list(matched.items())[:25]),
+            "openrouter_ids_matched": len({i for ids in matched.values() for i in ids}),
+            "openrouter_free_ids_matched": len(
+                {i for ids in matched.values() for i in ids if i.endswith(":free")}
+            ),
+            "openrouter_free_ids_total": sum(1 for m in router if m["id"].endswith(":free")),
+            "openrouter_ids_unmatched": sorted(
+                m["id"] for m in router if normalise(m["id"]) not in {normalise(n) for n in names}
+            ),
+            "examples_matched": dict(list(matched.items())[:40]),
             "examples_unmatched": [name for name in names if name not in matched][:60],
             "families": {
                 family: sorted(name for name in names if family in name.lower())[:15]
@@ -121,7 +130,8 @@ def main() -> None:
     print(json.dumps({k: v for k, v in report.items() if k != "subsets"}, indent=1))
     for subset, item in report["subsets"].items():
         print(subset, {k: item.get(k) for k in ["found", "rows", "publish_dates", "models_overall",
-                                                 "openrouter_exact_matches"]})
+                                                 "openrouter_exact_matches", "openrouter_ids_matched", "openrouter_free_ids_matched",
+                                                 "openrouter_free_ids_total"]})
         print("  columns:", item.get("columns"))
         print("  categories:", list(item.get("categories", {})))
     if report["access"]["gated"] not in (False, None):

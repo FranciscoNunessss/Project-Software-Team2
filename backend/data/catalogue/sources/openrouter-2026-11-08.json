@@ -10615,8 +10615,8 @@
    "output_modalities": [
     "text"
    ],
-   "price_input_per_million": 0.025,
-   "price_output_per_million": 0.092,
+   "price_input_per_million": 0.15,
+   "price_output_per_million": 0.6,
    "structured_output": true,
    "supported_parameters": [
     "frequency_penalty",

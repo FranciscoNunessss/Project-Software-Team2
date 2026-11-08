@@ -58,5 +58,25 @@
    "T2": 0,
    "T3": null
   }
+ },
+ {
+  "date": "2026-11-08",
+  "week": 8,
+  "kr": {
+   "KR1.1": null,
+   "KR1.2": null,
+   "KR1.3": null,
+   "KR2.1": 0,
+   "KR2.2": null,
+   "KR2.3": null,
+   "KR3.1": null,
+   "KR3.2": null,
+   "KR3.3": null
+  },
+  "objectives": {
+   "T1": null,
+   "T2": 0,
+   "T3": null
+  }
  }
 ]

@@ -120,6 +120,7 @@ def main() -> None:
                 m["id"] for m in router if normalise(m["id"]) not in {normalise(n) for n in names}
             ),
             "examples_matched": dict(list(matched.items())[:40]),
+            "all_names": names,
             "examples_unmatched": [name for name in names if name not in matched][:60],
             "families": {
                 family: sorted(name for name in names if family in name.lower())[:15]

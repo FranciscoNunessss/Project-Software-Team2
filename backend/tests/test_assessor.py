@@ -4,6 +4,7 @@
 import asyncio
 import json
 
+import pytest
 from app import evaluations, limits
 from app.main import create_app
 from app.models import Assessment, Profile
@@ -117,6 +118,7 @@ def test_a_model_that_hit_a_limit_is_not_recommended_for_a_while():
     assert limits.limited("groq", "openai/gpt-oss-120b", now=10**12) is None
 
 
+@pytest.mark.chat
 def test_a_chat_answer_that_hits_a_limit_sets_the_model_aside():
     from app.chat import answer_events
 

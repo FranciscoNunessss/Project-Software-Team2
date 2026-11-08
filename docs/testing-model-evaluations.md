@@ -24,6 +24,8 @@ a manual check with real keys (about 30 minutes, under 1 USD).
 | 15 | Calibrated levels win over measured ones | `test_calibrated_levels_win` |
 | 16 | A finished evaluation enters the next recommendation | case 1 |
 | 17 | Restart during a run: free runs retried, paid ones failed (no charge without consent) | `test_a_restart_retries_free_runs_and_fails_paid_ones` |
+| 18 | A model picked in the chat (OpenRouter) is evaluated on first use and then compared with how to use it | `test_a_model_picked_in_the_chat_is_evaluated_and_then_recommended` |
+| 19 | OpenRouter models added and removed in LLM config; unknown ids refused; disabling the configuration removes them | `test_openrouter_models_can_be_added_and_removed_from_the_evaluations` |
 | + | Adaptive levels and cost bounds; inventory only of enabled configurations; "Disagree" changes nothing; a weak capability gets a low level | remaining tests |
 
 Run them with PostgreSQL up: `uv run pytest backend/tests/test_evaluations.py -q`.
@@ -34,6 +36,7 @@ Run them with PostgreSQL up: `uv run pytest backend/tests/test_evaluations.py -q
 |---|---|
 | Paid model | The consent shows what, how, the cost with "never more than", what declining means; after "Evaluate" the model shows "Measured by AdaptAI" and its levels |
 | Unknown price | "price unknown", the second confirmation, then the evaluation |
+| OpenRouter model | "Add an OpenRouter model": a paid catalogue model shows the consent with its cost; "Remove from my models" removes it |
 
 ## 3. Manual check with real keys
 
@@ -44,6 +47,7 @@ what you should see in LLM config › "How your models were evaluated".
 |---|---|---|
 | 1 | Open LLM config | `openai/gpt-oss-20b` (Groq, project) shows "Evaluating… n/40", then "Measured by AdaptAI" with five levels. No question asked |
 | 2 | Add OpenRouter with `google/gemma-4-31b-it:free` | Evaluated at once (free), no question |
+| 2b | In the chat, pick another OpenRouter model (for example `google/gemma-4-26b-a4b-it:free`) and send a message | It appears in LLM config as evaluating; when done it can be recommended, and "Use this model" selects the configuration and that model |
 | 3 | Sign in with another account and add the same Gemma | Already "Measured by AdaptAI", no new run |
 | 4 | Add OpenRouter or OpenAI with GPT-5.4 mini (paid) | The consent with the cost in cents and the maximum. Choose "Not now": status "Not evaluated"; the model works in the chat but is not recommended |
 | 5 | Same model: "Evaluate" | Runs in the background; you can use the chat meanwhile |

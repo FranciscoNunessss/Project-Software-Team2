@@ -37,3 +37,19 @@ test('a model with an unknown price needs a second confirmation', async ({ page 
   await consent.locator('[data-evaluation-accept]').click()
   await expect(entry.getByText('Measured by AdaptAI')).toBeVisible({ timeout: 20_000 })
 })
+
+test('an OpenRouter model can be added to be evaluated (paid: consent) and then removed', async ({ page }) => {
+  await signUp(page)
+  await page.request.post('/api/llm-configs', {
+    data: { label: 'Router', provider: 'openrouter', model: 'acme/swift:free', api_key: 'sk-or-e2e-synthetic' },
+  })
+  await goTo(page, 'LLM config')
+  const form = page.locator('[data-add-router-model]')
+  await form.getByLabel('OpenRouter model id').fill('vendor/deluxe')
+  await form.getByRole('button', { name: 'Add and evaluate' }).click()
+  const entry = page.locator('[data-evaluation-model="vendor/deluxe"]')
+  // A paid OpenRouter model: the price comes from OpenRouter's catalogue, so the cost is known.
+  await expect(entry.locator('[data-evaluation-cost]')).toContainText('never more than')
+  await entry.getByRole('button', { name: 'Remove from my models' }).click()
+  await expect(entry).toHaveCount(0)
+})

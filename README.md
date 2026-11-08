@@ -599,6 +599,8 @@ check: [`docs/testing-model-evaluations.md`](docs/testing-model-evaluations.md).
 |---|---|---|
 | GET | `/api/evaluations` | The user's models with status, progress, estimate, levels and source |
 | POST | `/api/evaluations/{id}/consent` | `{accept, confirm_unknown_price}` for a paid evaluation |
+| POST | `/api/evaluations/models` | `{configuration_id, model}`: add a model from OpenRouter's catalogue to be evaluated and recommended (also done on its first use in the chat) |
+| DELETE | `/api/evaluations/models?configuration_id=&model=` | Remove a picked model |
 | POST | `/api/evaluations/reevaluate` | `{configuration_id}`: a new run (consent again when paid) |
 | POST | `/api/evaluations/{id}/disagree` | `{capability}`: recorded for the calibration report |
 

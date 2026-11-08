@@ -31,7 +31,7 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.accounts import AuthenticatedUser
 from app.catalogue import CAPABILITIES, CATALOGUE_DIR, Card, Catalogue, active_catalogue
@@ -85,7 +85,37 @@ def inventory(store: Storage, configurations, enabled: dict[str, bool]) -> list[
             "WHERE enabled=1 AND model IS NOT NULL AND model<>'' ORDER BY sequence_id"
         ).fetchall()
     targets += [Target(row["provider"], row["model"], row["id"], row["user_id"]) for row in rows]
+    # Models chosen from OpenRouter's picker (user_models), while their configuration is on.
+    with store.connect() as db:
+        chosen = db.execute(
+            "SELECT u.user_id,u.configuration_id,u.model,c.provider FROM user_models u "
+            "JOIN llm_configs c ON c.id=u.configuration_id AND c.user_id=u.user_id "
+            "WHERE c.enabled=1 ORDER BY u.added_at"
+        ).fetchall()
+    known = {(t.provider, t.model, t.user_id) for t in targets}
+    targets += [
+        Target(row["provider"], row["model"], row["configuration_id"], row["user_id"])
+        for row in chosen
+        if (row["provider"], row["model"], row["user_id"]) not in known
+    ]
     return targets
+
+
+def add_user_model(store: Storage, user_id: str, configuration_id: str, model: str) -> Target:
+    """Remember a model picked from a provider's catalogue so it is evaluated and recommended."""
+    with store.connect() as db:
+        config = db.execute(
+            "SELECT provider FROM llm_configs WHERE id=%s AND user_id=%s AND enabled=1",
+            (configuration_id, user_id),
+        ).fetchone()
+        if not config or config["provider"] != "openrouter":
+            raise HTTPException(404, "configuration_not_found")
+        db.execute(
+            "INSERT INTO user_models(user_id,configuration_id,model) VALUES (%s,%s,%s) "
+            "ON CONFLICT DO NOTHING",
+            (user_id, configuration_id, model),
+        )
+    return Target("openrouter", model, configuration_id, user_id)
 
 
 # --- cost ----------------------------------------------------------------------------------
@@ -288,9 +318,15 @@ def _settings_for(row: dict, configurations) -> Settings:
         config = db.execute(
             "SELECT * FROM llm_configs WHERE id=%s AND enabled=1", (identifier,)
         ).fetchone()
-    if not config or config["provider"] != row["provider"] or config["model"] != row["model"]:
+    if not config or config["provider"] != row["provider"]:
         raise LookupError("configuration_gone")
-    return configurations.configured_settings(dict(config))
+    settings = configurations.configured_settings(dict(config))
+    if config["model"] != row["model"]:
+        # A model picked from OpenRouter's catalogue with this configuration's key.
+        if row["provider"] != "openrouter":
+            raise LookupError("configuration_gone")
+        settings = settings.model_copy(update={"openrouter_model": row["model"]})
+    return settings
 
 
 def _text(reply) -> str:
@@ -795,9 +831,23 @@ def install_evaluations(
 
     app.state.on_configuration_saved = on_saved
 
+    async def on_model_used(user_id: str, configuration_id: str, model: str):
+        # First use of a model from OpenRouter's picker: evaluate it like a configured one.
+        await ensure(store, add_user_model(store, user_id, configuration_id, model), router)
+
+    app.state.on_model_used = on_model_used
+
     @app.get("/api/evaluations")
     async def list_evaluations(user: AuthenticatedUser):
         ratings = Ratings(store, active_catalogue(), user["id"])
+        with store.connect() as db:
+            picked = {
+                (row["configuration_id"], row["model"])
+                for row in db.execute(
+                    "SELECT configuration_id,model FROM user_models WHERE user_id=%s",
+                    (user["id"],),
+                ).fetchall()
+            }
         result = []
         seen = set()
         for target in own_targets(user["id"]):
@@ -805,7 +855,10 @@ def install_evaluations(
                 continue
             seen.add((target.provider, target.model))
             row = await ensure(store, target, router)
-            result.append(public(row, target, ratings))
+            entry = public(row, target, ratings)
+            # Picked from OpenRouter's catalogue (not the configuration's own model).
+            entry["picked"] = (target.configuration_id, target.model) in picked
+            result.append(entry)
         return {"suite": SUITE_VERSION, "models": result}
 
     def owned_target(user_id: str, evaluation_id: str) -> tuple[dict, Target]:
@@ -848,6 +901,36 @@ def install_evaluations(
                 ),
             )
         return {"status": "queued" if body.accept else "declined"}
+
+    class AddModel(BaseModel):
+        model_config = ConfigDict(extra="forbid")
+        configuration_id: str
+        model: str = Field(
+            min_length=1, max_length=200, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/@+\-]*$"
+        )
+
+    @app.post("/api/evaluations/models", status_code=201)
+    async def add_model(body: AddModel, user: AuthenticatedUser):
+        if router is not None:
+            try:
+                await router.check(body.model, structured=False)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from None
+            except Exception:  # noqa: BLE001 - catalogue unreachable: accept, checked on use
+                pass
+        row = await ensure(
+            store, add_user_model(store, user["id"], body.configuration_id, body.model), router
+        )
+        return {"id": row["id"], "status": row["status"]}
+
+    @app.delete("/api/evaluations/models")
+    def remove_model(configuration_id: str, model: str, user: AuthenticatedUser):
+        with store.connect() as db:
+            db.execute(
+                "DELETE FROM user_models WHERE user_id=%s AND configuration_id=%s AND model=%s",
+                (user["id"], configuration_id, model),
+            )
+        return {"status": "removed"}
 
     @app.post("/api/evaluations/reevaluate")
     async def reevaluate(body: Reevaluate, user: AuthenticatedUser):

@@ -1075,3 +1075,6 @@ button.chat-recommendation:hover { background: var(--blue-soft); color: var(--in
 .evaluation-levels td.muted { font-size: 10.5px; }
 .evaluation-examples { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; font-size: 12px; }
 .evaluation-examples pre { white-space: pre-wrap; margin: 4px 0 0; padding: 8px; border-radius: 8px; background: var(--blue-soft); font-size: 11px; max-height: 160px; overflow: auto; }
+.evaluation-add { padding: 14px 18px; display: grid; gap: 8px; font-size: 13px; }
+.evaluation-add p { margin: 0; }
+.evaluation-add input, .evaluation-add select { min-width: 260px; flex: 1; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: inherit; }

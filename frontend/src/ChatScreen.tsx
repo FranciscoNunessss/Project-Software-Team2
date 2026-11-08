@@ -161,19 +161,23 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
   }, [initialChatId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = options.find(item => item.id === (model === 'auto' ? autoId : model))
+  // OpenRouter only: the exact catalogue id the user picked; null keeps the configured model.
+  const [routerModel, setRouterModel] = useState<string | null>(null)
   // "Use recommended" (ADR-014): following the recommendation is an explicit, visible choice.
   const recommendedFor = (analysis: Analysis | null | undefined): UseRecommended | undefined => {
     if (!analysis || !draftAnalysis || draftAnalysis.analysis.id !== analysis.id) return undefined
     const best = analysis.recommendation
     if (best.illustrative) return { state: 'illustrative' }
     const target = best.configuration_id
-    if (!target || !options.some(item => item.id === target)) return { state: 'unavailable' }
-    if (target === selected?.id) return { state: 'selected' }
-    return { state: 'available', onUse: () => { setModel(target === autoId ? 'auto' : target); setRouterModel(null) } }
+    const config = options.find(item => item.id === target)
+    if (!target || !config) return { state: 'unavailable' }
+    // A model picked from OpenRouter's catalogue: select the configuration and that model.
+    const pick = config.provider === 'openrouter' && best.model && best.model !== config.model ? best.model : null
+    const current = config.provider === 'openrouter' ? (routerModel ?? config.model) : null
+    if (target === selected?.id && (!pick || current === pick)) return { state: 'selected' }
+    return { state: 'available', onUse: () => { setModel(target === autoId ? 'auto' : target); setRouterModel(pick) } }
   }
   const useRecommended = recommendedFor(draftAnalysis?.analysis)
-  // OpenRouter only: the exact catalogue id the user picked; null keeps the configured model.
-  const [routerModel, setRouterModel] = useState<string | null>(null)
   const usesRouter = selected?.provider === 'openrouter'
   const routerValue = routerModel ?? selected?.model ?? ''
   const target = { provider: 'auto' as const, configuration_id: model === 'auto' ? undefined : model, model: usesRouter ? routerValue : undefined, allow_external: selected?.external === true }

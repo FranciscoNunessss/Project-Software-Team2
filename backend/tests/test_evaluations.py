@@ -450,3 +450,101 @@ def test_the_worker_waits_for_its_turn_before_every_call():
 
     row = asyncio.run(go())
     assert row["status"] == "done" and len(turns) == row["progress"]
+
+
+def router_app():
+    from app.openrouter import OpenRouterCatalogue
+
+    def entry(identifier, prompt="0", completion="0"):
+        return {
+            "id": identifier,
+            "name": identifier,
+            "context_length": 128000,
+            "pricing": {"prompt": prompt, "completion": completion},
+            "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
+            "supported_parameters": ["response_format", "structured_outputs", "tools"],
+        }
+
+    async def fetch():
+        return [entry("acme/base:free"), entry("acme/picked:free"), entry("acme/other:free")]
+
+    class Echo:
+        def __init__(self, *_args):
+            pass
+
+        async def stream(self, _messages):
+            yield "answer"
+
+    return create_app(
+        Settings(_env_file=None, groq_models=GROQ, groq_api_key="synthetic"),
+        {"groq": Assessor()},
+        evaluation_options={"worker": False},
+        openrouter_catalogue=OpenRouterCatalogue(fetch),
+        chat_options={"model_factory": Echo},
+    )
+
+
+@pytest.mark.chat
+def test_a_model_picked_in_the_chat_is_evaluated_and_then_recommended():
+    app = router_app()
+    client = account(app)
+    config = configure(client, "openrouter", "acme/base:free", key="sk-or-synthetic")
+    chat = client.post("/api/chats").json()
+    sent = client.post(
+        f"/api/chats/{chat['id']}/messages",
+        json={
+            "content": "hello",
+            "configuration_id": config["id"],
+            "model": "acme/picked:free",
+            "allow_external": True,
+        },
+    )
+    assert sent.status_code == 200, sent.text
+    listed = by_model(client)
+    assert listed["acme/picked:free"]["picked"] is True
+    assert listed["acme/picked:free"]["evaluation"]["status"] == "queued"  # free: no consent
+    drain(app, FakeModel())
+    result = client.post(
+        "/api/analyze", json={"task": "x", "provider": "auto", "allow_external": True}
+    ).json()
+    compared = {item["model"]: item for item in [result["recommendation"], *result["alternatives"]]}
+    picked = compared["acme/picked:free"]
+    # Recommended or compared with how to use it: the configuration's key and the picked id.
+    assert picked["configuration_id"] == config["id"] and picked["blended_price"] == 0
+
+
+def test_openrouter_models_can_be_added_and_removed_from_the_evaluations():
+    app = router_app()
+    client = account(app)
+    config = configure(client, "openrouter", "acme/base:free", key="sk-or-synthetic")
+    added = client.post(
+        "/api/evaluations/models",
+        json={"configuration_id": config["id"], "model": "acme/other:free"},
+    )
+    assert added.status_code == 201 and added.json()["status"] == "queued"
+    assert by_model(client)["acme/other:free"]["picked"] is True
+    unknown = client.post(
+        "/api/evaluations/models", json={"configuration_id": config["id"], "model": "acme/missing"}
+    )
+    assert unknown.status_code == 422
+    other = configure(client, "openai", "gpt-5.4-mini")
+    wrong = client.post(
+        "/api/evaluations/models",
+        json={"configuration_id": other["id"], "model": "acme/other:free"},
+    )
+    assert wrong.status_code == 404
+    client.delete(
+        "/api/evaluations/models",
+        params={"configuration_id": config["id"], "model": "acme/other:free"},
+    )
+    assert "acme/other:free" not in by_model(client)
+    # Disabling the configuration takes its picked models out too.
+    client.post(
+        "/api/evaluations/models",
+        json={"configuration_id": config["id"], "model": "acme/other:free"},
+    )
+    client.put(
+        f"/api/llm-configs/{config['id']}",
+        json={"label": "x", "provider": "openrouter", "model": "acme/base:free", "enabled": False},
+    )
+    assert "acme/other:free" not in by_model(client)

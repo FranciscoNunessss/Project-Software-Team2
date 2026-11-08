@@ -8,7 +8,7 @@ team's measurement scripts, calibration) feed the same levels.
 
 | Step | What happens | Where |
 |---|---|---|
-| Inventory | The server models (`ADAPTAI_<PROVIDER>_MODELS`) and every enabled personal configuration with a model. Nothing else is evaluated | `evaluations.inventory` |
+| Inventory | The server models (`ADAPTAI_<PROVIDER>_MODELS`), every enabled personal configuration with a model, and the models a user picked from OpenRouter's catalogue (in the chat on first use, or with "Add an OpenRouter model" in LLM config; table `user_models`). Nothing else is evaluated | `evaluations.inventory` |
 | New model | When a configuration is saved, or on the hourly inventory, a model without a current evaluation gets a run | `evaluations.ensure` |
 | Consent | Free, local and server models start at once. A paid model with a user's key waits: the user sees what is evaluated, how, the estimated cost and a guaranteed maximum, the time, and what declining means. Unknown price: confirm twice | LLM config › "How your models were evaluated" |
 | Run | A background worker sends the synthetic tasks of `measure-suite-1` adaptively: level 2 first, then 3 if passed (75%) or 1 if not; at most 40 calls with at most 1,024 output tokens each, so the maximum cost is a guarantee. Rate limits are retried; more than 10% failed calls discard the run; reaching the maximum stops it | `evaluations.run` |

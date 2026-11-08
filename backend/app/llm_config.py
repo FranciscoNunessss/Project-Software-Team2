@@ -254,7 +254,24 @@ class ModelConfigurations:
     def send_options(self, user_id, enabled) -> "list[Option]":
         """Every model the user can send to, for the recommendation (available_cards)."""
         personal = [item for item in self.list(user_id) if item["enabled"]]
-        return [
+        with self.store.connect() as db:
+            picked = db.execute(
+                "SELECT configuration_id,model FROM user_models WHERE user_id=%s", (user_id,)
+            ).fetchall()
+        by_id = {item["id"]: item for item in personal}
+        # Models picked from OpenRouter's catalogue with an enabled configuration (ADR-014).
+        extra = [
+            Option(
+                provider="openrouter",
+                model=row["model"],
+                configuration_id=row["configuration_id"],
+                label=f"{by_id[row['configuration_id']]['label']} · {row['model']}",
+            )
+            for row in picked
+            if row["configuration_id"] in by_id
+            and by_id[row["configuration_id"]]["model"] != row["model"]
+        ]
+        return extra + [
             Option(
                 provider=item["provider"],
                 model=item["model"],

@@ -16,7 +16,7 @@ type Evaluation = {
 type ModelEntry = {
   provider: string; model: string; configuration_id: string; shared: boolean; paid_by_you: boolean
   levels_source: 'calibrated' | 'measured' | 'provisional' | 'benchmark' | 'family' | null
-  levels: Record<NeedName, Rating> | null; evaluation: Evaluation | null
+  levels: Record<NeedName, Rating> | null; evaluation: Evaluation | null; picked?: boolean
 }
 
 const SOURCE: Record<string, string> = {
@@ -108,6 +108,7 @@ function Entry({ entry, reload }: { entry: ModelEntry; reload: () => void }) {
       <div className="history-actions">
         {evaluation?.examples?.length ? <button type="button" className="button button-secondary" onClick={() => setOpen(!open)}>{open ? 'Hide examples' : 'Show examples'}</button> : null}
         {(status === 'done' || status === 'failed') && <button type="button" className="button button-secondary" onClick={() => void reevaluate()}>Re-evaluate</button>}
+        {entry.picked && <button type="button" className="button button-secondary" onClick={() => void api(`evaluations/models?configuration_id=${encodeURIComponent(entry.configuration_id)}&model=${encodeURIComponent(entry.model)}`, undefined, undefined, 'DELETE').then(reload)}>Remove from my models</button>}
       </div>
       {open && evaluation && (
         <ul className="evaluation-examples">{evaluation.examples.map(item => (
@@ -118,11 +119,43 @@ function Entry({ entry, reload }: { entry: ModelEntry; reload: () => void }) {
   )
 }
 
+type Config = { id: string; provider: string; label: string; model: string; enabled: boolean }
+
+/** OpenRouter: add a model from its catalogue to be evaluated and recommended (ADR-014). */
+function AddRouterModel({ configs, onAdded }: { configs: Config[]; onAdded: () => void }) {
+  const [picked, setConfig] = useState('')
+  // The list loads after the first render: default to the first configuration then.
+  const config = configs.some(item => item.id === picked) ? picked : configs[0]?.id ?? ''
+  const [model, setModel] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  if (!configs.length) return null
+  const add = async (event: React.FormEvent) => {
+    event.preventDefault(); setBusy(true); setError('')
+    try { await api('evaluations/models', { configuration_id: config, model: model.trim() }); setModel(''); onAdded() }
+    catch (failure) { setError(failure instanceof ApiError ? failure.message : 'Could not add the model.') }
+    finally { setBusy(false) }
+  }
+  return (
+    <form className="card evaluation-add" onSubmit={add} data-add-router-model="">
+      <p><strong>Add an OpenRouter model</strong> <span className="muted">Models you pick in the chat are added on first use; you can also add them here to have them evaluated first.</span></p>
+      <div className="history-actions">
+        {configs.length > 1 && <select aria-label="OpenRouter configuration" value={config} onChange={event => setConfig(event.target.value)}>{configs.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select>}
+        <input aria-label="OpenRouter model id" placeholder="e.g. google/gemma-4-31b-it:free" value={model} onChange={event => setModel(event.target.value)} />
+        <button className="button button-secondary" disabled={busy || !model.trim()}>Add and evaluate</button>
+      </div>
+      {error && <p className="api-error" role="alert">{error}</p>}
+    </form>
+  )
+}
+
 export function ModelEvaluations() {
   const [models, setModels] = useState<ModelEntry[]>()
   const [error, setError] = useState('')
+  const [routers, setRouters] = useState<Config[]>([])
   const load = useCallback(() => {
     api<{ models: ModelEntry[] }>('evaluations').then(data => { setModels(data.models); setError('') }).catch(() => setError('Could not load the model evaluations.'))
+    api<Config[]>('llm-configs').then(items => setRouters(items.filter(item => item.provider === 'openrouter' && item.enabled))).catch(() => undefined)
   }, [])
   useEffect(() => { load() }, [load])
   const running = models?.some(item => item.evaluation && ['queued', 'running'].includes(item.evaluation.status))
@@ -139,6 +172,7 @@ export function ModelEvaluations() {
       {error && <p className="api-error" role="alert">{error}</p>}
       {!models && !error && <p role="status">Loading evaluations…</p>}
       {models?.length === 0 && <p className="muted">No models configured yet.</p>}
+      <AddRouterModel configs={routers} onAdded={load} />
       {models?.map(item => <Entry key={`${item.provider}:${item.model}`} entry={item} reload={load} />)}
     </section>
   )

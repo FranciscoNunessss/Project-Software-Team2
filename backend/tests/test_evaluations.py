@@ -654,7 +654,7 @@ def test_a_refused_run_stops_early_and_waits_a_day():
     app = make_app(evaluation_openrouter_key="sk-project")
     queue_project(app)
     finished = drain(app, Refused())
-    assert finished[0]["failure"] == "provider_refused" and finished[0]["progress"] == 5
+    assert finished[0]["failure"].startswith("provider_refused") and finished[0]["progress"] == 5
     # The next model is tried, the refused one is not retried today.
     nxt = queue_project(app)
     assert nxt is not None and nxt["model"] != "stealth/crouton-alpha"

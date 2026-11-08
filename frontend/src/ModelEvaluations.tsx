@@ -90,7 +90,7 @@ function Entry({ entry, reload }: { entry: ModelEntry; reload: () => void }) {
         </span>
       </div>
       {(status === 'awaiting_consent' || status === 'declined') && <Consent entry={entry} onDone={reload} />}
-      {status === 'failed' && evaluation?.failure && <p className="muted">{FAILURE[evaluation.failure] ?? evaluation.failure}</p>}
+      {status === 'failed' && evaluation?.failure && <p className="muted">{FAILURE[evaluation.failure.split(':')[0]] ?? evaluation.failure}</p>}
       {entry.levels && (
         <table className="coverage-table evaluation-levels">
           <caption className="sr-only">Levels of {entry.model}</caption>

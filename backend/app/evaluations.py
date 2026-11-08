@@ -472,6 +472,9 @@ def _usage(reply, task: Task, answer: str) -> tuple[int, int]:
 
 
 async def _ask(llm, task: Task, sleep: Callable) -> tuple[str | None, Any]:
+    """(answer, reply), or (None, error code) after the retries: the code says why."""
+    from app.providers import provider_error_code
+
     wait = 10.0
     for attempt in range(5):
         try:
@@ -481,10 +484,10 @@ async def _ask(llm, task: Task, sleep: Callable) -> tuple[str | None, Any]:
             text = f"{type(exc).__name__} {exc}".lower()
             transient = any(word in text for word in ("429", "rate", "limit", "timeout", "50"))
             if not transient or attempt == 4:
-                return None, None
+                return None, provider_error_code(exc)
             await sleep(wait)
             wait = min(wait * 2, 120)
-    return None, None
+    return None, "provider_unavailable"
 
 
 def adaptive_levels(rates: dict[str, dict[int, float]]) -> dict[str, int | None]:
@@ -524,9 +527,10 @@ async def run(
         return _finish(store, row, "failed", failure=type(exc).__name__)
     tasks = suite()
     results, rates, spent, done, errors, streak = [], {}, 0.0, 0, 0, 0
+    last_error = None
 
     async def level(name: str, level: int) -> float:
-        nonlocal spent, done, errors, streak
+        nonlocal spent, done, errors, streak, last_error
         chosen = [t for t in tasks if t.capability == name and t.level == level]
         passed = 0
         for task in chosen:
@@ -537,13 +541,14 @@ async def run(
             streak = streak + 1 if answer is None else 0
             if answer is None:
                 errors += 1
+                last_error = reply if isinstance(reply, str) else "provider_unavailable"
                 results.append(
                     {
                         "id": task.id,
                         "capability": name,
                         "level": level,
                         "passed": False,
-                        "error": True,
+                        "error": last_error,
                         "answer": "",
                     }
                 )
@@ -583,7 +588,9 @@ async def run(
         return _finish(store, row, "failed", failure="cost_limit_reached", results=results)
     except _Refused:
         # No credit, a daily limit reached, a model withdrawn: stop instead of 40 failures.
-        return _finish(store, row, "failed", failure="provider_refused", results=results)
+        # The provider's own reason (rate limit, credit, model or data policy) helps the team.
+        reason = f"provider_refused:{last_error}" if last_error else "provider_refused"
+        return _finish(store, row, "failed", failure=reason, results=results)
     if errors > MAX_ERROR_SHARE * done:
         return _finish(store, row, "failed", failure="too_many_failed_calls", results=results)
     levels = adaptive_levels(rates)

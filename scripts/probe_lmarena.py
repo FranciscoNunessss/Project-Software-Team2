@@ -30,6 +30,11 @@ def get(url: str) -> bytes:
         return response.read()
 
 
+def median(values: list):
+    values = sorted(value for value in values if value is not None)
+    return round(values[len(values) // 2], 1) if values else None
+
+
 def normalise(name: str) -> str:
     """The comparison key: no vendor prefix, no :variant, no date or preview suffix, - for . _ space."""
     name = name.lower().split("/")[-1].split(":")[0]
@@ -76,7 +81,7 @@ def main() -> None:
             rows += pq.read_table(io.BytesIO(data)).to_pylist()
         by_category = collections.defaultdict(list)
         for row in rows:
-            by_category[row["category"]].append(row)
+            by_category[row.get("category")].append(row)
         overall = by_category.get("overall") or rows
         names = sorted({row["model_name"] for row in overall})
         matched = {name: router_keys[normalise(name)] for name in names if normalise(name) in router_keys}
@@ -84,13 +89,20 @@ def main() -> None:
             "found": True,
             "download_bytes": size,
             "rows": len(rows),
-            "publish_dates": sorted({row["leaderboard_publish_date"] for row in rows}),
+            "columns": sorted(rows[0]) if rows else [],
+            "first_row": rows[0] if rows else None,
+            "publish_dates": sorted({str(row.get("leaderboard_publish_date")) for row in rows}),
             "categories": {
                 name: {
                     "models": len({row["model_name"] for row in items}),
-                    "median_votes": sorted(row["vote_count"] for row in items)[len(items) // 2],
-                    "median_ci_width": round(
-                        sorted(row["rating_upper"] - row["rating_lower"] for row in items)[len(items) // 2], 1
+                    "median_votes": median([row.get("vote_count") for row in items]),
+                    "median_ci_width": median(
+                        [
+                            row["rating_upper"] - row["rating_lower"]
+                            if row.get("rating_upper") is not None and row.get("rating_lower") is not None
+                            else None
+                            for row in items
+                        ]
                     ),
                 }
                 for name, items in sorted(by_category.items())
@@ -110,6 +122,7 @@ def main() -> None:
     for subset, item in report["subsets"].items():
         print(subset, {k: item.get(k) for k in ["found", "rows", "publish_dates", "models_overall",
                                                  "openrouter_exact_matches"]})
+        print("  columns:", item.get("columns"))
         print("  categories:", list(item.get("categories", {})))
     if report["access"]["gated"] not in (False, None):
         sys.exit("The dataset is gated: it needs an account and accepting terms")

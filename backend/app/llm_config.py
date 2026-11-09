@@ -8,10 +8,16 @@ from uuid import uuid4
 
 from cryptography.fernet import Fernet, InvalidToken
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 
 from app.accounts import AuthenticatedUser
-from app.providers import LangChainProvider, ProviderFailure, Settings, server_models
+from app.openrouter import BASE_URL as OPENROUTER_BASE_URL
+from app.providers import (
+    Settings,
+    chat_model,
+    provider_error_code,
+    server_models,
+)
 from app.recommendation import Option
 from app.storage import Storage
 
@@ -48,11 +54,19 @@ class Configuration(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     label: str = Field(min_length=1, max_length=80)
     provider: Literal["openai", "claude", "groq", "openrouter", "ollama", "lmstudio"]
-    model: str = Field(min_length=1, max_length=200, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/@+\-]*$")
+    # OpenRouter (a catalogue behind one key): the model is only the default and may be
+    # empty; the user picks any model in the chat. Every other provider needs it.
+    model: str = Field(default="", max_length=200, pattern=r"^$|^[A-Za-z0-9][A-Za-z0-9._:/@+\-]*$")
     api_key: SecretStr | None = Field(default=None, max_length=4096)
     responses_api: bool = False
     enabled: bool = True
     is_default: bool = False
+
+    @model_validator(mode="after")
+    def model_needed(self):
+        if not self.model and self.provider != "openrouter":
+            raise ValueError("model is required for this provider")
+        return self
 
     @field_validator("api_key")
     @classmethod
@@ -294,7 +308,7 @@ class ModelConfigurations:
                 label=f"{item['label']} · {item['model']}" if item["model"] else item["label"],
             )
             for item in [*self.server_options(enabled), *personal]
-            if item["provider"] != "demo"
+            if item["provider"] != "demo" and item["model"]
         ]
 
 
@@ -346,13 +360,43 @@ def install_routes(app: FastAPI, configurations: ModelConfigurations, enabled):
 
     @app.post("/api/llm-configs/{identifier}/test")
     async def test(identifier: str, user: AuthenticatedUser):
+        """Checks the key and, when there is a model, one short chat answer (ADR-014 A11).
+
+        Personal models only answer in the chat; the project's assessor analyses tasks, so
+        a model without structured output passes. OpenRouter without a default model:
+        only the key is checked (no model is called, no quota is used).
+        """
         row = configurations.owned(user["id"], identifier)
+        settings = configurations.configured_settings(row)
+        if row["provider"] == "openrouter" and not row["model"]:
+            ok = await openrouter_key_ok(settings)
+            if ok is None:
+                raise HTTPException(502, "provider_unavailable")
+            if not ok:
+                raise HTTPException(502, "provider_authentication")
+            return {"status": "ok", "model": None, "checked": "key"}
         try:
-            result = await LangChainProvider(
-                row["provider"], configurations.configured_settings(row)
-            ).assess(
-                "Explain what an API is in one sentence. This is a synthetic connectivity test."
+            reply = await chat_model(row["provider"], settings, 64).ainvoke(
+                [("human", "Reply with the word OK. This is a synthetic connectivity test.")]
             )
-        except ProviderFailure as exc:
-            raise HTTPException(502, exc.code) from None
-        return {"status": "ok", "model": row["model"], "usage": result.usage}
+        except Exception as exc:  # noqa: BLE001 - every provider error becomes its code
+            raise HTTPException(502, provider_error_code(exc)) from None
+        if not str(getattr(reply, "content", "") or "").strip():
+            raise HTTPException(502, "empty_answer")
+        return {"status": "ok", "model": row["model"], "checked": "chat"}
+
+
+async def openrouter_key_ok(settings) -> bool | None:
+    """True for a valid OpenRouter key, False for a refused one, None when unreachable."""
+    import httpx
+
+    key = settings.openrouter_api_key.get_secret_value()
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.get(
+                f"{OPENROUTER_BASE_URL.rstrip('/')}/key",
+                headers={"Authorization": f"Bearer {key}"},
+            )
+    except httpx.HTTPError:
+        return None
+    return response.status_code == 200

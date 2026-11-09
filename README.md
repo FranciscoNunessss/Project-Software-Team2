@@ -810,7 +810,16 @@ evaluation key when set, so the user's free daily calls stay for their chats. Wi
 assessor (no server Groq, OpenAI or Claude), the chat model analyses as before. If project
 Groq is unavailable and nothing else is configured, Auto returns an explicit configuration
 error; it never silently selects a personal model or demo. The actual provider, model,
-configuration ID and selection mode appear in the result. Intelligent task routing, capability-based routing across these
+configuration ID and selection mode appear in the result.
+
+**OpenRouter is a catalogue behind one key (ADR-014 A12).** Connecting it needs only the key (a
+default model is optional); Test connection checks the key without calling a model. Both chat
+pickers show each model's state (Measured, Public ranking, Provisional, Evaluating n/40, Waiting
+for consent, Evaluation failed, Not evaluated), and "Evaluate" in the OpenRouter list adds a
+model to your models without sending anything. With an OpenRouter key, the analysis also
+compares every rated chat model of the catalogue and may show one "Also on OpenRouter"
+suggestion: only when it covers what your best model falls short on, or covers as much for
+less, and never in a dearer price band than your own models. Intelligent task routing, capability-based routing across these
 assessment models and custom endpoints remain future work. Assessment-provider selection is
 separate from the versioned catalogue's recommended task-execution tier.
 

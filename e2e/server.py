@@ -39,6 +39,15 @@ atexit.register(cleanup)
 os.environ["ADAPTAI_CREDENTIALS_KEY_PATH"] = str(DATA / "e2e.key")
 
 import uvicorn  # noqa: E402
+from app import llm_config  # noqa: E402
+
+
+async def fake_key_ok(settings):
+    """OpenRouter's key check without the network: e2e keys are valid, others are not."""
+    return settings.openrouter_api_key.get_secret_value().startswith("sk-or-e2e")
+
+
+llm_config.openrouter_key_ok = fake_key_ok
 from app.main import create_app  # noqa: E402
 from app.models import Assessment, Profile  # noqa: E402
 from app.openrouter import OpenRouterCatalogue  # noqa: E402
@@ -178,6 +187,8 @@ ROUTER_MODELS = [
     router_entry("acme/swift:free", "Swift", "0", "0"),
     router_entry("acme/gratis", "Gratis (no suffix)", "0", "0"),
     router_entry("acme/limited:free", "Limited", "0", "0"),
+    # Free, in no source; evaluated only by e2e/openrouter-models.spec.ts (results are shared).
+    router_entry("acme/novel", "Novel", "0", "0"),
     # In the public LMArena snapshot (ADR-014 A10): rated before any evaluation.
     router_entry("anthropic/claude-opus-5.5", "Claude Opus 5.5", "0.000005", "0.000025"),
     router_entry("vendor/deluxe", "Deluxe", "0.0000025", "0.00001"),

@@ -935,6 +935,39 @@ class Disagree(BaseModel):
     capability: str
 
 
+def statuses(store: Storage, provider: str, user_id: str) -> dict[str, dict]:
+    """The latest evaluation of each model of a provider this user can see (shared or own)."""
+    with store.connect() as db:
+        rows = db.execute(
+            "SELECT DISTINCT ON (model) model,status,progress,total,failure "
+            "FROM model_evaluations WHERE provider=%s AND (scope='shared' OR requested_by=%s) "
+            "ORDER BY model, sequence_id DESC",
+            (provider, user_id),
+        ).fetchall()
+    return {row["model"]: dict(row) for row in rows}
+
+
+def label(levels_source: str | None, evaluation: dict | None) -> dict:
+    """One short status per model for the pickers (ADR-014 A12): what the user can expect."""
+    status = evaluation["status"] if evaluation else None
+    if status in {"queued", "running"}:
+        return {
+            "state": "evaluating",
+            "text": f"Evaluating {evaluation['progress']}/{evaluation['total']}",
+        }
+    if status == "awaiting_consent":
+        return {"state": "consent", "text": "Waiting for consent"}
+    if levels_source in {"calibrated", "measured"}:
+        return {"state": "measured", "text": "Measured"}
+    if levels_source == "arena":
+        return {"state": "public", "text": "Public ranking"}
+    if levels_source in {"benchmark", "provisional", "family"}:
+        return {"state": "provisional", "text": "Provisional"}
+    if status == "failed":
+        return {"state": "failed", "text": "Evaluation failed"}
+    return {"state": "none", "text": "Not evaluated"}
+
+
 def public(row: dict | None, target: Target, ratings: Ratings) -> dict:
     found = ratings.source(target.provider, target.model)
     data = {

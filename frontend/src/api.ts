@@ -24,6 +24,8 @@ export type OpenRouterModel = {
   id: string; name: string; organisation: string; description: string; context_length: number | null
   price_input_per_million: number | null; price_output_per_million: number | null; free: boolean
   input_modalities: string[]; output_modalities: string[]; supported_parameters: string[]
+  // ADR-014 A12: where its levels come from and its evaluation state, for this user.
+  levels_source?: string | null; status?: { state: string; text: string }
   top_provider: { context_length: number | null; max_completion_tokens: number | null; is_moderated: boolean | null }
   text_chat: boolean; structured_output: boolean; selectable: boolean; unavailable_reason: string | null
 }
@@ -81,6 +83,8 @@ export type Analysis = {
   grading?: Grading | null
   needs?: TaskNeeds | null
   notes?: string[]
+  // ADR-014 A12: one rated OpenRouter model the user does not have yet, and why.
+  suggestion?: Candidate | null; suggestion_reason?: string | null
   previous_analysis_id?: string | null
   completeness?: number | null
   changes?: Change[]

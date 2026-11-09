@@ -196,3 +196,7 @@ class AnalysisResult(BaseModel):
     # needs-capabilities-1: the task needs and the notes (verification, tools, coverage).
     needs: dict | None = None
     notes: list[str] = []
+    # ADR-014 A12: one rated OpenRouter model, outside the user's own, that does this task
+    # better (covers more, or the same for less), with the reason. None most of the time.
+    suggestion: Candidate | None = None
+    suggestion_reason: str | None = None

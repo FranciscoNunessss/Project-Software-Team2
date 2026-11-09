@@ -159,6 +159,11 @@ export function ModelEvaluations() {
     api<Config[]>('llm-configs').then(items => setRouters(items.filter(item => item.provider === 'openrouter' && item.enabled))).catch(() => undefined)
   }, [])
   useEffect(() => { load() }, [load])
+  // Pages stay mounted: reload when a model is added elsewhere (the chat's "Evaluate").
+  useEffect(() => {
+    window.addEventListener('adaptai-models-updated', load)
+    return () => window.removeEventListener('adaptai-models-updated', load)
+  }, [load])
   const running = models?.some(item => item.evaluation && ['queued', 'running'].includes(item.evaluation.status))
   useEffect(() => {
     if (!running) return

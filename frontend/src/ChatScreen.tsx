@@ -8,6 +8,7 @@ import { AnalysisDrawer, type UseRecommended } from './AnalysisDrawer'
 import { ChatMarkdown } from './ChatMarkdown'
 import { ModelPicker } from './ModelPicker'
 import { OpenRouterModelPicker } from './OpenRouterModelPicker'
+import { statusKey, statusOf, type ModelStatus } from './modelStatus'
 import { PromptCoachBubble } from './PromptCoachBubble'
 import { OutcomeCard, SolvedButton } from './TaskOutcome'
 
@@ -171,10 +172,23 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
   const selected = options.find(item => item.id === (model === 'auto' ? autoId : model))
   // OpenRouter only: the exact catalogue id the user picked; null keeps the configured model.
   const [routerModel, setRouterModel] = useState<string | null>(null)
+  // ADR-014 A12: the evaluation state of the user's models, shown in the chat model picker.
+  const [statuses, setStatuses] = useState<Record<string, ModelStatus>>({})
+  const loadStatuses = () => {
+    void api<{ models: Parameters<typeof statusOf>[0][] }>('evaluations')
+      .then(data => setStatuses(Object.fromEntries(data.models.map(item => [statusKey(item!.provider, item!.model), statusOf(item)]))))
+      .catch(() => undefined)
+  }
+  useEffect(() => {
+    loadStatuses()
+    window.addEventListener('adaptai-models-updated', loadStatuses)
+    return () => window.removeEventListener('adaptai-models-updated', loadStatuses)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // "Use recommended" (ADR-014): following the recommendation is an explicit, visible choice.
-  const recommendedFor = (analysis: Analysis | null | undefined): UseRecommended | undefined => {
+  const recommendedFor = (analysis: Analysis | null | undefined, which: 'recommendation' | 'suggestion' = 'recommendation'): UseRecommended | undefined => {
     if (!analysis || !draftAnalysis || draftAnalysis.analysis.id !== analysis.id) return undefined
-    const best = analysis.recommendation
+    const best = which === 'suggestion' ? analysis.suggestion : analysis.recommendation
+    if (!best) return undefined
     if (best.illustrative) return { state: 'illustrative' }
     const target = best.configuration_id
     const config = options.find(item => item.id === target)
@@ -364,8 +378,8 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
               onChange={event => setDraft(event.target.value)} onKeyDown={onKey} rows={3} data-chat-input="" data-task-input="" disabled={busy} />
           </PromptCoachBubble>
           <div className="composer-footer">
-            <ModelPicker options={options} value={model} autoId={autoId} loading={modelsLoading} disabled={locked} onChange={value => { setModel(value); setRouterModel(null) }} onConfigure={onConfigureModels} />
-            {usesRouter && <OpenRouterModelPicker value={routerValue} disabled={locked} onChange={value => setRouterModel(value)} />}
+            <ModelPicker options={options} value={model} autoId={autoId} loading={modelsLoading} disabled={locked} statuses={statuses} onChange={value => { setModel(value); setRouterModel(null) }} onConfigure={onConfigureModels} />
+            {usesRouter && <OpenRouterModelPicker value={routerValue} disabled={locked} configurationId={selected?.source === 'personal' ? selected.id : undefined} onChange={value => setRouterModel(value)} />}
             <div className="composer-actions">
               <span>{draft.length}/{MAX_CHARS}</span>
               {/* Names the recommended model (ADR-014) and reopens this draft's analysis after the panel was closed with ×. */}
@@ -384,7 +398,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
               </button>
               {busy
                 ? <button type="button" className="button button-secondary" onClick={stop} data-chat-stop="">Stop</button>
-                : <button type="button" className="button button-primary" onClick={send} disabled={analysing || !draft.trim() || modelsLoading || !selected} data-chat-send="">Send</button>}
+                : <button type="button" className="button button-primary" onClick={send} disabled={analysing || !draft.trim() || modelsLoading || !selected || (usesRouter && !routerValue)} title={usesRouter && !routerValue ? 'Choose an OpenRouter model first' : undefined} data-chat-send="">Send</button>}
             </div>
           </div>
         </section>
@@ -393,7 +407,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
           : selected?.external && <p className="processing-notice">Selecting <strong>Analyse</strong> or <strong>Send</strong> sends your text to <strong>{selected.provider}</strong>. Messages are saved in this chat until you delete it.</p>}
       </section>
       <div className="drawer-slot">
-        <AnalysisDrawer open={drawer} onClose={() => setDrawer(false)} error={analysisError || undefined} useRecommended={recommendedFor(shown)} analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory}
+        <AnalysisDrawer open={drawer} onClose={() => setDrawer(false)} error={analysisError || undefined} useRecommended={recommendedFor(shown)} useSuggestion={recommendedFor(shown, 'suggestion')} analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory}
           onSend={sendable && !busy && !analysing ? () => { setDrawer(false); void send() } : undefined} />
       </div>
     </main>

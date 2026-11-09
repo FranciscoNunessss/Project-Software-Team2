@@ -17,6 +17,9 @@ from app.assessment import PROFILE_VERSION, RUBRIC_VERSION, explain_changes
 from app.catalogue import active_catalogue
 from app.coaching import install_coaching
 from app.evaluations import Ratings, install_evaluations, pending_for
+from app.evaluations import _router_snapshot as router_snapshot
+from app.evaluations import label as evaluation_label
+from app.evaluations import statuses as evaluation_statuses
 from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
 from app.openrouter import CatalogueUnavailable, OpenRouterCatalogue, fetch_models
@@ -29,7 +32,7 @@ from app.providers import (
     Settings,
     with_server_models,
 )
-from app.recommendation import POLICY_VERSION, candidate_gap
+from app.recommendation import POLICY_VERSION, Option, candidate_gap
 from app.storage import Storage, history_result, stored_result
 from app.workflow import build_workflow
 
@@ -72,6 +75,20 @@ FALLBACK_CODES = {
     "provider_unavailable",
     "provider_output_truncated",
 }
+
+
+def suggestion_pool(configs: list[dict]) -> list[Option]:
+    """Every chat model in the OpenRouter snapshot, through the user's first enabled
+    OpenRouter configuration (ADR-014 A12). Empty without one: nothing to suggest."""
+    router = next((c for c in configs if c["provider"] == "openrouter" and c["enabled"]), None)
+    if router is None:
+        return []
+    models, _ = router_snapshot()
+    return [
+        Option("openrouter", model, router["id"], f"{router['label']} · {model}")
+        for model, item in models.items()
+        if item.get("output_modalities", ["text"]) == ["text"]
+    ]
 
 
 def _provider_model(chain: list[dict], identifier: str) -> tuple[str, str | None]:
@@ -211,6 +228,13 @@ def create_app(
             items, fetched_at = await router_models.models(refresh)
         except CatalogueUnavailable as exc:
             raise HTTPException(502, exc.code) from None
+        # ADR-014 A12: each model says whether it has levels and how far its evaluation is.
+        ratings = Ratings(store, active_catalogue(), user["id"])
+        runs = evaluation_statuses(store, "openrouter", user["id"])
+        for item in items:
+            found = ratings.source("openrouter", item["id"])
+            item["levels_source"] = found[0] if found else None
+            item["status"] = evaluation_label(item["levels_source"], runs.get(item["id"]))
         return {"fetched_at": fetched_at, "models": items}
 
     @app.get("/api/features")
@@ -654,6 +678,7 @@ def create_app(
                             "options": options,
                             "ratings": Ratings(store, active_catalogue(), user["id"]),
                             "task_chars": len(body.task),
+                            "suggestion_pool": suggestion_pool(configurations.list(user["id"])),
                         }
                     )
                 break
@@ -767,6 +792,14 @@ def create_app(
                 "observed_cost": None,
                 "needs": state["needs"],
                 "notes": notes,
+                "suggestion": {
+                    key: value for key, value in state["suggestion"].items() if key != "reason"
+                }
+                if state.get("suggestion")
+                else None,
+                "suggestion_reason": state["suggestion"]["reason"]
+                if state.get("suggestion")
+                else None,
                 "previous_analysis_id": body.previous_analysis_id,
                 "completeness": state["completeness"],
                 "changes": explain_changes(previous, state["profile"])

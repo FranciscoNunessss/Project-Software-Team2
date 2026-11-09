@@ -12,8 +12,9 @@ import { PromptCoachTips } from './PromptCoachTips'
 /** The "Use recommended" state of the analysis shown (chat only, current draft only). */
 export type UseRecommended = { state: 'available'; onUse: () => void } | { state: 'selected' | 'unavailable' | 'illustrative' }
 
-export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, fromHistory, onSend, useRecommended, error }: {
+export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, fromHistory, onSend, useRecommended, useSuggestion, error }: {
   useRecommended?: UseRecommended
+  useSuggestion?: UseRecommended
   // The last analysis failed: said here, where the user is looking, with what to do.
   error?: string
   open: boolean
@@ -67,7 +68,7 @@ export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, 
                   <ul>{analysis.guidance.map(item => <li key={item}>{item}</li>)}</ul>
                 </Card>
               )}
-              <RecommendationCard analysis={analysis} useRecommended={useRecommended} />
+              <RecommendationCard analysis={analysis} useRecommended={useRecommended} useSuggestion={useSuggestion} />
               <TipsCard analysis={analysis} fromHistory={fromHistory} />
               {task !== undefined && <PromptCoachTips analysis={analysis} task={task} />}
               <ProfileCard analysis={analysis} />

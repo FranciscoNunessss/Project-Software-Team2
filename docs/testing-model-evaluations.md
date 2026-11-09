@@ -83,6 +83,20 @@ Run: `uv run pytest backend/tests/test_arena.py -q`.
 | 51 | A chat answer that hits a limit sets the model aside | `test_a_chat_answer_that_hits_a_limit_sets_the_model_aside` |
 | 52 | A free model of the user is evaluated with the project key; a paid one with the user's key | `test_a_free_model_of_the_user_is_measured_with_the_project_key` |
 
+## 1e. OpenRouter as a catalogue (`backend/tests/test_openrouter_models.py`, `test_llm_config.py`, A12)
+
+| # | Case | Test |
+|---|---|---|
+| 53 | OpenRouter needs only the key; the test checks the key without calling a model; other providers still need a model | `test_openrouter_needs_only_the_key` |
+| 54 | A personal model's test is one short chat answer (no structured output needed) | `test_connection_test_is_explicit_and_does_not_save_tasks` |
+| 55 | Every catalogue model says its state (Public ranking, Not evaluated…) | `test_every_catalogue_model_says_its_state` |
+| 56 | A better rated OpenRouter model is suggested once, with the reason, outside the user's own models | `test_a_better_model_on_openrouter_is_suggested_once` |
+| 57 | Never a dearer price band than the user's own models | `test_never_a_dearer_band_than_the_users_own` |
+| 58 | No OpenRouter configuration, no suggestion | `test_no_openrouter_no_suggestion` |
+| 59 | No suggestion when the user's model covers the task (a free project model is never beaten "for less") | `test_no_suggestion_when_the_users_model_covers_the_task` |
+| 60 | The pool is every chat model of the snapshot (no music or image generators) | `test_the_pool_is_every_chat_model_of_the_snapshot` |
+| 61 | Models without structured output can be chosen for the chat | `test_non_conversation_models_are_not_selectable_and_say_why` (`test_openrouter.py`) |
+
 ## 2. Browser tests (`e2e/evaluations.spec.ts`, fake evaluator in `e2e/server.py`)
 
 | Test | Checks |
@@ -96,6 +110,9 @@ Run: `uv run pytest backend/tests/test_arena.py -q`.
 | Free, no public source (`e2e/coverage.spec.ts`) | `acme/gratis` is evaluated without asking ("Measured by AdaptAI") and then compared |
 | Paid, no public source (`e2e/coverage.spec.ts`) | `vendor/premium` after "Not now": no levels, not compared, but the chat answers with it at once; after "Evaluate" it is measured and compared |
 | Provider refuses (`e2e/coverage.spec.ts`) | `acme/limited:free` fails with "The provider refused the calls" and offers "Re-evaluate" |
+| Key only (`e2e/openrouter-models.spec.ts`) | Connect OpenRouter with no model; Test connection says "the key is valid (no model was called)"; Send stays disabled until a model is chosen |
+| States and Evaluate (`e2e/openrouter-models.spec.ts`) | Claude Opus 5.5 shows "Public ranking", `acme/novel` "Not evaluated"; "Evaluate" adds it, LLM config shows it measured |
+| Suggestion (`e2e/openrouter-models.spec.ts`) | With a key-only OpenRouter and a task the server model falls short on, "Also on OpenRouter" names a rated model with the reason; "Use this model" selects it |
 | Recommendation (`e2e/feedback.spec.ts`) | The Groq server model is recommended with "Levels from: LMArena public ranking … (CC BY 4.0), provisional"; "Use this model" works |
 
 ## 3. Manual check with real keys
@@ -166,3 +183,17 @@ someone uses them, or with bought credit (section "Layer 3" of
 
 If step 7 shows `provider_refused`: OpenRouter refused the calls (daily limit reached, or the
 model needs credit). Nothing to do; that model waits a day and the next one is tried.
+
+## 6. OpenRouter as a catalogue (A12), on your computer
+
+| # | Do | Expected |
+|---|---|---|
+| 1 | LLM config › OpenRouter › Edit (or Remove and connect again) with only the key, the default model empty | Saved; the card says "No default model · any model of the catalogue in the chat" |
+| 2 | Test connection | "the key is valid (no model was called)"; nothing appears in OpenRouter's activity |
+| 3 | Assistant › Chat model › your OpenRouter configuration | The OpenRouter list says "Choose a model"; Send is disabled until you pick one |
+| 4 | Open the OpenRouter list | Each model shows its state: Claude Opus 5.5 "Public ranking", your Gemma "Measured" or "Evaluating", a new model "Not evaluated" with "Evaluate" |
+| 5 | "Evaluate" on a free model with no state | "Added: see LLM config"; LLM config shows it "Evaluating…" then "Measured by AdaptAI" (it uses the project key, so not your chat quota) |
+| 6 | The Chat model list | Your models show their state next to the name |
+| 7 | Analyse a demanding task (for example a legal or financial analysis with constraints) | If one of the catalogue's rated models covers what your models fall short on, "Also on OpenRouter" names it with the reason, the price band and where its levels come from |
+| 8 | "Use this model" on the suggestion, then Send | The OpenRouter list shows that model; the answer comes from it; it then appears among your models |
+| 9 | Analyse a simple task | No suggestion: your model already covers it |

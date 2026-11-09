@@ -1,9 +1,12 @@
+import { StatusBadge, statusKey, type ModelStatus } from './modelStatus'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { usePageActive } from './PagePanel'
 import type { LLMOption } from './api'
 
 type Props = {
   options: LLMOption[]
+  /** ADR-014 A12: the evaluation state of each model, keyed by statusKey(provider, model). */
+  statuses?: Record<string, ModelStatus>
   value: string
   autoId: string | null
   loading: boolean
@@ -12,7 +15,7 @@ type Props = {
   onConfigure: () => void
 }
 
-export function ModelPicker({ options, value, autoId, loading, disabled, onChange, onConfigure }: Props) {
+export function ModelPicker({ options, value, autoId, loading, disabled, onChange, onConfigure, statuses }: Props) {
   const active = usePageActive()
   const trigger = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
@@ -65,7 +68,7 @@ export function ModelPicker({ options, value, autoId, loading, disabled, onChang
       {(['personal', 'server'] as const).map(source => {
         const items = options.filter(option => option.source === source)
         return items.length > 0 && <div className="model-picker-group" key={source}><p>{source === 'personal' ? 'Your models' : 'Project models'}</p>{items.map(option => <button type="button" className="model-picker-option" key={option.id} aria-pressed={value === option.id} disabled={disabled} onClick={() => choose(option.id)}>
-          <span className="model-picker-symbol" aria-hidden="true">{option.provider === 'demo' ? 'D' : option.provider === 'openrouter' ? 'R' : option.provider === 'lmstudio' ? 'S' : option.provider.slice(0, 1).toUpperCase()}</span><span><strong>{option.model || option.label}</strong><small>{option.provider === 'demo' ? 'Local demonstration · illustrative results' : `${option.label} · ${option.external ? 'Cloud' : 'Local'}`}</small></span><span className="model-picker-check" aria-hidden="true">{value === option.id ? '✓' : ''}</span>
+          <span className="model-picker-symbol" aria-hidden="true">{option.provider === 'demo' ? 'D' : option.provider === 'openrouter' ? 'R' : option.provider === 'lmstudio' ? 'S' : option.provider.slice(0, 1).toUpperCase()}</span><span><strong>{option.model || option.label} {option.model && <StatusBadge status={statuses?.[statusKey(option.provider, option.model)]} />}</strong><small>{option.provider === 'demo' ? 'Local demonstration · illustrative results' : `${option.label} · ${option.external ? 'Cloud' : 'Local'}`}</small></span><span className="model-picker-check" aria-hidden="true">{value === option.id ? '✓' : ''}</span>
         </button>)}</div>
       })}
       <div className="model-picker-footer"><button type="button" disabled={disabled} onClick={() => { close(); onConfigure() }}>Manage models <span aria-hidden="true">↗</span></button><p>Add your own providers in LLM config.</p></div>

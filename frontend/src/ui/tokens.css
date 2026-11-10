@@ -1,0 +1,209 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap');
+
+/*
+ * Design tokens. Light values live on :root; dark values are redefined once, in the single
+ * .theme-dark block below. Components never carry their own dark overrides: they read tokens.
+ * See README.md in this folder for what each token is for.
+ */
+:root {
+  /* ---- Colour: surfaces ---- */
+  --color-bg: #f9f9f9;               /* page background */
+  --color-surface: #ffffff;          /* cards, panels, the message box */
+  --color-control: #f7f7f7;          /* quiet filled control (theme toggle) */
+  --color-hover: #f2f2f2;            /* hover and selected background */
+  --color-hover-strong: #eeeeee;     /* hover of an outlined control */
+
+  /* ---- Colour: text ---- */
+  --color-text: #222222;             /* default text of the app */
+  --color-ink: #222222;              /* primary text and icons */
+  --color-ink-max: #222222;          /* emphasised text on hover */
+  --color-heading-strong: #1e1e1e;   /* page titles (h1) */
+  --color-heading: #2a2a2a;          /* card titles */
+  --color-heading-soft: #353535;     /* card sub-headings */
+  --color-body: #333333;             /* text typed into fields */
+  --color-ink-soft: #555555;         /* secondary control text */
+  --color-label: #636363;            /* eyebrow labels */
+  --color-muted: #727272;            /* secondary text */
+  --color-subtle: #949494;           /* counters and other tertiary text */
+  --color-placeholder: #a4a4a4;
+
+  /* ---- Colour: lines ---- */
+  --color-line: #e4e4e4;             /* default border and divider */
+  --color-line-soft: #ececec;        /* divider inside a surface */
+  --color-line-strong: #d7d7d7;      /* border of a raised surface (message box) */
+  --color-line-quiet: #dfdfdf;       /* border of a quiet control */
+  --color-line-control: #d4d4d4;     /* border of a button */
+  --color-line-control-hover: #8e8e8e;
+
+  /* ---- Colour: accent and states ---- */
+  --color-accent: #3a3a3a;
+  --color-accent-hover: #292929;
+  --color-accent-strong: #202020;    /* brand mark, "New chat" mark */
+  --color-accent-ink: #ffffff;       /* text and icons on an accent background */
+  --color-focus: #b1b1b1;            /* focus ring */
+  --color-danger: #b34434;
+  --color-danger-line: #b75c4b;
+  --color-success: #34705b;
+  --color-success-soft: #eaf2ed;
+  --color-warm: #956b4e;
+  --color-warm-soft: #f5ede5;
+  --color-scrim: rgba(20, 20, 20, .28);         /* behind a sheet */
+  --color-scrim-strong: rgba(20, 20, 20, .32);  /* behind the sidebar drawer */
+
+  /* ---- Component tokens: light/dark pairs that do not fit the palette above without a
+          visible change. Candidates to fold into the palette in a later phase. ---- */
+  --sidebar-bg: rgba(255, 255, 255, .94);
+  --button-primary-bg: #3a3a3a;
+  --button-primary-bg-hover: #292929;
+  --button-secondary-bg: #ffffff;
+  --button-secondary-bg-hover: #ffffff;
+  --button-secondary-ink: #444444;
+  --button-secondary-ink-hover: #3a3a3a;
+  --button-danger-bg: #fbfbfb;
+  --button-danger-bg-hover: #f3f3f3;
+  --button-danger-ink: #575757;
+  --toggle-ink: #555555;
+  --status-label: #979797;
+  --status-dot: #2f2f2f;
+  --status-dot-ring: #e9e9e9;
+  --status-degraded-ink: #5c5c5c;
+  --status-degraded-bg: #f8f8f8;
+  --status-degraded-line: #dcdcdc;
+  --status-degraded-dot: #8d8d8d;
+  --status-degraded-ring: #e9e9e9;
+  --composer-chat-ink: #333333;
+
+  /* ---- Shadows ---- */
+  --shadow-sidebar: 0 10px 35px rgba(45, 45, 45, .06);
+  --shadow-sidebar-compact: none;                         /* the top bar on phones */
+  --shadow-card: 0 8px 24px rgba(47, 47, 47, .045);
+  --shadow-raised: 0 12px 38px rgba(54, 54, 54, .07);     /* the message box */
+  --shadow-raised-compact: 0 8px 24px rgba(54, 54, 54, .06);
+  --shadow-button: 0 4px 12px rgba(58, 58, 58, .18);
+  --shadow-popover: 0 16px 50px #0002;
+  --shadow-panel: 0 24px 60px rgba(30, 30, 30, .18);      /* the analysis panel */
+  --shadow-drawer: 12px 0 40px rgba(0, 0, 0, .12);        /* the sidebar drawer on phones */
+
+  /* ---- Spacing (4px base) ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* ---- Radii ---- */
+  --radius-sm: 8px;
+  --radius-control: 9px;    /* buttons, menu items */
+  --radius-md: 10px;
+  --radius-bubble: 14px;
+  --radius-lg: 16px;        /* cards, the message box, the analysis panel */
+  --radius-xl: 18px;        /* sidebar, pop-overs, the top of a sheet */
+  --radius-pill: 999px;
+
+  /* ---- Type ---- */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 15px;
+  --text-xl: 16px;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 650;
+  --weight-heavy: 700;
+
+  /* ---- Layers ---- */
+  --z-tooltip: 10;
+  --z-coach: 20;            /* Prompt Coach panel */
+  --z-sidebar: 30;
+  --z-panel: 35;            /* analysis panel, floating */
+  --z-composer: 36;         /* message box and its pop-ups: above the floating panel */
+  --z-sidebar-backdrop: 44;
+  --z-sidebar-drawer: 45;
+  --z-sheet: 45;            /* analysis panel as a bottom sheet */
+  --z-toast: 50;
+}
+
+.theme-dark {
+  --color-bg: #0d0d0d;
+  --color-surface: #191919;
+  --color-control: #222222;
+  --color-hover: #262626;
+  --color-hover-strong: #2b2b2b;
+
+  --color-text: #ededed;
+  --color-ink: #f3f3f3;
+  --color-ink-max: #ffffff;
+  --color-heading-strong: #f2f2f2;
+  --color-heading: #f2f2f2;
+  --color-heading-soft: #f2f2f2;
+  --color-body: #e9e9e9;
+  --color-ink-soft: #d4d4d4;
+  --color-label: #b9b9b9;
+  --color-muted: #a9a9a9;
+  --color-placeholder: #777777;
+
+  --color-line: #343434;
+  --color-line-soft: #343434;
+  --color-line-strong: #343434;
+  --color-line-quiet: #3c3c3c;
+  --color-line-control: #484848;
+  --color-line-control-hover: #777777;
+
+  --color-accent: #ededed;
+  --color-accent-hover: #ffffff;
+  --color-accent-strong: #f2f2f2;
+  --color-accent-ink: #111111;
+  --color-success: #a9d5bf;
+  --color-success-soft: #20372b;
+  --color-warm: #e5ba9b;
+  --color-warm-soft: #382c24;
+
+  --sidebar-bg: rgba(20, 20, 20, .96);
+  --button-primary-bg: #f2f2f2;
+  --button-primary-bg-hover: #f2f2f2;
+  --button-secondary-bg: #202020;
+  --button-secondary-bg-hover: #282828;
+  --button-secondary-ink: #e4e4e4;
+  --button-secondary-ink-hover: #ffffff;
+  --button-danger-bg: #202020;
+  --button-danger-bg-hover: #202020;
+  --button-danger-ink: #dedede;
+  --toggle-ink: #e5e5e5;
+  --status-dot: #eeeeee;
+  --status-dot-ring: #3c3c3c;
+  --status-degraded-ink: #b8b8b8;
+  --status-degraded-bg: transparent;
+  --status-degraded-line: #383838;
+  --status-degraded-ring: #353535;
+  --composer-chat-ink: #f3f3f3;
+
+  --shadow-sidebar: 0 12px 38px rgba(0, 0, 0, .34);
+  --shadow-sidebar-compact: 0 12px 38px rgba(0, 0, 0, .34);
+  --shadow-card: 0 8px 28px rgba(0, 0, 0, .24);
+  --shadow-raised: 0 8px 28px rgba(0, 0, 0, .24);
+  --shadow-raised-compact: 0 8px 28px rgba(0, 0, 0, .24);
+  --shadow-popover: 0 16px 50px #0007;
+  --shadow-panel: 0 24px 60px #000a;
+}
+
+/*
+ * Old variable names, kept as aliases so screens that are not migrated yet keep working.
+ * They are declared on both scopes because var() is resolved where it is declared.
+ */
+:root, .theme-dark {
+  --blue: var(--color-accent);
+  --blue-dark: var(--color-accent-hover);
+  --blue-soft: var(--color-hover);
+  --ink: var(--color-ink);
+  --muted: var(--color-muted);
+  --line: var(--color-line);
+  --surface: var(--color-surface);
+}
+:root { --green: #5f5f5f; }
+.theme-dark { --green: #d0d0d0; }

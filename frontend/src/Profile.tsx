@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, notifyProgressChange, type MemorySettings } from './api'
+import { ApiTokens } from './ApiTokens'
 import { PromptCoachToggle } from './PromptCoachToggle'
 
 export function ProfileScreen() {
@@ -63,6 +64,7 @@ export function ProfileScreen() {
         {settings.memory.map((entry,index) => <details className="memory-entry" key={entry.analysis_id}><summary>Assessment {index+1} · {entry.recommended_model ? `recommended ${entry.recommended_model} · ${entry.chosen_model ? `chosen ${entry.chosen_model}` : 'choice pending'}` : `recommended tier ${entry.recommended_capacity} · ${entry.chosen_capacity ? `chosen tier ${entry.chosen_capacity}` : 'choice pending'}`}</summary><dl>{Object.entries(entry.profile).map(([dimension,value]) => <div key={dimension}><dt>{dimension}</dt><dd>{value===null?'Undetermined':Array.isArray(value)?value.join(', '):value}</dd></div>)}</dl></details>)}
         <div className="history-delete">{forget ? <><p>Clear all learned memory? This cannot be undone. Your progress history and manually saved preferences remain available.</p><div className="history-actions"><button className="button button-danger" disabled={busy} onClick={() => void clear()}>Clear learned memory</button><button className="button button-secondary" disabled={busy} onClick={() => setForget(false)}>Cancel</button></div></> : <button className="button button-danger" disabled={busy || !settings.memory.length} onClick={() => setForget(true)}>Clear learned memory…</button>}</div>
       </section>
+      <ApiTokens />
       <p className="confidence-note">My progress contains your dashboard, saved suggestions, export and session deletion controls. Conversation text is retained only after explicit permission. Clearing learned metadata above does not delete saved conversation text.</p>
     </>}
   </main>

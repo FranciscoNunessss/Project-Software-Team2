@@ -111,6 +111,7 @@ What a user does, step by step, through the API (fake catalogue and models):
 | 67 | The analysis says which models are still being evaluated, then uses the measured one | `test_the_analysis_uses_what_was_measured_and_says_what_is_pending` |
 | 68 | A withdrawn model fails with the reason and is not retried within the hour; a restart resumes a run | `test_a_withdrawn_model_fails_with_the_reason_and_a_restart_resumes` |
 | 69 | Examples and "Disagree" never change levels; no key appears in the list | `test_examples_and_disagreement_never_change_levels` |
+| 70 | A Claude model added through OpenRouter, evaluation declined, never used: LMArena levels at once, no call made, recommended when it fits (Haiku 5.5 over the server model; Sonnet 5.5 an alternative) | `test_a_claude_model_added_but_never_used_is_rated_and_recommended` |
 
 ## 2. Browser tests (`e2e/evaluations.spec.ts`, fake evaluator in `e2e/server.py`)
 

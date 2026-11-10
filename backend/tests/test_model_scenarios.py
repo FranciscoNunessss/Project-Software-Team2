@@ -28,6 +28,8 @@ CATALOGUE = [
     entry("acme/free-two"),  # free without the suffix
     entry("vendor/paid", "0.000001", "0.000004"),
     entry("vendor/unpriced", "-1", "-1"),  # OpenRouter's "price unknown"
+    entry("anthropic/claude-sonnet-5.5", "0.000003", "0.000015"),
+    entry("anthropic/claude-haiku-5.5", "0.000001", "0.000005"),
 ]
 
 
@@ -243,3 +245,42 @@ def test_examples_and_disagreement_never_change_levels(app):
     again = listing(client)["acme/free-one:free"]
     assert {n: v["level"] for n, v in again["levels"].items()} == levels
     assert json.dumps(again).count("sk-or-synthetic") == 0
+
+
+def test_a_claude_model_added_but_never_used_is_rated_and_recommended():
+    """Add a Claude model through OpenRouter, decline the paid evaluation, never send to it:
+    it has LMArena levels at once and the recommendation picks it when it fits the task."""
+    from test_openrouter_models import Demanding
+
+    async def fetch():
+        return CATALOGUE
+
+    app = create_app(
+        Settings(_env_file=None, groq_models=GROQ, groq_api_key="synthetic"),
+        {"groq": Demanding()},
+        openrouter_catalogue=OpenRouterCatalogue(fetch=fetch),
+        evaluation_options={"worker": False},
+    )
+    client = user(app, "a@example.com")
+    configuration = router_config(client)
+    for model in ("anthropic/claude-sonnet-5.5", "anthropic/claude-haiku-5.5"):
+        assert add(client, configuration, model)["status"] == "awaiting_consent"
+        evaluation = listing(client)[model]["evaluation"]
+        client.post(f"/api/evaluations/{evaluation['id']}/consent", json={"accept": False})
+    models = listing(client)
+    for model in ("anthropic/claude-sonnet-5.5", "anthropic/claude-haiku-5.5"):
+        assert models[model]["evaluation"]["status"] == "declined"
+        assert models[model]["levels_source"] == "arena"
+    # Nothing is called for them: only the server model is measured.
+    assert not [row for row in drain(app) if row["model"].startswith("anthropic/")]
+
+    body = client.post(
+        "/api/analyze", json={"task": "Plan a trip", "provider": "auto", "allow_external": True}
+    ).json()
+    # The server model (level 1) falls short; Claude Haiku 5.5 (level 2) covers the task
+    # and is cheaper than Sonnet, so it is the recommendation, Sonnet an alternative.
+    assert body["recommendation"]["model"] == "anthropic/claude-haiku-5.5"
+    assert body["recommendation"]["status"] == "covers"
+    assert body["recommendation"]["levels_from"].startswith("LMArena")
+    assert body["recommendation"]["configuration_id"] == configuration
+    assert "anthropic/claude-sonnet-5.5" in [item["model"] for item in body["alternatives"]]

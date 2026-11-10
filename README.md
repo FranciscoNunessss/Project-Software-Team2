@@ -755,6 +755,13 @@ The local PostgreSQL volume stays running afterwards.
 Decisions: [ADR-007](https://docs.google.com/document/d/1nYv2V3qVu7JhkedKD31n-TyjsXwVnYHe5CZAvsG-JfI/edit)
 and [ADR-008](https://docs.google.com/document/d/14OXD4V0bvVtcoSMAqIJptNDTzpt6bDBlLk7qlKJZ4BU/edit).
 
+## API tokens and the VS Code extension (PROPOSED, ADR-013)
+
+Profile > API tokens creates a personal token (`adaptai_pat_...`, shown once, 90 days by default,
+at most 10 active). Send it as `Authorization: Bearer <token>`; it works in local and Supabase
+modes. Tokens can only be created or revoked with the browser session. `vscode-extension/` is a
+native VS Code client that uses it (see its README); `pnpm test` there runs without a backend.
+
 ## Git workflow
 
 Follow [GIT_WORKFLOW.md](GIT_WORKFLOW.md): feature branches target `develop`;

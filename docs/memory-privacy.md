@@ -227,3 +227,12 @@ no user text is ever sent or stored. `requested_by` is set to null when that acc
 deleted. `evaluation_disagreements` keeps only which user disagreed with which capability, and
 is deleted with the account or the evaluation.
 
+
+## API tokens (ADR-013, proposed)
+
+`api_tokens` holds, per personal token, its name, a SHA-256 hash, the first 16 characters (to
+recognise it in a list), creation, expiry, last use (updated at most once a minute) and revocation
+time. The token itself is shown once and never stored. Rows are deleted with the account. A token
+is created and revoked only from a browser session, never by another token. It is used by the
+VS Code extension (`vscode-extension/`), which keeps it in the editor's SecretStorage, bound to the
+backend that issued it. No task text is stored because of a token.

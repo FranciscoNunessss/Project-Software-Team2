@@ -5,7 +5,7 @@ export async function signUp(page: Page) {
   const email = `e2e-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`
   const response = await page.request.post('/api/auth/register', {
     data: { email, password: 'test-password-123' },
-    headers: { Origin: 'http://127.0.0.1:8443' },
+    headers: { Origin: 'http://127.0.0.1:8543' },
   })
   expect(response.status()).toBe(201)
   await page.reload()

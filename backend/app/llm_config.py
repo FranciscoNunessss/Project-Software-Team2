@@ -8,16 +8,24 @@ from uuid import uuid4
 
 from cryptography.fernet import Fernet, InvalidToken
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 
 from app.accounts import AuthenticatedUser
-from app.providers import LangChainProvider, ProviderFailure, Settings, server_models
+from app.openrouter import BASE_URL as OPENROUTER_BASE_URL
+from app.providers import (
+    Settings,
+    chat_model,
+    provider_error_code,
+    server_models,
+)
 from app.recommendation import Option
 from app.storage import Storage
 
 PROVIDERS = ("openai", "claude", "groq", "openrouter", "ollama", "lmstudio")
 # Run on the backend machine: no API key, and nothing leaves it.
 LOCAL_PROVIDERS = {"ollama", "lmstudio"}
+# Providers whose server models give a strict JSON answer for the task assessment (A11).
+ASSESSMENT_PROVIDERS = ("groq", "openai", "claude")
 LABELS = {
     "openai": "OpenAI / Codex",
     "claude": "Claude",
@@ -46,11 +54,19 @@ class Configuration(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     label: str = Field(min_length=1, max_length=80)
     provider: Literal["openai", "claude", "groq", "openrouter", "ollama", "lmstudio"]
-    model: str = Field(min_length=1, max_length=200, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:/@+\-]*$")
+    # OpenRouter (a catalogue behind one key): the model is only the default and may be
+    # empty; the user picks any model in the chat. Every other provider needs it.
+    model: str = Field(default="", max_length=200, pattern=r"^$|^[A-Za-z0-9][A-Za-z0-9._:/@+\-]*$")
     api_key: SecretStr | None = Field(default=None, max_length=4096)
     responses_api: bool = False
     enabled: bool = True
     is_default: bool = False
+
+    @model_validator(mode="after")
+    def model_needed(self):
+        if not self.model and self.provider != "openrouter":
+            raise ValueError("model is required for this provider")
+        return self
 
     @field_validator("api_key")
     @classmethod
@@ -251,10 +267,40 @@ class ModelConfigurations:
                 )
         return result
 
+    def assessment_chain(self, enabled) -> "list[dict]":
+        """The project's models that assess tasks, in order (ADR-014 A11).
+
+        The analysis always uses these, never the chat model: it needs a strict JSON answer
+        that only some models give, and the same assessor keeps every analysis comparable.
+        The first is the default; the next ones answer when it hits a limit or fails.
+        """
+        return [
+            item
+            for item in self.server_options(enabled)
+            if item["provider"] in ASSESSMENT_PROVIDERS and item["model"]
+        ]
+
     def send_options(self, user_id, enabled) -> "list[Option]":
         """Every model the user can send to, for the recommendation (available_cards)."""
         personal = [item for item in self.list(user_id) if item["enabled"]]
-        return [
+        with self.store.connect() as db:
+            picked = db.execute(
+                "SELECT configuration_id,model FROM user_models WHERE user_id=%s", (user_id,)
+            ).fetchall()
+        by_id = {item["id"]: item for item in personal}
+        # Models picked from OpenRouter's catalogue with an enabled configuration (ADR-014).
+        extra = [
+            Option(
+                provider="openrouter",
+                model=row["model"],
+                configuration_id=row["configuration_id"],
+                label=f"{by_id[row['configuration_id']]['label']} · {row['model']}",
+            )
+            for row in picked
+            if row["configuration_id"] in by_id
+            and by_id[row["configuration_id"]]["model"] != row["model"]
+        ]
+        return extra + [
             Option(
                 provider=item["provider"],
                 model=item["model"],
@@ -262,7 +308,7 @@ class ModelConfigurations:
                 label=f"{item['label']} · {item['model']}" if item["model"] else item["label"],
             )
             for item in [*self.server_options(enabled), *personal]
-            if item["provider"] != "demo"
+            if item["provider"] != "demo" and item["model"]
         ]
 
 
@@ -271,13 +317,20 @@ def install_routes(app: FastAPI, configurations: ModelConfigurations, enabled):
     def list_configs(user: AuthenticatedUser):
         return configurations.list(user["id"])
 
+    async def evaluate(user_id: str, saved: dict) -> dict:
+        # A new or changed model is evaluated (or waits for consent) right away (ADR-014).
+        hook = getattr(app.state, "on_configuration_saved", None)
+        if hook is not None:
+            await hook(user_id, saved)
+        return saved
+
     @app.post("/api/llm-configs", status_code=201)
-    def create(body: Configuration, user: AuthenticatedUser):
-        return configurations.save(user["id"], body)
+    async def create(body: Configuration, user: AuthenticatedUser):
+        return await evaluate(user["id"], configurations.save(user["id"], body))
 
     @app.put("/api/llm-configs/{identifier}")
-    def update(identifier: str, body: Configuration, user: AuthenticatedUser):
-        return configurations.save(user["id"], body, identifier)
+    async def update(identifier: str, body: Configuration, user: AuthenticatedUser):
+        return await evaluate(user["id"], configurations.save(user["id"], body, identifier))
 
     @app.delete("/api/llm-configs/{identifier}")
     def remove(identifier: str, user: AuthenticatedUser):
@@ -293,23 +346,57 @@ def install_routes(app: FastAPI, configurations: ModelConfigurations, enabled):
         personal = [item for item in configurations.list(user["id"]) if item["enabled"]]
         server = configurations.server_options(enabled)
         all_options = [*personal, *server]
+        chain = configurations.assessment_chain(enabled)
         return {
             "options": all_options,
             "auto_configuration_id": "server:groq" if enabled.get("groq") else None,
-            "auto_policy": "Auto uses the project's Groq configuration. Personal models are "
-            "optional and selected manually. No fallback after a provider failure. "
-            "Intelligent routing is not implemented.",
+            # ADR-014 A11: Analyse always uses the project's assessor; the picker is the chat
+            # model only. The next model of the chain answers if the first one fails.
+            "assessment": chain[0] if chain else None,
+            "assessment_chain": [item["id"] for item in chain],
+            "auto_policy": "Analyses use the project's assessment model (Groq first, then the "
+            "next project model if it hits a limit). The chat uses the model you pick.",
         }
 
     @app.post("/api/llm-configs/{identifier}/test")
     async def test(identifier: str, user: AuthenticatedUser):
+        """Checks the key and, when there is a model, one short chat answer (ADR-014 A11).
+
+        Personal models only answer in the chat; the project's assessor analyses tasks, so
+        a model without structured output passes. OpenRouter without a default model:
+        only the key is checked (no model is called, no quota is used).
+        """
         row = configurations.owned(user["id"], identifier)
+        settings = configurations.configured_settings(row)
+        if row["provider"] == "openrouter" and not row["model"]:
+            ok = await openrouter_key_ok(settings)
+            if ok is None:
+                raise HTTPException(502, "provider_unavailable")
+            if not ok:
+                raise HTTPException(502, "provider_authentication")
+            return {"status": "ok", "model": None, "checked": "key"}
         try:
-            result = await LangChainProvider(
-                row["provider"], configurations.configured_settings(row)
-            ).assess(
-                "Explain what an API is in one sentence. This is a synthetic connectivity test."
+            reply = await chat_model(row["provider"], settings, 64).ainvoke(
+                [("human", "Reply with the word OK. This is a synthetic connectivity test.")]
             )
-        except ProviderFailure as exc:
-            raise HTTPException(502, exc.code) from None
-        return {"status": "ok", "model": row["model"], "usage": result.usage}
+        except Exception as exc:  # noqa: BLE001 - every provider error becomes its code
+            raise HTTPException(502, provider_error_code(exc)) from None
+        if not str(getattr(reply, "content", "") or "").strip():
+            raise HTTPException(502, "empty_answer")
+        return {"status": "ok", "model": row["model"], "checked": "chat"}
+
+
+async def openrouter_key_ok(settings) -> bool | None:
+    """True for a valid OpenRouter key, False for a refused one, None when unreachable."""
+    import httpx
+
+    key = settings.openrouter_api_key.get_secret_value()
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.get(
+                f"{OPENROUTER_BASE_URL.rstrip('/')}/key",
+                headers={"Authorization": f"Bearer {key}"},
+            )
+    except httpx.HTTPError:
+        return None
+    return response.status_code == 200

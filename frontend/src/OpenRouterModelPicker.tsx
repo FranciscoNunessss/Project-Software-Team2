@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { StatusBadge, type ModelStatus } from './modelStatus'
 import { api, formatContext, formatPrice, type OpenRouterCatalogue, type OpenRouterModel } from './api'
 
 type Props = {
@@ -6,11 +7,13 @@ type Props = {
   value: string
   disabled: boolean
   onChange: (id: string) => void
+  /** The user's OpenRouter configuration: "Evaluate" adds a model to their models (A12). */
+  configurationId?: string
 }
 type Filter = 'all' | 'free' | 'paid'
 
 /** Second picker shown only for the user's own OpenRouter configuration: a model of the live catalogue. */
-export function OpenRouterModelPicker({ value, disabled, onChange }: Props) {
+export function OpenRouterModelPicker({ value, disabled, onChange, configurationId }: Props) {
   const trigger = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
@@ -30,7 +33,7 @@ export function OpenRouterModelPicker({ value, disabled, onChange }: Props) {
   useEffect(() => { if (open && !catalogue && !loading && !error) void load() }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const selected = catalogue?.models.find(model => model.id === value)
-  const title = selected?.name ?? value
+  const title = selected?.name ?? (value || 'Choose a model')
 
   const groups = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -63,6 +66,14 @@ export function OpenRouterModelPicker({ value, disabled, onChange }: Props) {
     return () => { window.removeEventListener('resize', position); window.removeEventListener('scroll', position, true) }
   }, [open, catalogue, groups.count, error, loading])
 
+  const [queued, setQueued] = useState<Record<string, string>>({})
+  // ADR-014 A12: evaluate a model without sending anything; it joins the user's models.
+  const evaluate = async (id: string) => {
+    if (!configurationId) return
+    setQueued(current => ({ ...current, [id]: 'Adding…' }))
+    try { await api('evaluations/models', { configuration_id: configurationId, model: id }); setQueued(current => ({ ...current, [id]: 'Added: see LLM config' })); window.dispatchEvent(new Event('adaptai-models-updated')) }
+    catch (failure) { setQueued(current => ({ ...current, [id]: failure instanceof Error ? failure.message : 'Could not add' })) }
+  }
   const close = () => { panel.current?.hidePopover(); trigger.current?.focus() }
   const choose = (id: string) => { onChange(id); close() }
 
@@ -86,16 +97,19 @@ export function OpenRouterModelPicker({ value, disabled, onChange }: Props) {
         {!loading && !error && catalogue && catalogue.models.length > 0 && groups.count === 0 && <p className="openrouter-status" role="status">No models match your search or filter.</p>}
         {!loading && !error && groups.groups.map(([organisation, models]) => <div key={organisation}>
           <p className="openrouter-note"><strong>{organisation}</strong> · {models.length}</p>
-          {models.map(model => <button key={model.id} type="button" className="model-picker-option" aria-pressed={value === model.id} disabled={disabled || !model.selectable} title={model.unavailable_reason ?? model.description} onClick={() => choose(model.id)}>
+          {models.map(model => <Fragment key={model.id}><button type="button" className="model-picker-option" aria-pressed={value === model.id} disabled={disabled || !model.selectable} title={model.unavailable_reason ?? model.description} onClick={() => choose(model.id)}>
             <span className="model-picker-symbol" aria-hidden="true">{organisation.slice(0, 1).toUpperCase()}</span>
             <span>
-              <strong>{model.name} <span className={`openrouter-badge${model.free ? '' : ' is-paid'}`}>{model.free ? 'FREE' : 'PAID'}</span></strong>
+              <strong>{model.name} <span className={`openrouter-badge${model.free ? '' : ' is-paid'}`}>{model.free ? 'FREE' : 'PAID'}</span> <StatusBadge status={model.status as ModelStatus | undefined} /></strong>
               <small className="model-picker-id">{model.id}</small>
               <small>Input {formatPrice(model.price_input_per_million)} · Output {formatPrice(model.price_output_per_million)} · Context {formatContext(model.context_length)}</small>
               {!model.selectable && <small>{model.unavailable_reason}</small>}
             </span>
             <span className="model-picker-check" aria-hidden="true">{value === model.id ? '✓' : ''}</span>
-          </button>)}
+          </button>
+          {model.selectable && configurationId && (model.status?.state === 'none' || model.status?.state === 'failed') && <div className="model-evaluate-row">
+            {queued[model.id] ? <small role="status">{queued[model.id]}</small> : <button type="button" data-evaluate-model={model.id} aria-label={`Evaluate model ${model.id}`} disabled={disabled} onClick={() => void evaluate(model.id)}>Evaluate</button>}
+          </div>}</Fragment>)}
         </div>)}
       </div>
       <div className="model-picker-footer"><button type="button" disabled={loading} onClick={() => void load(true)}>Reload models <span aria-hidden="true">↻</span></button><p>The list is fetched live from OpenRouter.</p></div>

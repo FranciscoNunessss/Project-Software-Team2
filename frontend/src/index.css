@@ -1062,3 +1062,30 @@ button.chat-recommendation:hover { background: var(--blue-soft); color: var(--in
 .use-recommended-state { margin: 0 0 14px; font-size: 12px; }
 .task-models { font-size: 12px; }
 .chat-recommendation .chat-link { margin-left: 8px; }
+
+/* Model evaluations (ADR-014) */
+.model-evaluations { margin-top: 32px; display: grid; gap: 12px; }
+.model-evaluations h2 { margin: 0; }
+.evaluation-entry { padding: 18px; display: grid; gap: 10px; }
+.evaluation-entry h3 { margin: 0; overflow-wrap: anywhere; }
+.evaluation-consent { border: 1px solid #ecd9a4; background: #fffaf0; border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; font-size: 13px; }
+.evaluation-consent p, .evaluation-consent ul { margin: 0; }
+.evaluation-consent ul { padding-left: 18px; display: grid; gap: 4px; }
+.theme-dark .evaluation-consent { background: #2b2412; border-color: #5f4c1c; }
+.evaluation-levels td.muted { font-size: 10.5px; }
+.evaluation-examples { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; font-size: 12px; }
+.evaluation-examples pre { white-space: pre-wrap; margin: 4px 0 0; padding: 8px; border-radius: 8px; background: var(--blue-soft); font-size: 11px; max-height: 160px; overflow: auto; }
+.evaluation-add { padding: 14px 18px; display: grid; gap: 8px; font-size: 13px; }
+.evaluation-add p { margin: 0; }
+.evaluation-add input, .evaluation-add select { min-width: 260px; flex: 1; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: inherit; }
+
+/* Evaluation state of each model in the pickers (ADR-014 A12) */
+.model-status { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 10px; font-weight: 600; vertical-align: middle; border: 1px solid var(--line); color: var(--muted, #6b7280); }
+.model-status.is-measured { border-color: #9fd5b4; color: #1f7a45; }
+.model-status.is-public, .model-status.is-provisional { border-color: #b9c9ef; color: #3657a8; }
+.model-status.is-evaluating, .model-status.is-consent { border-color: #ecd9a4; color: #8a6412; }
+.model-status.is-failed { border-color: #f0b9b9; color: #a83636; }
+.model-evaluate-row { padding: 0 12px 8px 52px; font-size: 12px; }
+.model-evaluate-row button { background: none; border: 0; padding: 0; color: var(--blue, #3657a8); text-decoration: underline; cursor: pointer; font-size: 12px; }
+.openrouter-suggestion { border: 1px solid #b9c9ef; border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; display: grid; gap: 6px; font-size: 13px; }
+.openrouter-suggestion p { margin: 0; }

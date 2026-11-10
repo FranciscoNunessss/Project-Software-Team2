@@ -148,9 +148,9 @@ def test_non_conversation_models_are_not_selectable_and_say_why():
         assert models[identifier]["selectable"] is False
         assert models[identifier]["text_chat"] is False
         assert "text conversation" in models[identifier]["unavailable_reason"]
-    assert models["acme/no-structured"]["selectable"] is False
-    assert models["acme/no-structured"]["text_chat"] is True
-    assert "structured output" in models["acme/no-structured"]["unavailable_reason"]
+    # ADR-014 A11: a chat model needs no structured output; only the assessor does.
+    assert models["acme/no-structured"]["selectable"] is True
+    assert models["acme/no-structured"]["structured_output"] is False
 
 
 def test_catalogue_exposes_the_metadata_returned_by_the_api():

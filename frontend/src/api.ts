@@ -12,18 +12,20 @@ export type Candidate = {
   provider?: string | null; model?: string | null; configuration_id?: string | null; label?: string | null
   status?: CoverageState | null; shortfalls?: NeedName[]; coverage?: Coverage[]
   blended_price?: number | null; cost_band?: 'low' | 'medium' | 'high' | null
-  free?: boolean; local?: boolean; illustrative?: boolean; calibrated?: boolean; gap?: number | null
+  free?: boolean; local?: boolean; illustrative?: boolean; calibrated?: boolean; levels_from?: string | null; gap?: number | null
 }
 export type TaskNeeds = { needs: Record<NeedName, { estimated: number; top: number; determined: boolean }>; modalities: string[]; capabilities: string[]; length_tokens: number; ambiguous: boolean }
 export type Grading = { demand: number; spread: number; parameters: Record<string, unknown>; basis: string }
 export type Provider = { id: string; label: string; model: string | null; enabled: boolean; external: boolean }
 export type LLMOption = {id:string;label:string;provider:string;model:string|null;external:boolean;source:'server'|'personal'}
-export type LLMOptions = {options:LLMOption[];auto_configuration_id:string|null;auto_policy:string}
+export type LLMOptions = {options:LLMOption[];auto_configuration_id:string|null;auto_policy:string;assessment?:LLMOption|null;assessment_chain?:string[]}
 export type LLMConfiguration = LLMOption & {model:string;provider:'openai'|'claude'|'groq'|'openrouter'|'ollama'|'lmstudio';has_key:boolean;responses_api:boolean;enabled:boolean;is_default:boolean;created_at:string}
 export type OpenRouterModel = {
   id: string; name: string; organisation: string; description: string; context_length: number | null
   price_input_per_million: number | null; price_output_per_million: number | null; free: boolean
   input_modalities: string[]; output_modalities: string[]; supported_parameters: string[]
+  // ADR-014 A12: where its levels come from and its evaluation state, for this user.
+  levels_source?: string | null; status?: { state: string; text: string }
   top_provider: { context_length: number | null; max_completion_tokens: number | null; is_moderated: boolean | null }
   text_chat: boolean; structured_output: boolean; selectable: boolean; unavailable_reason: string | null
 }
@@ -81,6 +83,8 @@ export type Analysis = {
   grading?: Grading | null
   needs?: TaskNeeds | null
   notes?: string[]
+  // ADR-014 A12: one rated OpenRouter model the user does not have yet, and why.
+  suggestion?: Candidate | null; suggestion_reason?: string | null
   previous_analysis_id?: string | null
   completeness?: number | null
   changes?: Change[]

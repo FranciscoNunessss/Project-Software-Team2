@@ -283,8 +283,9 @@ tests were AI-assisted; human review and live verification remain to be recorded
 
 `GET /api/providers` lists configuration availability, not verified connectivity or
 model compatibility. Calling OpenAI or Groq also requires `allow_external: true` for each
-analysis. This consent also applies to Claude. There is no automatic cross-provider
-fallback or retry. Timeouts default
+analysis. This consent also applies to Claude. Analyses use the project's assessor and,
+if it hits a limit or fails, the next project model, said in the result (ADR-014 A11); a
+manually chosen configuration is never replaced. Timeouts default
 to 30 seconds. Provider errors return sanitised codes, never upstream messages.
 The frontend uses project Groq in Auto mode. The Analyse action sends the task to the
 displayed destination, with an adjacent disclosure; no separate Allow checkbox is needed. Results display the actual assessment model and token usage when
@@ -391,6 +392,12 @@ pnpm install
 pnpm exec playwright install chromium
 pnpm exec playwright test
 ```
+
+The tests start their own servers on ports 8100 (API) and 8543 (web) and never reuse a running
+app, so the app you run on 8000/8443 (real models, your data) can stay open. They need
+PostgreSQL: `ADAPTAI_TEST_DATABASE_URL` (default the Docker database on 55432; with a native
+PostgreSQL, for example `postgresql://adaptai:adaptai@127.0.0.1:5432/adaptai_test`). Each run
+uses a temporary schema, dropped at the end.
 
 The CI job `e2e` runs the same specs.
 
@@ -582,6 +589,42 @@ still counted. Feedback per task is stored in `task_outcomes` (no text) and feed
 ("Your solved tasks"), the Educator and the Coach. In the second phase a calibration report proposes
 level changes from it (at least 10 tasks, completeness >= 75); it never changes the catalogue.
 
+## Automatic model evaluation (PROPOSED, ADR-014 A8 to A10)
+
+Every model someone configured, and only those, is evaluated once by a background worker with
+the synthetic suite `measure-suite-1` (adaptive: level 2 first, then 3 or 1; at most 40 calls,
+1,024 output tokens each). Results of official cloud endpoints are shared by every user; local
+models are evaluated per user. A paid model with a user's key waits for consent that shows
+what, how, the estimated cost and a guaranteed maximum. LLM config › "How your models were
+evaluated" shows levels, sources, pass rates and example answers; "Disagree" is recorded but
+never changes a level. Sources of levels, best first: calibrated catalogue, measured,
+provisional catalogue, Artificial Analysis overall index (confirmed links only), same family.
+Details: [`docs/model-classification.md`](docs/model-classification.md); tests and manual
+check: [`docs/testing-model-evaluations.md`](docs/testing-model-evaluations.md).
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/evaluations` | The user's models with status, progress, estimate, levels and source |
+| POST | `/api/evaluations/{id}/consent` | `{accept, confirm_unknown_price}` for a paid evaluation |
+| POST | `/api/evaluations/models` | `{configuration_id, model}`: add a model from OpenRouter's catalogue to be evaluated and recommended (also done on its first use in the chat) |
+| DELETE | `/api/evaluations/models?configuration_id=&model=` | Remove a picked model |
+| POST | `/api/evaluations/reevaluate` | `{configuration_id}`: a new run (consent again when paid) |
+| POST | `/api/evaluations/{id}/disagree` | `{capability}`: recorded for the calibration report |
+
+`ADAPTAI_EVALUATIONS_WORKER=false` turns the worker off (tests and scripts).
+
+**Levels from public sources (ADR-014 A10):** before any measurement, a model gets
+provisional levels from the public LMArena leaderboards per category, else from the Artificial
+Analysis index; measured levels replace them. The most used models (`most-used.json`) always
+have levels; a test enforces it. Models no public source rates are measured in the background
+with the project's evaluation-only key (`ADAPTAI_EVALUATION_OPENROUTER_KEY`, see `.env.example`);
+`uv run python scripts/project_evaluations.py` shows its progress. Plan, mapping and decisions:
+[`docs/plan-model-coverage.md`](docs/plan-model-coverage.md).
+
+Leaderboard data: LMArena (lmarena.ai), CC BY 4.0, dataset
+[`lmarena-ai/leaderboard-dataset`](https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset).
+Benchmark data: Artificial Analysis (https://artificialanalysis.ai/).
+
 ## Architecture and limits
 
 `backend/app/models.py` owns domain contracts; `assessment.py` owns the provisional
@@ -751,12 +794,32 @@ Model IDs are user-supplied; saved configuration is not evidence of provider acc
 compatibility. OpenAI configurations expose the existing Responses API switch for compatible
 models, including Codex; no subscription or CLI credentials are read.
 
-The Assistant offers Auto or an enabled personal/server model. Auto always selects the
-project's server Groq configuration. Optional personal models are selected manually and do
-not replace the project default. If project Groq is unavailable, Auto returns an explicit
-configuration error; it never silently selects a personal model or demo.
-The actual provider, model, configuration ID and selection mode appear in the result. Failures
-never trigger silent fallback. Intelligent task routing, capability-based routing across these
+**Two roles, two rules (ADR-014 A11).** *Analyse* always uses the project's assessor: the
+server models that give a strict JSON answer (`GET /api/llm-options` returns it as
+`assessment`, with `assessment_chain`), Groq first, then the next server model if the first
+hits a rate limit, runs out of credit, times out or is unavailable. The analysis says which
+model assessed it ("Task assessed by …", and a note when the next one answered). The JSON is
+what lets the app compute completeness, needs and the recommendation, and the same assessor
+keeps analyses comparable. *Send* uses the **chat model** picked in the composer: Auto or any
+enabled personal or server model, any model that writes text. "Use this model" changes only
+the chat model. When a chat answer fails because the model hit a limit, the answer offers
+"Send with <project model>"; nothing changes without that click. A model that hit a rate limit
+(one hour) or ran out of credit (one day) is not recommended meanwhile and the analysis says
+so (`app/limits.py`, per process). Free OpenRouter models are evaluated with the project's
+evaluation key when set, so the user's free daily calls stay for their chats. Without a project
+assessor (no server Groq, OpenAI or Claude), the chat model analyses as before. If project
+Groq is unavailable and nothing else is configured, Auto returns an explicit configuration
+error; it never silently selects a personal model or demo. The actual provider, model,
+configuration ID and selection mode appear in the result.
+
+**OpenRouter is a catalogue behind one key (ADR-014 A12).** Connecting it needs only the key (a
+default model is optional); Test connection checks the key without calling a model. Both chat
+pickers show each model's state (Measured, Public ranking, Provisional, Evaluating n/40, Waiting
+for consent, Evaluation failed, Not evaluated), and "Evaluate" in the OpenRouter list adds a
+model to your models without sending anything. With an OpenRouter key, the analysis also
+compares every rated chat model of the catalogue and may show one "Also on OpenRouter"
+suggestion: only when it covers what your best model falls short on, or covers as much for
+less, and never in a dearer price band than your own models. Intelligent task routing, capability-based routing across these
 assessment models and custom endpoints remain future work. Assessment-provider selection is
 separate from the versioned catalogue's recommended task-execution tier.
 

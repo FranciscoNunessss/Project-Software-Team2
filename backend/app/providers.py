@@ -38,6 +38,16 @@ class Settings(BaseSettings):
     groq_models: str = ""
     ollama_models: str = ""
     lmstudio_models: str = ""
+    # Background evaluation of configured models (ADR-014); off in tests and scripts.
+    evaluations_worker: bool = True
+    # The project's own OpenRouter key, only for evaluating models no public source rates
+    # (ADR-014 A10, layer 3). Never used for chats or analyses. Empty: layer 3 is off.
+    evaluation_openrouter_key: SecretStr = SecretStr("")
+    # Calls a day with that key (OpenRouter's free models allow few without bought credit).
+    evaluation_daily_calls: int = Field(default=50, ge=0)
+    # Paid models with that key: off unless the account has credit; total spend cap in USD.
+    evaluation_paid: bool = False
+    evaluation_budget_usd: float = Field(default=5.0, ge=0)
     timeout_seconds: float = Field(default=30, gt=0, le=120)
     database_url: SecretStr = SecretStr("postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai")
     database_schema: str = "adaptai"

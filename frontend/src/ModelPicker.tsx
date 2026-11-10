@@ -1,9 +1,12 @@
+import { StatusBadge, statusKey, type ModelStatus } from './modelStatus'
 import { useLayoutEffect, useRef, useState } from 'react'
 import { usePageActive } from './PagePanel'
 import type { LLMOption } from './api'
 
 type Props = {
   options: LLMOption[]
+  /** ADR-014 A12: the evaluation state of each model, keyed by statusKey(provider, model). */
+  statuses?: Record<string, ModelStatus>
   value: string
   autoId: string | null
   loading: boolean
@@ -12,7 +15,7 @@ type Props = {
   onConfigure: () => void
 }
 
-export function ModelPicker({ options, value, autoId, loading, disabled, onChange, onConfigure }: Props) {
+export function ModelPicker({ options, value, autoId, loading, disabled, onChange, onConfigure, statuses }: Props) {
   const active = usePageActive()
   const trigger = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
@@ -54,18 +57,18 @@ export function ModelPicker({ options, value, autoId, loading, disabled, onChang
   const choose = (id: string) => { onChange(id); close() }
 
   return <div className="model-picker">
-    <button ref={trigger} className="model-picker-trigger" type="button" popoverTarget="assessment-model-picker" aria-label={`Assessment model: ${title}`} aria-expanded={open} aria-controls="assessment-model-picker" disabled={loading || disabled}>
+    <button ref={trigger} className="model-picker-trigger" type="button" popoverTarget="assessment-model-picker" aria-label={`Chat model: ${title}`} aria-expanded={open} aria-controls="assessment-model-picker" disabled={loading || disabled}>
       <span className="model-picker-brand">Model</span><span className="model-picker-current">{title}</span><svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
     </button>
     <div ref={panel} id="assessment-model-picker" className="model-picker-panel" popover="auto" role="dialog" aria-label="Choose assessment model" onToggle={event => setOpen(event.currentTarget.matches(':popover-open'))}>
-      <p className="model-picker-heading">Assessment model</p>
+      <p className="model-picker-heading">Chat model</p>
       <button className="model-picker-option" type="button" aria-pressed={value === 'auto'} disabled={disabled || !automatic} onClick={() => choose('auto')}>
         <span className="model-picker-symbol" aria-hidden="true">✦</span><span><strong>Auto <em>Default</em></strong><small>{automatic ? `Uses the project ${automatic.provider === 'groq' ? 'Groq' : automatic.label} model` : 'Project model is unavailable'}</small>{automatic?.model && <small className="model-picker-id">{automatic.model}</small>}</span><span className="model-picker-check" aria-hidden="true">{value === 'auto' ? '✓' : ''}</span>
       </button>
       {(['personal', 'server'] as const).map(source => {
         const items = options.filter(option => option.source === source)
         return items.length > 0 && <div className="model-picker-group" key={source}><p>{source === 'personal' ? 'Your models' : 'Project models'}</p>{items.map(option => <button type="button" className="model-picker-option" key={option.id} aria-pressed={value === option.id} disabled={disabled} onClick={() => choose(option.id)}>
-          <span className="model-picker-symbol" aria-hidden="true">{option.provider === 'demo' ? 'D' : option.provider === 'openrouter' ? 'R' : option.provider === 'lmstudio' ? 'S' : option.provider.slice(0, 1).toUpperCase()}</span><span><strong>{option.model || option.label}</strong><small>{option.provider === 'demo' ? 'Local demonstration · illustrative results' : `${option.label} · ${option.external ? 'Cloud' : 'Local'}`}</small></span><span className="model-picker-check" aria-hidden="true">{value === option.id ? '✓' : ''}</span>
+          <span className="model-picker-symbol" aria-hidden="true">{option.provider === 'demo' ? 'D' : option.provider === 'openrouter' ? 'R' : option.provider === 'lmstudio' ? 'S' : option.provider.slice(0, 1).toUpperCase()}</span><span><strong>{option.model || option.label} {option.model && <StatusBadge status={statuses?.[statusKey(option.provider, option.model)]} />}</strong><small>{option.provider === 'demo' ? 'Local demonstration · illustrative results' : `${option.label} · ${option.external ? 'Cloud' : 'Local'}`}</small></span><span className="model-picker-check" aria-hidden="true">{value === option.id ? '✓' : ''}</span>
         </button>)}</div>
       })}
       <div className="model-picker-footer"><button type="button" disabled={disabled} onClick={() => { close(); onConfigure() }}>Manage models <span aria-hidden="true">↗</span></button><p>Add your own providers in LLM config.</p></div>

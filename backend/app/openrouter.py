@@ -62,8 +62,8 @@ def normalise(raw: dict) -> dict | None:
     reason = None
     if not text_chat:
         reason = "Not a text conversation model (other input or output modality)."
-    elif not structured:
-        reason = "Does not support structured output, which the task assessment requires."
+    # Structured output is no reason to refuse a model: only the project's assessor needs it,
+    # and the chat model only answers (ADR-014 A11). It stays in ``structured_output``.
     top = raw.get("top_provider") or {}
     return {
         "id": identifier,
@@ -152,5 +152,6 @@ class OpenRouterCatalogue:
         match = next((item for item in models if item["id"] == model), None)
         if match is None:
             raise ValueError("model_not_found")
-        if not (match["selectable"] if structured else match["text_chat"]):
+        usable = match["text_chat"] and (match["structured_output"] or not structured)
+        if not usable:
             raise ValueError("model_not_compatible")

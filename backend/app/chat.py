@@ -26,6 +26,7 @@ from fastapi.responses import StreamingResponse
 from langsmith import tracing_context
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app import limits
 from app.accounts import AuthenticatedUser
 from app.catalogue import active_catalogue
 from app.llm_config import ModelConfigurations
@@ -238,6 +239,8 @@ async def answer_events(
             yield {"event": "error", "code": error}
     except Exception as exc:  # noqa: BLE001 - every provider failure becomes a stored state.
         status, error = "failed", provider_error_code(exc)
+        # ADR-014 A11: a model that hit a limit is not recommended for a while.
+        limits.mark(provider, model, error)
         yield {"event": "error", "code": error}
     finally:
         with store.connect() as db:
@@ -430,6 +433,13 @@ def install_chat(
             ):
                 raise HTTPException(404, "analysis_not_found")
         target = await resolve_model(user["id"], body)
+        hook = getattr(app.state, "on_model_used", None)
+        if hook is not None and target[0] == "openrouter" and body.model and body.configuration_id:
+            # A model picked in the chat is evaluated so it can be recommended (ADR-014).
+            try:
+                await hook(user["id"], body.configuration_id, body.model)
+            except HTTPException:
+                pass
         if body.analysis_id:
             record_send_choice(user["id"], body.analysis_id, target[0], target[2])
 

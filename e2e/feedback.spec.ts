@@ -2,8 +2,8 @@ import { expect, test, type Page } from '@playwright/test'
 import { signUp } from './helpers'
 
 // Feedback per task and the model recommendation (ADR-014). FakeAssessor in e2e/server.py
-// treats a task with "board" and "risk" as complete; the catalogue has only the illustrative
-// demo cards, so the recommendation names one of them.
+// treats a task with "board" and "risk" as complete. The Groq server model gpt-oss-20b has
+// levels from the LMArena snapshot (A10), so the recommendation names that real model.
 const COMPLETE = 'Write a one-page summary of the report for the board. The risk: an error means rework before the meeting.'
 
 async function analyseAndSend(page: Page, text: string) {
@@ -22,9 +22,12 @@ test('the analysis names a model and shows how it covers each need', async ({ pa
   await expect(drawer.getByText('Recommended model', { exact: true })).toBeVisible()
   await expect(drawer.getByRole('row', { name: /Reasoning/ })).toBeVisible()
   await expect(drawer.getByText('Why this model')).toBeVisible()
-  await expect(drawer.getByText(/illustrative demo models/)).toBeVisible()
-  // Use recommended: an illustrative card is not a real model, so it cannot be selected.
-  await expect(drawer.locator('[data-use-recommended-state="illustrative"]')).toBeVisible()
+  await expect(drawer.getByRole('heading', { name: 'GPT-OSS 20B' })).toBeVisible()
+  // The source of the levels is shown, with the licence the data requires.
+  await expect(drawer.locator('[data-levels-from]')).toContainText('LMArena public ranking')
+  await expect(drawer.locator('[data-levels-from]')).toContainText('CC BY 4.0')
+  // A real model of the user: Use this model selects it, or it is already selected.
+  await expect(drawer.locator('[data-use-recommended], [data-use-recommended-state="selected"]')).toBeVisible()
 })
 
 test('task solved is asked once, under the answers, never per answer', async ({ page }) => {
@@ -35,9 +38,11 @@ test('task solved is asked once, under the answers, never per answer', async ({ 
   await page.locator('[data-chat-send]').click()
   await expect(page.locator('[data-chat-message="assistant"]')).toHaveCount(2)
   await expect(page.locator('[data-task-solved]')).toHaveCount(1)
+  // The open analysis panel floats over the end of the chat at this width: close it first.
+  await page.getByRole('button', { name: 'Close analysis' }).click()
   await page.locator('[data-task-solved]').click()
   await expect(page.locator('[data-task-models]')).toContainText('You used')
-  await expect(page.locator('[data-task-models]')).toContainText('illustrative, not a real model')
+  await expect(page.locator('[data-task-models]')).toContainText('Recommended: GPT-OSS 20B')
   const saved = page.waitForRequest(request => request.method() === 'PUT' && request.url().endsWith('/outcome'))
   await page.locator('[data-task-refine]').getByRole('button', { name: 'Yes' }).click()
   const body = (await saved).postDataJSON()

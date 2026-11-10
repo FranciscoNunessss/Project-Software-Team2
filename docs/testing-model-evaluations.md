@@ -97,6 +97,21 @@ Run: `uv run pytest backend/tests/test_arena.py -q`.
 | 60 | The pool is every chat model of the snapshot (no music or image generators) | `test_the_pool_is_every_chat_model_of_the_snapshot` |
 | 61 | Models without structured output can be chosen for the chat | `test_non_conversation_models_are_not_selectable_and_say_why` (`test_openrouter.py`) |
 
+## 1f. Whole scenarios of adding models (`backend/tests/test_model_scenarios.py`)
+
+What a user does, step by step, through the API (fake catalogue and models):
+
+| # | Scenario | Test |
+|---|---|---|
+| 62 | Key-only OpenRouter, then a free model, a free one without the suffix, a paid one and one with an unknown price: free ones measured, paid one after consent, unknown price needs the second confirmation | `test_key_only_router_then_free_paid_and_unpriced_models` |
+| 63 | Re-evaluate re-runs the model asked for, not the configuration's default | `test_re_evaluate_re_runs_the_model_asked_for` |
+| 64 | One user declines, another pays: the first gets the measured levels for free | `test_one_users_evaluation_serves_everyone` |
+| 65 | A local model is evaluated for its owner only | `test_local_models_are_evaluated_for_their_owner_only` |
+| 66 | Edited, disabled and removed configurations: the new model is evaluated, disabled ones leave the list, removed picks go, shared results stay | `test_disabled_edited_and_removed_configurations` |
+| 67 | The analysis says which models are still being evaluated, then uses the measured one | `test_the_analysis_uses_what_was_measured_and_says_what_is_pending` |
+| 68 | A withdrawn model fails with the reason and is not retried within the hour; a restart resumes a run | `test_a_withdrawn_model_fails_with_the_reason_and_a_restart_resumes` |
+| 69 | Examples and "Disagree" never change levels; no key appears in the list | `test_examples_and_disagreement_never_change_levels` |
+
 ## 2. Browser tests (`e2e/evaluations.spec.ts`, fake evaluator in `e2e/server.py`)
 
 | Test | Checks |

@@ -928,6 +928,8 @@ class Consent(BaseModel):
 class Reevaluate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     configuration_id: str
+    # One OpenRouter configuration holds several models (its default and the picks): say which.
+    model: str | None = Field(default=None, max_length=200)
 
 
 class Disagree(BaseModel):
@@ -1147,7 +1149,12 @@ def install_evaluations(
     @app.post("/api/evaluations/reevaluate")
     async def reevaluate(body: Reevaluate, user: AuthenticatedUser):
         target = next(
-            (t for t in own_targets(user["id"]) if t.configuration_id == body.configuration_id),
+            (
+                t
+                for t in own_targets(user["id"])
+                if t.configuration_id == body.configuration_id
+                and (body.model is None or t.model == body.model)
+            ),
             None,
         )
         if target is None:

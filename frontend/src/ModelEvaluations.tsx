@@ -70,7 +70,7 @@ function Entry({ entry, reload }: { entry: ModelEntry; reload: () => void }) {
   const evaluation = entry.evaluation
   const [open, setOpen] = useState(false)
   const [note, setNote] = useState('')
-  const reevaluate = async () => { await api('evaluations/reevaluate', { configuration_id: entry.configuration_id }); reload() }
+  const reevaluate = async () => { await api('evaluations/reevaluate', { configuration_id: entry.configuration_id, model: entry.model }); reload() }
   const disagree = async (capability: NeedName) => {
     if (!evaluation) return
     await api(`evaluations/${evaluation.id}/disagree`, { capability })

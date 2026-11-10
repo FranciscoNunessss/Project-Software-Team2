@@ -35,6 +35,7 @@ from app.providers import (
 )
 from app.recommendation import POLICY_VERSION, Option, candidate_gap
 from app.storage import Storage, history_result, stored_result
+from app.tokens import install_tokens
 from app.workflow import build_workflow
 
 
@@ -144,6 +145,7 @@ def create_app(
             allow_headers=["Authorization", "Content-Type", "Accept"],
         )
     app.include_router(accounts_router)
+    install_tokens(app, store)
     schedule_coaching = install_coaching(app, store, settings)
     install_outcomes(
         app, store, ratings_for=lambda user_id: Ratings(store, active_catalogue(), user_id)
@@ -166,6 +168,7 @@ def create_app(
                 "/api/openrouter",
                 "/api/prompt-coach",
                 "/api/chat",
+                "/api/tokens",
             )
         ):
             response.headers["Cache-Control"] = "no-store"

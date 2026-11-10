@@ -194,23 +194,21 @@ hard-coded in the workflow.
 | `ollama` | `ADAPTAI_OLLAMA_MODEL` | Local runtime |
 | `lmstudio` | `ADAPTAI_LMSTUDIO_MODEL` (and `ADAPTAI_LMSTUDIO_BASE_URL`, default `http://127.0.0.1:1234/v1`) | Local runtime, no key |
 
-### OpenRouter (experimental)
+### OpenRouter (a catalogue behind one key, ADR-014 A12)
 
-OpenRouter is **never a project model and never a default**: Auto is always the project Groq. A
-user sets OpenRouter up themselves in LLM config, with their own API key and a model, like any
-other personal provider, and only then does it appear in the model picker. There is no
-`ADAPTAI_OPENROUTER_*` setting and no Auto router (`openrouter/free` is not offered or accepted).
-The cost of a paid model is therefore always on the user's own key.
+OpenRouter is **never a project chat model and never a default**: Auto is always the project
+Groq. A user connects OpenRouter in LLM config with **only their own API key** (a default model
+is optional, and "Test connection" checks the key without calling a model); the chat pickers
+then list the whole OpenRouter catalogue, each model with its evaluation state. There is no
+Auto router (`openrouter/free` is not offered or accepted), so the cost of a paid chat model is
+always on the user's own key. The only project key is `ADAPTAI_EVALUATION_OPENROUTER_KEY`, used
+to evaluate models and never for chats (ADR-014 A10, see "Automatic model evaluation").
 
-> **Experimental.** Automated tests use a fake catalogue and mock HTTP. Live checks on
-> 5 November 2026 (free-tier key, no credit): the public catalogue loads. Assessments with the
-> full profile schema through the free router completed about half of the time; the rest ended
-> with `provider_output_truncated`: the router picks reasoning models that spend the whole
-> 2,048-token output budget thinking, so the JSON is cut off. Explicit free models were worse:
-> with `require_parameters` some answer 404 ("No endpoints found that can handle the requested
-> parameters"), others are rate-limited upstream (429) or truncate as well. The chat (plain
-> text) is not affected. Treat OpenRouter assessments as unreliable until a model that works is
-> chosen or the output budget is revisited.
+Since ADR-014 A11 the analysis always runs on the project's assessor (Groq first, the next
+server model on a limit), so OpenRouter models only answer in the chat. The problems seen on
+5 November 2026 (free models truncating the JSON with `provider_output_truncated`, 404 for
+`require_parameters`) therefore only matter when someone picks an OpenRouter configuration by
+hand for an analysis.
 
 `openrouter` uses LangChain's OpenAI-compatible client against `https://openrouter.ai/api/v1`
 with strict JSON schema output. The user's key is stored encrypted like the other personal keys;
@@ -227,9 +225,9 @@ the live `GET /models` catalogue of OpenRouter, normalised: free and paid models
 1M tokens (converted from the per-token `pricing`), context length, modalities and supported
 parameters. A model is `free` only when its prompt and completion price are both zero. There is
 no built-in model list and no stale fallback: if OpenRouter cannot be reached the endpoint
-answers 502 `openrouter_catalogue_unavailable`. A model is `selectable` only when it takes text
-and returns text and supports structured output, which the assessment needs; embeddings, image
-and audio models stay listed with the reason.
+answers 502 `openrouter_catalogue_unavailable`. A model is `selectable` when it takes text and
+returns text (the chat needs nothing more); `structured_output` says whether it could also run
+an assessment. Embeddings, image, audio and music models stay listed with the reason.
 
 `POST /api/analyze` accepts an optional `model` for OpenRouter only. It must be a selectable id of
 the catalogue (422 `model_not_found` / `model_not_compatible`) and is sent to OpenRouter exactly
@@ -451,7 +449,7 @@ To remove the Prompt Coach:
    `prompt_coach_events`, if present) in PostgreSQL; the core ignores them.
 4. Run the full backend suite, `pnpm build` and the e2e tests.
 
-## Chat (optional, backend only so far)
+## Chat (optional module)
 
 The chat is part of the product (ADR-011) and is built as a removable module, like the
 Prompt Coach: `create_app` imports `backend/app/chat.py` last, inside its own `try`, and carries
@@ -560,8 +558,8 @@ reliability (from risk) and tools, plus modalities and length. Each need is an i
 version in `ACTIVE`): one card per model with provider facts (context window, modalities, tools,
 prices), five levels (each with status `provisional`, `calibrated` or `unrated`, a source and a
 date) and its aliases per provider (`groq`, `openrouter`, `lmstudio`...). An alias may carry the
-provider's own price. How models get their levels is the second phase of ADR-014 (separate
-pull request); until then the catalogue holds only the illustrative demo cards.
+provider's own price. How models get their levels: "Automatic model evaluation" below
+(public leaderboards, our own measurement, calibration).
 
 | Step | Rule |
 |---|---|
@@ -586,10 +584,10 @@ Several server models per provider: `ADAPTAI_GROQ_MODELS=openai/gpt-oss-20b,open
 recommendation, 0 the recommendation, +1 more than needed); My progress scores agreement as
 `max(0, 1 − |gap| / 2)`. Analyses stored with the old tier policy keep their tiers and are
 still counted. Feedback per task is stored in `task_outcomes` (no text) and feeds My progress
-("Your solved tasks"), the Educator and the Coach. In the second phase a calibration report proposes
+("Your solved tasks"), the Educator and the Coach. A calibration report (`scripts/calibration_report.py`) proposes
 level changes from it (at least 10 tasks, completeness >= 75); it never changes the catalogue.
 
-## Automatic model evaluation (PROPOSED, ADR-014 A8 to A10)
+## Automatic model evaluation (PROPOSED, ADR-014 A8 to A12)
 
 Every model someone configured, and only those, is evaluated once by a background worker with
 the synthetic suite `measure-suite-1` (adaptive: level 2 first, then 3 or 1; at most 40 calls,
@@ -598,7 +596,11 @@ models are evaluated per user. A paid model with a user's key waits for consent 
 what, how, the estimated cost and a guaranteed maximum. LLM config › "How your models were
 evaluated" shows levels, sources, pass rates and example answers; "Disagree" is recorded but
 never changes a level. Sources of levels, best first: calibrated catalogue, measured,
-provisional catalogue, Artificial Analysis overall index (confirmed links only), same family.
+provisional catalogue, LMArena per category, Artificial Analysis overall index (confirmed links
+only), same family; without any of them a model is never recommended. Each model in the chat
+pickers shows its state (Measured, Public ranking, Provisional, Evaluating n/40, Waiting for
+consent, Evaluation failed, Not evaluated), and "Evaluate" adds an OpenRouter model without
+sending anything.
 Details: [`docs/model-classification.md`](docs/model-classification.md); tests and manual
 check: [`docs/testing-model-evaluations.md`](docs/testing-model-evaluations.md).
 

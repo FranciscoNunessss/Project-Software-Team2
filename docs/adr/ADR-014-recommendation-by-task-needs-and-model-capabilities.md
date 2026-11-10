@@ -46,16 +46,17 @@ task, so nothing could improve the recommendation.
 | A6 | Several server models per provider (`ADAPTAI_<PROVIDER>_MODELS`) | Without two levels on the server, users without their own models have no choice |
 | A7 | Automatic measurement suite `measure-suite-1` as the main source for the models we can call; status `measured` between `provisional` and `calibrated` | The free benchmark API had no values for our server models (108 of 726 models on index v5). Our own suite measures every model the same way, repeatably and without reviewers |
 | A8 | **Automatic evaluation of every configured model** (decided 7 Nov 2026): only models someone configured are evaluated, once, by a background worker with the adaptive suite (level 2 first, then 3 or 1; at most 40 tasks). Results of official cloud endpoints are shared; local models are per user. Paid models with a user's key wait for consent showing what, how, the estimated cost and a guaranteed maximum (unknown price: confirm twice). Levels, source and examples are visible; users can report disagreement but not edit levels | Every model that can be recommended has levels; users almost never pay because results are shared and the team evaluates common models first; the user decides before spending |
-| A9 | Order of sources for a model's levels: team-calibrated catalogue levels, then our measured levels, then the catalogue's provisional levels, then the Artificial Analysis overall index (confirmed name links only, one level for all five capabilities), then the lowest measured level of the same family, else never recommended | The best evidence wins; the cheap fallbacks are labelled provisional and replaced as soon as we measure |
+| A9 | Order of sources for a model's levels (extended by A10 with LMArena after the catalogue's provisional levels): team-calibrated catalogue levels, then our measured levels, then the catalogue's provisional levels, then the Artificial Analysis overall index (confirmed name links only, one level for all five capabilities), then the lowest measured level of the same family, else never recommended | The best evidence wins; the cheap fallbacks are labelled provisional and replaced as soon as we measure |
 | A10 | **Levels for every model without spending tokens (8 Nov 2026; layers 1 to 4 implemented, to confirm).** Public LMArena leaderboards per category (CC BY 4.0, style-controlled, mapping `arena-mapping-1` with thresholds frozen at the 34th and 67th percentile of the arena models on OpenRouter); Artificial Analysis for the gaps; our measurement in the background, also with the project's evaluation-only OpenRouter key for models no public source rates (free models first, daily calls and budget capped); feedback recorded with the source of the levels. Order of sources: calibrated, measured, catalogue provisional, **LMArena**, Artificial Analysis, family, none. The models in `most-used.json` must always have levels (a test enforces it) | Free, no account, 0.6 MB, published 6 Nov 2026; rates 227 of 459 OpenRouter ids and 26 of 26 of the most used models with Artificial Analysis. Details: [`docs/plan-model-coverage.md`](../plan-model-coverage.md) |
 | A11 | **Two roles (8 Nov 2026, implemented, to confirm).** The task assessment always uses the project's assessor: server models with strict JSON output, Groq first, the next one if it hits a limit, runs out of credit, times out or is unavailable (said in the result); a manually chosen configuration is never replaced. The chat uses the model the user picks; "Use this model" changes only that. A chat answer that hit a limit offers "Send with <project model>", one click. A model that hit a rate limit (1 h) or ran out of credit (1 day) is not recommended meanwhile, with a note. Free OpenRouter models are evaluated with the project's evaluation key | The assessment needs JSON that many chat models cannot give (free Gemma on OpenRouter), and one assessor keeps analyses comparable; a recommendation must not break the analysis, and the user must always get an answer. Files: `app/limits.py`, `app/main.py`, `app/llm_config.py` `assessment_chain`, `frontend/src/ChatScreen.tsx`; tests `test_assessor.py`, `e2e/openrouter.spec.ts` |
 | A12 | **OpenRouter is a catalogue behind one key (9 Nov 2026, implemented, to confirm).** Connecting OpenRouter needs only the key; a default model is optional, and the test connection checks the key without calling a model. Every model in both chat pickers shows its state (Measured, Public ranking, Provisional, Evaluating n/40, Waiting for consent, Evaluation failed, Not evaluated); "Evaluate" in the OpenRouter list adds a model to the user's models without sending anything. Models without structured output can be chosen for the chat (only the assessor needs it, A11). For a user with OpenRouter, the analysis compares every rated chat model of the catalogue and shows at most one suggestion, "Also on OpenRouter", only if it covers needs the user's best falls short on or covers as much for less (never against a model that is free to the user), and never in a dearer price band than the user's own models | The model asked for at setup meant nothing for OpenRouter (the chat lists the whole catalogue) and confused users; a model's state was invisible where it is chosen; most rated catalogue models never reached the recommendation. Files: `app/llm_config.py`, `app/workflow.py` `suggest`, `app/main.py` `suggestion_pool`, `app/evaluations.py` `label`, `frontend/src/modelStatus.tsx`, `OpenRouterModelPicker.tsx`, `ModelPicker.tsx`, `AnalysisResult.tsx`; tests `test_openrouter_models.py`, `e2e/openrouter-models.spec.ts` |
 
 ## How it works
 
-The work is in two phases. **Phase 1** (feedback and the way of recommending) is the table
-below minus the rows marked phase 2. **Phase 2** (how models get their levels: classification,
-automatic measurement, calibration) comes in its own pull request.
+The work came in two phases: **phase 1** (feedback and the way of recommending, PRs #37 and
+#43) and **phase 2** (how models get their levels: classification, automatic measurement,
+public levels, calibration, the two roles and OpenRouter as a catalogue, PRs #48 and #47). Both
+are in develop since 10 November 2026.
 
 | Part | Where |
 |---|---|
@@ -90,7 +91,7 @@ Removed: `demand_estimate`, `tier_fit`, `capacity_target`, the graded parameters
 | Positive | Negative or open |
 |---|---|
 | Recommendations name a model the user can use in one click | Levels are provisional until the team calibrates them; the UI says so |
-| Every level has a source and a date; the docs refer to versions, not values | Per-benchmark data needs the AA Pro API; with the free API most levels come from the overall index |
+| Every level has a source and a date; the docs refer to versions, not values | Per-benchmark data needs the AA Pro API; since A10 levels per capability come from the LMArena categories instead, and Artificial Analysis gives one overall level for the gaps |
 | Feedback measures whether the recommendation worked, per task | Few users may answer; conclusions only from 10 cases per model, capability and level |
 | The catalogue improves through reviewed versions | Prices and facts change; each version records `observed_on` |
 | The chat counts again in My progress (Send is the choice) | Analyses stored before this policy keep the tier wording |
@@ -100,5 +101,11 @@ Removed: `demand_estimate`, `tier_fit`, `capacity_target`, the graded parameters
 Backend tests (including `test_recommendation.py`, one test per step; `test_catalogue.py`;
 `test_classification.py`; `test_task_outcomes.py`; `test_server_models.py`), the policy grid
 regenerated for the intended change, the removal drill and the browser tests
-(`e2e/feedback.spec.ts`) pass. Not established yet: real levels (the benchmark snapshot), the
-calibration set, recommendation quality and non-author review.
+(`e2e/feedback.spec.ts`) pass.
+
+**Update, 10 November 2026** (develop c249595 after PRs #48 and #47): 591 backend tests and 44
+browser tests pass, CI green. Public levels rate 227 of the 459 OpenRouter models and all 26
+models in `most-used.json`; a free OpenRouter model was measured with the project key at no
+cost. Not established yet: the reviewed calibration set, recommendation quality with real
+outcomes, a paid evaluation with consent against a real key (mocks only), and the AO's
+confirmation of A1 to A12.

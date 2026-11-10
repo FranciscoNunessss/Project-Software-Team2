@@ -208,25 +208,61 @@ def test_memory_uses_profile_setting_without_assistant_field():
 
 
 def test_connection_test_is_explicit_and_does_not_save_tasks(monkeypatch):
+    """ADR-014 A11: a personal model only answers in the chat, so the test is one short
+    chat answer (no structured output needed)."""
     calls = []
 
-    class Provider:
-        def __init__(self, provider, settings):
-            calls.append(provider)
+    class Reply:
+        content = "OK"
 
-        async def assess(self, task):
-            assert "synthetic" in task
-            return Assessment(profile=Profile.model_validate(profile_data()))
+    class Model:
+        async def ainvoke(self, messages):
+            assert "synthetic" in messages[0][1]
+            return Reply()
 
-    monkeypatch.setattr("app.llm_config.LangChainProvider", Provider)
+    def chat_model(provider, settings, max_tokens):
+        calls.append(provider)
+        return Model()
+
+    monkeypatch.setattr("app.llm_config.chat_model", chat_model)
     app = create_app(Settings(_env_file=None))
     client = signed_in(app)
     item = client.post("/api/llm-configs", json=BODY).json()
     assert calls == []
     response = client.post(f"/api/llm-configs/{item['id']}/test", json={})
     assert response.status_code == 200 and calls == ["groq"]
+    assert response.json()["checked"] == "chat"
     assert client.get("/api/progress").json()["analyses"] == 0
     assert SECRET not in json.dumps(response.json())
+
+
+def test_openrouter_needs_only_the_key(monkeypatch):
+    """ADR-014 A12: OpenRouter is a catalogue behind one key; the model is optional and,
+    without one, the test checks the key only, calling no model."""
+    checked = []
+
+    async def key_ok(settings):
+        checked.append(settings.openrouter_api_key.get_secret_value())
+        return True
+
+    monkeypatch.setattr("app.llm_config.openrouter_key_ok", key_ok)
+    client = signed_in(create_app(Settings(_env_file=None)))
+    item = client.post(
+        "/api/llm-configs",
+        json={"label": "Router", "provider": "openrouter", "api_key": "sk-or-synthetic"},
+    )
+    assert item.status_code == 201 and item.json()["model"] == ""
+    response = client.post(f"/api/llm-configs/{item.json()['id']}/test", json={})
+    assert response.json() == {"status": "ok", "model": None, "checked": "key"}
+    assert checked == ["sk-or-synthetic"]
+    # Without a default model there is no option of its own; picks still are.
+    options = client.get("/api/llm-options").json()["options"]
+    assert [o["model"] for o in options if o["provider"] == "openrouter"] == [""]
+    # Every other provider still needs a model.
+    refused = client.post(
+        "/api/llm-configs", json={"label": "X", "provider": "openai", "api_key": "sk-x"}
+    )
+    assert refused.status_code == 422
 
 
 @pytest.mark.parametrize("path", ["/api/llm-configs", "/api/llm-options"])

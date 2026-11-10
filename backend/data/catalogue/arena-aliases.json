@@ -1,0 +1,47 @@
+{
+ "description": "Links from a provider model id to its LMArena name when the names do not normalise to the same key (ADR-014 A10). Each one was checked by hand: same developer, same size and version. 'blocked' lists ids that normalise to an arena name of a different model and must never link. Every other id links only by an exact normalised match (app/arena.py normalise).",
+ "checked_on": "2026-11-08",
+ "confirmed": [
+  {
+   "provider": "openrouter",
+   "model": "nvidia/nemotron-3.5-super-vl",
+   "arena": "NVIDIA-Nemotron-3.5-Super-VL-120B-A12B (NVFP4)"
+  },
+  {
+   "provider": "openrouter",
+   "model": "nvidia/nemotron-3.5-super-vl:free",
+   "arena": "NVIDIA-Nemotron-3.5-Super-VL-120B-A12B (NVFP4)"
+  },
+  {
+   "provider": "openrouter",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "arena": "NVIDIA-Nemotron-3-Super-120B-A12B"
+  },
+  {
+   "provider": "openrouter",
+   "model": "meta-llama/llama-4-maverick",
+   "arena": "Llama 4 Maverick 17B 128E Instruct"
+  },
+  {
+   "provider": "openrouter",
+   "model": "meta-llama/llama-4-scout",
+   "arena": "Llama 4 Scout 17B 16E Instruct"
+  },
+  {
+   "provider": "openrouter",
+   "model": "deepseek/deepseek-chat-v3.1",
+   "arena": "DeepSeek-V3.1"
+  },
+  {
+   "provider": "openrouter",
+   "model": "deepseek/deepseek-chat-v3-0324",
+   "arena": "DeepSeek-V3 (0324)"
+  },
+  {
+   "provider": "openrouter",
+   "model": "mistralai/mistral-large-4-0",
+   "arena": "Mistral Large 4"
+  }
+ ],
+ "blocked": []
+}

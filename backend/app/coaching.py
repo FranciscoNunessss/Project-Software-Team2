@@ -10,7 +10,7 @@ from fastapi import BackgroundTasks, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from app.accounts import AuthenticatedUser
-from app.assessment import completeness
+from app.assessment import assessment_advice, completeness
 from app.models import Profile
 from app.outcomes import outcome_summary
 from app.providers import ProviderFailure, structured_call
@@ -244,7 +244,9 @@ def _recomputed_completeness(result):
         parsed = Profile.model_validate({**profile, "explanation": "Not retained."})
     except ValidationError:
         return None
-    return completeness(parsed, bool(result.get("recommendation_provisional", True)))
+    # The description only, as in the workflow: a model that falls short of the task (now
+    # common, with real rated models) must not lower how well the user described it.
+    return completeness(parsed, assessment_advice(parsed)[2])
 
 
 def completeness_series(store, user_id):

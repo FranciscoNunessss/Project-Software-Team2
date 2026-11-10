@@ -145,6 +145,8 @@ class Candidate(BaseModel):
     local: bool = False
     illustrative: bool = False
     calibrated: bool = False
+    # Where the levels come from (ADR-014 A9, A10), e.g. "LMArena public ranking of 2026-11-06".
+    levels_from: str | None = None
     # Chosen minus recommended: -1 covers less, 0 the recommendation, +1 more than needed.
     gap: int | None = Field(None, ge=-1, le=1)
 
@@ -194,3 +196,7 @@ class AnalysisResult(BaseModel):
     # needs-capabilities-1: the task needs and the notes (verification, tools, coverage).
     needs: dict | None = None
     notes: list[str] = []
+    # ADR-014 A12: one rated OpenRouter model, outside the user's own, that does this task
+    # better (covers more, or the same for less), with the reason. None most of the time.
+    suggestion: Candidate | None = None
+    suggestion_reason: str | None = None

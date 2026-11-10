@@ -111,7 +111,9 @@ def task_needs(
     )
 
 
-def available_cards(catalogue: Catalogue, options: list[Option]) -> tuple[list[Evaluated], list]:
+def available_cards(
+    catalogue: Catalogue, options: list[Option], resolve=None
+) -> tuple[list[Evaluated], list]:
     """Rated cards behind the user's models, one per card (server models first).
 
     Returns the evaluated shells and the options whose model has no rated card.
@@ -125,7 +127,7 @@ def available_cards(catalogue: Catalogue, options: list[Option]) -> tuple[list[E
         ),
     )
     for option in ordered:
-        card = catalogue.card_for(option.provider, option.model)
+        card = resolve(option) if resolve else catalogue.card_for(option.provider, option.model)
         if card is None or not card.rated or card.illustrative:
             unrated.append(option)
             continue
@@ -319,6 +321,27 @@ def _gap(item: Evaluated, chosen: Evaluated) -> int:
     return 1 if _price(item) >= _price(chosen) else -1
 
 
+def levels_from(card: Card) -> str | None:
+    """Where this card's levels come from, in a few words for the analysis (ADR-014 A9, A10)."""
+    if card.illustrative:
+        return None
+    ratings = list(card.capabilities.values())
+    if all(rating.status == "calibrated" for rating in ratings):
+        return "Calibrated by the team"
+    if any(rating.status == "measured" for rating in ratings):
+        return "Measured by AdaptAI (measure-suite-1)"
+    sources = " ".join(rating.source or "" for rating in ratings)
+    dates = sorted({rating.observed_on for rating in ratings if rating.observed_on})
+    when = f" of {dates[-1]}" if dates else ""
+    if "LMArena" in sources:
+        return f"LMArena public ranking{when} (CC BY 4.0), provisional"
+    if "Artificial Analysis" in sources:
+        return f"Artificial Analysis index{when}, provisional"
+    if "family" in sources:
+        return "Lowest level measured in the same family, provisional"
+    return "Catalogue, provisional"
+
+
 def candidate(item: Evaluated, chosen: Evaluated, catalogue: Catalogue) -> dict:
     option = item.option
     return {
@@ -340,12 +363,16 @@ def candidate(item: Evaluated, chosen: Evaluated, catalogue: Catalogue) -> dict:
         or (option is not None and option.provider in LOCAL_PROVIDERS),
         "illustrative": item.card.illustrative,
         "calibrated": not _uncalibrated(item),
+        "levels_from": levels_from(item.card),
         "gap": _gap(item, chosen),
     }
 
 
-def recommend(needs: TaskNeeds, options: list[Option], catalogue: Catalogue) -> Recommendation:
-    items, unrated = available_cards(catalogue, options)
+def recommend(
+    needs: TaskNeeds, options: list[Option], catalogue: Catalogue, resolve=None
+) -> Recommendation:
+    """``resolve(option) -> Card | None`` gives each option its levels (app.evaluations)."""
+    items, unrated = available_cards(catalogue, options, resolve)
     illustrative = not items
     if illustrative:
         items = illustrative_cards(catalogue)

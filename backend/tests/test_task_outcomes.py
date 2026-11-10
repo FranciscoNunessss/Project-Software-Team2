@@ -95,7 +95,8 @@ def test_an_illustrative_recommendation_cannot_be_followed(app):
     assert (body["used_provider"], body["used_model"]) == ("groq", "openai/gpt-oss-20b")
     summary = client.get("/api/progress/outcomes").json()
     assert summary["solved_rate_following"] is None and summary["followed"] == 0
-    assert summary["by_model"] == [{"model": "groq · openai/gpt-oss-20b", "tasks": 1, "solved": 1}]
+    # catalogue-2.1 has a card for this model, so it is counted under the card id.
+    assert summary["by_model"] == [{"model": "gpt-oss-20b", "tasks": 1, "solved": 1}]
 
 
 def real_models(monkeypatch):
@@ -256,3 +257,15 @@ def test_the_educator_receives_outcome_counts_without_text(app):
     _, metadata = snapshot(app.state.storage, owner)
     assert metadata["task_outcomes"]["tasks"] == 1
     assert "private report" not in json.dumps(metadata)
+
+
+def test_an_outcome_records_where_the_levels_came_from(app):
+    """A10: a model rated only by LMArena still feeds calibration, with its source."""
+    client = account(TestClient(app))
+    result = analyse(client)
+    body = client.put(
+        f"/api/analyses/{result['id']}/outcome",
+        json={"outcome": "resolved", "provider": "openrouter", "model": "openai/gpt-6-luna"},
+    ).json()
+    assert body["levels_source"] == "arena"
+    assert body["model_card_id"] == "openrouter-openai-gpt-6-luna"

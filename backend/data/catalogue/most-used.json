@@ -1,0 +1,41 @@
+{
+ "description": "The most used models in the world that the recommendation must always rate (ADR-014 A10). The test test_most_used_models_have_levels fails if any of them, except those under 'no_public_source', has no levels. Update monthly from OpenRouter's public rankings (tokens processed, https://openrouter.ai/rankings) and the flagship of each main developer.",
+ "observed_on": "2026-11-08",
+ "sources": [
+  "https://openrouter.ai/rankings (week from 2026-10-24 and day 2026-11-06, tokens processed)",
+  "Flagship models of OpenAI, Anthropic, Google, xAI, Meta, DeepSeek, Mistral, Alibaba (Qwen), Moonshot, Z.ai",
+  "AdaptAI server and default models"
+ ],
+ "models": [
+  {"provider": "openrouter", "model": "deepseek/deepseek-v4.1-flash-1017", "why": "OpenRouter top 1"},
+  {"provider": "openrouter", "model": "z-ai/glm-5.3-flash", "why": "OpenRouter top 3"},
+  {"provider": "openrouter", "model": "deepseek/deepseek-v4.1-flash", "why": "OpenRouter top 3"},
+  {"provider": "openrouter", "model": "openai/gpt-6-luna", "why": "OpenRouter top 5"},
+  {"provider": "openrouter", "model": "tencent/hy4", "why": "OpenRouter top 5"},
+  {"provider": "openrouter", "model": "stepfun/step-5-preview", "why": "OpenRouter top 10"},
+  {"provider": "openrouter", "model": "anthropic/claude-opus-5.5", "why": "OpenRouter top 10"},
+  {"provider": "openrouter", "model": "minimax/minimax-m3.1-flash", "why": "OpenRouter top 10"},
+  {"provider": "openrouter", "model": "openai/gpt-5.6-luna", "why": "OpenRouter top 10"},
+  {"provider": "openrouter", "model": "moonshotai/kimi-k3", "why": "OpenRouter top 15"},
+  {"provider": "openrouter", "model": "nvidia/nemotron-3.5-super-vl", "why": "OpenRouter top 15"},
+  {"provider": "openrouter", "model": "openai/gpt-6.1-sol", "why": "OpenRouter top 15"},
+  {"provider": "openrouter", "model": "z-ai/glm-5.3", "why": "OpenRouter top 15"},
+  {"provider": "openrouter", "model": "anthropic/claude-haiku-5.5", "why": "OpenRouter top 20"},
+  {"provider": "openrouter", "model": "anthropic/claude-sonnet-5.5", "why": "Anthropic flagship"},
+  {"provider": "openrouter", "model": "openai/gpt-6-sol", "why": "OpenAI flagship"},
+  {"provider": "openrouter", "model": "google/gemini-4-argon", "why": "Google flagship on OpenRouter"},
+  {"provider": "openrouter", "model": "x-ai/grok-4.7", "why": "xAI flagship"},
+  {"provider": "openrouter", "model": "meta-llama/llama-4-maverick", "why": "Meta flagship"},
+  {"provider": "openrouter", "model": "deepseek/deepseek-v4-pro", "why": "DeepSeek flagship"},
+  {"provider": "openrouter", "model": "mistralai/mistral-large-4-0", "why": "Mistral flagship"},
+  {"provider": "openrouter", "model": "qwen/qwen3.8-max-0902", "why": "Alibaba flagship"},
+  {"provider": "openrouter", "model": "google/gemma-4-31b-it:free", "why": "Free model the team uses"},
+  {"provider": "groq", "model": "openai/gpt-oss-20b", "why": "AdaptAI default server model"},
+  {"provider": "groq", "model": "openai/gpt-oss-120b", "why": "AdaptAI second server model"},
+  {"provider": "claude", "model": "claude-sonnet-5-5", "why": "Configured by users"}
+ ],
+ "no_public_source": [
+  {"provider": "openrouter", "model": "stealth/crouton-alpha", "why": "Anonymous stealth model (OpenRouter top 10): no public ranking can name it; measured by layer 3"},
+  {"provider": "openrouter", "model": "tencent/hy4-preview", "why": "Preview of Hy4 (OpenRouter top 10), not on LMArena nor Artificial Analysis; measured by layer 3"}
+ ]
+}

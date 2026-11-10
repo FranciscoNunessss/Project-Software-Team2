@@ -31,7 +31,7 @@ react(),
       },
     },
     server: {
-      proxy: { '/api': 'http://127.0.0.1:8000' },
+      proxy: { '/api': process.env.ADAPTAI_API_PROXY || 'http://127.0.0.1:8000' },
       host: process.env.FIGMA_DEV_SERVER_HOST || '0.0.0.0',
       port: parseInt(process.env.PORT || '8443'),
       strictPort: true,

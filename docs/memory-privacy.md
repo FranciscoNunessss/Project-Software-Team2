@@ -230,3 +230,12 @@ is deleted with the account or the evaluation.
 
 
 11 November 2026: the user-facing Privacy Policy (draft v0.1) is `frontend/src/content/privacy-policy.md`, shown in the app from the footer, Profile and the sign-in screen. It describes the behaviour documented in this file; items marked TO CONFIRM need AO/PO decisions, and there is still no self-service account deletion.
+
+## API tokens (ADR-013, proposed)
+
+`api_tokens` holds, per personal token, its name, a SHA-256 hash, the first 16 characters (to
+recognise it in a list), creation, expiry, last use (updated at most once a minute) and revocation
+time. The token itself is shown once and never stored. Rows are deleted with the account. A token
+is created and revoked only from a browser session, never by another token. It is used by the
+VS Code extension (`vscode-extension/`), which keeps it in the editor's SecretStorage, bound to the
+backend that issued it. No task text is stored because of a token.

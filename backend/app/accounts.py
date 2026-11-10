@@ -36,7 +36,12 @@ def token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def current_user(request: Request):
+TOKEN_PREFIX = "adaptai_pat_"
+TOKEN_TOUCH_SECONDS = 60
+
+
+def session_user(request: Request):
+    """The browser session: the local cookie, or a Supabase access token in cloud mode."""
     if request.app.state.settings.auth_mode == "supabase":
         from app.supabase_auth import resolve_user
 
@@ -53,7 +58,40 @@ def current_user(request: Request):
     return dict(row)
 
 
+def token_user(request: Request, token: str):
+    """A personal API token (ADR-013): revocable, with an expiry, stored only as a hash."""
+    now = int(time.time())
+    with request.app.state.storage.connect() as db:
+        row = db.execute(
+            """SELECT u.id,u.email,t.id AS token_id,t.last_used_at FROM api_tokens t
+               JOIN users u ON u.id=t.user_id
+               WHERE t.token_hash=%s AND t.revoked_at IS NULL AND t.expires_at>%s""",
+            (token_hash(token), now),
+        ).fetchone()
+        if not row:
+            raise HTTPException(401, "authentication_required")
+        if row["last_used_at"] is None or now - row["last_used_at"] >= TOKEN_TOUCH_SECONDS:
+            db.execute("UPDATE api_tokens SET last_used_at=%s WHERE id=%s", (now, row["token_id"]))
+    return {"id": row["id"], "email": row["email"]}
+
+
+def current_user(request: Request):
+    """Who is calling: a personal API token when the request carries one, else the session.
+
+    A token-shaped credential that is wrong is a 401 on its own: it never falls back to a cookie.
+    Any other Authorization header (the Supabase access token in cloud mode) keeps its old meaning.
+    """
+    scheme, _, value = request.headers.get("authorization", "").partition(" ")
+    if scheme.lower() == "bearer" and value.strip().startswith(TOKEN_PREFIX):
+        request.state.auth = "token"
+        return token_user(request, value.strip())
+    request.state.auth = "session"
+    return session_user(request)
+
+
 AuthenticatedUser = Annotated[dict, Depends(current_user)]
+# Token management needs the browser session: a token cannot create or revoke tokens.
+SessionUser = Annotated[dict, Depends(session_user)]
 
 
 def check_origin(request: Request):

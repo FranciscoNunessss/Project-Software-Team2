@@ -266,7 +266,8 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
     try {
       const turn = await streamChat(path, body, {
         onMessage: (message, answerId) => setMessages(current => {
-          const kept = current.filter(item => item.id !== 'draft-question' && item.id !== 'draft-answer' && item.id !== answerId)
+          // On Retry the question already exists: replace it instead of adding it twice.
+          const kept = current.filter(item => item.id !== 'draft-question' && item.id !== 'draft-answer' && item.id !== answerId && item.id !== message.id)
           return [...kept, message, placeholder(answerId)]
         }),
         onDelta: text => setMessages(current => current.map((item, index) =>

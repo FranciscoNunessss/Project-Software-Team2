@@ -401,6 +401,17 @@ The CI job `e2e` runs the same specs.
 
 ## Prompt Coach (optional)
 
+**Role.** The Prompt Coach helps a user describe a task well enough for the analysis to
+determine it: it points at the dimensions left uncertain and, only when asked, proposes edits,
+questions or a rewrite. It does not recommend models (that is the deterministic recommendation,
+ADR-014), does not judge the user over time (that is the Educator's coaching in My progress,
+`backend/app/coaching.py`) and does not answer tasks (that is the chat). Its effect is
+measured without storing anything of its own: "Analyse again" shows the change in
+completeness, and learning progress compares the completeness of the first analysis of each
+session over time, next to the task outcomes. Coach usage metrics (`prompt_coach_events`,
+ADR-010) were dropped on 10 November 2026: they would store more data, with its own privacy
+decision, for a measure the product already has.
+
 The Prompt Coach is an optional module (ADR-009) that the client has not approved. There
 is no server flag: each user switches it on or off in **Profile** (on by default), and the
 choice is kept per account. `create_app` imports `backend/app/prompt_coach.py` late, at the
@@ -541,10 +552,10 @@ The assessor instructions are generated from the active rubric version (see "Rub
 The recommendation is described in "Model recommendation" below. Ambiguity never raises the
 model: it is missing information, handled by clarification questions and the Coach. Unknown
 requirements or low confidence mark the result provisional.
-This policy is proposed (ADR-014) and awaits AO review and independent task evaluation.
+This policy is accepted (ADR-014, 10 November 2026); independent task evaluation is still to come.
 The contract tests run in CI; human quality evals and their regression gate remain outstanding.
 
-## Model recommendation (PROPOSED, ADR-014, `needs-capabilities-1`)
+## Model recommendation (ADR-014, `needs-capabilities-1`)
 
 The analysis recommends a concrete model, not a tier: **the cheapest of the user's models whose
 capabilities cover every need of the task**. Deterministic Python in
@@ -587,7 +598,7 @@ still counted. Feedback per task is stored in `task_outcomes` (no text) and feed
 ("Your solved tasks"), the Educator and the Coach. A calibration report (`scripts/calibration_report.py`) proposes
 level changes from it (at least 10 tasks, completeness >= 75); it never changes the catalogue.
 
-## Automatic model evaluation (PROPOSED, ADR-014 A8 to A12)
+## Automatic model evaluation (ADR-014 A8 to A12)
 
 Every model someone configured, and only those, is evaluated once by a background worker with
 the synthetic suite `measure-suite-1` (adaptive: level 2 first, then 3 or 1; at most 40 calls,

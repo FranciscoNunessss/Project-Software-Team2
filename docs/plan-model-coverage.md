@@ -130,10 +130,10 @@ came from. Models without a catalogue card (measured or public) now feed calibra
 proposal names its source: if LMArena levels predict outcomes worse than measured ones, the
 team sees it and changes the mapping (`arena-mapping-2`) or measures those models.
 
-## Layer 5: one suggestion among all rated OpenRouter models (next)
+## Layer 5: one suggestion among all rated OpenRouter models (implemented, A12)
 
-For a user with an enabled OpenRouter configuration, the analysis would also compare every
-rated OpenRouter model and show at most one: "Also on OpenRouter: X covers this task better",
+For a user with an enabled OpenRouter configuration, the analysis also compares every
+rated OpenRouter model and shows at most one: "Also on OpenRouter: X covers this task better",
 only if it covers a need the best own model falls short on, or costs less for the same
 coverage, and never above the user's highest current price band. "Use" selects it like a
 pick.
@@ -145,7 +145,7 @@ pick.
 | 1 | A project OpenRouter key on the server, used only for evaluation | **Done** (8 Nov 2026): key limit 5 USD, 90 days, local `.env` and GitHub secret `OPENROUTER_EVALUATION_KEY` |
 | 2 | Budget for paid evaluations with the project key | 5 USD (`ADAPTAI_EVALUATION_BUDGET_USD`), only used with credit |
 | 3 | Buy OpenRouter credit | **Not now** (a billing address is required). Without it: free models only, about one a day. With 10 USD: more free calls a day and paid models within the budget |
-| 4 | Style-controlled leaderboard rather than the raw one | Implemented as proposed; the AO confirms |
+| 4 | Style-controlled leaderboard rather than the raw one | Implemented; accepted with ADR-014 on 10 Nov 2026 |
 
 ## Risks
 

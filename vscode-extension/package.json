@@ -1,0 +1,522 @@
+{
+  "name": "adaptai",
+  "displayName": "AdaptAI",
+  "description": "AdaptAI in VS Code: analyse a prompt, see which model covers the task, improve it with the Prompt Coach (diff and apply), and chat, without leaving the editor.",
+  "version": "0.3.0",
+  "publisher": "adaptai-dev",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "adaptai",
+          "title": "AdaptAI",
+          "icon": "media/adaptai.svg"
+        }
+      ]
+    },
+    "views": {
+      "adaptai": [
+        {
+          "id": "adaptai.home",
+          "name": "AdaptAI",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "adaptai.openApp",
+        "title": "Open AdaptAI",
+        "category": "AdaptAI",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "adaptai.checkConnection",
+        "title": "Check the backend",
+        "category": "AdaptAI",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "adaptai.openSettings",
+        "title": "Open settings",
+        "category": "AdaptAI",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "adaptai.signOut",
+        "title": "Sign out",
+        "category": "AdaptAI",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "adaptai.signIn",
+        "title": "Sign in",
+        "category": "AdaptAI",
+        "icon": "$(account)"
+      },
+      {
+        "command": "adaptai.signInWithToken",
+        "title": "Sign in with a token",
+        "category": "AdaptAI",
+        "icon": "$(key)"
+      },
+      {
+        "command": "adaptai.analyseSelection",
+        "title": "Analyse selection (or the whole file)",
+        "category": "AdaptAI",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "adaptai.analyseFile",
+        "title": "Analyse file",
+        "category": "AdaptAI",
+        "icon": "$(file)"
+      },
+      {
+        "command": "adaptai.analyseClipboard",
+        "title": "Analyse clipboard",
+        "category": "AdaptAI",
+        "icon": "$(clippy)"
+      },
+      {
+        "command": "adaptai.analyseInput",
+        "title": "Describe a task and analyse it",
+        "category": "AdaptAI",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "adaptai.refreshHistory",
+        "title": "Refresh recent analyses",
+        "category": "AdaptAI",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "adaptai.coachClipboard",
+        "title": "Coach the prompt on the clipboard",
+        "category": "AdaptAI",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "adaptai.improvePrompt",
+        "title": "Improve the prompt (autocorrect)",
+        "category": "AdaptAI",
+        "icon": "$(wand)"
+      },
+      {
+        "command": "adaptai.testConnection",
+        "title": "Test a model connection",
+        "category": "AdaptAI",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "adaptai.retry",
+        "title": "Retry the latest analysis",
+        "category": "AdaptAI",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "adaptai.copySummary",
+        "title": "Copy the summary of an analysis",
+        "category": "AdaptAI",
+        "icon": "$(copy)"
+      },
+      {
+        "command": "adaptai.taskOutcome",
+        "title": "Did the recommended model solve the task?",
+        "category": "AdaptAI",
+        "icon": "$(check)"
+      },
+      {
+        "command": "adaptai.useModel",
+        "title": "Use the recommended model in the chat",
+        "category": "AdaptAI",
+        "icon": "$(pass)"
+      },
+      {
+        "command": "adaptai.coachResult",
+        "title": "Prompt Coach for an analysis",
+        "category": "AdaptAI",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "adaptai.chatOpenView",
+        "title": "Open the chat",
+        "category": "AdaptAI",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "adaptai.chatSendText",
+        "title": "Send a text to the chat",
+        "category": "AdaptAI",
+        "icon": "$(send)"
+      },
+      {
+        "command": "adaptai.chatRetry",
+        "title": "Answer the last question again",
+        "category": "AdaptAI",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "adaptai.chatNew",
+        "title": "New chat",
+        "category": "AdaptAI",
+        "icon": "$(add)"
+      },
+      {
+        "command": "adaptai.chatOpen",
+        "title": "Open a chat transcript",
+        "category": "AdaptAI",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "adaptai.chatRename",
+        "title": "Rename the chat",
+        "category": "AdaptAI",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "adaptai.chatDelete",
+        "title": "Delete the chat",
+        "category": "AdaptAI",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "adaptai.editPreferences",
+        "title": "Edit your preferences",
+        "category": "AdaptAI",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "adaptai.clearMemory",
+        "title": "Clear the learned memory",
+        "category": "AdaptAI",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "adaptai.clearConversations",
+        "title": "Delete the stored conversations",
+        "category": "AdaptAI",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "adaptai.clearHistory",
+        "title": "Delete all usage history",
+        "category": "AdaptAI",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "adaptai.openProgress",
+        "title": "Open My progress",
+        "category": "AdaptAI",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "adaptai.refreshProfile",
+        "title": "Refresh the profile",
+        "category": "AdaptAI",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "adaptai.refreshModels",
+        "title": "Refresh the models",
+        "category": "AdaptAI",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "adaptai.modelAdd",
+        "title": "Add a model",
+        "category": "AdaptAI",
+        "icon": "$(add)"
+      },
+      {
+        "command": "adaptai.modelEdit",
+        "title": "Edit the model",
+        "category": "AdaptAI",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "adaptai.modelRemove",
+        "title": "Delete the model",
+        "category": "AdaptAI",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "adaptai.modelTest",
+        "title": "Test the connection of the model",
+        "category": "AdaptAI",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "adaptai.evaluationConsent",
+        "title": "Decide on this evaluation",
+        "category": "AdaptAI",
+        "icon": "$(bell)"
+      },
+      {
+        "command": "adaptai.evaluationRedo",
+        "title": "Evaluate the model again",
+        "category": "AdaptAI",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "adaptai.evaluationDisagree",
+        "title": "I disagree with a level",
+        "category": "AdaptAI",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "adaptai.evaluationAdd",
+        "title": "Add a model of the OpenRouter catalogue",
+        "category": "AdaptAI",
+        "icon": "$(search)"
+      },
+      {
+        "command": "adaptai.evaluationRemove",
+        "title": "Remove the model I picked from OpenRouter",
+        "category": "AdaptAI",
+        "icon": "$(close)"
+      },
+      {
+        "command": "adaptai.register",
+        "title": "Create an account",
+        "category": "AdaptAI",
+        "icon": "$(person-add)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "adaptai.testConnection",
+          "when": "view == adaptai.home",
+          "group": "navigation@1"
+        },
+        {
+          "command": "adaptai.openProgress",
+          "when": "view == adaptai.home",
+          "group": "navigation@2"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "adaptai.analyseSelection",
+          "when": "editorHasSelection",
+          "group": "adaptai@1"
+        },
+        {
+          "command": "adaptai.improvePrompt",
+          "when": "editorHasSelection",
+          "group": "adaptai@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "adaptai.analyseFile",
+          "when": "!explorerResourceIsFolder",
+          "group": "adaptai@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "adaptai.analyseFile",
+          "when": "editorIsOpen"
+        },
+        {
+          "command": "adaptai.analyseSelection",
+          "when": "editorIsOpen"
+        },
+        {
+          "command": "adaptai.improvePrompt",
+          "when": "editorIsOpen"
+        },
+        {
+          "command": "adaptai.chatSendText",
+          "when": "false"
+        },
+        {
+          "command": "adaptai.chatOpen",
+          "when": "false"
+        },
+        {
+          "command": "adaptai.chatRename",
+          "when": "false"
+        },
+        {
+          "command": "adaptai.chatDelete",
+          "when": "false"
+        },
+        {
+          "command": "adaptai.modelEdit",
+          "when": "false"
+        },
+        {
+          "command": "adaptai.modelRemove",
+          "when": "false"
+        },
+        {
+          "command": "adaptai.modelTest",
+          "when": "false"
+        },
+        {
+          "command": "adaptai.evaluationConsent",
+          "when": "false"
+        },
+        {
+          "command": "adaptai.evaluationRedo",
+          "when": "false"
+        },
+        {
+          "command": "adaptai.evaluationDisagree",
+          "when": "false"
+        },
+        {
+          "command": "adaptai.evaluationRemove",
+          "when": "false"
+        }
+      ],
+      "view/item/context": []
+    },
+    "configuration": {
+      "title": "AdaptAI",
+      "properties": {
+        "adaptai.backendUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "markdownDescription": "Address of the AdaptAI backend, for example `http://127.0.0.1:8000`. **Plain `http://` is only accepted for this machine (`localhost`, `127.0.0.1`, `::1`); any other address must use `https://`.** Nothing is sent to an address that fails this rule."
+        },
+        "adaptai.confirmExternal": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Ask before sending text to an external provider (anything but Demonstration and models on your machine)."
+        },
+        "adaptai.coachMode": {
+          "type": "string",
+          "enum": [
+            "rewrite",
+            "edits",
+            "tips"
+          ],
+          "default": "rewrite",
+          "enumDescriptions": [
+            "A full improved prompt (copied to the clipboard).",
+            "Small edits applied to your text (copied to the clipboard).",
+            "Tips only; nothing is copied."
+          ],
+          "markdownDescription": "What **Coach the prompt on the clipboard** asks the Prompt Coach for."
+        },
+        "adaptai.improveApply": {
+          "type": "string",
+          "enum": [
+            "diff",
+            "replace"
+          ],
+          "default": "diff",
+          "enumDescriptions": [
+            "Show the diff and ask before replacing the text.",
+            "Replace the text at once (Undo restores it)."
+          ],
+          "markdownDescription": "What **Improve the prompt** does with the improved text."
+        },
+        "adaptai.lmStudioUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:1234",
+          "markdownDescription": "Address of the LM Studio server, used only by **Test a model connection** to ask LM Studio which models are loaded. It should be the same address the backend uses (`ADAPTAI_LMSTUDIO_BASE_URL`). Same rule as the backend: `http://` only for this machine, otherwise `https://`."
+        },
+        "adaptai.chatModel": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The model the chat answers with, by its option id (for example `server:groq`). **Use this model** in an analysis sets it. Empty: the backend's Auto model."
+        },
+        "adaptai.resultView": {
+          "type": "string",
+          "enum": [
+            "preview",
+            "source"
+          ],
+          "default": "preview",
+          "enumDescriptions": [
+            "The analysis opens as a rendered Markdown preview beside the editor.",
+            "The analysis opens as a Markdown document with the actions above it."
+          ],
+          "markdownDescription": "How an analysis is shown."
+        }
+      }
+    },
+    "viewsWelcome": [],
+    "keybindings": [
+      {
+        "command": "adaptai.analyseSelection",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "adaptai.coachClipboard",
+        "key": "ctrl+k ctrl+a",
+        "mac": "cmd+k cmd+a"
+      },
+      {
+        "command": "adaptai.improvePrompt",
+        "key": "ctrl+k ctrl+e",
+        "mac": "cmd+k cmd+e",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "adaptai.analyseClipboard",
+        "key": "ctrl+k ctrl+y",
+        "mac": "cmd+k cmd+y"
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "adaptai.chat",
+        "name": "adaptai",
+        "fullName": "AdaptAI",
+        "description": "Chat with the model you chose, and see which model fits a task",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "analyse",
+            "description": "Analyse a task and see which model covers it"
+          },
+          {
+            "name": "new",
+            "description": "Start a new chat"
+          },
+          {
+            "name": "retry",
+            "description": "Answer the last question again"
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p ./",
+    "package": "npx --yes @vscode/vsce@3 package --no-dependencies --allow-missing-repository --skip-license",
+    "test": "tsc -p ./ && node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/vscode": "1.90.0",
+    "typescript": "^7.0.2"
+  },
+  "icon": "media/icon.png",
+  "categories": [
+    "Other",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "ai",
+    "prompt",
+    "model",
+    "assistant"
+  ]
+}

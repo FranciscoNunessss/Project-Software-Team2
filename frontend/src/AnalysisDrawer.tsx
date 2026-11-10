@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import type { Analysis } from './api'
 import { AnalysisChanges } from './AnalysisChanges'
-import { Card, ProfileCard, RecommendationCard } from './AnalysisResult'
+import { ProfileCard, RecommendationCard } from './AnalysisResult'
+import { Card } from './ui'
 import { TipsCard } from './TipsCard'
 import { PromptCoachTips } from './PromptCoachTips'
 

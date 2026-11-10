@@ -1,6 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './ui/tokens.css'
+import './ui/base.css'
+import './ui'
 import './index.css'
 import App from './App'
 

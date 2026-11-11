@@ -97,33 +97,6 @@
 .api-controls p { font-size: 12px; }
 
 /* Authentication has its own layout; workspace navigation appears after sign-in. */
-.auth-shell { min-height: 100svh; display: flex; flex-direction: column; }
-.auth-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 28px 40px; }
-.auth-brand { display: flex; align-items: center; gap: 10px; font-size: 21px; font-weight: 700; letter-spacing: -.04em; }
-.auth-header .button { min-height: 40px; }
-.auth-main { flex: 1; display: grid; place-items: center; padding: 32px 24px 48px; }
-.auth-card { width: 100%; max-width: 448px; padding: 36px; }
-
-.auth-card .eyebrow { font-size: 10px; line-height: 1.6; margin-bottom: 10px; }
-.auth-card h1 { font-size: 32px; line-height: 1.15; margin-bottom: 12px; }
-.auth-description { color: var(--muted); font-size: 14px; line-height: 1.65; margin-bottom: 28px; }
-.account-form { display: grid; gap: 10px; }
-.account-form label { font-size: 13px; font-weight: 600; color: var(--ink); }
-.account-form input { width: 100%; min-width: 0; min-height: 48px; border: 1px solid var(--line); border-radius: 9px; padding: 12px 14px; background: var(--surface); color: var(--ink); font-size: 16px; }
-.account-form input::placeholder { color: var(--muted); opacity: .8; }
-.password-label { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
-.password-label button, .auth-switch button { border: 0; background: none; padding: 4px 0; color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
-.auth-hint { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.auth-submit { min-height: 48px; margin-top: 12px; justify-content: space-between; font-size: 14px; padding: 0 16px; }
-.auth-switch { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 8px; align-items: center; margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
-.auth-storage-note { margin: 20px 0 0; text-align: center; font-size: 12px; color: var(--muted); line-height: 1.6; }
-.auth-footer { padding: 0 24px 24px; margin: 0; text-align: center; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.auth-card .api-error { margin: 8px 0; padding: 12px; font-size: 13px; line-height: 1.5; }
-
-.account-email { overflow-wrap: anywhere; color: var(--muted); font-size: 13px; }
-
-.theme-dark .auth-header .button { background: var(--surface); color: var(--ink); border-color: var(--line); }
-.theme-dark .auth-card .api-error { color: #ffb6a8; border-color: #86574f; }
 
 .task-context { margin: 12px 0 20px; padding-top: 16px; border-top: 1px solid var(--line); }
 .task-context summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink); }
@@ -161,15 +134,6 @@
   
 }
 
-@media (max-width: 480px) {
-  .auth-header { padding: 20px; }
-  .auth-main { padding: 16px 16px 32px; }
-  .auth-card { padding: 24px; }
-  .auth-card h1 { font-size: 28px; }
-  
-  .auth-footer { padding-bottom: 20px; }
-}
-
 /* Prompt Coach bubble (optional module, ADR-009 / AA-030). */
 
 /* Below the app header (z-index 30), so the panel never covers it when the page scrolls. */
@@ -182,13 +146,7 @@
 
 /* Pages sit centred in the space beside the sidebar. */
 
-.account-error { position: fixed; top: 16px; right: 16px; z-index: 50; margin: 0; }
-
 /* Small screens: the sidebar is a top bar, so pages use the full width. */
-@media (max-width: 800px) {
-  
-  .account-error { top: 64px; left: 8px; right: 8px; }
-}
 
 /* Model evaluations (ADR-014) */
 

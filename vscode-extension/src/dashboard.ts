@@ -245,7 +245,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
     if (this.backend.urlProblem) return this.toast('err', this.backend.urlProblem)
     const answer = await this.ask({
       title: 'Sign in',
-      text: 'Your password is used once to sign in. Only a token is kept on this machine.',
+      text: 'Your password is used once to sign in. Only a token is kept on this machine. A forgotten password and the link to an older history are handled in the web app.',
       fields: [
         { name: 'email', label: 'Email', required: true, placeholder: 'you@example.com' },
         { name: 'password', label: 'Password', type: 'password', required: true },

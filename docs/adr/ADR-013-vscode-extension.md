@@ -1,7 +1,7 @@
 # ADR-013: AdaptAI as a VS Code extension
 
 Status: Proposed (10 November 2026, rewritten from the 5 November draft). A working version exists
-on the branch `feature/jose-ide-extension`, so the team can try it before deciding. Waiting for the
+on the local branch `feature/ide`, so the team can try it before deciding. Waiting for the
 Architecture Owner's decision (the token module is a change in the backend core) and the Product
 Owner's decision on scope. The first draft assumed the whole SPA inside a webview; the team chose a
 native extension instead (see "What changed from the first draft").
@@ -91,8 +91,8 @@ Windows, VS Code 1.145, Node 24, PostgreSQL 17 from the compose file.
 
 | Check | Result |
 |---|---|
-| Backend token tests (`test_tokens.py`: hash only, one user, a token cannot manage tokens, revoke, expiry, limit of 10 including 16 parallel requests, cascade with the user, local mode and Supabase mode) | 26 passed |
-| Whole backend suite | 614 passed, 4 failed: the SQLite import tests in `test_postgres.py` fail on Windows deleting a temporary file that is still open (`WinError 32`); they are in code this change does not touch and were not run on a clean develop to confirm they fail there too |
+| Backend token tests (`test_tokens.py`: hash only, one user, a token cannot manage tokens, revoke, expiry, limit of 10 including 16 parallel requests, cascade with the user, local mode and Supabase mode) | 26 passed (again on 11 November) |
+| Whole backend suite | 614 passed, 4 failed: the SQLite import tests in `test_postgres.py` fail on Windows deleting a temporary file that is still open (`WinError 32`); they are in code this change does not touch. **Confirmed on 11 November:** the same 4 of 9 fail on a clean develop (`c249595`) and on this branch, so they are not caused by the token module |
 | Backend lint and format | clean |
 | Extension unit and stub tests (address policy, URL building, secrets, errors, the analysis document, the request, the SSE parser at every split point, security, analysis flows, chat, profile and progress, models and evaluations) | 115 passed |
 | Extension against a real backend on PostgreSQL in demonstration mode (sign in with a password keeps only a token, analysis, Coach, outcome once, chat stream and retry and delete, `/analyse` in a chat, profile switches and the report, models CRUD, a revoked token is reported as rejected) | 10 passed |
@@ -104,6 +104,23 @@ that was not tried); the modal dialogs, quick picks, the diff editor and Apply i
 mode with a real project (only with a stubbed Supabase); Groq and LM Studio with the new base (the
 earlier live runs were on the previous develop); the paid-evaluation consent against a real provider;
 other platforms and VS Code versions; the Educator's text with real data.
+
+## Decisions of 11 November 2026
+
+Taken by the author in a working session, from what the project needs and the evidence above. They
+are the author's decisions for the pilot; the Architecture Owner and the Product Owner keep the
+formal decision at review, and each can be reversed without losing work.
+
+| Item | Decision | Why |
+|---|---|---|
+| IDE-14 · token module in the core | **Go to review.** Open the pull requests in the order backend, then the app screen, then the extension. The author recommends accepting it | Only a hash is stored; 90 days by default; revocable; at most 10 active; created and revoked only with a password or browser session, so a stolen token cannot mint more; 26 backend tests pass; no new text is stored. The `test_postgres.py` failures are a Windows file-lock in SQLite import tests (see Evidence) |
+| IDE-06 · Supabase mode | **Keep "paste a token" for the pilot**, document it, and plan the browser sign-in (a URI handler returning a short-lived access token) as a later item when a Supabase project exists | No Supabase project has been created yet ([hosting plan](../hosting-plan.md)); the browser flow needs a backend change (token creation accepting a Supabase JWT) that cannot be tested without a project; the web app already creates tokens in cloud mode, so nobody is blocked |
+| IDE-09 · password recovery and the legacy-history link | **Not in the extension.** They stay in the web app; the sign-in dialog says so | They are account flows used rarely, mostly in cloud mode, and a recovery link opens in a browser anyway; duplicating them adds security surface for little use |
+| IDE-13 · distribution | **`.vsix` only** for the pilot; no Marketplace yet. A CI job (`.github/workflows/vscode-extension.yml`) runs the tests and packages the `.vsix` on every push and pull request. `adaptai.backendUrl` stays `http://127.0.0.1:8000`; the hosted address is a setting | Publishing is public and needs a publisher account and the team's decision; there is no hosted address to offer on first run yet, so a welcome message would have nothing to say |
+| IDE-15 · live tips from a local model | **Not built.** Keep the local hints (instant, nothing sent). Revisit if a local model answers in under 3 seconds or the client asks | Measured on 11 November: a local analysis takes 14 to 20 seconds and a Coach answer 35 to 40 seconds on the Gemma used here. One request per pause would queue behind the evaluation worker and the chat on the same model. An external model is not allowed without a click (ADR-005). The Prompt Coach is not yet approved by the client (task P3) |
+| IDE-12 · clean-up | **Done.** The two tree classes were deleted and their flows are tested through the page | |
+| IDE-11 · real-window check | **Open, needs a person.** Done instead: the installed `.vsix` was run in a real VS Code extension host (activation, 30 commands, the side bar opens, real providers) and the page was checked in a browser at wide and narrow width | A person still has to click through the 18 checks in the backlog |
+| Quality of the analysis | **Ship as a pilot** and keep the study ([report](../analysis-accuracy/report.md)): 83 to 86 percent exact level, within one level almost always, stable in 62 to 77 percent of the cells across three runs | Good enough to try with real users; the instability and the weak recommendation are backend items for the team (see backlog IDE-16 and IDE-17) |
 
 ## Open questions
 

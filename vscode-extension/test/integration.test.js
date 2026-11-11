@@ -11,8 +11,7 @@ const { vscode, log, ui } = installVscode(config)
 const { Backend, ApiError } = require('../dist/backend.js')
 const { Analyser } = require('../dist/analyse.js')
 const { ChatService } = require('../dist/chat.js')
-const { ProfileView, ProgressReport } = require('../dist/profile.js')
-const { ModelsView } = require('../dist/models.js')
+const { ProgressReport } = require('../dist/profile.js')
 
 const email = `ide-${Date.now()}@example.com`
 const password = 'test-password-123'
@@ -112,17 +111,15 @@ test('/analyse inside a chat belongs to the chat session, as in the app', { skip
   await chat.remove(chat.current)
 })
 
-test('the profile reads and changes the real switches, and the report shows the real counts', { skip }, async () => {
-  const view = new ProfileView(backend)
-  await view.refresh()
-  assert.equal(view.getChildren().find(row => row.key === 'save_enabled').on, false)
-  await view.setToggle('save_enabled', true)
-  assert.equal(view.getChildren().find(row => row.key === 'save_enabled').on, true)
-  await view.setToggle('coach', false)
-  assert.equal(view.getChildren().find(row => row.key === 'coach').on, false)
-  await view.setToggle('coach', true)
-  ui.warning = (_m, _o, buttons) => buttons[0]
-  await view.delete('history')
+test('the profile switches and deletions the page uses work on the real backend, and the report shows the real counts', { skip }, async () => {
+  const settings = () => backend.api('/api/context')
+  assert.equal((await settings()).save_enabled, false)
+  await backend.api('/api/context', 'PUT', { save_enabled: true })
+  assert.equal((await settings()).save_enabled, true)
+  await backend.api('/api/prompt-coach/settings', 'PUT', { enabled: false })
+  assert.equal((await backend.api('/api/prompt-coach/settings')).enabled, false)
+  await backend.api('/api/prompt-coach/settings', 'PUT', { enabled: true })
+  await backend.api('/api/progress/history', 'DELETE')
   const report = new ProgressReport(backend)
   await report.open()
   const text = report.provideTextDocumentContent()
@@ -130,25 +127,15 @@ test('the profile reads and changes the real switches, and the report shows the 
   assert.match(text, /0 sessions · 0 analyses/, 'deleting the history emptied it')
 })
 
-test('models: add a local configuration, test it, see it in the tree, delete it; the evaluations list answers', { skip }, async () => {
-  const models = new ModelsView(backend, analyser.connections)
-  await models.refresh()
-  const queue = ['Local LM Studio', 'integration-model']
-  vscode.window.showInputBox = async () => queue.shift()
-  ui.quickPick = items => items.find(item => item.provider === 'lmstudio')
-  await models.add()
-  await models.refresh()
-  const [, mine] = models.getChildren()
-  const rows = models.getChildren(mine)
-  const added = rows.find(row => row.kind === 'personal')
-  assert.ok(added, 'the configuration is listed')
-  assert.equal(added.config.provider, 'lmstudio')
-  assert.equal(added.config.has_key, false)
-  const [, , evaluations] = models.getChildren()
-  assert.ok(models.getChildren(evaluations).length >= 1)
-  await models.remove(added.config)
-  await models.refresh()
-  assert.ok(!models.getChildren(mine).some(row => row.kind === 'personal'))
+test('models: add a local configuration, test it, see it listed, delete it; the evaluations list answers', { skip }, async () => {
+  const created = await backend.api('/api/llm-configs', 'POST', { label: 'Local LM Studio', provider: 'lmstudio', model: 'integration-model', enabled: true, is_default: false })
+  assert.equal(created.provider, 'lmstudio')
+  assert.equal(created.has_key, false)
+  assert.ok((await backend.api('/api/llm-configs')).some(item => item.id === created.id), 'the configuration is listed')
+  const evaluations = await backend.api('/api/evaluations')
+  assert.ok(evaluations.models.length >= 1)
+  await backend.api(`/api/llm-configs/${created.id}`, 'DELETE')
+  assert.ok(!(await backend.api('/api/llm-configs')).some(item => item.id === created.id))
 })
 
 test('a revoked token is reported as rejected, and signing out forgets it', { skip }, async () => {

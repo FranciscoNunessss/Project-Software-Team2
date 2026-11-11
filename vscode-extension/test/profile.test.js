@@ -6,7 +6,7 @@ const { installVscode, secretStore, stub, json, TOKEN } = require('./helpers')
 const config = { backendUrl: 'http://127.0.0.1:1' }
 const { vscode, log, ui } = installVscode(config)
 const { Backend } = require('../dist/backend.js')
-const { ProfileView, ProgressReport } = require('../dist/profile.js')
+const { ProgressReport } = require('../dist/profile.js')
 const { renderProgress, sparkline } = require('../dist/progress.js')
 
 const CONTEXT = { content: 'I prefer short answers', updated_at: 't', save_enabled: false, use_enabled: false, coaching_auto_enabled: false, conversation_memory_enabled: false, saved_conversations: 3, memory: [{}, {}] }
@@ -50,126 +50,6 @@ const reset = () => {
   ui.info = () => undefined
   for (const key of Object.keys(log)) log[key].length = 0
 }
-const rows = view => view.getChildren()
-const toggle = (view, key) => rows(view).find(row => row.key === key)
-
-test('the profile shows each switch with its state, the preferences and the deletions', async () => {
-  reset()
-  const { server, backend } = await backendStub()
-  try {
-    const view = new ProfileView(backend)
-    await view.refresh()
-    const labels = rows(view).map(row => row.label)
-    assert.deepEqual(labels.slice(0, 6), ['Save learned memory', 'Use memory in analyses', 'Save task text and AI responses', 'Automatic suggestions', 'Prompt Coach', 'Always analyse before sending'])
-    assert.equal(toggle(view, 'coach').on, true)
-    assert.equal(toggle(view, 'save_enabled').on, false)
-    const prefs = rows(view).find(row => row.label === 'Preferences')
-    assert.equal(prefs.description, 'I prefer short answers')
-    assert.match(rows(view).find(row => row.label === 'Delete stored conversations').description, /3 saved/)
-    const item = view.getTreeItem(toggle(view, 'coach'))
-    assert.equal(item.checkboxState, 1)
-    assert.match(item.tooltip, /Coach helps describe a task/)
-    assert.match(rows(view).at(-1).label, /API tokens are managed in the app/)
-  } finally {
-    await server.close()
-  }
-})
-
-test('ticking a plain switch changes it on the backend, without a question', async () => {
-  reset()
-  const { server, backend, state } = await backendStub()
-  try {
-    const view = new ProfileView(backend)
-    await view.refresh()
-    await view.setToggle('save_enabled', true)
-    await view.setToggle('coach', false)
-    await view.setToggle('auto_analyse', true)
-    assert.equal(state.context.save_enabled, true)
-    assert.equal(state.coach, false)
-    assert.equal(state.auto, true)
-    assert.equal(log.warning.length, 0)
-    assert.equal(toggle(view, 'save_enabled').on, true)
-  } finally {
-    await server.close()
-  }
-})
-
-test('saving task text and automatic suggestions ask first, explain what is sent, and do nothing if declined', async () => {
-  reset()
-  const { server, backend, state } = await backendStub()
-  try {
-    const view = new ProfileView(backend)
-    await view.refresh()
-    ui.warning = () => undefined
-    await view.setToggle('conversation_memory_enabled', true)
-    await view.setToggle('coaching_auto_enabled', true)
-    assert.match(log.warning[0].message, /stored on the backend.*may be sent to the assessor or the chat model/s)
-    assert.match(log.warning[1].message, /derived metadata.*project model.*quota/s)
-    assert.equal(state.context.conversation_memory_enabled, false)
-    assert.equal(state.context.coaching_auto_enabled, false)
-    assert.equal(toggle(view, 'conversation_memory_enabled').on, false, 'the tree went back to the real state')
-    ui.warning = (_m, _o, buttons) => buttons[0]
-    await view.setToggle('conversation_memory_enabled', true)
-    assert.equal(state.context.conversation_memory_enabled, true)
-  } finally {
-    await server.close()
-  }
-})
-
-test('preferences are saved as typed, and an empty value clears them', async () => {
-  reset()
-  const { server, backend, state } = await backendStub()
-  try {
-    const view = new ProfileView(backend)
-    await view.refresh()
-    vscode.window.showInputBox = async options => {
-      assert.match(options.prompt, /Do not enter sensitive information/)
-      assert.equal(options.value, 'I prefer short answers')
-      return ''
-    }
-    await view.editPreferences()
-    assert.equal(state.context.content, '')
-  } finally {
-    await server.close()
-  }
-})
-
-test('each deletion asks, names what stays, and is sent only after the confirmation', async () => {
-  reset()
-  const { server, backend, state } = await backendStub()
-  try {
-    const view = new ProfileView(backend)
-    await view.refresh()
-    ui.warning = () => undefined
-    await view.delete('history')
-    assert.equal(state.calls.filter(call => call.startsWith('DELETE')).length, 0)
-    assert.match(log.warning[0].message, /account, preferences and model configurations stay.*cannot be undone/s)
-    ui.warning = (_m, _o, buttons) => buttons[0]
-    await view.delete('memory')
-    await view.delete('conversations')
-    await view.delete('history')
-    assert.deepEqual(state.calls.filter(call => call.startsWith('DELETE')), ['DELETE /api/context/memory', 'DELETE /api/context/conversations', 'DELETE /api/progress/history'])
-  } finally {
-    await server.close()
-  }
-})
-
-test('signed out or a failing backend is said in the tree, not hidden', async () => {
-  reset()
-  const out = new ProfileView(new Backend(secretStore()))
-  await out.refresh()
-  assert.match(rows(out)[0].label, /Sign in to see your profile/)
-  const { server, backend } = await backendStub({ fail: true })
-  try {
-    const view = new ProfileView(backend)
-    await view.refresh()
-    assert.match(rows(view)[0].label, /Groq could not be reached|provider could not be reached|failed/i)
-  } finally {
-    await server.close()
-  }
-})
-
-// ---- My progress ---------------------------------------------------------------------------------------
 
 test('the progress report has the app\'s sections with real numbers', async () => {
   reset()

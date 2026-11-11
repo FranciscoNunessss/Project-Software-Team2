@@ -65,7 +65,7 @@ days, **L** more.
 * **Work.** A model menu in the chat composer that applies to the next message only (including OpenRouter catalogue models, `GET /api/openrouter/models`, shown with their evaluation state, with "Evaluate" that opens the consent dialog). `ChatService.send` takes an optional model; the setting `adaptai.chatModel` stays the default.
 * **Done when.** A message goes to the picked model and the next one back to the default; an external model asks the usual confirmation; stub and integration tests.
 
-### IDE-06 · Supabase (cloud) mode (L, needs a Supabase project) · DECIDED 11 Nov 2026: keep "paste a token", build the browser sign-in later
+### IDE-06 · Supabase (cloud) mode (L, needs a validated Supabase login) · DECIDED 11 Nov 2026: keep "paste a token" for now, build the browser sign-in later
 
 * **Why.** In cloud mode the password is checked by Supabase, so the extension cannot register, sign in or open a password session.
 * **Today.** The extension answers `use_supabase_auth` with "paste a token". Tokens are created in the web app.
@@ -138,7 +138,7 @@ days, **L** more.
 1. IDE-11: a person clicks through the 18 checks below in a real window.
 2. IDE-14: open the pull requests (backend, app screen, extension) for review.
 3. IDE-16 and IDE-17 with the team.
-4. When there is a Supabase project, the browser sign-in of IDE-06; when sessions and the export move to Supabase on develop, check IDE-02 and IDE-01 against the new routes.
+4. When the hosted backend runs develop with the token module and a real Supabase login is validated, try the paste-a-token path against it, then the browser sign-in of IDE-06; when sessions and the export move to Supabase on develop, check IDE-02 and IDE-01 against the new routes.
 
 ## Manual acceptance checklist
 

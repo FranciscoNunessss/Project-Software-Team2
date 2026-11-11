@@ -327,9 +327,9 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
   const locked = busy || analysing
   // The analysis panel floats over the chat but stops above the message box, so Analyse,
   // Send and the Prompt Coach stay usable while it is open. Track where the box starts.
-  // The feedback card (ADR-014) sits right above the box and must stay reachable too.
+  // The feedback card (ADR-014) above the box is part of the chat: the panel overlaps it.
   const composer = useRef<HTMLElement>(null)
-  const composerSpace = useSheetClearance(composer, { active: activePage, above: '[data-outcome-card]' })
+  const composerSpace = useSheetClearance(composer, { active: activePage })
   // The sidebar must not switch chats mid-answer: switching remounts this screen.
   useEffect(() => { onBusyChange(locked) }, [locked]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => onBusyChange(false), []) // eslint-disable-line react-hooks/exhaustive-deps

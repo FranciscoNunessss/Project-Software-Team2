@@ -102,8 +102,8 @@ days, **L** more.
 ### IDE-12 · Clean-up of the first build (S) · DONE 11 Nov 2026
 
 * **Work.** The side-bar trees (`ChatsView`, `ModelsView`, `ProfileView`, `HistoryView`) are no longer registered. Move what the page still uses (data loading, `describeEvaluation`, `consentText`, `PROVIDERS`) into plain modules, delete the tree code and the commands that only served the trees (`adaptai.modelEdit`, `adaptai.evaluationConsent`, …) from `package.json`, and keep the tests that cover the rules.
-* **Done on 11 Nov.** The tree of chats, the history tree and the commands that served the trees were removed (the page does all of it). **Still open:** `ModelsView` and `ProfileView` stay in `models.ts` and `profile.ts` only because their unit and integration tests still use them; port those tests to the page's flows (`test/dashboard-flows.test.js` has a fake view that answers the dialogs) and delete the two classes, keeping `describeEvaluation`, `consentText`, `PROVIDERS`, `CAPABILITIES` and `CONSENT`.
-* **Done when.** `pnpm test` passes, no class exists only for a test, and the guide's table "Old trees" row is removed.
+* **Done on 11 Nov.** The tree of chats, the history tree and the commands that served the trees were removed (the page does all of it). Then `ModelsView` and `ProfileView` were deleted too: their flows (add, edit, delete and test a model, the consent of an evaluation, the OpenRouter catalogue, the switches, the preferences and the deletions) are tested through the page in `test/dashboard-models.test.js`, and the helpers the page uses (`describeEvaluation`, `consentText`, `PROVIDERS`, `CAPABILITIES`, `CONSENT`) stay in `models.ts` and `profile.ts`.
+* **Done when.** `pnpm test` passes, no class exists only for a test, and the guide's table row about the first build is replaced by the one about the page's helpers. Done.
 
 ### IDE-13 · Hosted backend and distribution (M, a decision) · DECIDED 11 Nov 2026: `.vsix` only, CI added
 

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from './api'
+import './ProgressDashboard.css'
+import './LearningProgress.css'
 
 // "Are you describing tasks better?" Completeness of the first analysis of each session, with
 // the verdict computed by the backend (GET /api/progress/learning). Numeric only, no task text.

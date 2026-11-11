@@ -23,7 +23,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 DATA = Path(tempfile.mkdtemp(prefix="adaptai-e2e-"))
-DATABASE_URL = os.environ.get("ADAPTAI_TEST_DATABASE_URL", "postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai")
+DATABASE_URL = os.environ.get(
+    "ADAPTAI_TEST_DATABASE_URL", "postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai"
+)
 SCHEMA = "e2e_" + uuid4().hex
 os.environ["ADAPTAI_DATABASE_URL"] = DATABASE_URL
 os.environ["ADAPTAI_DATABASE_SCHEMA"] = SCHEMA
@@ -39,6 +41,15 @@ atexit.register(cleanup)
 os.environ["ADAPTAI_CREDENTIALS_KEY_PATH"] = str(DATA / "e2e.key")
 
 import uvicorn  # noqa: E402
+from app import llm_config  # noqa: E402
+
+
+async def fake_key_ok(settings):
+    """OpenRouter's key check without the network: e2e keys are valid, others are not."""
+    return settings.openrouter_api_key.get_secret_value().startswith("sk-or-e2e")
+
+
+llm_config.openrouter_key_ok = fake_key_ok
 from app.main import create_app  # noqa: E402
 from app.models import Assessment, Profile  # noqa: E402
 from app.openrouter import OpenRouterCatalogue  # noqa: E402
@@ -137,9 +148,15 @@ class FakeChat:
 
     def __init__(self, provider, settings, model):
         self.provider = provider
+        self.model = settings.openrouter_model if provider == "openrouter" else model
 
     async def stream(self, messages):
         question = messages[-1][1]
+        if "limited" in str(self.model):
+            # A free model at its daily limit (ADR-014 A11): OpenRouter answers HTTP 429.
+            error = RuntimeError("Rate limit exceeded: free-models-per-day")
+            error.status_code = 429
+            raise error
         if "markdown" in question.lower():
             # Markdown as real models write it, plus raw HTML that must not be rendered.
             for part in (
@@ -171,7 +188,14 @@ def router_entry(identifier, name, prompt, completion, **extra):
 ROUTER_MODELS = [
     router_entry("acme/swift:free", "Swift", "0", "0"),
     router_entry("acme/gratis", "Gratis (no suffix)", "0", "0"),
+    router_entry("acme/limited:free", "Limited", "0", "0"),
+    # Free, in no source; evaluated only by e2e/openrouter-models.spec.ts (results are shared).
+    router_entry("acme/novel", "Novel", "0", "0"),
+    # In the public LMArena snapshot (ADR-014 A10): rated before any evaluation.
+    router_entry("anthropic/claude-opus-5.5", "Claude Opus 5.5", "0.000005", "0.000025"),
     router_entry("vendor/deluxe", "Deluxe", "0.0000025", "0.00001"),
+    # Paid, in no public source; evaluated by e2e/coverage.spec.ts only (results are shared).
+    router_entry("vendor/premium", "Premium", "0.000003", "0.000012"),
     router_entry(
         "vendor/embedder",
         "Embedder",
@@ -182,6 +206,26 @@ ROUTER_MODELS = [
 ]
 
 
+class FakeEvaluated:
+    """Answers the evaluation suite (ADR-014) for personal models only. The project's Groq
+    model always fails, so the shared server model stays unevaluated and the other tests
+    keep their illustrative recommendation."""
+
+    def __init__(self, provider, settings, max_tokens):
+        self.provider = provider
+        self.model = settings.openrouter_model if provider == "openrouter" else ""
+
+    async def ainvoke(self, messages):
+        if self.provider == "groq":
+            raise ValueError("e2e: the project model is not evaluated")
+        if "limited" in self.model:
+            # OpenRouter refuses (no credit / daily limit): the run stops after 5 calls.
+            error = RuntimeError("Insufficient credits")
+            error.status_code = 402
+            raise error
+        return type("Reply", (), {"content": "I don't know.", "usage_metadata": None})()
+
+
 async def fetch_router_models():
     return ROUTER_MODELS
 
@@ -190,7 +234,7 @@ def build():
     settings = Settings(
         _env_file=None,
         groq_api_key="e2e-fake-key",
-        browser_origin="http://127.0.0.1:8443",
+        browser_origin=os.environ.get("E2E_WEB_ORIGIN", "http://127.0.0.1:8543"),
     )
     return create_app(
         settings,
@@ -198,8 +242,16 @@ def build():
         prompt_coach_options={"model_factory": FakeCoach},
         chat_options={"model_factory": FakeChat},
         openrouter_catalogue=OpenRouterCatalogue(fetch_router_models),
+        evaluation_options={
+            "worker": True,
+            "model_factory": FakeEvaluated,
+            "poll_seconds": 0.5,
+            "inventory_seconds": float("inf"),
+            "pace_seconds": 0,
+            "quiet_seconds": 0,
+        },
     )
 
 
 if __name__ == "__main__":
-    uvicorn.run(build(), host="127.0.0.1", port=int(os.environ.get("E2E_API_PORT", "8000")))
+    uvicorn.run(build(), host="127.0.0.1", port=int(os.environ.get("E2E_API_PORT", "8100")))

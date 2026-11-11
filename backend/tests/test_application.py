@@ -89,7 +89,10 @@ def test_external_consent_and_semantic_workflow(provider_id):
     assert provider.calls == 0
     response = client.post("/api/analyze", json={**body, "allow_external": True})
     assert response.json()["mode"] == "semantic"
-    assert response.json()["recommendation"]["id"] == "demo-advanced"
+    # The Groq server model is rated from LMArena (ADR-014 A10): a real model beats the
+    # illustrative demo card; the other providers have no server model here.
+    expected = "gpt-oss-20b" if provider_id == "groq" else "demo-advanced"
+    assert response.json()["recommendation"]["id"] == expected
     assert provider.calls == 1
 
 

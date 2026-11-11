@@ -1,0 +1,71 @@
+/* Page-wide element styles. Imported once from main.tsx, right after tokens.css. */
+
+/* The parts of Tailwind v4's preflight (4.2.2) the app was built on, kept after Tailwind
+   was removed. They sit in a layer, as before, so every unlayered rule still wins over
+   them. Dropped: resets for elements and controls the app never renders (abbr, video,
+   audio, canvas, iframe, embed, object, optgroup, file inputs, date/time and number inputs). */
+@layer base {
+  *, ::after, ::before, ::backdrop { box-sizing: border-box; margin: 0; padding: 0; border: 0 solid; }
+  html, :host { line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; font-family: var(--font-sans); -webkit-tap-highlight-color: transparent; }
+  hr { height: 0; color: inherit; border-top-width: 1px; }
+  h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; }
+  a { color: inherit; text-decoration: inherit; }
+  b, strong { font-weight: bolder; }
+  code, kbd, samp, pre { font-family: var(--font-mono); font-size: 1em; }
+  small { font-size: 80%; }
+  sub, sup { font-size: 75%; line-height: 0; position: relative; vertical-align: baseline; }
+  sub { bottom: -.25em; }
+  sup { top: -.5em; }
+  table { text-indent: 0; border-color: inherit; border-collapse: collapse; }
+  :-moz-focusring { outline: auto; }
+  progress { vertical-align: baseline; }
+  summary { display: list-item; }
+  ol, ul, menu { list-style: none; }
+  img, svg { display: block; vertical-align: middle; }
+  img { max-width: 100%; height: auto; }
+  button, input, select, textarea { font: inherit; font-feature-settings: inherit; font-variation-settings: inherit; letter-spacing: inherit; color: inherit; border-radius: 0; background-color: transparent; opacity: 1; }
+  ::placeholder { opacity: 1; }
+  @supports (not (-webkit-appearance: -apple-pay-button)) or (contain-intrinsic-size: 1px) {
+    ::placeholder { color: color-mix(in oklab, currentcolor 50%, transparent); }
+  }
+  textarea { resize: vertical; }
+  ::-webkit-search-decoration { -webkit-appearance: none; }
+  :-moz-ui-invalid { box-shadow: none; }
+  button, input:where([type='button'], [type='reset'], [type='submit']) { appearance: button; }
+  [hidden]:where(:not([hidden='until-found'])) { display: none !important; }
+}
+
+:root {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--color-bg); }
+
+/* The app root: .theme-dark is set on this element, so everything inside reads dark tokens. */
+.app { min-height: 100vh; background: var(--color-bg); color: var(--color-text); transition: background-color .2s ease, color .2s ease; }
+
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+
+h1, h2, h3, p { margin-top: 0; }
+h1 { margin-bottom: 10px; font-size: clamp(28px, 2.4vw, 38px); line-height: 1.1; letter-spacing: -.045em; font-weight: var(--weight-bold); color: var(--color-heading-strong); }
+
+/* Shared text helpers. */
+.muted { color: var(--color-muted); font-size: var(--text-xs); line-height: 1.5; margin: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+/* On/off switches: <input type="checkbox" role="switch">. */
+input[role="switch"] { appearance: none; width: 42px; height: 24px; border: 1px solid var(--color-line); border-radius: 20px; background: var(--switch-off); flex-shrink: 0; position: relative; cursor: pointer; }
+input[role="switch"]::after { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; top: 2px; left: 2px; background: var(--switch-knob); transition: transform .15s; }
+input[role="switch"]:checked { background: var(--switch-on); }
+input[role="switch"]:checked::after { transform: translateX(18px); }
+input[role="switch"]:disabled { opacity: .5; cursor: not-allowed; }

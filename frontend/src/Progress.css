@@ -1,0 +1,35 @@
+/* My progress: refresh bar, pending choices and saved session history. */
+
+.progress-refresh { display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin-bottom: 20px; }
+.progress-refresh > span { color: var(--color-muted); font-size: 12px; }
+.pending-choices { margin-top: 28px; padding: 24px; }
+.pending-choices > p { color: var(--color-muted); font-size: 13px; line-height: 1.7; }
+
+.history-layout { display: grid; grid-template-columns: minmax(220px, .7fr) minmax(0, 1.3fr); gap: 20px; align-items: start; }
+.history-sessions { display: grid; gap: 12px; min-width: 0; }
+.history-session { display: grid; gap: 10px; padding: 20px; text-align: left; width: 100%; color: var(--color-ink); transition: border-color .2s; }
+.history-session:hover, .history-session.is-selected { border-color: var(--color-ink); }
+.history-session strong { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.history-session span { color: var(--color-muted); font-size: 12px; }
+.history-detail { padding: 24px; min-width: 0; }
+.history-detail-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.history-detail-heading > div { min-width: 0; }
+.history-detail h2 { overflow-wrap: anywhere; }
+.history-context { border-top: 1px solid var(--color-line); padding: 16px 0; font-size: 13px; }
+.history-context summary { cursor: pointer; }
+.history-context p { margin: 12px 0 0; color: var(--color-muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+.history-delete { border-top: 1px solid var(--color-line); margin-top: 16px; padding-top: 20px; }
+.history-delete p { font-size: 13px; line-height: 1.6; }
+.history-empty { padding: 40px 24px; text-align: center; }
+.history-empty .auth-symbol { margin: 0 auto 20px; }
+.history-empty p { max-width: 500px; margin: 16px auto 0; color: var(--color-muted); font-size: 14px; line-height: 1.7; }
+.progress-history > summary { cursor: pointer; }
+.progress-history { margin-top: 32px; border-top: 1px solid var(--color-line); padding-top: 24px; }
+.progress-history > summary { font-size: 16px; font-weight: 600; }
+.delete-history-confirmation { padding: 24px; margin: 24px 0; }
+.delete-history-confirmation p { color: var(--color-muted); font-size: 14px; line-height: 1.7; margin-top: 16px; }
+
+@media (max-width: 800px) {
+  .pending-choices { padding: 20px; }
+  .history-layout { grid-template-columns: 1fr; }
+}

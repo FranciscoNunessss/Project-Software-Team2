@@ -25,6 +25,8 @@ os.environ["ADAPTAI_DATABASE_URL"] = TEST_DATABASE_URL
 os.environ["ADAPTAI_DATABASE_SCHEMA"] = _collection_schema
 os.environ["ADAPTAI_CREDENTIALS_KEY_PATH"] = str(Path(_collection_data.name) / "collection.key")
 os.environ.pop("ADAPTAI_CREDENTIALS_KEY", None)
+# The evaluation worker would call real providers; tests drive app.evaluations directly.
+os.environ["ADAPTAI_EVALUATIONS_WORKER"] = "false"
 
 
 def drop_test_schema(name):
@@ -48,6 +50,16 @@ except psycopg.OperationalError:
         "or ADAPTAI_TEST_DATABASE_URL pointing to a disposable test database."
     ) from None
 atexit.register(cleanup_collection)
+
+
+@pytest.fixture(autouse=True)
+def no_rate_limits_between_tests():
+    """app.limits is per process: one test's rate-limited model must not affect the next."""
+    from app import limits
+
+    limits.clear()
+    yield
+    limits.clear()
 
 
 @pytest.fixture(autouse=True)

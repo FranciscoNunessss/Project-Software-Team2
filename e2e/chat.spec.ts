@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { signUp } from './helpers'
+import { closePanel, signUp } from './helpers'
 
 // The chat (ADR-011) is the Assistant tab when the module is installed. FakeChat in
 // e2e/server.py answers "Fake answer: <question>"; FakeAssessor treats a task with "board"
@@ -60,34 +60,41 @@ test('Analyse opens the analysis panel; Send carries the analysis with the messa
 
   await page.locator('[data-chat-input]').fill(COMPLETE)
   await expect(drawer.getByText('The message changed since this analysis')).toBeVisible()
+  await closePanel(page)
   const reanalysis = page.waitForRequest(request => request.url().endsWith('/api/analyze'))
   await page.locator('[data-analyse-button]').click()
   expect((await reanalysis).postDataJSON().previous_analysis_id).toBeTruthy()
   await expect(drawer.getByText('What changed since the previous analysis')).toBeVisible()
   await expect(page.getByText('Recommended:')).toBeVisible()
 
+  await closePanel(page)
+  await expect(drawer).toBeHidden()
   const sent = page.waitForRequest(request => /\/api\/chats\/[^/]+\/messages$/.test(request.url()))
   await page.locator('[data-chat-send]').click()
   expect((await sent).postDataJSON().analysis_id).toBeTruthy()
   await expect(page.locator('[data-analysis-chip]')).toHaveText('Analysis 100/100')
 
-  // The panel closes with its own button; the message's chip reopens it.
-  const close = page.getByRole('button', { name: 'Close analysis' })
-  await close.click()
-  await expect(drawer).toBeHidden()
+  // The message's chip reopens the panel; its own button closes it.
   await page.locator('[data-analysis-chip]').click()
   await expect(drawer.getByText('100/100')).toBeVisible()
-  await close.click()
+  await closePanel(page)
   await expect(drawer).toBeHidden()
 })
 
-test('while the panel is open the message box stays usable, and the panel can send', async ({ page }) => {
+test('the panel covers the message box on wide screens and sends with its own button', async ({ page }) => {
   await openChat(page)
   await page.locator('[data-chat-input]').fill(VAGUE)
   await page.locator('[data-analyse-button]').click()
   const drawer = page.locator('[data-analysis-drawer]')
   await expect(drawer.getByText('50/100')).toBeVisible()
-  // The panel stops above the message box: editing and re-analysing work with it open.
+  // Full height, over the chat and the right end of the message box.
+  const covered = await page.evaluate(() => {
+    const send = document.querySelector('[data-chat-send]')!.getBoundingClientRect()
+    const hit = document.elementFromPoint(send.left + send.width / 2, send.top + send.height / 2)
+    return !!hit?.closest('[data-analysis-drawer]')
+  })
+  expect(covered).toBe(true)
+  await closePanel(page)
   await page.locator('[data-chat-input]').fill(COMPLETE)
   await page.locator('[data-analyse-button]').click()
   await expect(drawer.getByText('100/100')).toBeVisible()
@@ -103,6 +110,7 @@ test('a message sent without analysing it has no analysis chip', async ({ page }
   await page.locator('[data-chat-input]').fill(VAGUE)
   await page.locator('[data-analyse-button]').click()
   await expect(page.locator('[data-analysis-drawer]').getByText('50/100')).toBeVisible()
+  await closePanel(page)
   // Edited after the analysis: the analysis no longer describes this text.
   await send(page, 'Something else entirely.')
   await expect(page.locator('[data-analysis-chip]')).toHaveCount(0)

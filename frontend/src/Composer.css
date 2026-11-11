@@ -1,0 +1,31 @@
+/*
+ * The message box: the task field with its footer (model picker, counter, actions).
+ * Shared by the chat (ChatScreen.tsx, with .chat-composer) and the older Assistant screen.
+ */
+.composer { padding: 22px; border: 1px solid var(--color-line-strong); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-raised); }
+.composer label { display: block; margin-bottom: 12px; color: var(--color-body); font-size: var(--text-md); font-weight: var(--weight-bold); }
+.composer textarea { display: block; resize: vertical; width: 100%; min-height: 108px; padding: 0; border: 0; outline: none; background: transparent; color: var(--color-body); font-size: var(--text-xl); line-height: 1.65; }
+.composer textarea::placeholder { color: var(--color-placeholder); }
+.composer-footer { border-top: 1px solid var(--color-line-soft); padding-top: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.composer-actions { display: flex; align-items: center; gap: 18px; }
+.composer-actions > span { color: var(--color-subtle); font-size: var(--text-sm); }
+
+/* In the chat: a shorter field; the footer wraps instead of squeezing the model picker. */
+.chat-composer textarea { min-height: 64px; color: var(--composer-chat-ink); }
+.chat-composer .composer-footer { flex-wrap: wrap; row-gap: 10px; }
+.chat-composer .composer-footer > * { flex-shrink: 0; max-width: 100%; }
+.chat-composer .composer-actions { gap: 10px; flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+.chat-composer .model-picker { flex: 0 0 auto; }
+
+@media (max-width: 800px) {
+  .composer { padding: 18px; border-radius: 14px; }
+  .composer textarea { min-height: 142px; font-size: var(--text-lg); }
+  .composer-footer { align-items: flex-end; }
+  .composer-actions > span { display: none; }
+  .composer-actions .button { min-height: 42px; padding: 0 15px; }
+  .chat-composer { padding: 12px; }
+  .chat-composer textarea { min-height: 56px; }
+}
+@media (max-width: 430px) {
+  .composer { box-shadow: var(--shadow-raised-compact); }
+}

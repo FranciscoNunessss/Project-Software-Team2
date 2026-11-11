@@ -1,0 +1,16 @@
+.button { min-height: 40px; border-radius: var(--radius-control); padding: 0 16px; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: var(--text-base); font-weight: var(--weight-bold); transition: .18s ease; }
+.button-sm { min-height: 36px; padding: 0 11px; font-size: var(--text-xs); }
+
+.button-primary { background: var(--button-primary-bg); color: var(--color-accent-ink); box-shadow: var(--shadow-button); }
+.button-primary:hover { background: var(--button-primary-bg-hover); transform: translateY(-1px); }
+
+.button-secondary { background: var(--button-secondary-bg); border-color: var(--color-line-control); color: var(--button-secondary-ink); }
+.button-secondary:hover { background: var(--button-secondary-bg-hover); border-color: var(--color-line-control-hover); color: var(--button-secondary-ink-hover); }
+
+/* Ghost: no surface of its own; it takes the colour of the text around it. */
+.button-ghost { background: transparent; color: inherit; }
+
+.button-danger { background: var(--button-danger-bg); border-color: var(--color-line-control); color: var(--button-danger-ink); }
+.button-danger:hover { background: var(--button-danger-bg-hover); }
+
+.button:disabled { opacity: .55; cursor: wait; transform: none; }

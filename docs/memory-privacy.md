@@ -191,8 +191,10 @@ removed by ADR-014.)
 
 `task_outcomes` keeps, for an analysis, the user's verdict on the task (`resolved`,
 `resolved_with_refinement`, `not_resolved` with an optional reason from a fixed list, or
-`skipped`), the card id of the model used and of the recommended one, the task needs and the
-model's levels as numbers, the completeness, and counts (answers, Retry, Stop, whether the
+`skipped`), the provider and model id actually used, the card id of that model and of the
+recommended one, the task needs and the
+model's levels as numbers, where those levels came from (`levels_source`, a name such as
+`measured` or `arena`), the completeness, and counts (answers, Retry, Stop, whether the
 model was switched). It holds **no text**: the chat sends only these values. Rows are deleted
 with the analysis, the session or chat, the history and the account. The Educator receives
 the totals only; the calibration report of the second phase reads the counts and proposes catalogue
@@ -216,3 +218,12 @@ PostgreSQL/provider backups need their own retention/deletion policy; deleting a
 does not promise forensic removal from backups. PostgreSQL tests use generated schemas
 and synthetic data, independently of the application URL. No Supabase project or cloud
 data transfer is performed by this repository change.
+
+## Model evaluations (ADR-014 A8)
+
+`model_evaluations` holds, per evaluated model, its status, progress, cost estimate and spent
+amount, provider facts, levels and the answers to the **synthetic** evaluation tasks (truncated);
+no user text is ever sent or stored. `requested_by` is set to null when that account is
+deleted. `evaluation_disagreements` keeps only which user disagreed with which capability, and
+is deleted with the account or the evaluation.
+

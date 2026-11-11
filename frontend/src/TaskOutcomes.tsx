@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type OutcomeSummary } from './api'
+import './TaskOutcomes.css'
 
 // My progress: "Your solved tasks" (ADR-014). Counts only, from GET /api/progress/outcomes.
 export function TaskOutcomes() {

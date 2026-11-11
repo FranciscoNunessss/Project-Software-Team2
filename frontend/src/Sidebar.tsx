@@ -2,6 +2,8 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { api, type ChatSummary } from './api'
 import type { AccountInfo } from './Account'
 import { Icon } from './AnalysisResult'
+import { IconButton } from './ui'
+import './Sidebar.css'
 
 export type Screen = 'assistant' | 'progress' | 'profile' | 'llm'
 
@@ -61,22 +63,22 @@ export function Sidebar({ screen, onNavigate, dark, onToggleTheme, account, chat
     <header className="topbar">
       <div className="nav-shell">
         <div className="sidebar-head">
-          <button type="button" className="icon-button sidebar-drawer-toggle" aria-label="Show menu" aria-expanded={drawer} onClick={() => setDrawer(true)}>
+          <IconButton className="sidebar-drawer-toggle" aria-label="Show menu" aria-expanded={drawer} onClick={() => setDrawer(true)}>
             <span className="hamburger" aria-hidden="true" />
-          </button>
+          </IconButton>
           <button type="button" className="brand" onClick={() => onNavigate('assistant')} aria-label="AdaptAI home">
             <span className="brand-mark"><Icon name="spark" size={16} /></span>
             <span className="brand-name">AdaptAI</span>
           </button>
           {chats && (
-            <button type="button" className="icon-button sidebar-new-icon" aria-label="New chat" onClick={chats.onNew} disabled={chats.locked}>{ICONS.new}</button>
+            <IconButton className="sidebar-new-icon" aria-label="New chat" onClick={chats.onNew} disabled={chats.locked}>{ICONS.new}</IconButton>
           )}
         </div>
         <div className={`sidebar-backdrop${drawer ? ' open' : ''}`} onClick={() => setDrawer(false)} aria-hidden="true" />
         <div className={`sidebar-panel${drawer ? ' open' : ''}`} data-sidebar="">
           <div className="sidebar-panel-head">
             <span className="brand-name">AdaptAI</span>
-            <button type="button" className="icon-button" aria-label="Close menu" onClick={() => setDrawer(false)}>×</button>
+            <IconButton aria-label="Close menu" onClick={() => setDrawer(false)}>×</IconButton>
           </div>
           <nav aria-label="Main navigation" className="sidebar-nav" data-sidebar-nav="">
             {chats && (

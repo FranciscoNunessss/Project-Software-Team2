@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react'
+import type { UseRecommended } from './AnalysisDrawer'
+import { Card } from './ui'
 import { COST_BAND_LABELS, NEED_LABELS, STATUS_LABELS, fitPercent, isLegacy, tierOf, type Analysis, type Candidate, type Coverage } from './api'
+import './AnalysisResult.css'
 
 // Result cards shared by the Assistant page and the chat's analysis panel.
 export function Icon({
@@ -37,10 +40,6 @@ export function Icon({
       {paths[name]}
     </svg>
   )
-}
-
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`card ${className}`}>{children}</section>
 }
 
 export function ProfileCard({ analysis }: { analysis: Analysis }) {
@@ -141,7 +140,14 @@ function shortText(candidate: Candidate) {
 }
 
 /** The recommended model, how it covers each need of the task, and the alternatives (ADR-014). */
-export function ModelRecommendationCard({ analysis }: { analysis: Analysis }) {
+function UseButton({ use }: { use?: UseRecommended }) {
+  if (!use) return null
+  if (use.state === 'available') return <button type="button" className="button button-primary use-recommended" onClick={use.onUse} data-use-recommended="">Use this model</button>
+  const text = { selected: '✓ Selected for Send', unavailable: 'Not among your models', illustrative: 'Illustrative: not a real model' }[use.state]
+  return <p className="use-recommended-state muted" data-use-recommended-state={use.state}>{text}</p>
+}
+
+export function ModelRecommendationCard({ analysis, useRecommended }: { analysis: Analysis; useRecommended?: UseRecommended }) {
   const best = analysis.recommendation
   const coverage = best.coverage ?? []
   return (
@@ -154,6 +160,7 @@ export function ModelRecommendationCard({ analysis }: { analysis: Analysis }) {
         </div>
         <span className={`status-pill status-${best.status}`}>{STATUS_LABELS[best.status ?? 'short']}</span>
       </div>
+      <UseButton use={useRecommended} />
       {coverage.length > 0 && (
         <table className="coverage-table">
           <caption className="sr-only">How the recommended model covers each need of the task</caption>
@@ -171,6 +178,8 @@ export function ModelRecommendationCard({ analysis }: { analysis: Analysis }) {
         </table>
       )}
       {coverage.some(entry => entry.provisional) && <p className="muted">{best.illustrative ? '* Illustrative level of a demo model, not a real measurement.' : '* Level from public benchmarks or the automatic measurement, not reviewed by the team yet.'}</p>}
+      {best.levels_from && <p className="muted" data-levels-from="">Levels from: {best.levels_from}</p>}
+      {analysis.assessment_model && <p className="muted" data-assessed-by="">Task assessed by {analysis.assessment_model} (the project's assessor; your chat model answers)</p>}
       {(analysis.notes ?? []).length > 0 && (
         <ul className="recommendation-notes">{(analysis.notes ?? []).map(note => <li key={note}>{note}</li>)}</ul>
       )}
@@ -197,8 +206,22 @@ export function ModelRecommendationCard({ analysis }: { analysis: Analysis }) {
 }
 
 /** The recommendation card for any analysis: a model, or a tier for analyses stored before ADR-014. */
-export function RecommendationCard({ analysis }: { analysis: Analysis }) {
-  return isLegacy(analysis.recommendation) ? <TierCard analysis={analysis} /> : <ModelRecommendationCard analysis={analysis} />
+/** ADR-014 A12: one rated OpenRouter model the user does not have, that does this task better. */
+function SuggestionCard({ analysis, use }: { analysis: Analysis; use?: UseRecommended }) {
+  const item = analysis.suggestion!
+  return <section className="openrouter-suggestion" data-openrouter-suggestion="">
+    <p className="eyebrow">Also on OpenRouter</p>
+    <p><strong>{item.name}</strong> {analysis.suggestion_reason}.</p>
+    <p className="muted">{item.model}{item.cost_band ? ` · ${item.cost_band} cost` : ''}{item.levels_from ? ` · Levels from: ${item.levels_from}` : ''}</p>
+    <UseButton use={use} />
+  </section>
+}
+
+export function RecommendationCard({ analysis, useRecommended, useSuggestion }: { analysis: Analysis; useRecommended?: UseRecommended; useSuggestion?: UseRecommended }) {
+  return isLegacy(analysis.recommendation) ? <TierCard analysis={analysis} /> : <>
+    <ModelRecommendationCard analysis={analysis} useRecommended={useRecommended} />
+    {analysis.suggestion && <SuggestionCard analysis={analysis} use={useSuggestion} />}
+  </>
 }
 
 export function TierCard({ analysis }: { analysis: Analysis }) {

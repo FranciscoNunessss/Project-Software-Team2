@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode, type FormEvent } from 'react'
 import { api, ApiError } from './api'
 import { supabase } from './auth'
+import './Account.css'
 
 type User = { id: string; email: string }
 

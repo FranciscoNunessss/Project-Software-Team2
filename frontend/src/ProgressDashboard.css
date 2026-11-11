@@ -1,0 +1,90 @@
+/* My progress: metrics, charts, patterns and lessons. */
+
+.chart-loading { min-height: 230px; display: grid; place-items: center; color: var(--grey-66); }
+
+.progress-intro { align-items: center; }
+.metric { min-width: 170px; padding-left: 24px; border-left: 1px solid var(--color-line); display: grid; grid-template-columns: auto auto; align-items: baseline; column-gap: 8px; }
+.metric strong { color: var(--color-accent); font-size: 34px; letter-spacing: -.04em; }
+.metric span { color: var(--grey-72); font-size: 11px; }
+.metric em { grid-column: 1 / -1; color: var(--grey-65); font-size: 10px; font-style: normal; }
+.chart-card { padding: 24px 28px 18px; }
+.chart-card h2 { margin-bottom: 5px; }
+.chart-wrap { position: relative; height: 250px; margin: 18px 0 0 42px; }
+.chart { width: 100%; height: 215px; overflow: visible; }
+.grid-lines { stroke: var(--chart-grid); stroke-width: 1; }
+.chart-area { fill: url(#area); opacity: var(--chart-area-opacity); }
+.chart-line { fill: none; stroke: var(--chart-ink); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.chart circle { fill: var(--color-surface); stroke: var(--chart-ink); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.chart-y { position: absolute; left: -42px; top: 4px; bottom: 42px; display: flex; flex-direction: column; justify-content: space-between; color: var(--grey-a1); font-size: 9px; }
+.chart-x { display: flex; justify-content: space-between; color: var(--grey-a1); font-size: 9px; }
+.pattern-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.pattern-card { padding: 20px; }
+.pattern-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.pattern-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: var(--icon-tile-bg); color: var(--icon-tile-ink); }
+.pattern-status { padding: 5px 8px; border-radius: 999px; font-size: 9px; font-weight: 700; color: var(--pill-ink-muted); background: var(--pill-bg); }
+.pattern-card h3 { margin-bottom: 8px; font-size: 14px; }
+.pattern-card > p { min-height: 40px; margin-bottom: 18px; color: var(--color-muted-soft); font-size: 11px; line-height: 1.6; }
+.next-time { padding: 12px; border-radius: 8px; background: var(--inset-bg); display: grid; gap: 5px; }
+.next-time strong { color: var(--detail-ink-strong); font-size: 9px; text-transform: uppercase; letter-spacing: .07em; }
+.next-time span { color: var(--detail-ink-soft); font-size: 10px; line-height: 1.5; }
+.lower-grid { display: grid; grid-template-columns: 1.5fr .8fr; gap: 24px; margin-top: 40px; }
+.section-heading.compact { margin: 0 0 15px; }
+.lesson { padding: 16px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; margin-bottom: 10px; }
+.lesson-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; color: var(--icon-tile-ink); background: var(--icon-tile-bg); }
+.lesson h3 { margin: 0 0 4px; font-size: 12px; }
+.lesson p { margin: 0 0 5px; color: var(--color-muted-soft); font-size: 10px; }
+.data-card { align-self: end; padding: 22px; }
+.data-card h2 { margin-bottom: 10px; }
+.data-card > p:not(.eyebrow) { color: var(--color-muted-soft); font-size: 11px; line-height: 1.6; }
+.data-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+.data-actions .button { min-height: 36px; padding: 0 11px; font-size: 11px; }
+
+.chart-data summary, .lesson summary { cursor: pointer; }
+.chart-data { font-size: 12px; color: var(--color-muted); margin-top: 16px; }
+.lesson details { font-size: 13px; line-height: 1.6; }
+.lesson details p { margin-top: 12px; }
+
+.progress-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.progress-metrics .card { padding: 24px; display: grid; gap: 12px; }
+.progress-metrics p { color: var(--color-muted); font-size: 13px; margin: 0; }
+.progress-metrics strong { font-size: 32px; letter-spacing: -.04em; }
+.progress-metrics span { color: var(--color-muted); font-size: 12px; line-height: 1.6; }
+.progress-metrics { margin-bottom: 24px; }
+.chart-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0; }
+.chart-x:has(> span:only-child) { justify-content: center; }
+.chart-tabs button[aria-pressed="true"] { border-color: var(--color-ink); color: var(--color-ink); background: var(--color-hover); }
+.activity-legend { display: flex; gap: 24px; font-size: 12px; color: var(--color-muted); margin: 16px 0 28px; }
+.activity-legend span::before { content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--chart-analysed); margin-right: 7px; }
+.activity-legend span:last-child::before { background: var(--chart-confirmed); }
+.activity-bars { display: flex; justify-content: space-around; align-items: flex-end; gap: 16px; height: 224px; padding: 20px 0 0; border-bottom: 1px solid var(--color-line); margin-bottom: 36px; }
+.activity-column { height: 100%; flex: 1; max-width: 130px; position: relative; }
+.activity-bar-pair { display: flex; align-items: flex-end; justify-content: center; gap: 8px; height: 100%; }
+.activity-bar { position: relative; width: min(32px,36%); min-height: 2px; border-radius: 5px 5px 0 0; }
+.activity-bar.analysed { background: var(--chart-analysed); }
+.activity-bar.confirmed { background: var(--chart-confirmed); }
+.activity-bar > span { position: absolute; bottom: calc(100% + 6px); width: 100%; text-align: center; color: var(--color-ink); font-size: 12px; }
+.activity-column > span { position: absolute; top: calc(100% + 12px); text-align: center; width: 100%; font-size: 11px; color: var(--color-muted); white-space: nowrap; }
+.insight-source { margin: -8px 0 18px; color: var(--color-muted); font-size: 12px; line-height: 1.6; }
+.pattern-card { display: flex; flex-direction: column; min-width: 0; }
+.pattern-card .pattern-ai-explanation { min-height: 0; font-size: 13px; line-height: 1.7; color: var(--color-ink); overflow-wrap: anywhere; }
+.ai-caption { display: block; margin-bottom: 8px; font-size: 10px; font-weight: 600; color: var(--color-muted); text-transform: uppercase; letter-spacing: .06em; }
+.pattern-card .next-time { margin-top: auto; }
+.pattern-card.insight-stale { border-style: dashed; }
+.pattern-card .insight-placeholder { min-height: 0; margin-bottom: 0; padding-top: 12px; border-top: 1px solid var(--color-line); }
+.lessons-empty { padding: 24px; color: var(--color-muted); font-size: 13px; line-height: 1.7; }
+.lessons-empty p { margin: 0; }
+.lessons .lesson h3 { font-size: 14px; }
+.lessons .lesson p { font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+
+@media (max-width: 800px) {
+  .progress-intro .metric { margin-top: 24px; padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--color-line); }
+  .chart-card { padding: 18px 14px; }
+  .chart-card .card-heading { display: block; }
+  .chart-wrap { height: 210px; }
+  .chart { height: 175px; }
+  .pattern-grid, .lower-grid { grid-template-columns: 1fr; }
+  .lesson { grid-template-columns: auto 1fr; }
+  .lesson .button { grid-column: 2; justify-self: start; }
+  .progress-metrics { grid-template-columns: 1fr; }
+  .progress-metrics .card { padding: 20px; }
+}

@@ -6,15 +6,21 @@ from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, Req
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from httpx import Client, Limits
 from langsmith import tracing_context
 from psycopg.errors import ForeignKeyViolation
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from app import limits
 from app.accounts import AuthenticatedUser, check_origin
 from app.accounts import router as accounts_router
 from app.assessment import PROFILE_VERSION, RUBRIC_VERSION, explain_changes
 from app.catalogue import active_catalogue
 from app.coaching import install_coaching
+from app.evaluations import Ratings, install_evaluations, pending_for
+from app.evaluations import _router_snapshot as router_snapshot
+from app.evaluations import label as evaluation_label
+from app.evaluations import statuses as evaluation_statuses
 from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
 from app.openrouter import CatalogueUnavailable, OpenRouterCatalogue, fetch_models
@@ -27,7 +33,7 @@ from app.providers import (
     Settings,
     with_server_models,
 )
-from app.recommendation import POLICY_VERSION, candidate_gap
+from app.recommendation import POLICY_VERSION, Option, candidate_gap
 from app.storage import Storage, history_result, stored_result
 from app.workflow import build_workflow
 
@@ -61,12 +67,43 @@ def agreement_percent(gaps: list[int]) -> int | None:
     return round(100 * sum(max(0.0, 1 - abs(gap) / 2) for gap in gaps) / len(gaps))
 
 
+# Provider failures after which the next project assessor answers (ADR-014 A11).
+FALLBACK_CODES = {
+    "provider_rate_limit",
+    "provider_insufficient_credits",
+    "provider_timeout",
+    "provider_model_unavailable",
+    "provider_unavailable",
+    "provider_output_truncated",
+}
+
+
+def suggestion_pool(configs: list[dict]) -> list[Option]:
+    """Every chat model in the OpenRouter snapshot, through the user's first enabled
+    OpenRouter configuration (ADR-014 A12). Empty without one: nothing to suggest."""
+    router = next((c for c in configs if c["provider"] == "openrouter" and c["enabled"]), None)
+    if router is None:
+        return []
+    models, _ = router_snapshot()
+    return [
+        Option("openrouter", model, router["id"], f"{router['label']} · {model}")
+        for model, item in models.items()
+        if item.get("output_modalities", ["text"]) == ["text"]
+    ]
+
+
+def _provider_model(chain: list[dict], identifier: str) -> tuple[str, str | None]:
+    item = next(entry for entry in chain if entry["id"] == identifier)
+    return item["provider"], item["model"]
+
+
 def create_app(
     settings: Settings | None = None,
     overrides: dict | None = None,
     prompt_coach_options: dict | None = None,
     chat_options: dict | None = None,
     openrouter_catalogue: OpenRouterCatalogue | None = None,
+    evaluation_options: dict | None = None,
 ) -> FastAPI:
     settings = with_server_models(settings or Settings())
     if settings.auth_mode == "supabase":
@@ -79,6 +116,25 @@ def create_app(
     store = Storage(settings.database_url.get_secret_value(), settings.database_schema)
     app.state.storage = store
     app.state.settings = settings
+    app.state.supabase_http = None
+
+    async def open_connections():
+        store.open_pool(settings.database_pool_size)
+        if settings.auth_mode == "supabase":
+            app.state.supabase_http = Client(
+                timeout=10,
+                limits=Limits(max_connections=16, max_keepalive_connections=8, keepalive_expiry=60),
+            )
+
+    async def close_connections():
+        if app.state.supabase_http is not None:
+            app.state.supabase_http.close()
+            app.state.supabase_http = None
+        store.close_pool()
+
+    app.router.add_event_handler("startup", open_connections)
+    app.router.add_event_handler("shutdown", close_connections)
+
     if settings.auth_mode == "supabase":
         app.add_middleware(
             CORSMiddleware,
@@ -89,7 +145,9 @@ def create_app(
         )
     app.include_router(accounts_router)
     schedule_coaching = install_coaching(app, store, settings)
-    install_outcomes(app, store)
+    install_outcomes(
+        app, store, ratings_for=lambda user_id: Ratings(store, active_catalogue(), user_id)
+    )
 
     @app.middleware("http")
     async def private_responses(request: Request, call_next):
@@ -104,6 +162,7 @@ def create_app(
                 "/api/progress",
                 "/api/context",
                 "/api/llm-",
+                "/api/evaluations",
                 "/api/openrouter",
                 "/api/prompt-coach",
                 "/api/chat",
@@ -150,6 +209,16 @@ def create_app(
         lambda: fetch_models(settings.timeout_seconds)
     )
     app.state.openrouter_catalogue = router_models
+    # Automatic evaluation of the configured models (ADR-014). The worker starts with the
+    # server; tests and scripts pass {"worker": False} and drive it themselves.
+    install_evaluations(
+        app,
+        store,
+        configurations,
+        enabled,
+        router=router_models,
+        **({"worker": settings.evaluations_worker} | (evaluation_options or {})),
+    )
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, _exc: RequestValidationError):
@@ -179,6 +248,13 @@ def create_app(
             items, fetched_at = await router_models.models(refresh)
         except CatalogueUnavailable as exc:
             raise HTTPException(502, exc.code) from None
+        # ADR-014 A12: each model says whether it has levels and how far its evaluation is.
+        ratings = Ratings(store, active_catalogue(), user["id"])
+        runs = evaluation_statuses(store, "openrouter", user["id"])
+        for item in items:
+            found = ratings.source("openrouter", item["id"])
+            item["levels_source"] = found[0] if found else None
+            item["status"] = evaluation_label(item["levels_source"], runs.get(item["id"]))
         return {"fetched_at": fetched_at, "models": items}
 
     @app.get("/api/features")
@@ -532,8 +608,18 @@ def create_app(
         session: dict[str, object],
     ):
         previous = previous_profile(user, body, session)
+        # ADR-014 A11: "auto" without a configuration is the project's assessor; if it hits a
+        # limit or fails, the next model of the chain answers (said in the result).
+        automatic = body.provider == "auto" and not body.configuration_id and body.model is None
+        chain = configurations.assessment_chain(enabled) if automatic else []
+        attempts = [item["id"] for item in chain]
+        ready = [i for i in attempts if not limits.limited(*_provider_model(chain, i))]
+        attempts = ready or attempts
+        resolve_body = (
+            body.model_copy(update={"configuration_id": attempts[0]}) if attempts else body
+        )
         actual_provider, actual_settings, actual_model, configuration_id = configurations.resolve(
-            user["id"], body, enabled
+            user["id"], resolve_body, enabled
         )
         if body.model is not None:
             if actual_provider != "openrouter":
@@ -595,22 +681,84 @@ def create_app(
             assessment_request = assessment_request.model_copy(
                 update={"task": "\n\n".join([*parts, f"Task:\n{body.task}"])}
             )
-        try:
-            with tracing_context(enabled=False):
-                state = await build_workflow(provider).ainvoke(
-                    {
-                        "request": assessment_request,
-                        "options": configurations.send_options(user["id"], enabled),
-                        "task_chars": len(body.task),
-                    }
+        # The models the user can send to; one that just hit a limit is set aside (A11).
+        options = configurations.send_options(user["id"], enabled)
+        set_aside = [o for o in options if limits.limited(o.provider, o.model)]
+        if set_aside and len(set_aside) < len(options):
+            options = [o for o in options if o not in set_aside]
+        else:
+            set_aside = []
+        fallback_note = None
+        while True:
+            try:
+                with tracing_context(enabled=False):
+                    state = await build_workflow(provider).ainvoke(
+                        {
+                            "request": assessment_request,
+                            "options": options,
+                            "ratings": Ratings(store, active_catalogue(), user["id"]),
+                            "task_chars": len(body.task),
+                            "suggestion_pool": suggestion_pool(configurations.list(user["id"])),
+                        }
+                    )
+                break
+            except ProviderFailure as exc:
+                limits.mark(actual_provider, actual_model, exc.code)
+                rest = attempts[attempts.index(configuration_id) + 1 :] if automatic else []
+                if exc.code not in FALLBACK_CODES or not rest:
+                    raise HTTPException(502, exc.code) from None
+                failed = actual_model
+                actual_provider, actual_settings, actual_model, configuration_id = (
+                    configurations.resolve(
+                        user["id"], body.model_copy(update={"configuration_id": rest[0]}), enabled
+                    )
                 )
-        except ProviderFailure as exc:
-            raise HTTPException(502, exc.code) from None
-        except ValidationError:
-            raise HTTPException(502, "invalid_provider_output") from None
+                if actual_provider in external_providers and not body.allow_external:
+                    raise HTTPException(502, exc.code) from None
+                provider = providers.get(actual_provider) or LangChainProvider(
+                    actual_provider, actual_settings
+                )
+                assessment_request = assessment_request.model_copy(
+                    update={"provider": actual_provider}
+                )
+                fallback_note = (
+                    f"Assessed by {actual_model}: the default assessor ({failed}) "
+                    f"failed ({exc.code.removeprefix('provider_').replace('_', ' ')})."
+                )
+            except ValidationError:
+                raise HTTPException(502, "invalid_provider_output") from None
         candidates = state["candidates"]
         identifier = str(uuid4())
         notes = list(state["notes"])
+        if fallback_note:
+            notes.insert(0, fallback_note)
+        if set_aside:
+            notes.append(
+                "Not recommended now: "
+                + "; ".join(
+                    f"{o.label} (limit or credit, back after {limits.until(o.provider, o.model)})"
+                    for o in set_aside
+                )
+                + "."
+            )
+        # ADR-014 A8: say which of the user's models are still being evaluated.
+        ratings = state.get("ratings")
+        waiting = pending_for(
+            store,
+            [
+                option
+                for option in state.get("options", [])
+                # Already rated from another source (catalogue, LMArena...): it is in.
+                if ratings is None or ratings.source(option.provider, option.model) is None
+            ],
+            user["id"],
+        )
+        if waiting:
+            notes.append(
+                "Not in this recommendation yet: "
+                + "; ".join(waiting)
+                + ". They are used as soon as their evaluation finishes."
+            )
         with store.connect() as db:
             last = db.execute(
                 "SELECT outcome,reason,completeness FROM task_outcomes WHERE user_id=%s "
@@ -664,6 +812,14 @@ def create_app(
                 "observed_cost": None,
                 "needs": state["needs"],
                 "notes": notes,
+                "suggestion": {
+                    key: value for key, value in state["suggestion"].items() if key != "reason"
+                }
+                if state.get("suggestion")
+                else None,
+                "suggestion_reason": state["suggestion"]["reason"]
+                if state.get("suggestion")
+                else None,
                 "previous_analysis_id": body.previous_analysis_id,
                 "completeness": state["completeness"],
                 "changes": explain_changes(previous, state["profile"])

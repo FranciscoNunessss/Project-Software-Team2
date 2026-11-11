@@ -1,0 +1,65 @@
+{
+ "version": "arena-mapping-1",
+ "description": "Frozen LMArena thresholds (ADR-014 A10). Levels: 3 from level_3_from, 2 from level_2_from, else 1. Population: arena models on OpenRouter in the population snapshot. See docs/plan-model-coverage.md.",
+ "snapshot": "sources/lmarena-2026-11-06.json",
+ "observed_on": "2026-11-06",
+ "population": "sources/openrouter-2026-11-08.json",
+ "percentiles": [
+  34,
+  67
+ ],
+ "rules": {
+  "default": {
+   "min_votes": 300,
+   "max_interval": 60
+  },
+  "agent": {
+   "min_votes": 100,
+   "max_interval": null
+  }
+ },
+ "thresholds": {
+  "agent/overall": {
+   "level_2_from": -0.0271,
+   "level_3_from": 0.0252
+  },
+  "text_factuality/overall": {
+   "level_2_from": 1432.9994,
+   "level_3_from": 1460.6437
+  },
+  "text_style_control/expert": {
+   "level_2_from": 1441.8591,
+   "level_3_from": 1488.5957
+  },
+  "text_style_control/hard_prompts": {
+   "level_2_from": 1427.0251,
+   "level_3_from": 1475.8347
+  },
+  "text_style_control/instruction_following": {
+   "level_2_from": 1394.7458,
+   "level_3_from": 1448.5075
+  },
+  "text_style_control/longer_query": {
+   "level_2_from": 1409.8541,
+   "level_3_from": 1465.5383
+  },
+  "text_style_control/math": {
+   "level_2_from": 1412.7227,
+   "level_3_from": 1461.0859
+  },
+  "text_style_control/overall": {
+   "level_2_from": 1408.1884,
+   "level_3_from": 1455.1603
+  }
+ },
+ "population_sizes": {
+  "agent/overall": 46,
+  "text_factuality/overall": 107,
+  "text_style_control/expert": 124,
+  "text_style_control/hard_prompts": 135,
+  "text_style_control/instruction_following": 135,
+  "text_style_control/longer_query": 135,
+  "text_style_control/math": 126,
+  "text_style_control/overall": 135
+ }
+}

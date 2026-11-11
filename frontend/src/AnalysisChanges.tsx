@@ -1,4 +1,5 @@
 import type { Analysis, Change, DimensionName } from './api'
+import './AnalysisResult.css'
 
 const labels: Record<DimensionName, string> = {
   reasoning: 'Reasoning depth',

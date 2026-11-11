@@ -1,0 +1,11 @@
+/* Numbered tips (TipsCard and the Prompt Coach tips). */
+.tips-card h2 { margin-bottom: 20px; }
+.tips-list { display: grid; }
+.tip { display: flex; gap: 12px; padding: 16px 0; border-top: 1px solid var(--color-line-soft); }
+.tip-number { color: var(--grey-77); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+.tip h3 { margin: -2px 0 6px; font-size: 12px; }
+.tip p { margin: 0; color: var(--color-muted); font-size: 10.5px; line-height: 1.55; }
+
+@media (max-width: 800px) {
+  .tips-list { grid-template-columns: 1fr; }
+}

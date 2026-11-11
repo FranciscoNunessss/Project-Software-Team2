@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from uuid import uuid4
 
@@ -81,6 +82,9 @@ class Storage:
             "prepare_threshold": None,
         }
         self._pool: ConnectionPool | None = None
+        self._reused_connection: ContextVar[psycopg.Connection | None] = ContextVar(
+            "reused_connection", default=None
+        )
         self.migrate()
 
     def open_pool(self, max_size: int):
@@ -104,7 +108,25 @@ class Storage:
             self._pool = None
 
     @contextmanager
+    def reuse_connection(self, db: psycopg.Connection):
+        """Use an active transaction for nested storage calls in this scope."""
+        token = self._reused_connection.set(db)
+        try:
+            yield
+        finally:
+            self._reused_connection.reset(token)
+
+    @contextmanager
     def connect(self, *, user_id: str | None = None):
+        reused = self._reused_connection.get()
+        if reused is not None:
+            # A failed optional reader rolls back to its savepoint, leaving the parent usable.
+            with reused.transaction():
+                if user_id is not None:
+                    self.lock_user(reused, user_id)
+                yield reused
+            return
+
         connection = (
             self._pool.connection()
             if self._pool is not None

@@ -133,6 +133,8 @@ test('a model at its limit: one click answers with the project model, and it is 
   await failed.locator('[data-send-with-assessor]').click()
   await expect(page.locator('[data-chat-message="assistant"]').last()).toContainText('Fake answer')
   await expect(page.locator('[data-chat-message="assistant"]').last()).toContainText('openai/gpt-oss-20b')
+  // The retry replaces the answer; the question is not shown twice.
+  await expect(page.locator('[data-chat-message="user"]')).toHaveCount(1)
   await expect(page.getByRole('button', { name: /^Chat model/ })).toContainText('Auto')
   // The limited model is set aside in the next recommendation, and the analysis says so.
   const response = await analyse(page, TASK)

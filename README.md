@@ -28,8 +28,11 @@ uv lock --check
 uv run python -m ruff check backend scripts
 uv run python -m ruff format --check backend scripts
 
-# Run tests
-uv run python -m pytest -q
+# Run tests, with coverage (CI requires at least 80% on the core logic:
+# assessment, classification, recommendation and the workflow)
+uv run python -m pytest -q --cov=backend/app --cov-report=term
+uv run python -m coverage report --fail-under=80 \
+  --include="backend/app/assessment.py,backend/app/classification.py,backend/app/recommendation.py,backend/app/workflow.py"
 ```
 
 uv manages the virtual environment automatically; manual activation and
@@ -194,23 +197,21 @@ hard-coded in the workflow.
 | `ollama` | `ADAPTAI_OLLAMA_MODEL` | Local runtime |
 | `lmstudio` | `ADAPTAI_LMSTUDIO_MODEL` (and `ADAPTAI_LMSTUDIO_BASE_URL`, default `http://127.0.0.1:1234/v1`) | Local runtime, no key |
 
-### OpenRouter (experimental)
+### OpenRouter (a catalogue behind one key, ADR-014 A12)
 
-OpenRouter is **never a project model and never a default**: Auto is always the project Groq. A
-user sets OpenRouter up themselves in LLM config, with their own API key and a model, like any
-other personal provider, and only then does it appear in the model picker. There is no
-`ADAPTAI_OPENROUTER_*` setting and no Auto router (`openrouter/free` is not offered or accepted).
-The cost of a paid model is therefore always on the user's own key.
+OpenRouter is **never a project chat model and never a default**: Auto is always the project
+Groq. A user connects OpenRouter in LLM config with **only their own API key** (a default model
+is optional, and "Test connection" checks the key without calling a model); the chat pickers
+then list the whole OpenRouter catalogue, each model with its evaluation state. There is no
+Auto router (`openrouter/free` is not offered or accepted), so the cost of a paid chat model is
+always on the user's own key. The only project key is `ADAPTAI_EVALUATION_OPENROUTER_KEY`, used
+to evaluate models and never for chats (ADR-014 A10, see "Automatic model evaluation").
 
-> **Experimental.** Automated tests use a fake catalogue and mock HTTP. Live checks on
-> 5 November 2026 (free-tier key, no credit): the public catalogue loads. Assessments with the
-> full profile schema through the free router completed about half of the time; the rest ended
-> with `provider_output_truncated`: the router picks reasoning models that spend the whole
-> 2,048-token output budget thinking, so the JSON is cut off. Explicit free models were worse:
-> with `require_parameters` some answer 404 ("No endpoints found that can handle the requested
-> parameters"), others are rate-limited upstream (429) or truncate as well. The chat (plain
-> text) is not affected. Treat OpenRouter assessments as unreliable until a model that works is
-> chosen or the output budget is revisited.
+Since ADR-014 A11 the analysis always runs on the project's assessor (Groq first, the next
+server model on a limit), so OpenRouter models only answer in the chat. The problems seen on
+5 November 2026 (free models truncating the JSON with `provider_output_truncated`, 404 for
+`require_parameters`) therefore only matter when someone picks an OpenRouter configuration by
+hand for an analysis.
 
 `openrouter` uses LangChain's OpenAI-compatible client against `https://openrouter.ai/api/v1`
 with strict JSON schema output. The user's key is stored encrypted like the other personal keys;
@@ -227,9 +228,9 @@ the live `GET /models` catalogue of OpenRouter, normalised: free and paid models
 1M tokens (converted from the per-token `pricing`), context length, modalities and supported
 parameters. A model is `free` only when its prompt and completion price are both zero. There is
 no built-in model list and no stale fallback: if OpenRouter cannot be reached the endpoint
-answers 502 `openrouter_catalogue_unavailable`. A model is `selectable` only when it takes text
-and returns text and supports structured output, which the assessment needs; embeddings, image
-and audio models stay listed with the reason.
+answers 502 `openrouter_catalogue_unavailable`. A model is `selectable` when it takes text and
+returns text (the chat needs nothing more); `structured_output` says whether it could also run
+an assessment. Embeddings, image, audio and music models stay listed with the reason.
 
 `POST /api/analyze` accepts an optional `model` for OpenRouter only. It must be a selectable id of
 the catalogue (422 `model_not_found` / `model_not_compatible`) and is sent to OpenRouter exactly
@@ -246,7 +247,7 @@ an external destination, so no external-processing consent) and its address is s
 configuration that no request can change. A personal LM Studio model can be added in LLM
 config like an Ollama one. Not run against a real LM Studio yet; the tests use a fake client.
 
-Both providers also work in the optional chat (below).
+Both providers also work in the chat (below).
 Set the model IDs available to your provider account in `.env`, with the appropriate
 API keys, then restart the backend. OpenAI and Claude remain disabled until both the
 model and key are present. Neither integration reads Codex CLI/Claude Code login
@@ -403,6 +404,17 @@ The CI job `e2e` runs the same specs.
 
 ## Prompt Coach (optional)
 
+**Role.** The Prompt Coach helps a user describe a task well enough for the analysis to
+determine it: it points at the dimensions left uncertain and, only when asked, proposes edits,
+questions or a rewrite. It does not recommend models (that is the deterministic recommendation,
+ADR-014), does not judge the user over time (that is the Educator's coaching in My progress,
+`backend/app/coaching.py`) and does not answer tasks (that is the chat). Its effect is
+measured without storing anything of its own: "Analyse again" shows the change in
+completeness, and learning progress compares the completeness of the first analysis of each
+session over time, next to the task outcomes. Coach usage metrics (`prompt_coach_events`,
+ADR-010) were dropped on 10 November 2026: they would store more data, with its own privacy
+decision, for a measure the product already has.
+
 The Prompt Coach is an optional module (ADR-009) that the client has not approved. There
 is no server flag: each user switches it on or off in **Profile** (on by default), and the
 choice is kept per account. `create_app` imports `backend/app/prompt_coach.py` late, at the
@@ -425,9 +437,9 @@ in Profile.
 Tests of the module carry the `prompt_coach` pytest marker. CI runs the backend suite and
 a `removal-drill` job that deletes the module, runs `pytest -m "not prompt_coach"`,
 migrates a real database, adds leftover `prompt_coach_events` and
-`prompt_coach_settings` tables and restarts the app over them, checking that
-`PRAGMA user_version` is unchanged. The module must therefore never change
-`PRAGMA user_version`: its tables (`prompt_coach_settings`) are created with
+`prompt_coach_settings` tables and restarts the app over them, checking that the core
+`schema_migrations` rows are unchanged. The module must therefore never add a core
+migration: its table (`prompt_coach_settings`) is created with
 `CREATE TABLE IF NOT EXISTS`, outside the core migrations. The Coach is mounted after
 every core route, so it can never shadow one. Branch protection should require the
 checks "backend" and "removal-drill".
@@ -451,10 +463,10 @@ To remove the Prompt Coach:
    `prompt_coach_events`, if present) in PostgreSQL; the core ignores them.
 4. Run the full backend suite, `pnpm build` and the e2e tests.
 
-## Chat (optional, backend only so far)
+## Chat
 
-The chat is part of the product (ADR-011) and is built as a removable module, like the
-Prompt Coach: `create_app` imports `backend/app/chat.py` last, inside its own `try`, and carries
+The chat is a core feature of the product (ADR-011), not an optional one. In the code it lives
+in its own module so the analysis core can be tested without it, like the Prompt Coach: `create_app` imports `backend/app/chat.py` last, inside its own `try`, and carries
 on without it. `GET /api/features` reports `{"chat": true|false}`. A chat is a session
 marked in `chat_sessions`; analyse a draft with the usual `POST /api/analyze`, passing the
 chat id as `session_id`, then send it with the `analysis_id` to link the two.
@@ -543,10 +555,10 @@ The assessor instructions are generated from the active rubric version (see "Rub
 The recommendation is described in "Model recommendation" below. Ambiguity never raises the
 model: it is missing information, handled by clarification questions and the Coach. Unknown
 requirements or low confidence mark the result provisional.
-This policy is proposed (ADR-014) and awaits AO review and independent task evaluation.
+This policy is accepted (ADR-014, 10 November 2026); independent task evaluation is still to come.
 The contract tests run in CI; human quality evals and their regression gate remain outstanding.
 
-## Model recommendation (PROPOSED, ADR-014, `needs-capabilities-1`)
+## Model recommendation (ADR-014, `needs-capabilities-1`)
 
 The analysis recommends a concrete model, not a tier: **the cheapest of the user's models whose
 capabilities cover every need of the task**. Deterministic Python in
@@ -560,8 +572,8 @@ reliability (from risk) and tools, plus modalities and length. Each need is an i
 version in `ACTIVE`): one card per model with provider facts (context window, modalities, tools,
 prices), five levels (each with status `provisional`, `calibrated` or `unrated`, a source and a
 date) and its aliases per provider (`groq`, `openrouter`, `lmstudio`...). An alias may carry the
-provider's own price. How models get their levels is the second phase of ADR-014 (separate
-pull request); until then the catalogue holds only the illustrative demo cards.
+provider's own price. How models get their levels: "Automatic model evaluation" below
+(public leaderboards, our own measurement, calibration).
 
 | Step | Rule |
 |---|---|
@@ -586,10 +598,10 @@ Several server models per provider: `ADAPTAI_GROQ_MODELS=openai/gpt-oss-20b,open
 recommendation, 0 the recommendation, +1 more than needed); My progress scores agreement as
 `max(0, 1 − |gap| / 2)`. Analyses stored with the old tier policy keep their tiers and are
 still counted. Feedback per task is stored in `task_outcomes` (no text) and feeds My progress
-("Your solved tasks"), the Educator and the Coach. In the second phase a calibration report proposes
+("Your solved tasks"), the Educator and the Coach. A calibration report (`scripts/calibration_report.py`) proposes
 level changes from it (at least 10 tasks, completeness >= 75); it never changes the catalogue.
 
-## Automatic model evaluation (PROPOSED, ADR-014 A8 to A10)
+## Automatic model evaluation (ADR-014 A8 to A12)
 
 Every model someone configured, and only those, is evaluated once by a background worker with
 the synthetic suite `measure-suite-1` (adaptive: level 2 first, then 3 or 1; at most 40 calls,
@@ -598,7 +610,11 @@ models are evaluated per user. A paid model with a user's key waits for consent 
 what, how, the estimated cost and a guaranteed maximum. LLM config › "How your models were
 evaluated" shows levels, sources, pass rates and example answers; "Disagree" is recorded but
 never changes a level. Sources of levels, best first: calibrated catalogue, measured,
-provisional catalogue, Artificial Analysis overall index (confirmed links only), same family.
+provisional catalogue, LMArena per category, Artificial Analysis overall index (confirmed links
+only), same family; without any of them a model is never recommended. Each model in the chat
+pickers shows its state (Measured, Public ranking, Provisional, Evaluating n/40, Waiting for
+consent, Evaluation failed, Not evaluated), and "Evaluate" adds an OpenRouter model without
+sending anything.
 Details: [`docs/model-classification.md`](docs/model-classification.md); tests and manual
 check: [`docs/testing-model-evaluations.md`](docs/testing-model-evaluations.md).
 
@@ -648,23 +664,14 @@ Tests cover the demo workflow, capability gating, override validation, input pri
 external consent, adapter structured output, usage metadata, sanitised failures and
 timeouts. CI runs the checks above. These checks do not establish assessment accuracy.
 
-Next: validate real providers with agreed models/access,
-add the benchmark snapshot so real models get provisional levels, and calibrate them with
-the calibration set and the feedback report. Deployment, trend analytics, streaming, automatic fallback and autonomous
-agents are outside this increment.
+Next: the independent evaluation with the labelled task set, calibration of the levels
+with the calibration set and real task outcomes, and promotion of develop to main for the
+cloud deployment. Autonomous agents are outside the product.
 
 ## Database and accounts
 
-The default database is `backend/data/adaptai.sqlite3`; it is created automatically
-with schema version 8 (legacy databases with sessions require explicit privacy migration) and is ignored by Git, including WAL/SHM files. Configure an
-absolute `ADAPTAI_DATABASE_PATH` when running from another directory. No additional
-database server or dependency is required. SQLite enforces foreign keys, uses WAL
-and short transactions, and persists independently of application workers. Use a
-local persistent disk; a database on ephemeral storage will disappear on redeploy.
-Avoid putting the live database on a network or cloud-synchronised filesystem;
-for this OneDrive checkout, set the path to an unsynchronised local data directory.
-
-The backend now uses PostgreSQL through psycopg 3. Start the local database with
+The backend uses PostgreSQL through psycopg 3; SQLite is only a source for a one-off
+import (below). Start the local database with
 `docker compose up -d --wait postgres`; it listens only on `127.0.0.1:55432` and keeps
 its data in the `postgres-data` Docker volume. The Compose credentials are for local
 development only. `docker compose down` preserves the volume; `down -v` deletes it.
@@ -758,7 +765,10 @@ and [ADR-008](https://docs.google.com/document/d/14OXD4V0bvVtcoSMAqIJptNDTzpt6bD
 ## Git workflow
 
 Follow [GIT_WORKFLOW.md](GIT_WORKFLOW.md): feature branches target `develop`;
-protected branches are changed through reviewed pull requests.
+protected branches are changed through reviewed pull requests. Code cards are planned
+before they are built (cases, plan, approval), and every pull request carries the report in
+`.github/pull_request_template.md`; [AGENTS.md](AGENTS.md) has the short version for people
+and AI agents.
 
 ### Personal context and the progress dashboard
 

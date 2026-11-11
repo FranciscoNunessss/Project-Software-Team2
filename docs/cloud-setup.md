@@ -1,5 +1,11 @@
 # Configuração cloud: Netlify + Render + Supabase
 
+**Atualização, 11 de novembro de 2026:** o job `deploy` do CI publicou a `main` (`e207fd9`)
+no Render e no Netlify a 7 de novembro de 2026, com o health check `/api/health` a passar no CI.
+A `main` ainda não tem o trabalho do ADR-014 (PRs #37, #43, #47). O texto abaixo descreve o
+estado antes desse deploy. `render.yaml` não declara `ADAPTAI_EVALUATION_OPENROUTER_KEY`: sem
+ela, a avaliação com a key do projeto (ADR-014 A10) não corre em produção.
+
 Estado em 7 de novembro de 2026: integração escrita na branch
 `feature/infra-postgres`; 462 testes backend passaram e o frontend compila.
 Ainda não foi validado um login contra um projeto Supabase real nem realizado

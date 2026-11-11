@@ -1,5 +1,9 @@
 # Cloud hosting plan
 
+**Update, 11 November 2026:** the CI `deploy` job has since deployed `main` (`e207fd9`) to
+Render and Netlify on 7 November 2026, with the `/api/health` check passing in CI. `main` does
+not yet contain the ADR-014 work (PRs #37, #43, #47). The plan below is kept as written.
+
 7 November 2026. Deployment recommendation for review; no cloud resources have been
 created and no paid plan has been authorised. The user selected Supabase Auth plus
 PostgreSQL. Authentication integration is implemented and backend tests pass;

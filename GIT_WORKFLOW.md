@@ -6,14 +6,14 @@ This document describes how we manage branches, pull requests, and commit histor
 
 - **`main`** — protected. Always reflects a stable, releasable state. No one pushes directly to it.
 - **`develop`** — integration branch. All finished feature work lands here first, before eventually being promoted to `main`.
-- **`feature/<name>-<short-description>`** — one branch per developer per task (e.g. `feature/rafael-auth-login`). This is where day-to-day development happens.
+- **Short-lived work branches** — one per card: `feature/<short-description>`, `fix/<short-description>` for defects, or `agent/<short-description>` when an AI agent builds it (e.g. `feature/chat-dropdown-responsive`, `fix/navigation-state`). The card is linked in the pull request, not in the branch name.
 
 ```
 main        ← protected, releases only
   ↑
 develop     ← integration branch
   ↑
-feature/*   ← individual development branches
+feature/*, fix/*, agent/*   ← short-lived work branches
 ```
 
 ## 2. Branch Protection Rules
@@ -50,23 +50,25 @@ Both `main` and `develop` are protected branches in GitHub. No one pushes direct
    ```bash
    git push --force-with-lease origin feature/your-name-your-task
    ```
-5. Open a Pull Request into `develop`.
+5. Open a Pull Request into `develop`. The template (`.github/pull_request_template.md`) asks for the report of what was built: card and plan (G1), the cases and the test for each, the manual test (G2), data, AI, docs, where to look and risks. Post an LLM review (AI Working Guide, template T-11) as a comment before asking a colleague.
+
+Before step 1, every code card goes through the plan-first flow in 08 Construction, section 2: specify, brainstorm the cases, plan, and plan approved (G1). See `AGENTS.md` for the short version.
 
 ## 4. Reviewing and Fixing Pull Requests
 
 - One or more team members are designated as **reviewers/integrators** for open PRs.
 - Their responsibilities:
-  - Review the diff for correctness, style, and conflicts with other in-flight work.
+  - Start from the report and the LLM review, then check the diff for correctness, style, and conflicts with other in-flight work.
   - Request changes or fix small issues directly (with the author's awareness) so the PR is mergeable.
   - Confirm the PR is rebased on the latest `develop` before approving.
-  - Merge the PR once approved and CI (if configured) passes.
+  - Merge the PR (G3) once CI is green, the report is complete, the LLM review has no open blocker and majors are fixed or justified. The approver merges; the author and AI agents never merge their own work.
 
 ## 5. Keeping History Clean: Rebase Strategy
 
 To avoid a tangled history full of criss-crossing merge commits, we rebase instead of merge when integrating changes from `develop` into a feature branch.
 
 - **On feature branches:** always rebase onto `develop`, never merge `develop` into your branch.
-- **When merging a PR into `develop`:** use "Rebase and merge" (or a fast-forward merge) in GitHub, so the feature's commits are simply appended to `develop`'s history, not wrapped in a merge commit.
+- **When merging a PR into `develop`:** use "Squash and merge", so each pull request lands as one clean commit. Individual commits stay visible in the pull request.
 - **Never rebase a branch that others are also working from** (e.g. don't rebase `develop` or `main` themselves) — rebase is safe on your own private feature branch, not on shared branches.
 - Optionally, squash minor "fix typo" / "wip" commits into a single meaningful commit before opening the PR (`git rebase -i`), so each commit on `develop`/`main` tells a clear story.
 
@@ -76,7 +78,11 @@ To avoid a tangled history full of criss-crossing merge commits, we rebase inste
 
 - Periodically (e.g. at a release milestone, sprint end, or client delivery), a Pull Request is opened from `develop` into `main`.
 - This PR is reviewed like any other, following the `main` protection rules above (more approvals, required CI).
-- Since `develop` is already a clean, linear history (thanks to the rebase policy above), this can be a simple fast-forward merge, keeping `main`'s history just as clean.
+- `main` requires linear history, so a merge commit is not allowed, and "Squash and merge" would put one new commit on `main` that `develop` never gets, making the two branches drift apart. Once the release PR is approved, a repository admin fast-forwards `main` from the command line; GitHub then marks the PR as merged:
+  ```bash
+  git fetch origin
+  git push origin origin/develop:main   # fast-forward only; fails if main has commits develop lacks
+  ```
 - After merging, it's good practice to tag the resulting commit on `main` (e.g. `v1.2.0`) to mark that release point.
 
 ## 7. Commit Message Guidelines
@@ -93,4 +99,7 @@ To avoid a tangled history full of criss-crossing merge commits, we rebase inste
 | One feature branch per dev/task | Avoids stepping on each other's work |
 | Rebase feature branch onto `develop` before PR | Avoids merge commits, keeps history linear |
 | Designated reviewer(s) fix/approve PRs | Ensures quality and mergeability before integration |
-| Rebase/fast-forward merge into `develop` and `main` | Keeps overall history clean and readable |
+| Squash into `develop`; fast-forward from `develop` to `main` | One commit per pull request, and `main` never drifts from `develop` |
+| Plan approved (G1) before code; manual test (G2) before the PR | Design mistakes and missing cases are caught before review |
+| PR report from the template plus an LLM review | The reviewer has the cases, tests and risks in one place |
+| The approver merges (G3) | One clear owner for the merge |

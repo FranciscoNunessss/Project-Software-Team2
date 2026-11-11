@@ -63,6 +63,8 @@ test('starting the next task asks about the previous one, and Skip is final', as
   await page.locator('[data-analyse-button]').click()
   const card = page.locator('[data-outcome-card]')
   await expect(card).toBeVisible()
+  // On wide screens the analysis panel covers the chat, this card included: close it first.
+  await page.getByRole('button', { name: 'Close analysis' }).click()
   await expect(card.locator('[data-task-models]')).toContainText('You used')
   await card.getByRole('button', { name: 'Not solved' }).click()
   await card.getByRole('radio', { name: 'I described it poorly' }).click()

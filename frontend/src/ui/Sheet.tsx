@@ -23,8 +23,8 @@ type SheetProps = {
 
 /**
  * A side panel with two modes, chosen by the window width:
- * - above 1100px it floats over the right edge of the page and stops `--composer-space`
- *   above the bottom of the window, so whatever sits there stays usable;
+ * - above 1100px it floats over the right edge of the page, from the top of the window to
+ *   the bottom (see useSheetRoom for keeping something beside it usable);
  * - at 1100px and below it is a nearly full-height bottom sheet with a backdrop.
  * Closes with its × button, the backdrop or Escape.
  */
@@ -51,31 +51,32 @@ export function Sheet({ open, onClose, label, id, heading, closeLabel = 'Close',
   )
 }
 
+// Where the floating sheet sits; keep in step with .sheet in Sheet.css.
+const EDGE = 16
+const WIDTH = 400
+const GAP = 16
+const BOTTOM_SHEET = '(max-width: 1100px)'
+
 /**
- * How much room, in px, the floating sheet must leave free at the bottom of the window:
- * the distance from the top of `anchor` (or of a sibling matching `above`, if that is
- * higher) to the bottom of the window. Put the result in `--composer-space` on an ancestor
- * of the sheet. Measured after every render, and when the anchor or the window resizes.
+ * How much horizontal room, in px, an element has before the floating sheet: the distance
+ * from the left edge of `container` to just left of the open sheet (with a 16px gap), or
+ * null while the sheet is closed or shown as a bottom sheet. Use it to narrow something
+ * the sheet would otherwise cover. Measured when the sheet opens and on every resize.
  */
-export function useSheetClearance(anchor: RefObject<HTMLElement | null>, { active = true, above }: { active?: boolean; above?: string } = {}) {
-  const [space, setSpace] = useState(0)
-  const measure = () => {
-    if (!active) return
-    const element = anchor.current
-    if (!element) return
-    const sibling = above ? element.parentElement?.querySelector<HTMLElement>(`:scope > ${above}`) : null
-    const top = Math.min(element.getBoundingClientRect().top, sibling?.getBoundingClientRect().top ?? Infinity)
-    setSpace(Math.max(0, Math.round(window.innerHeight - top)))
-  }
-  // After every render: content under the anchor can move it without resizing it.
-  useLayoutEffect(measure)
+export function useSheetRoom(container: RefObject<HTMLElement | null>, open: boolean) {
+  const [room, setRoom] = useState<number | null>(null)
   useLayoutEffect(() => {
-    const element = anchor.current
-    if (!element) return
+    const measure = () => {
+      const element = container.current
+      if (!open || !element || window.matchMedia(BOTTOM_SHEET).matches) { setRoom(null); return }
+      const sheetLeft = window.innerWidth - EDGE - Math.min(WIDTH, window.innerWidth - 2 * EDGE)
+      setRoom(Math.max(0, Math.round(sheetLeft - GAP - element.getBoundingClientRect().left)))
+    }
+    measure()
     const observer = new ResizeObserver(measure)
-    observer.observe(element)
+    if (container.current) observer.observe(container.current)
     window.addEventListener('resize', measure)
     return () => { observer.disconnect(); window.removeEventListener('resize', measure) }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  return space
+  }, [open, container])
+  return room
 }

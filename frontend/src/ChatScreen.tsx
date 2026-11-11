@@ -11,7 +11,7 @@ import { OpenRouterModelPicker } from './OpenRouterModelPicker'
 import { statusKey, statusOf, type ModelStatus } from './modelStatus'
 import { PromptCoachBubble } from './PromptCoachBubble'
 import { OutcomeCard, SolvedButton } from './TaskOutcome'
-import { Button, useSheetClearance } from './ui'
+import { Button, useSheetRoom } from './ui'
 import './Composer.css'
 import './ChatScreen.css'
 
@@ -325,18 +325,17 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
   // The panel's own Send: only for the analysis of exactly the text in the composer.
   const sendable = shown !== null && draftAnalysis?.analysis.id === shown.id && draftAnalysis.text === draft && !!draft.trim() && !!selected
   const locked = busy || analysing
-  // The analysis panel floats over the chat but stops above the message box, so Analyse,
-  // Send and the Prompt Coach stay usable while it is open. Track where the box starts.
-  // The feedback card (ADR-014) above the box is part of the chat: the panel overlaps it.
-  const composer = useRef<HTMLElement>(null)
-  const composerSpace = useSheetClearance(composer, { active: activePage })
+  // On wide screens the analysis panel floats full height over the chat. Only the message box
+  // makes room beside it, so Analyse, Send and the Prompt Coach stay usable while it is open.
+  const chatMain = useRef<HTMLElement>(null)
+  const sheetRoom = useSheetRoom(chatMain, drawer && activePage)
   // The sidebar must not switch chats mid-answer: switching remounts this screen.
   useEffect(() => { onBusyChange(locked) }, [locked]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => onBusyChange(false), []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <main className="page chat-layout" data-chat-screen="" style={{ '--composer-space': `${composerSpace}px` } as CSSProperties}>
-      <section className="chat-main">
+    <main className="page chat-layout" data-chat-screen="">
+      <section ref={chatMain} className={sheetRoom === null ? 'chat-main' : 'chat-main beside-sheet'} style={sheetRoom === null ? undefined : { '--sheet-room': `${sheetRoom}px` } as CSSProperties}>
         <div className="chat-toolbar">
           <span className="chat-title">{chatId ? title : ''}</span>
         </div>
@@ -356,7 +355,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
         {pending && (
           <OutcomeCard title={pending.title} models={modelsLine(pending)} disabled={savingOutcome} onAnswer={(outcome, reason) => answerOutcome(pending, outcome, reason)} />
         )}
-        <section ref={composer} className="chat-composer composer" data-analysis-id={draftAnalysis?.analysis.id ?? ''} data-session-id={chatId ?? ''}>
+        <section className="chat-composer composer" data-analysis-id={draftAnalysis?.analysis.id ?? ''} data-session-id={chatId ?? ''}>
           <PromptCoachBubble analysis={draftAnalysis?.analysis} analysisId={draftAnalysis?.analysis.id} task={draft}
             disabled={locked} onTaskChange={setDraft} onAnalyse={analyse}>
             <textarea aria-label="Message" placeholder="Message AdaptAI…" value={draft} maxLength={MAX_CHARS}

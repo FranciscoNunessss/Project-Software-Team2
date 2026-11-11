@@ -105,16 +105,22 @@ Options: `width`, `maxHeight`, `minHeight` (default 80), `focusOnOpen` (a select
 panel), `watch` (values that resize the panel while open). `popover.hide()` closes without
 moving focus; `popover.close()` also returns focus to the trigger.
 
-### Sheet + useSheetClearance
+### Sheet + useSheetRoom
 
-The analysis panel's two modes. Above 1100px it floats over the right of the page and stops
-`--composer-space` above the bottom of the window. At 1100px and below it becomes a nearly
-full-height bottom sheet with a backdrop. It closes with its × button, the backdrop or Escape.
+The analysis panel's two modes. Above 1100px it floats full height (top to bottom of the
+window) over the right of the page. At 1100px and below it becomes a nearly full-height
+bottom sheet with a backdrop. It closes with its × button, the backdrop or Escape.
+
+`useSheetRoom(container, open)` returns how many px an element has from the left of
+`container` to just before the open floating panel (`null` when closed or a bottom sheet).
+The chat uses it to narrow only the message box, so Analyse and Send stay usable while the
+panel covers the rest of the chat.
 
 ```tsx
 // In the screen that owns the message box:
-const composerSpace = useSheetClearance(composerRef, { active: pageIsActive })
-<div style={{ '--composer-space': `${composerSpace}px` } as CSSProperties}>…</div>
+const room = useSheetRoom(chatMainRef, panelOpen)
+<section ref={chatMainRef} className={room === null ? 'chat-main' : 'chat-main beside-sheet'}
+  style={room === null ? undefined : { '--sheet-room': `${room}px` } as CSSProperties}>…</section>
 
 // The panel:
 <Sheet open={open} onClose={close} label="Analysis" closeLabel="Close analysis"

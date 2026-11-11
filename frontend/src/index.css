@@ -179,13 +179,6 @@
 /* Model recommendation (ADR-014) */
 
 /* Feedback per task (ADR-014) */
-.task-solved { margin-top: 6px; font-size: 12px; }
-.task-refine { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 6px; font-size: 12px; color: var(--muted); }
-.outcome-card { margin: 0 0 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); display: grid; gap: 10px; font-size: 13px; }
-.outcome-card p { margin: 0; }
-.outcome-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.outcome-actions .chip { padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: inherit; font-size: 12px; cursor: pointer; }
-.outcome-actions .chip.selected { border-color: currentColor; font-weight: 600; }
 
 /* Pages sit centred in the space beside the sidebar. */
 
@@ -196,8 +189,6 @@
   
   .account-error { top: 64px; left: 8px; right: 8px; }
 }
-
-.task-models { font-size: 12px; }
 
 /* Model evaluations (ADR-014) */
 

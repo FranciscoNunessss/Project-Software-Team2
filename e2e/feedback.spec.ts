@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { signUp } from './helpers'
+import { closePanel, signUp } from './helpers'
 
 // Feedback per task and the model recommendation (ADR-014). FakeAssessor in e2e/server.py
 // treats a task with "board" and "risk" as complete. The Groq server model gpt-oss-20b has
@@ -10,6 +10,7 @@ async function analyseAndSend(page: Page, text: string) {
   await page.locator('[data-chat-input]').fill(text)
   await page.locator('[data-analyse-button]').click()
   await expect(page.locator('[data-recommended-model]')).toBeVisible()
+  await closePanel(page)
   await page.locator('[data-chat-send]').click()
   await expect(page.locator('[data-chat-message="assistant"]').last()).toContainText(`Fake answer: ${text}`)
 }
@@ -38,8 +39,6 @@ test('task solved is asked once, under the answers, never per answer', async ({ 
   await page.locator('[data-chat-send]').click()
   await expect(page.locator('[data-chat-message="assistant"]')).toHaveCount(2)
   await expect(page.locator('[data-task-solved]')).toHaveCount(1)
-  // The open analysis panel floats over the end of the chat at this width: close it first.
-  await page.getByRole('button', { name: 'Close analysis' }).click()
   await page.locator('[data-task-solved]').click()
   await expect(page.locator('[data-task-models]')).toContainText('You used')
   await expect(page.locator('[data-task-models]')).toContainText('Recommended: GPT-OSS 20B')
@@ -64,7 +63,7 @@ test('starting the next task asks about the previous one, and Skip is final', as
   const card = page.locator('[data-outcome-card]')
   await expect(card).toBeVisible()
   // On wide screens the analysis panel covers the chat, this card included: close it first.
-  await page.getByRole('button', { name: 'Close analysis' }).click()
+  await closePanel(page)
   await expect(card.locator('[data-task-models]')).toContainText('You used')
   await card.getByRole('button', { name: 'Not solved' }).click()
   await card.getByRole('radio', { name: 'I described it poorly' }).click()

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { analyse, goTo, signUp } from './helpers'
+import { analyse, closePanel, goTo, signUp } from './helpers'
 
 // What happens when a user adds an OpenRouter model (ADR-014 A8, A10, A11), with mock data:
 // the synthetic OpenRouter catalogue and the fake evaluator of e2e/server.py. Nothing is
@@ -70,6 +70,7 @@ test('paid and in no public source: answers in the chat at once; recommended onl
   expect(before.models).not.toContain('vendor/premium')
 
   // The chat uses it right away: answering needs no evaluation.
+  await closePanel(page)
   await page.getByRole('button', { name: /^Chat model/ }).click()
   await page.locator('#assessment-model-picker').getByRole('button', { name: /acme\/swift:free/ }).click()
   await page.getByRole('button', { name: /^OpenRouter model/ }).click()

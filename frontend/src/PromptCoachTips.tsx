@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { coachAvailable, promptCoach, type Analysis, type CoachResponse, type DimensionName } from './api'
+import './TipsCard.css'
 
 // Optional Prompt Coach module (ADR-009, AA-019 B3). App.tsx mounts this component in one
 // line; deleting it (and that line) leaves the deterministic tips in TipsCard untouched.

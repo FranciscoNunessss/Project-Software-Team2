@@ -17,6 +17,7 @@ import { Icon, ProfileCard, RecommendationCard } from './AnalysisResult'
 import { Button, Card } from './ui'
 import { AssistantOutcome } from './TaskOutcome'
 import { Sidebar, type Screen } from './Sidebar'
+import './App.css'
 
 type ResultState = 'empty' | 'loading' | 'result'
 

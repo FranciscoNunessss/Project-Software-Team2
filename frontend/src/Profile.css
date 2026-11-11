@@ -1,0 +1,25 @@
+/* Profile: settings cards, personal context and learned memory. */
+.personal-context { margin-top: 32px; padding: 24px; }
+.personal-context > p { color: var(--color-muted); font-size: 14px; line-height: 1.6; margin-top: 16px; }
+.personal-context label { display: block; margin: 20px 0 10px; font-size: 14px; font-weight: 600; }
+.personal-context textarea { width: 100%; min-height: 120px; padding: 14px; border: 1px solid var(--color-line); border-radius: 9px; background: var(--color-surface); color: var(--color-ink); resize: vertical; font-size: 15px; }
+.context-save { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.context-save > span { font-size: 12px; color: var(--color-muted); }
+.profile-card-settings { padding: 24px; margin: 24px 0; }
+.profile-card-settings > p { margin-top: 14px; color: var(--color-muted); font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+/* The rule above also reaches the card's eyebrow: muted in light, the usual label colour in dark. */
+.profile-card-settings > .eyebrow { color: var(--settings-eyebrow-ink); }
+.profile-card-settings h2 { overflow-wrap: anywhere; }
+.settings-switch { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 0; border-top: 1px solid var(--color-line); }
+.settings-switch strong { display: block; font-size: 14px; }
+.settings-switch small { display: block; max-width: 650px; margin-top: 8px; color: var(--color-muted); font-size: 13px; line-height: 1.6; }
+.memory-entry { border-top: 1px solid var(--color-line); padding: 18px 0; font-size: 13px; }
+.memory-entry summary { cursor: pointer; line-height: 1.6; }
+.memory-entry dl { display: grid; gap: 12px; margin-top: 18px; }
+.memory-entry dl > div { display: flex; justify-content: space-between; gap: 20px; }
+.memory-entry dt { color: var(--color-muted); text-transform: capitalize; }
+.memory-entry dd { margin: 0; }
+
+@media (max-width: 430px) {
+  .profile-card-settings, .personal-context { padding: 20px; }
+}

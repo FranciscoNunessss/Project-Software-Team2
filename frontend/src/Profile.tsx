@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, notifyProgressChange, type MemorySettings } from './api'
 import { PromptCoachToggle } from './PromptCoachToggle'
+import './Profile.css'
 
 export function ProfileScreen() {
   const [settings, setSettings] = useState<MemorySettings>()

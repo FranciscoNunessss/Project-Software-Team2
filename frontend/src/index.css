@@ -1,9 +1,5 @@
 .session-controls { display: grid; gap: 1rem; padding: 24px; margin-bottom: 24px; }
 
-/* Screens not migrated yet style paragraphs with selectors such as '.x > p', which out-rank
-   .eyebrow. In dark mode the old override used to win; this keeps it winning. */
-.theme-dark .eyebrow { color: var(--color-label); }
-
 .privacy-pill { margin-top: 23px; white-space: nowrap; padding: 8px 12px; background: #f2f2f2; color: #727272; border-radius: 8px; font-size: 12px; font-weight: 600; }
 .privacy-pill { display: flex; align-items: center; gap: 7px; color: var(--blue); background: var(--blue-soft); }
 
@@ -136,33 +132,15 @@
 .task-context label { font-size: 13px; }
 .task-context textarea { min-height: 90px; font-size: 14px; }
 
-.personal-context { margin-top: 32px; padding: 24px; }
-.personal-context > p { color: var(--muted); font-size: 14px; line-height: 1.6; margin-top: 16px; }
-.personal-context label { display: block; margin: 20px 0 10px; font-size: 14px; font-weight: 600; }
-.personal-context textarea { width: 100%; min-height: 120px; padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); resize: vertical; font-size: 15px; }
-.context-save { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
-.context-save > span { font-size: 12px; color: var(--muted); }
 .personal-context-choice { margin: 0 0 20px; font-size: 13px; }
 .personal-context-choice label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
 .personal-context-choice p { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); line-height: 1.6; }
 .personal-context-choice summary { cursor: pointer; }
 
-.profile-card-settings { padding: 24px; margin: 24px 0; }
-.profile-card-settings > p { margin-top: 14px; color: var(--muted); font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
-.profile-card-settings h2 { overflow-wrap: anywhere; }
-.settings-switch { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 0; border-top: 1px solid var(--line); }
-.settings-switch strong { display: block; font-size: 14px; }
-.settings-switch small { display: block; max-width: 650px; margin-top: 8px; color: var(--muted); font-size: 13px; line-height: 1.6; }
-
 .assistant-memory { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 0; border-top: 1px solid var(--line); }
 .assistant-memory label { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 13px; }
 .assistant-memory > span { color: var(--muted); font-size: 12px; }
-.memory-entry { border-top: 1px solid var(--line); padding: 18px 0; font-size: 13px; }
-.memory-entry summary { cursor: pointer; line-height: 1.6; }
-.memory-entry dl { display: grid; gap: 12px; margin-top: 18px; }
-.memory-entry dl > div { display: flex; justify-content: space-between; gap: 20px; }
-.memory-entry dt { color: var(--muted); text-transform: capitalize; }
-.memory-entry dd { margin: 0; }
+
 .llm-form { display: grid; gap: 12px; margin-top: 24px; }
 .llm-form > label { font-size: 14px; font-weight: 600; }
 .llm-form > input, .llm-form > select { min-width: 0; width: 100%; padding: 12px 14px; min-height: 46px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); font-size: 16px; }
@@ -231,10 +209,6 @@ body:has(.provider-dialog[open]) { overflow: hidden; }
   .provider-overview { padding: 18px; align-items: flex-start; }
   .coaching-suggestions { grid-template-columns: 1fr; }
   
-}
-
-@media (max-width: 430px) {
-  .profile-card-settings, .personal-context { padding: 20px; }
 }
 
 @media (max-width: 480px) {

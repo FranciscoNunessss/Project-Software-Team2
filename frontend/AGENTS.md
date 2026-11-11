@@ -13,10 +13,9 @@ A Vite development server is **already running** on `$PORT` (default 8443). You 
 
 This is the canonical project structure. Start with task-relevant files below. Only follow imports or inspect other files when required, when a documented path is missing, or when the repository contradicts this guide.
 
-- `src/main.tsx` - React entrypoint; imports `src/ui/tokens.css`, `src/ui/base.css` and `src/index.css`, and mounts `src/App.tsx` into the `#root` element
+- `src/main.tsx` - React entrypoint; imports `src/ui/tokens.css`, `src/ui/base.css` and `src/ui/layout.css`, and mounts `src/App.tsx` into the `#root` element
 - `src/App.tsx` - Primary application component and the usual starting point for UI work
-- `src/ui/` - the in-app UI library: design tokens (`tokens.css`), base element styles (`base.css`) and primitives (see `src/ui/README.md`)
-- `src/index.css` - Global CSS for the screens not yet moved onto `src/ui/`
+- `src/ui/` - the in-app UI library: design tokens (`tokens.css`), base element styles (`base.css`), shared page layout (`layout.css`) and primitives (see `src/ui/README.md`)
 - `index.html` - Vite HTML shell containing the `#root` element and loading `src/main.tsx`
 - `package.json` - Project dependencies and the Vite build, development, preview, and formatting scripts
 - `vite.config.ts` - Vite configuration with React and Figma Make plugins plus the `@` alias for `src`

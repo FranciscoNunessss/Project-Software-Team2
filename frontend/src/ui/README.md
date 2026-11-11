@@ -3,8 +3,9 @@
 An in-app library: design tokens, page-wide base styles and a few primitives. Plain CSS and
 CSS custom properties, one `.css` file next to each component. No Tailwind.
 
-`main.tsx` imports, in this order: `ui/tokens.css`, `ui/base.css`, then `index.css` (the
-screens not migrated yet). Each primitive imports its own CSS.
+`main.tsx` imports, in this order: `ui/tokens.css`, `ui/base.css`, the primitives, then
+`ui/layout.css` (the page column, intro header, section headings and a few blocks several
+screens share). Every other component imports its own `.css` file. There is no `index.css`.
 
 ## Rules
 
@@ -25,19 +26,25 @@ All in `tokens.css`. Light values on `:root`, dark values in `.theme-dark`.
 | Text | `--color-text`, `--color-ink`, `--color-ink-max`, `--color-heading-strong`, `--color-heading`, `--color-heading-soft`, `--color-body`, `--color-ink-soft`, `--color-label`, `--color-muted`, `--color-subtle`, `--color-placeholder` |
 | Lines | `--color-line`, `--color-line-soft`, `--color-line-strong`, `--color-line-quiet`, `--color-line-control`, `--color-line-control-hover` |
 | Accent and states | `--color-accent`, `--color-accent-hover`, `--color-accent-strong`, `--color-accent-ink` (text on accent), `--color-focus`, `--color-danger`, `--color-danger-line`, `--color-success`, `--color-success-soft`, `--color-warm`, `--color-warm-soft`, `--color-scrim`, `--color-scrim-strong` |
-| Component tokens | `--sidebar-bg`, `--button-*`, `--toggle-ink`, `--status-*`, `--composer-chat-ink`: light/dark pairs that don't fit the palette without a visible change. Candidates to fold in later. |
-| Shadows | `--shadow-sidebar`, `--shadow-sidebar-compact`, `--shadow-card`, `--shadow-raised`, `--shadow-raised-compact`, `--shadow-button`, `--shadow-popover`, `--shadow-panel`, `--shadow-drawer` |
+| More text | `--color-muted-soft`, `--color-muted-softer` (fine print), `--color-caption` (beside section headings), `--color-info`, `--color-info-soft` |
+| Component tokens | Light/dark pairs that don't fit the palette without a visible change; candidates to fold in later. Shell: `--sidebar-bg`, `--button-*`, `--toggle-ink`, `--status-*`, `--composer-chat-ink`, `--footer-*`. Labels and tiles: `--pill-*`, `--icon-tile-*`, `--note-*`, `--inset-bg`, `--well-*` (outlined label), `--tooltip-*`, `--empty-*`, `--skeleton-bg`, `--detail-ink*`. Analysis: `--track-bg`, `--bar-fill`, `--tier-line`, `--fit-*`, `--status-ok-*` / `--status-warn-*` / `--status-bad-*`. Legacy Assistant: `--segments-*`, `--segment-selected-*`, `--override-applied-*`. My progress: `--chart-*`, `--choice-pending-*`, `--trend-*`. Others: `--settings-eyebrow-ink`, `--provider-groq-line*`, `--auth-toggle-*`, `--auth-error-*`, `--coach-*` (Prompt Coach). |
+| Fixed colours | The same in both themes, because the app never adapted them to dark mode: greys named by value (`--grey-5e` … `--grey-f8`), `--color-stale`, `--color-backdrop`, `--coach-error`, `--chart-analysed`, `--chart-confirmed`, `--switch-*`, `--badge-*` (model evaluation states). Candidates for semantic tokens later. |
+| Shadows | `--shadow-sidebar`, `--shadow-sidebar-compact`, `--shadow-card`, `--shadow-raised`, `--shadow-raised-compact`, `--shadow-button`, `--shadow-popover`, `--shadow-panel`, `--shadow-drawer`, `--shadow-override`, `--shadow-tier`, `--shadow-segment-selected`, `--shadow-coach`, `--shadow-dialog`, `--shadow-tooltip` |
 | Spacing | `--space-1` 4px, `--space-2` 8, `--space-3` 12, `--space-4` 16, `--space-5` 20, `--space-6` 24, `--space-8` 32 |
 | Radii | `--radius-sm` 8px, `--radius-control` 9, `--radius-md` 10, `--radius-bubble` 14, `--radius-lg` 16, `--radius-xl` 18, `--radius-pill` |
 | Type | `--font-sans`, `--font-mono`; `--text-xs` 11px, `--text-sm` 12, `--text-base` 13, `--text-md` 14, `--text-lg` 15, `--text-xl` 16; `--weight-regular` 400, `--weight-medium` 500, `--weight-semibold` 600, `--weight-bold` 650, `--weight-heavy` 700 |
 | Layers | `--z-tooltip` 10, `--z-coach` 20, `--z-sidebar` 30, `--z-panel` 35 (analysis panel, floating), `--z-composer` 36 (message box, above the panel), `--z-sidebar-backdrop` 44, `--z-sidebar-drawer` 45, `--z-sheet` 45 (analysis bottom sheet), `--z-toast` 50 |
 
-Old names still work as aliases, for code not migrated yet: `--ink`, `--muted`, `--line`,
-`--surface`, `--blue`, `--blue-dark`, `--blue-soft`, `--green`. Don't use them in new code.
+Old names still work as aliases: `--ink`, `--muted`, `--line`, `--surface`, `--blue`,
+`--blue-dark`, `--blue-soft`, `--green`. No CSS uses them any more (one inline style in
+`Sidebar.tsx` still reads `--surface`). Don't use them in new code.
+
+Where the old CSS used two greys a few levels apart for the same role, they share one token.
+Every such merge is within 4/255 per channel, which is not visible.
 
 `base.css` holds an `@layer base` block with the parts of Tailwind's preflight the app was
-built on (so unlayered rules still win over it), plus element defaults, focus rings, `.muted`
-and `.sr-only`.
+built on (so unlayered rules still win over it), plus element defaults, focus rings, on/off
+switches (`input[role="switch"]`), `.muted` and `.sr-only`.
 
 ## Primitives
 
@@ -120,16 +127,19 @@ const composerSpace = useSheetClearance(composerRef, { active: pageIsActive })
 
 ## Migration status
 
-On `ui/` (own CSS file, tokens only): Sidebar, ChatScreen (with the composer and
-ChatMarkdown), AnalysisDrawer (→ `Sheet`), ModelPicker and OpenRouterModelPicker
-(→ `Popover`). `Button` has moved out of `App.tsx` and `Card` out of `AnalysisResult.tsx`.
+Every screen has its own CSS file on tokens, and `index.css` is gone:
 
-Still on `index.css`:
+- [x] Shell and chat: Sidebar, ChatScreen (composer, ChatMarkdown), AnalysisDrawer (→ `Sheet`), ModelPicker and OpenRouterModelPicker (→ `Popover`)
+- [x] My progress: `Progress`, `ProgressDashboard`, `LearningProgress`, `HistoryAnalysis`, `CoachingPanel`, `TaskOutcomes`
+- [x] Profile: `Profile` (and the settings card of `PromptCoachToggle`)
+- [x] LLM config: `LLMConfig`, `ModelEvaluations`, `modelStatus`
+- [x] Prompt Coach: `PromptCoachBubble` (styles only, see below), `TipsCard` / `PromptCoachTips`
+- [x] Task outcomes: `TaskOutcome`, `TaskOutcomes`
+- [x] The legacy Assistant screen and footer: `App.css`, with `AnalysisResult.css`
+- [x] The auth screen: `Account`
 
-- [ ] My progress — `Progress.tsx`, `ProgressDashboard.tsx`, `LearningProgress.tsx`, `HistoryAnalysis.tsx`
-- [ ] Profile — `Profile.tsx`
-- [ ] LLM config — `LLMConfig.tsx`
-- [ ] Prompt Coach — `PromptCoachBubble.tsx` (its own pop-up logic → `Popover`), `PromptCoachToggle.tsx`
-- [ ] Task outcomes — `TaskOutcome*.tsx`
-- [ ] The legacy Assistant screen in `App.tsx`
-- [ ] The auth screen in `Account.tsx`
+Still to do in a later phase:
+
+- [ ] `PromptCoachBubble` still has its own pop-up logic (outside click, Escape, placement); move it onto `Popover`.
+- [ ] Replace hand-written `className="button button-…"` buttons on these screens with `Button`.
+- [ ] Fold the component tokens and fixed colours into fewer semantic tokens (this changes how things look, so it needs a design decision).

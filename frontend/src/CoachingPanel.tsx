@@ -1,4 +1,5 @@
 import type { Coaching } from './coaching'
+import './CoachingPanel.css'
 
 export function CoachingPanel({ coaching, analyses }: { coaching: Coaching; analyses: number }) {
   const { state, saved, error } = coaching

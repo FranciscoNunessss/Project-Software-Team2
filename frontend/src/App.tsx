@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { api, ApiError, candidateLabel, deleteChat, getFeatures, listChats, PROFILE_VERSION, notifyProgressChange, type Analysis, type Candidate, type ChatSummary, type LLMOption, type LLMOptions, type SavedSession, type Resume } from './api'
 import { Account, type AccountInfo } from './Account'
 import { PagePanel } from './PagePanel'
@@ -13,42 +13,13 @@ import { TipsCard } from './TipsCard'
 import { PromptCoachTips } from './PromptCoachTips'
 import { PromptCoachBubble } from './PromptCoachBubble'
 import { ChatScreen, type OpenTask, type TaskState } from './ChatScreen'
-import { Card, Icon, ProfileCard, RecommendationCard } from './AnalysisResult'
+import { Icon, ProfileCard, RecommendationCard } from './AnalysisResult'
+import { Button, Card } from './ui'
 import { AssistantOutcome } from './TaskOutcome'
 import { Sidebar, type Screen } from './Sidebar'
+import './App.css'
 
 type ResultState = 'empty' | 'loading' | 'result'
-
-function Button({
-  children,
-  variant = 'primary',
-  onClick,
-  disabled,
-  className = '',
-  ariaLabel,
-  dataAnalyseButton,
-}: {
-  children: ReactNode
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
-  onClick?: () => void
-  disabled?: boolean
-  className?: string
-  ariaLabel?: string
-  dataAnalyseButton?: boolean
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={ariaLabel}
-      data-analyse-button={dataAnalyseButton ? '' : undefined}
-      disabled={disabled}
-      onClick={onClick}
-      className={`button button-${variant} ${className}`}
-    >
-      {children}
-    </button>
-  )
-}
 
 function EmptyResult() {
   return (
@@ -255,7 +226,7 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
           <ModelPicker options={providers} value={provider} autoId={autoId} loading={modelsLoading} disabled={state === 'loading' || saving || historyBusy} onChange={value => {setProvider(value);setRouterModel(null);setAnalysis(undefined);setState('empty');setSaved(false)}} onConfigure={onConfigureModels} />
           {usesRouter && <OpenRouterModelPicker value={routerValue} disabled={state === 'loading' || saving || historyBusy} onChange={value => {setRouterModel(value);setAnalysis(undefined);setState('empty');setSaved(false)}} />}
           <div className="composer-actions">
-            <Button dataAnalyseButton onClick={analyse} disabled={state === 'loading' || saving || historyBusy || modelsLoading || !selectedProvider || !task.trim()}>
+            <Button data-analyse-button="" onClick={analyse} disabled={state === 'loading' || saving || historyBusy || modelsLoading || !selectedProvider || !task.trim()}>
               {state === 'loading' ? 'Analysing…' : 'Analyse'} <Icon name="arrow" size={17} />
             </Button>
           </div>

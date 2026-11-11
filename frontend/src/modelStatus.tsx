@@ -1,5 +1,6 @@
 // One short status per model for the pickers (ADR-014 A12), the same rules as the backend's
 // evaluations.label: what the user can expect from a model before choosing it.
+import './modelStatus.css'
 export type ModelStatus = { state: 'evaluating' | 'consent' | 'measured' | 'public' | 'provisional' | 'failed' | 'none'; text: string }
 
 type Entry = {

@@ -3,6 +3,7 @@ import { api } from './api'
 import { LearningProgress } from './LearningProgress'
 import { CoachingPanel } from './CoachingPanel'
 import { useCoaching } from './coaching'
+import './ProgressDashboard.css'
 
 export type Summary = { sessions: number; analyses: number; choices: number; matches: number; agreement?: number | null; mean_gap?: number | null }
 type Point = { session_id: string; title: string; created_at: string; rate: number; score?: number | null; mean_gap?: number | null; choices: number; matches: number }

@@ -1,0 +1,2 @@
+.eyebrow { margin: 0 0 8px; text-transform: uppercase; letter-spacing: .11em; font-size: var(--text-xs); line-height: 1.4; font-weight: var(--weight-heavy); color: var(--color-label); }
+@media (max-width: 430px) { .eyebrow { margin-bottom: 7px; } }

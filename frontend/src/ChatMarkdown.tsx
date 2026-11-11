@@ -1,5 +1,6 @@
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import './ChatMarkdown.css'
 
 // Answers are rendered as GitHub-flavoured Markdown, whatever model wrote them. Raw HTML in
 // an answer is dropped (skipHtml) and unsafe link schemes are removed, so a model cannot

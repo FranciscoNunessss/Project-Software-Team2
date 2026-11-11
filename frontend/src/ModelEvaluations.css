@@ -1,0 +1,14 @@
+/* Model evaluations (ADR-014), in LLM config. */
+.model-evaluations { margin-top: 32px; display: grid; gap: 12px; }
+.model-evaluations h2 { margin: 0; }
+.evaluation-entry { padding: 18px; display: grid; gap: 10px; }
+.evaluation-entry h3 { margin: 0; overflow-wrap: anywhere; }
+.evaluation-consent { border: 1px solid var(--status-warn-line); background: var(--status-warn-bg-soft); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; font-size: 13px; }
+.evaluation-consent p, .evaluation-consent ul { margin: 0; }
+.evaluation-consent ul { padding-left: 18px; display: grid; gap: 4px; }
+.evaluation-levels td.muted { font-size: 10.5px; }
+.evaluation-examples { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; font-size: 12px; }
+.evaluation-examples pre { white-space: pre-wrap; margin: 4px 0 0; padding: 8px; border-radius: 8px; background: var(--color-hover); font-size: 11px; max-height: 160px; overflow: auto; }
+.evaluation-add { padding: 14px 18px; display: grid; gap: 8px; font-size: 13px; }
+.evaluation-add p { margin: 0; }
+.evaluation-add input, .evaluation-add select { min-width: 260px; flex: 1; padding: 8px 10px; border: 1px solid var(--color-line); border-radius: 8px; background: transparent; color: inherit; }

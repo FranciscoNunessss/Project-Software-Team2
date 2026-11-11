@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getCoachSettings, getFeatures, setCoachSettings } from './api'
+import './Profile.css'
 
 // Optional Prompt Coach module (ADR-009): the user's on/off switch in Profile. Shown only when
 // the module is installed on the server; Profile.tsx mounts it in one line.

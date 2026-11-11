@@ -1,0 +1,18 @@
+/* Answers rendered from Markdown. */
+.chat-markdown > :first-child { margin-top: 0; }
+.chat-markdown > :last-child { margin-bottom: 0; }
+.chat-markdown p, .chat-markdown ul, .chat-markdown ol, .chat-markdown pre, .chat-markdown table, .chat-markdown blockquote { margin: 0 0 10px; }
+.chat-markdown h1, .chat-markdown h2, .chat-markdown h3, .chat-markdown h4 { margin: 14px 0 6px; font-size: var(--text-lg); font-weight: var(--weight-bold); line-height: 1.4; color: var(--color-ink); }
+.chat-markdown h1 { font-size: 18px; } .chat-markdown h2 { font-size: 16px; }
+.chat-markdown ul, .chat-markdown ol { padding-left: 22px; }
+.chat-markdown ul { list-style: disc; } .chat-markdown ol { list-style: decimal; }
+.chat-markdown ul ul { list-style: circle; }
+.chat-markdown li { margin: 2px 0; }
+.chat-markdown code { font-family: var(--font-mono); font-size: var(--text-base); background: var(--color-hover); border-radius: 5px; padding: 1px 5px; }
+.chat-markdown pre { overflow-x: auto; padding: 12px 14px; border-radius: var(--radius-md); background: var(--color-hover); border: 1px solid var(--color-line); }
+.chat-markdown pre code { background: none; padding: 0; font-size: 12.5px; line-height: 1.55; white-space: pre; }
+.chat-markdown table { border-collapse: collapse; display: block; overflow-x: auto; font-size: var(--text-base); }
+.chat-markdown th, .chat-markdown td { border: 1px solid var(--color-line); padding: 6px 10px; text-align: left; }
+.chat-markdown blockquote { border-left: 3px solid var(--color-line); padding-left: 12px; color: var(--color-muted); }
+.chat-markdown a { color: inherit; text-decoration: underline; }
+.chat-markdown hr { border: 0; border-top: 1px solid var(--color-line); margin: 12px 0; }

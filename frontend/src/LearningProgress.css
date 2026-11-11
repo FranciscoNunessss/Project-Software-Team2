@@ -1,0 +1,12 @@
+/* Learning progress: completeness of the first analysis per session (My progress). */
+.learning-progress { margin-top: 16px; }
+.learning-verdict { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; margin: 6px 0 14px; padding: 12px 14px; border-radius: 10px; background: var(--trend-flat-bg); color: var(--trend-flat-ink); font-size: 13px; line-height: 1.5; }
+.learning-verdict strong { font-size: 14px; }
+.learning-verdict.improving { background: var(--trend-up-bg); color: var(--trend-up-ink); }
+.learning-verdict.declining { background: var(--trend-down-bg); color: var(--trend-down-ink); }
+.learning-dimensions h3 { margin: 18px 0 8px; font-size: 13px; }
+.learning-dimensions ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.learning-dimensions li { display: grid; grid-template-columns: 110px 1fr auto; gap: 10px; align-items: center; font-size: 13px; padding: 8px 10px; border: 1px solid var(--color-line); border-radius: 8px; }
+.learning-dimensions li.up strong { color: var(--trend-up-strong); }
+.learning-dimensions li.down strong { color: var(--trend-down-strong); }
+@media (max-width: 600px) { .learning-dimensions li { grid-template-columns: 1fr auto; } .learning-dimensions li span:nth-child(2) { display: none; } }

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { analyse, signUp, goTo } from './helpers'
+import { analyse, closePanel, signUp, goTo } from './helpers'
 
 // The Prompt Coach bubble on the task field (AA-030), driven on the real app with the fake
 // models of e2e/server.py. FakeAssessor: a task with "board" and "risk" is complete.
@@ -27,6 +27,7 @@ test('after an analysis the bubble counts what it left uncertain without calling
   // Ambiguity 3, context and risk unknown, reasoning low confidence.
   await expect(bubble(page)).toHaveText('4')
   await expect(bubble(page)).toHaveAccessibleName('Prompt Coach: 4 suggestions')
+  await closePanel(page)
   await bubble(page).click()
   await expect(panel(page)).toContainText('4 dimensions left uncertain')
   await expect(panel(page)).toContainText('Ambiguity, Context, Risk, Reasoning')
@@ -49,6 +50,7 @@ test('suggestions → apply and answer → analyse again shows what changed', as
   await analyse(page, VAGUE)
   await expect(page.locator('section.composer')).not.toHaveAttribute('data-analysis-id', '')
   const first = await page.locator('section.composer').getAttribute('data-analysis-id')
+  await closePanel(page)
   await bubble(page).click()
   await panel(page).getByRole('button', { name: 'Get suggestions' }).click()
   await expect(panel(page)).toContainText('Name the audience')
@@ -68,6 +70,7 @@ test('suggestions → apply and answer → analyse again shows what changed', as
   await expect(page.getByText('What changed since the previous analysis')).toBeVisible()
   await expect(page.getByText('100/100')).toBeVisible()
 
+  await closePanel(page)
   await bubble(page).click()
   await panel(page).getByRole('button', { name: 'Get suggestions' }).click()
   await expect(panel(page)).toContainText('Nothing to improve')
@@ -76,6 +79,7 @@ test('suggestions → apply and answer → analyse again shows what changed', as
 test('a suggested rewrite is shown as a diff and applied only on click', async ({ page }) => {
   await signUp(page)
   await analyse(page, VAGUE)
+  await closePanel(page)
   await bubble(page).click()
   await panel(page).getByRole('button', { name: 'Suggest a rewrite' }).click()
   await expect(panel(page)).toContainText('Suggested rewrite')
@@ -91,6 +95,7 @@ test('without the Prompt Coach module only quick checks run', async ({ page }) =
   await signUp(page)
   await page.locator('[data-task-input]').fill('Email me at someone@example.com')
   await expect(bubble(page)).toHaveText('✦') // No count when the Coach is off.
+  await closePanel(page)
   await bubble(page).click()
   await expect(panel(page)).toContainText('Email address in the task')
   await expect(panel(page)).toContainText('The Prompt Coach is switched off')
@@ -119,6 +124,7 @@ test('each user switches the Prompt Coach on or off in Profile', async ({ page }
   await analyse(page, VAGUE)
   await expect(bubble(page)).toHaveText('✦')
   await expect(page.getByRole('button', { name: 'Improve with Prompt Coach' })).toHaveCount(0)
+  await closePanel(page)
   await bubble(page).click()
   await expect(panel(page)).toContainText('You can switch it on in Profile')
   await expect(panel(page).getByRole('button', { name: 'Get suggestions' })).toHaveCount(0)
@@ -136,6 +142,7 @@ test('each user switches the Prompt Coach on or off in Profile', async ({ page }
 test('an answer stays with its question when another suggestion is ignored', async ({ page }) => {
   await signUp(page)
   await analyse(page, VAGUE)
+  await closePanel(page)
   await bubble(page).click()
   await panel(page).getByRole('button', { name: 'Get suggestions' }).click()
   const answer = panel(page).getByLabel('Answer: Say what happens if it is wrong')
@@ -149,6 +156,7 @@ test('suggestions stop counting and applying once the user edits the text by han
   await signUp(page)
   await analyse(page, VAGUE)
   await expect(page.locator('section.composer')).not.toHaveAttribute('data-analysis-id', '')
+  await closePanel(page)
   await bubble(page).click()
   await panel(page).getByRole('button', { name: 'Get suggestions' }).click()
   await expect(panel(page)).toContainText('Name the audience')

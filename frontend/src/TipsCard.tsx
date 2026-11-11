@@ -1,4 +1,5 @@
 import type { Analysis, DimensionName } from './api'
+import './TipsCard.css'
 
 const LABELS: Record<DimensionName, string> = {
   reasoning: 'Reasoning',

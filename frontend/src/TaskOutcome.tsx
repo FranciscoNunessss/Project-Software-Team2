@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ApiError, notifyProgressChange, OUTCOME_REASONS, putOutcome, type OutcomeReason, type TaskOutcome } from './api'
+import './TaskOutcome.css'
 
 // Feedback per task (ADR-014): once per task, at the end, never per answer.
 

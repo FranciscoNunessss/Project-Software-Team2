@@ -1,0 +1,67 @@
+/* The analysis: task profile, recommended model and its coverage (analysis panel, legacy
+   Assistant, saved history and model evaluations). */
+
+.confidence { border-radius: 999px; padding: 5px 9px; background: var(--pill-bg); color: var(--pill-ink); font-size: 10px; font-weight: 700; white-space: nowrap; }
+.confidence-low { color: var(--pill-ink-soft); background: var(--pill-bg); }
+.profile-list { margin-top: 22px; display: grid; gap: 15px; }
+.profile-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; color: var(--color-label); font-size: 11px; }
+.info-tip { position: relative; color: var(--grey-a0); cursor: help; }
+.info-tip [role="tooltip"] { display: none; position: absolute; z-index: var(--z-tooltip); width: 210px; right: -6px; bottom: calc(100% + 8px); padding: 8px 10px; border-radius: 7px; background: var(--tooltip-bg); color: var(--tooltip-ink); font-size: 10px; line-height: 1.45; box-shadow: var(--shadow-tooltip); }
+.info-tip:hover [role="tooltip"], .info-tip:focus [role="tooltip"] { display: block; }
+.bar-track { height: 6px; overflow: hidden; border-radius: 6px; background: var(--track-bg); }
+.bar-fill { display: block; height: 100%; border-radius: 6px; background: var(--bar-fill); transition: width .4s ease; }
+
+.tier-card { border-color: var(--tier-line); box-shadow: var(--shadow-tier); }
+.tier-title-row { display: flex; align-items: center; gap: 13px; margin: 25px 0 22px; }
+.tier-orb { width: 48px; height: 48px; padding: 4px; border: 1px solid var(--grey-ca); border-radius: 14px; background: var(--grey-f8); display: grid; place-items: center; }
+.tier-orb span { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: var(--button-primary-bg); color: var(--color-accent-ink); font-weight: 700; }
+.tier-title-row h2 { font-size: 25px; margin-bottom: 3px; }
+.cost-row { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--well-line); border-radius: 9px; background: var(--well-bg); color: var(--well-ink); font-size: 10px; }
+.cost-row strong { margin-left: auto; color: var(--detail-ink-max); font-size: 10px; }
+.why { margin-top: 20px; }
+.why h3 { margin-bottom: 12px; font-size: 12px; }
+.why ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 11px; }
+.why li { display: flex; align-items: flex-start; gap: 8px; color: var(--detail-ink); font-size: 10.5px; line-height: 1.45; }
+.model-card .why p { font-size: 12px; line-height: 1.55; margin: 0; }
+
+.fit-bars { margin-top: 16px; display: grid; gap: 8px; }
+.fit-bars h3 { margin: 0 0 4px; font-size: 12px; }
+.fit-row { display: grid; grid-template-columns: 64px 1fr 48px; align-items: center; gap: 8px; color: var(--fit-ink); font-size: 10.5px; }
+.fit-row strong { text-align: right; font-size: 10.5px; }
+.fit-track { height: 8px; border-radius: 4px; background: var(--fit-track); overflow: hidden; }
+.fit-fill { height: 100%; border-radius: 4px; background: var(--grey-9a); }
+.fit-row.recommended { color: var(--color-ink); font-weight: 700; }
+.fit-row.recommended .fit-fill { background: var(--fit-fill-strong); }
+.fit-row.ineligible { color: var(--fit-ink-ineligible); }
+
+/* Model recommendation (ADR-014) */
+.model-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.model-title-row h2 { margin: 0 0 4px; font-size: 20px; overflow-wrap: anywhere; }
+.status-pill { flex-shrink: 0; padding: 4px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; border: 1px solid var(--color-line); white-space: nowrap; }
+.status-covers { background: var(--status-ok-bg); color: var(--status-ok-ink); border-color: var(--status-ok-line); }
+.status-covers_as_described { background: var(--status-warn-bg); color: var(--status-warn-ink); border-color: var(--status-warn-line); }
+.status-short { background: var(--status-bad-bg); color: var(--status-bad-ink); border-color: var(--status-bad-line); }
+.coverage-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 6px; }
+.coverage-table th, .coverage-table td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--color-line); }
+.coverage-table thead th { color: var(--color-muted); font-weight: 500; font-size: 10px; }
+.coverage-short td:last-child { color: var(--status-bad-ink); font-weight: 600; }
+.coverage-covers_as_described td:last-child { color: var(--status-warn-ink); }
+.recommendation-notes { margin: 12px 0 0; padding: 10px 12px 10px 26px; border: 1px solid var(--status-warn-line); border-radius: 9px; background: var(--status-warn-bg-soft); font-size: 11px; line-height: 1.5; display: grid; gap: 4px; }
+.alternatives { margin-top: 18px; }
+.alternatives h3 { margin-bottom: 10px; font-size: 12px; }
+.alternatives ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.alternatives li { display: grid; gap: 2px; font-size: 11px; padding: 8px 10px; border: 1px solid var(--color-line); border-radius: 9px; }
+.use-recommended { margin: 0 0 14px; }
+.use-recommended-state { margin: 0 0 14px; font-size: 12px; }
+.openrouter-suggestion { border: 1px solid var(--badge-info-line); border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; display: grid; gap: 6px; font-size: 13px; }
+.openrouter-suggestion p { margin: 0; }
+
+@media (max-width: 800px) {
+  .profile-list { gap: 14px; }
+}
+
+@media (max-width: 430px) {
+  .tier-title-row { margin: 19px 0; }
+  .cost-row { padding: 11px; }
+  .why { margin-top: 18px; }
+}

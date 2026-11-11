@@ -1,0 +1,14 @@
+/* One saved analysis in the session history (My progress). */
+.history-analysis { padding: 24px 0; border-top: 1px solid var(--color-line); }
+.history-analysis h3 { margin-bottom: 16px; font-size: 15px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.history-analysis dl { display: flex; flex-wrap: wrap; gap: 16px 32px; margin-bottom: 18px; font-size: 13px; }
+.history-analysis dt { color: var(--color-muted); margin-bottom: 6px; }
+.history-analysis dd { margin: 0; font-weight: 600; }
+.pending-choice-actions > p { color: var(--color-muted); font-size: 13px; line-height: 1.7; }
+.pending-choice-actions { margin: 16px 0; padding: 18px; border: 1px solid var(--color-line); border-radius: 10px; background: var(--color-hover); }
+.choice-saved { color: var(--color-success); }
+.choice-pending { color: var(--choice-pending-ink); background: var(--choice-pending-bg); }
+.saved-conversation { margin: 18px 0; padding: 16px; border: 1px solid var(--color-line); border-radius: 12px; font-size: 13px; }
+.saved-conversation summary { cursor: pointer; }
+.saved-conversation h4 { margin: 16px 0 8px; font-size: 13px; }
+.saved-conversation p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; color: var(--color-muted); }

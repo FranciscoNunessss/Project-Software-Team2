@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import type { UseRecommended } from './AnalysisDrawer'
+import { Card } from './ui'
 import { COST_BAND_LABELS, NEED_LABELS, STATUS_LABELS, fitPercent, isLegacy, tierOf, type Analysis, type Candidate, type Coverage } from './api'
+import './AnalysisResult.css'
 
 // Result cards shared by the Assistant page and the chat's analysis panel.
 export function Icon({
@@ -38,10 +40,6 @@ export function Icon({
       {paths[name]}
     </svg>
   )
-}
-
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`card ${className}`}>{children}</section>
 }
 
 export function ProfileCard({ analysis }: { analysis: Analysis }) {

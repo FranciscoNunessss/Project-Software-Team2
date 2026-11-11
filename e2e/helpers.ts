@@ -17,7 +17,17 @@ export async function goTo(page: Page, name: 'Assistant' | 'My progress' | 'Prof
   await page.locator('[data-sidebar-nav] .menu-item', { hasText: name }).click()
 }
 
+// On wide screens the analysis panel floats over the whole chat, the message box included:
+// close it (if it is open) before using Analyse, Send, the model picker or the Prompt Coach.
+export async function closePanel(page: Page) {
+  const close = page.getByRole('button', { name: 'Close analysis' })
+  if (!(await close.isVisible())) return
+  await close.click()
+  await expect(page.locator('[data-analysis-drawer]')).toBeHidden()
+}
+
 export async function analyse(page: Page, task: string) {
+  await closePanel(page)
   await page.locator('[data-task-input]').fill(task)
   const done = page.waitForResponse(response => response.url().endsWith('/api/analyze'))
   await page.locator('[data-analyse-button]').click()

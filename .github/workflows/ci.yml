@@ -23,7 +23,7 @@ jobs:
       NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
       NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Verify deployment configuration before changing either service
         run: |
           python - <<'PY'
@@ -34,10 +34,10 @@ jobs:
           if missing:
               raise SystemExit('Missing deployment settings: ' + ', '.join(missing))
           PY
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         with:
           version: 10.34.3
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -60,7 +60,7 @@ jobs:
       # Only synthetic credentials/demo models; do not inject production secrets here.
       ADAPTAI_ENV_FILE: .env.example
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build and start the packaged stack
         run: docker compose --env-file .env.example up --build -d --wait --wait-timeout 180
       - name: Check the frontend, API, authentication and SSE
@@ -95,8 +95,8 @@ jobs:
     env:
       ADAPTAI_TEST_DATABASE_URL: postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - run: uv sync --locked
@@ -125,8 +125,8 @@ jobs:
     env:
       ADAPTAI_TEST_DATABASE_URL: postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - run: uv sync --locked
@@ -169,11 +169,11 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
         with:
           version: 10.34.3
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -197,15 +197,15 @@ jobs:
     env:
       ADAPTAI_TEST_DATABASE_URL: postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - run: uv sync --locked
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         with:
           version: 10.34.3
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -216,14 +216,19 @@ jobs:
         working-directory: frontend
       - run: pnpm install --frozen-lockfile
         working-directory: e2e
-      - run: pnpm exec playwright install --with-deps chromium
+      - name: Install Chromium for Playwright
         working-directory: e2e
+        # Browser only, no --with-deps: the runner image already has Chromium's libraries, and
+        # --with-deps goes through Ubuntu's package mirrors, which the runner sometimes cannot
+        # resolve (the step then hangs for many minutes and fails). Playwright's CDN is separate.
+        timeout-minutes: 10
+        run: pnpm exec playwright install chromium
       - run: pnpm exec playwright test
         working-directory: e2e
         env:
           CI: "true"
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: e2e-report
           path: e2e/playwright-report

@@ -28,8 +28,11 @@ uv lock --check
 uv run python -m ruff check backend scripts
 uv run python -m ruff format --check backend scripts
 
-# Run tests
-uv run python -m pytest -q
+# Run tests, with coverage (CI requires at least 80% on the core logic:
+# assessment, classification, recommendation and the workflow)
+uv run python -m pytest -q --cov=backend/app --cov-report=term
+uv run python -m coverage report --fail-under=80 \
+  --include="backend/app/assessment.py,backend/app/classification.py,backend/app/recommendation.py,backend/app/workflow.py"
 ```
 
 uv manages the virtual environment automatically; manual activation and

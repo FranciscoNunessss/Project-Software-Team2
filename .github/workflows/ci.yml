@@ -102,7 +102,11 @@ jobs:
       - run: uv sync --locked
       - run: uv run python -m ruff check backend scripts
       - run: uv run python -m ruff format --check backend scripts
-      - run: uv run python -m pytest -q
+      - run: uv run python -m pytest -q --cov=backend/app --cov-report=term
+      - name: Core logic coverage at least 80% (08 Construction, Definition of Done)
+        run: >-
+          uv run python -m coverage report --fail-under=80
+          --include="backend/app/assessment.py,backend/app/classification.py,backend/app/recommendation.py,backend/app/workflow.py"
   removal-drill:
     # Proves the optional modules, Prompt Coach (ADR-009) and chat (ADR-011), can be deleted
     # without touching the core.

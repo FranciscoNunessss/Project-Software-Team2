@@ -45,7 +45,9 @@ stop and switch to the full flow.
 ```bash
 uv run python -m ruff check backend scripts
 uv run python -m ruff format --check backend scripts
-uv run python -m pytest -q
+uv run python -m pytest -q --cov=backend/app --cov-report=term
+uv run python -m coverage report --fail-under=80 \
+  --include="backend/app/assessment.py,backend/app/classification.py,backend/app/recommendation.py,backend/app/workflow.py"
 cd frontend && pnpm install --frozen-lockfile && pnpm build
 cd e2e && pnpm install && pnpm exec playwright test
 ```

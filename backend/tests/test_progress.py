@@ -129,6 +129,40 @@ def test_automatic_coaching_failure_does_not_block_or_repeat_on_poll(monkeypatch
     assert len(calls) == 2  # A new history revision can make a fresh attempt.
 
 
+def test_automatic_coaching_saves_with_only_one_pooled_connection(monkeypatch):
+    class Coach:
+        def __init__(self, _settings):
+            pass
+
+        async def generate(self, _metadata):
+            return CoachingReport.model_validate(REPORT)
+
+    def broken_extension(store, _user_id):
+        with store.connect() as db:
+            db.execute("SELECT 1 / 0")
+
+    monkeypatch.setattr("app.coaching.GroqCoach", Coach)
+    register_snapshot_extension("broken_sql", broken_extension, lambda: "Test note.")
+    settings = Settings(_env_file=None, groq_api_key="synthetic-key", database_pool_size=1)
+    app = create_app(settings)
+    with TestClient(app) as client:
+        app.state.storage._pool.timeout = 1
+        assert (
+            client.post(
+                "/api/auth/register",
+                json={"email": "educator@example.test", "password": "test-password-123"},
+            ).status_code
+            == 201
+        )
+        assert client.put("/api/context", json={"coaching_auto_enabled": True}).status_code == 200
+        analyze(client)
+        state = client.get("/api/progress/coaching").json()
+
+    assert state["error"] is None
+    assert state["saved"]["stale"] is False
+    assert state["saved"]["source"]["assessments"] == 1
+
+
 def test_disabling_automatic_coaching_during_call_does_not_save_report(monkeypatch):
     app = create_app(Settings(_env_file=None, groq_api_key="synthetic-key"))
     client = account(app)

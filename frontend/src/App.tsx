@@ -7,6 +7,7 @@ import { AnalysisChanges } from './AnalysisChanges'
 import { ProgressScreen } from './Progress'
 import { ProfileScreen } from './Profile'
 import { LLMConfigScreen } from './LLMConfig'
+import { PrivacyPolicy } from './PrivacyPolicy'
 import { ModelPicker } from './ModelPicker'
 import { OpenRouterModelPicker } from './OpenRouterModelPicker'
 import { TipsCard } from './TipsCard'
@@ -377,10 +378,11 @@ function Shell({ account, dark, onToggleTheme }: { account: AccountInfo; dark: b
           if (hasChat) setChat({ key: saved.sessionId, id: saved.sessionId })
           navigate('assistant')
         }} /></PagePanel>}
-        {visited.has('profile') && <PagePanel active={screen === 'profile'}><ProfileScreen /></PagePanel>}
+        {visited.has('profile') && <PagePanel active={screen === 'profile'}><ProfileScreen onOpenPrivacy={() => navigate('privacy')} /></PagePanel>}
         {visited.has('llm') && <PagePanel active={screen === 'llm'}><LLMConfigScreen /></PagePanel>}
+        {visited.has('privacy') && <PagePanel active={screen === 'privacy'}><PrivacyPolicy onBack={() => navigate('assistant')} backLabel="Back to Assistant" /></PagePanel>}
         {/* The chat fills the window and scrolls only its conversation, so it has no footer. */}
-        {!chatActive && <footer><span>AdaptAI</span><p>Clearer choices. Better AI judgement.</p><button>Privacy</button><button>How it works</button></footer>}
+        {!chatActive && <footer><span>AdaptAI</span><p>Clearer choices. Better AI judgement.</p><button type="button" onClick={() => navigate('privacy')}>Privacy</button><button>How it works</button></footer>}
       </div>
     </>
   )

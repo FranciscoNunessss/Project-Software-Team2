@@ -1,0 +1,9 @@
+/* Privacy Policy page (rendered through ChatMarkdown) */
+.privacy-page { max-width: 860px; margin: 0 auto; padding: 24px 20px 48px; }
+.privacy-back { margin-bottom: 16px; }
+.privacy-policy { padding: 28px 32px; line-height: 1.6; }
+.privacy-policy .chat-markdown { font-size: var(--text-base); }
+.privacy-policy .chat-markdown h1 { font-size: 26px; margin-top: 0; }
+.privacy-policy .chat-markdown h2 { font-size: 18px; margin: 26px 0 8px; }
+.auth-policy-link { border: 0; background: none; padding: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+@media (max-width: 640px) { .privacy-policy { padding: 18px 16px; } }

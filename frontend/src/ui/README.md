@@ -33,7 +33,7 @@ All in `tokens.css`. Light values on `:root`, dark values in `.theme-dark`.
 | Spacing | `--space-1` 4px, `--space-2` 8, `--space-3` 12, `--space-4` 16, `--space-5` 20, `--space-6` 24, `--space-8` 32 |
 | Radii | `--radius-sm` 8px, `--radius-control` 9, `--radius-md` 10, `--radius-bubble` 14, `--radius-lg` 16, `--radius-xl` 18, `--radius-pill` |
 | Type | `--font-sans`, `--font-mono`; `--text-xs` 11px, `--text-sm` 12, `--text-base` 13, `--text-md` 14, `--text-lg` 15, `--text-xl` 16; `--weight-regular` 400, `--weight-medium` 500, `--weight-semibold` 600, `--weight-bold` 650, `--weight-heavy` 700 |
-| Layers | `--z-tooltip` 10, `--z-coach` 20, `--z-sidebar` 30, `--z-panel` 35 (analysis panel, floating), `--z-composer` 36 (message box, above the panel), `--z-sidebar-backdrop` 44, `--z-sidebar-drawer` 45, `--z-sheet` 45 (analysis bottom sheet), `--z-toast` 50 |
+| Layers | `--z-tooltip` 10, `--z-coach` 20, `--z-sidebar` 30, `--z-panel` 35 (analysis panel, floating over the chat and message box), `--z-sidebar-backdrop` 44, `--z-sidebar-drawer` 45, `--z-sheet` 45 (analysis bottom sheet), `--z-toast` 50 |
 
 Old names still work as aliases: `--ink`, `--muted`, `--line`, `--surface`, `--blue`,
 `--blue-dark`, `--blue-soft`, `--green`. No CSS uses them any more (one inline style in
@@ -105,23 +105,14 @@ Options: `width`, `maxHeight`, `minHeight` (default 80), `focusOnOpen` (a select
 panel), `watch` (values that resize the panel while open). `popover.hide()` closes without
 moving focus; `popover.close()` also returns focus to the trigger.
 
-### Sheet + useSheetRoom
+### Sheet
 
 The analysis panel's two modes. Above 1100px it floats full height (top to bottom of the
-window) over the right of the page. At 1100px and below it becomes a nearly full-height
-bottom sheet with a backdrop. It closes with its × button, the backdrop or Escape.
-
-`useSheetRoom(container, open)` returns how many px an element has from the left of
-`container` to just before the open floating panel (`null` when closed or a bottom sheet).
-The chat uses it to narrow only the message box, so Analyse and Send stay usable while the
-panel covers the rest of the chat.
+window) over the right of the page, on top of the chat and the message box. At 1100px and
+below it becomes a nearly full-height bottom sheet with a backdrop. It closes with its ×
+button, the backdrop or Escape.
 
 ```tsx
-// In the screen that owns the message box:
-const room = useSheetRoom(chatMainRef, panelOpen)
-<section ref={chatMainRef} className={room === null ? 'chat-main' : 'chat-main beside-sheet'}
-  style={room === null ? undefined : { '--sheet-room': `${room}px` } as CSSProperties}>…</section>
-
 // The panel:
 <Sheet open={open} onClose={close} label="Analysis" closeLabel="Close analysis"
   heading={<><Eyebrow>Analysis</Eyebrow><h2>Your task</h2></>}

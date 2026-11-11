@@ -262,7 +262,6 @@
   --z-coach: 20;            /* Prompt Coach panel */
   --z-sidebar: 30;
   --z-panel: 35;            /* analysis panel, floating */
-  --z-composer: 36;         /* message box and its pop-ups: above the floating panel */
   --z-sidebar-backdrop: 44;
   --z-sidebar-drawer: 45;
   --z-sheet: 45;            /* analysis panel as a bottom sheet */

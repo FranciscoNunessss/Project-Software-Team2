@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { usePageActive } from './PagePanel'
 import {
   api, createChat, renameChat, errorMessage, getChat, notifyProgressChange, streamChat, candidateLabel, putOutcome, ApiError,
@@ -11,7 +11,7 @@ import { OpenRouterModelPicker } from './OpenRouterModelPicker'
 import { statusKey, statusOf, type ModelStatus } from './modelStatus'
 import { PromptCoachBubble } from './PromptCoachBubble'
 import { OutcomeCard, SolvedButton } from './TaskOutcome'
-import { Button, useSheetRoom } from './ui'
+import { Button } from './ui'
 import './Composer.css'
 import './ChatScreen.css'
 
@@ -325,17 +325,13 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
   // The panel's own Send: only for the analysis of exactly the text in the composer.
   const sendable = shown !== null && draftAnalysis?.analysis.id === shown.id && draftAnalysis.text === draft && !!draft.trim() && !!selected
   const locked = busy || analysing
-  // On wide screens the analysis panel floats full height over the chat. Only the message box
-  // makes room beside it, so Analyse, Send and the Prompt Coach stay usable while it is open.
-  const chatMain = useRef<HTMLElement>(null)
-  const sheetRoom = useSheetRoom(chatMain, drawer && activePage)
   // The sidebar must not switch chats mid-answer: switching remounts this screen.
   useEffect(() => { onBusyChange(locked) }, [locked]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => onBusyChange(false), []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <main className="page chat-layout" data-chat-screen="">
-      <section ref={chatMain} className={sheetRoom === null ? 'chat-main' : 'chat-main beside-sheet'} style={sheetRoom === null ? undefined : { '--sheet-room': `${sheetRoom}px` } as CSSProperties}>
+      <section className="chat-main">
         <div className="chat-toolbar">
           <span className="chat-title">{chatId ? title : ''}</span>
         </div>

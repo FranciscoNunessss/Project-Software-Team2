@@ -1,5 +1,4 @@
-/* Wide screens: a full-height panel floating over the right of the page. The page never moves.
-   EDGE, WIDTH and GAP in Sheet.tsx (useSheetRoom) follow these numbers. */
+/* Wide screens: a full-height panel floating over the right of the page. The page never moves. */
 .sheet { position: fixed; top: 16px; right: 16px; bottom: 16px; z-index: var(--z-panel); width: min(400px, calc(100vw - 32px)); transform: translateX(calc(100% + 24px)); transition: transform .28s ease; pointer-events: none; }
 .sheet.open { transform: none; pointer-events: auto; }
 

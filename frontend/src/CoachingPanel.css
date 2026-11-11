@@ -1,0 +1,14 @@
+/* Personal coaching (My progress). */
+.personal-coaching { padding: 24px; margin-top: 32px; }
+.personal-coaching > p { color: var(--color-muted); font-size: 14px; line-height: 1.7; margin: 18px 0; }
+.personal-coaching .muted { font-size: 12px; }
+.coaching-report { margin: 24px 0; padding-top: 20px; border-top: 1px solid var(--color-line); }
+.coaching-report > p { font-size: 14px; line-height: 1.7; }
+.coaching-report.is-stale > .eyebrow { color: var(--color-stale); }
+.coaching-status { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: var(--color-hover); color: var(--color-muted); font-size: 12px; font-weight: 500; }
+.coaching-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.coaching-status.is-current { background: var(--color-success-soft); color: var(--color-success); }
+
+@media (max-width: 800px) {
+  .personal-coaching { padding: 20px; }
+}

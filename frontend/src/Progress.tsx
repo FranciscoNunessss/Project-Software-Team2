@@ -5,6 +5,7 @@ import { HistoryAnalysis } from './HistoryAnalysis'
 import { ProgressDashboard, type Summary } from './ProgressDashboard'
 import { TaskOutcomes } from './TaskOutcomes'
 import { usePageActive } from './PagePanel'
+import './Progress.css'
 type SessionDetail = SavedSession & { analyses: HistoryItem[] }
 const pageSize = 20
 const dateLabel = (date: string) => new Date(date).toLocaleString()

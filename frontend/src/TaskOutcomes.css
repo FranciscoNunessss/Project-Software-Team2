@@ -1,0 +1,8 @@
+/* Task outcomes summary (My progress). */
+.task-outcomes { padding: 20px; margin-bottom: 18px; display: grid; gap: 12px; }
+.outcome-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0; }
+.outcome-metrics div { border: 1px solid var(--color-line); border-radius: 10px; padding: 10px 12px; }
+.outcome-metrics dt { color: var(--color-muted); font-size: 11px; }
+.outcome-metrics dd { margin: 4px 0 0; font-size: 18px; font-weight: 600; }
+.outcome-models { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 12px; }
+.outcome-models li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--color-line); padding: 4px 0; }

@@ -5,7 +5,7 @@ test('the sign-in screen links to the Privacy Policy and returns to sign in', as
   await page.goto('/')
   await page.getByRole('button', { name: 'Privacy Policy' }).click()
   await expect(page.getByRole('heading', { name: 'Privacy Policy', level: 1 })).toBeVisible()
-  await expect(page.getByRole('heading', { name: '8. Your rights and how to use them' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '9. Your rights' })).toBeVisible()
   await page.getByRole('button', { name: /Back to sign in/ }).click()
   await expect(page.getByLabel('Email address')).toBeVisible()
 })
@@ -20,5 +20,5 @@ test('the footer and Profile open the Privacy Policy from the signed-in app', as
 
   await goTo(page, 'Profile')
   await page.getByRole('button', { name: 'Read the Privacy Policy' }).click()
-  await expect(page.getByRole('heading', { name: '2. The short version' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '3. Summary' })).toBeVisible()
 })

@@ -244,7 +244,7 @@ an external destination, so no external-processing consent) and its address is s
 configuration that no request can change. A personal LM Studio model can be added in LLM
 config like an Ollama one. Not run against a real LM Studio yet; the tests use a fake client.
 
-Both providers also work in the optional chat (below).
+Both providers also work in the chat (below).
 Set the model IDs available to your provider account in `.env`, with the appropriate
 API keys, then restart the backend. OpenAI and Claude remain disabled until both the
 model and key are present. Neither integration reads Codex CLI/Claude Code login
@@ -460,10 +460,10 @@ To remove the Prompt Coach:
    `prompt_coach_events`, if present) in PostgreSQL; the core ignores them.
 4. Run the full backend suite, `pnpm build` and the e2e tests.
 
-## Chat (optional module)
+## Chat
 
-The chat is part of the product (ADR-011) and is built as a removable module, like the
-Prompt Coach: `create_app` imports `backend/app/chat.py` last, inside its own `try`, and carries
+The chat is a core feature of the product (ADR-011), not an optional one. In the code it lives
+in its own module so the analysis core can be tested without it, like the Prompt Coach: `create_app` imports `backend/app/chat.py` last, inside its own `try`, and carries
 on without it. `GET /api/features` reports `{"chat": true|false}`. A chat is a session
 marked in `chat_sessions`; analyse a draft with the usual `POST /api/analyze`, passing the
 chat id as `session_id`, then send it with the `analysis_id` to link the two.

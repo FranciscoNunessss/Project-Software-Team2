@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { coachAvailable, promptCoach, type Analysis, type CoachMode, type CoachResponse, type DimensionName, type Profile } from './api'
+import './PromptCoachBubble.css'
 
 // Optional Prompt Coach module (ADR-009, AA-030). A bubble on the task field: it counts what
 // the last analysis left uncertain (no model call), and opens a panel that asks the Coach

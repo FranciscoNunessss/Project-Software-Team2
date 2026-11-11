@@ -1,11 +1,10 @@
 import * as vscode from 'vscode'
 import { ApiError, Backend } from './backend'
-import type { LlmOption, LlmOptions } from './api'
-import { Analyser, explain } from './analyse'
+import type { CoachMode, LlmOption, LlmOptions } from './api'
+import { Analyser, explain, type Result } from './analyse'
 import { describeFailure, destination } from './core'
 import { renderAnalysis } from './format'
 
-export const TRANSCRIPT_SCHEME = 'adaptai-chat'
 const MAX_MESSAGE = 8000
 
 export type ChatSummary = { id: string; title: string; created_at: string; updated_at?: string; message_count: number }
@@ -129,7 +128,7 @@ export class ChatService {
   }
 
   /** A normal message: sent to the chat model, the answer streams back. */
-  async send(prompt: string, sink: Sink, signal: AbortSignal): Promise<void> {
+  async send(prompt: string, sink: Sink, signal: AbortSignal, override?: { optionId: string; model?: string }): Promise<void> {
     if (this.backend.auth === 'none' || this.backend.urlProblem) return sink.markdown(this.backend.urlProblem ? `**${this.backend.urlProblem}**` : '**Sign in first** (the AdaptAI view, or the command *AdaptAI: Sign in*).')
     if (prompt.length > MAX_MESSAGE) return sink.markdown(`**That message is ${prompt.length} characters; the chat takes up to ${MAX_MESSAGE}.**`)
     const options = await this.backend.api<LlmOptions>('/api/llm-options').catch(error => {
@@ -137,7 +136,8 @@ export class ChatService {
       return undefined
     })
     if (!options) return
-    const option = this.model(options)
+    const picked = override ? options.options.find(item => item.id === override.optionId) : undefined
+    const option = picked ? { ...picked, model: override?.model ?? picked.model } : this.model(options)
     if (!option) return sink.markdown('**No model is available for the chat.** Add one in the app (LLM config), or configure one on the backend.')
     if (!(await this.confirm(option, prompt.length))) return sink.markdown('_Cancelled. Nothing was sent._')
     sink.progress(`Asking ${destination(option)}…`)
@@ -167,6 +167,34 @@ export class ChatService {
     sink.button({ command: 'adaptai.taskOutcome', title: 'Task solved?', arguments: [result.analysis.id] })
     sink.button({ command: 'adaptai.useModel', title: 'Use this model in the chat', arguments: [result.analysis.id] })
     sink.button({ command: 'adaptai.chatSendText', title: 'Send it to the chat', arguments: [result.task] })
+  }
+
+  /**
+   * The analysis button of the page: the same call as `/analyse` inside the chat's own session (so the next
+   * message carries it), but nothing is written to a sink: the page shows the result. A past session picked
+   * with "Continue this session" takes the place of the chat's session.
+   */
+  async analyseForPage(text: string, opts: { thenCoach?: boolean; signal?: AbortSignal } = {}): Promise<Result | undefined> {
+    const continuing = this.analyser.continueFrom
+    const sessionId = continuing?.sessionId ?? (await this.ensureChat().catch(() => undefined))
+    const previousId = continuing ? continuing.previousId : this.analysed?.id
+    const result = await this.analyser.analyseText(text, { sessionId, previousId, signal: opts.signal, quiet: true, thenCoach: opts.thenCoach })
+    if (!result) return undefined
+    this.analysed = { text, id: result.analysis.id }
+    if (continuing) this.analyser.continueFrom = { ...continuing, previousId: result.analysis.id }
+    return result
+  }
+
+  /** The Prompt Coach on the text of the page: the analysis in the chat's session, then the Coach in the given mode. */
+  async coachForPage(text: string, mode: CoachMode, signal?: AbortSignal): Promise<Result | undefined> {
+    const result = await this.analyseForPage(text, { thenCoach: true, signal })
+    if (!result) return undefined
+    if (!result.coachAvailable) {
+      void vscode.window.showWarningMessage('AdaptAI: Prompt Coach is not installed on this backend.')
+      return result
+    }
+    await this.analyser.coach(result, mode, true)
+    return result
   }
 
   async newChat(): Promise<void> {
@@ -203,65 +231,6 @@ export class ChatService {
   }
 }
 
-/** The tree of chats in the AdaptAI view. */
-export class ChatsView implements vscode.TreeDataProvider<ChatSummary>, vscode.TextDocumentContentProvider {
-  static readonly viewType = 'adaptai.chats'
-  private readonly changed = new vscode.EventEmitter<void>()
-  readonly onDidChangeTreeData = this.changed.event
-  private readonly docChanged = new vscode.EventEmitter<vscode.Uri>()
-  readonly onDidChange = this.docChanged.event
-  private readonly texts = new Map<string, string>()
-
-  constructor(private readonly backend: Backend, private readonly chat: ChatService) {
-    chat.onDidChange(() => this.changed.fire())
-  }
-
-  refresh(): void {
-    this.changed.fire()
-  }
-
-  async getChildren(): Promise<ChatSummary[]> {
-    if (this.backend.auth === 'none') return []
-    try {
-      return await this.chat.list()
-    } catch {
-      return []
-    }
-  }
-
-  getTreeItem(chat: ChatSummary): vscode.TreeItem {
-    const item = new vscode.TreeItem(chat.title, vscode.TreeItemCollapsibleState.None)
-    const current = this.chat.current === chat.id
-    item.description = `${chat.message_count} ${chat.message_count === 1 ? 'message' : 'messages'}${current ? ' · current' : ''}`
-    item.iconPath = new vscode.ThemeIcon(current ? 'comment-discussion' : 'comment')
-    item.contextValue = 'adaptai.chat'
-    item.command = { command: 'adaptai.chatOpen', title: 'Open the chat', arguments: [chat.id] }
-    item.id = chat.id
-    return item
-  }
-
-  /** The transcript is a read-only Markdown document, opened by the tree and by "Open the chat". */
-  async openTranscript(id: string): Promise<void> {
-    const uri = vscode.Uri.from({ scheme: TRANSCRIPT_SCHEME, path: `/${id}.md` })
-    try {
-      this.texts.set(uri.path, await this.chat.transcript(id))
-    } catch (error) {
-      return void vscode.window.showErrorMessage(`AdaptAI: ${explain(error)}`)
-    }
-    this.docChanged.fire(uri)
-    await this.chat.setCurrent(id)
-    await vscode.commands.executeCommand('markdown.showPreviewToSide', uri)
-    void vscode.window.showInformationMessage('AdaptAI: this is now the current chat. Write to @adaptai in the chat view to continue it.', 'Open the chat view').then(choice => {
-      if (choice) void vscode.commands.executeCommand('workbench.action.chat.open', { query: '@adaptai ' })
-    })
-  }
-
-  provideTextDocumentContent(uri: vscode.Uri): string {
-    return this.texts.get(uri.path) ?? '# This chat is not loaded'
-  }
-}
-
-/** The participant `@adaptai` of the chat view of VS Code. */
 export function registerParticipant(chat: ChatService): vscode.Disposable | undefined {
   if (typeof vscode.chat?.createChatParticipant !== 'function') return undefined
   const participant = vscode.chat.createChatParticipant('adaptai.chat', async (request, _context, response, token) => {

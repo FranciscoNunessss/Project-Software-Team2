@@ -2,10 +2,9 @@ import * as fs from 'node:fs'
 import * as vscode from 'vscode'
 import { ANALYSIS_SCHEME, Analyser, DIFF_SCHEME, explain } from './analyse'
 import { ApiError, Backend } from './backend'
-import { ChatService, ChatsView, TRANSCRIPT_SCHEME, registerParticipant, type ChatSummary } from './chat'
+import { ChatService, registerParticipant } from './chat'
 import { Dashboard } from './dashboard'
-import { ModelsView } from './models'
-import { PROGRESS_SCHEME, ProfileView, ProgressReport } from './profile'
+import { PROGRESS_SCHEME, ProgressReport } from './profile'
 import { StatusBar } from './statusbar'
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -13,11 +12,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   await backend.load()
   const analyser = new Analyser(backend)
   const chat = new ChatService(backend, analyser, context.workspaceState)
-  const chats = new ChatsView(backend, chat)
-  const profile = new ProfileView(backend)
-  const models = new ModelsView(backend, analyser.connections)
   const progress = new ProgressReport(backend)
-  const dashboard = new Dashboard(backend, analyser, models, profile, chat, chats, progress)
+  const dashboard = new Dashboard(backend, analyser, chat, progress)
 
   // Development only: the self-test writes what it sees to a file and quits (see the README).
   const selftest = Boolean(process.env.ADAPTAI_SELFTEST)
@@ -35,7 +31,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     statusBar,
     vscode.window.registerWebviewViewProvider(Dashboard.viewType, dashboard, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.workspace.registerTextDocumentContentProvider(PROGRESS_SCHEME, progress),
-    vscode.workspace.registerTextDocumentContentProvider(TRANSCRIPT_SCHEME, chats),
     ...(registerParticipant(chat) ? [registerParticipant(chat) as vscode.Disposable] : []),
     vscode.workspace.registerTextDocumentContentProvider(DIFF_SCHEME, analyser),
     vscode.workspace.registerTextDocumentContentProvider(ANALYSIS_SCHEME, analyser),
@@ -44,9 +39,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       void statusBar.refresh()
     }),
     backend.onDidChangeSession(() => {
-      chats.refresh()
-      void profile.refresh()
-      void models.refresh()
     }),
     vscode.workspace.onDidChangeConfiguration(event => {
       if (event.affectsConfiguration('adaptai.backendUrl')) {
@@ -79,22 +71,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('adaptai.taskOutcome', (id?: string) => analyser.taskOutcome(id)),
     vscode.commands.registerCommand('adaptai.useModel', (id?: string) => analyser.useModel(id)),
     vscode.commands.registerCommand('adaptai.coachResult', (id?: string) => analyser.coachResult(id)),
-    vscode.commands.registerCommand('adaptai.editPreferences', () => profile.editPreferences()),
-    vscode.commands.registerCommand('adaptai.clearMemory', () => profile.delete('memory')),
-    vscode.commands.registerCommand('adaptai.clearConversations', () => profile.delete('conversations')),
-    vscode.commands.registerCommand('adaptai.clearHistory', () => profile.delete('history')),
     vscode.commands.registerCommand('adaptai.openProgress', () => progress.open()),
-    vscode.commands.registerCommand('adaptai.refreshProfile', () => profile.refresh()),
-    vscode.commands.registerCommand('adaptai.refreshModels', () => models.refresh()),
-    vscode.commands.registerCommand('adaptai.modelAdd', () => models.add()),
-    vscode.commands.registerCommand('adaptai.modelEdit', (row: { config: never }) => models.edit(row.config)),
-    vscode.commands.registerCommand('adaptai.modelRemove', (row: { config: never }) => models.remove(row.config)),
-    vscode.commands.registerCommand('adaptai.modelTest', (row: { config: never }) => models.test(row.config)),
-    vscode.commands.registerCommand('adaptai.evaluationConsent', (row: { entry: never }) => models.consent(row.entry)),
-    vscode.commands.registerCommand('adaptai.evaluationRedo', (row: { entry: never }) => models.reevaluate(row.entry)),
-    vscode.commands.registerCommand('adaptai.evaluationDisagree', (row: { entry: never }) => models.disagree(row.entry)),
-    vscode.commands.registerCommand('adaptai.evaluationAdd', () => models.addOpenRouterModel()),
-    vscode.commands.registerCommand('adaptai.evaluationRemove', (row: { entry: never }) => models.removeOpenRouterModel(row.entry)),
     vscode.commands.registerCommand('adaptai.chatOpenView', () => vscode.commands.executeCommand('workbench.action.chat.open', { query: '@adaptai ', isPartialQuery: true })),
     vscode.commands.registerCommand('adaptai.chatSendText', (text: string) => vscode.commands.executeCommand('workbench.action.chat.open', { query: `@adaptai ${text}` })),
     vscode.commands.registerCommand('adaptai.chatRetry', () => vscode.commands.executeCommand('workbench.action.chat.open', { query: '@adaptai /retry' })),
@@ -102,30 +79,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       await chat.newChat()
       void vscode.window.showInformationMessage('AdaptAI: your next message in the chat opens a new chat.')
     }),
-    vscode.commands.registerCommand('adaptai.chatOpen', (id: string) => chats.openTranscript(id)),
-    vscode.commands.registerCommand('adaptai.chatRename', async (item: ChatSummary) => {
-      const title = await vscode.window.showInputBox({ title: 'Rename the chat', value: item.title, ignoreFocusOut: true, validateInput: value => (value.trim() ? undefined : 'A chat needs a name') })
-      if (!title) return
-      try {
-        await chat.rename(item.id, title.trim())
-      } catch (error) {
-        void vscode.window.showErrorMessage(`AdaptAI: ${explain(error)}`)
-      }
-    }),
-    vscode.commands.registerCommand('adaptai.chatDelete', async (item: ChatSummary) => {
-      const sure = await vscode.window.showWarningMessage(`Delete the chat “${item.title}” and its ${item.message_count} messages? This cannot be undone.`, { modal: true }, 'Delete')
-      if (!sure) return
-      try {
-        await chat.remove(item.id)
-      } catch (error) {
-        void vscode.window.showErrorMessage(`AdaptAI: ${explain(error)}`)
-      }
-    }),
   )
 
   void statusBar.refresh()
-  void profile.refresh()
-  void models.refresh()
 
   if (selftest) {
     void (async () => {

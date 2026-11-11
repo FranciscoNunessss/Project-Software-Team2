@@ -8,7 +8,7 @@ const config = { backendUrl: 'http://127.0.0.1:1', confirmExternal: true, chatMo
 const { vscode, log, ui, captured } = installVscode(config)
 const { Backend } = require('../dist/backend.js')
 const { Analyser } = require('../dist/analyse.js')
-const { ChatService, ChatsView, registerParticipant } = require('../dist/chat.js')
+const { ChatService, registerParticipant } = require('../dist/chat.js')
 
 const frame = (event, data) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
@@ -333,27 +333,6 @@ test('the transcript shows who said what, the model, failures and stopped answer
   }
 })
 
-test('the tree lists chats with their size, marks the current one, and opens a chat as the current one', async () => {
-  reset()
-  const { server, backend, chat } = await backendStub()
-  try {
-    const tree = new ChatsView(backend, chat)
-    const [first] = await tree.getChildren()
-    assert.equal(first.title, 'First chat')
-    const item = tree.getTreeItem(first)
-    assert.equal(item.description, '2 messages')
-    assert.equal(item.command.command, 'adaptai.chatOpen')
-    assert.equal(item.contextValue, 'adaptai.chat')
-    await tree.openTranscript('chat-1')
-    assert.equal(chat.current, 'chat-1')
-    assert.match(tree.getTreeItem(first).description, /current/)
-    assert.ok(log.executed.some(call => call[0] === 'markdown.showPreviewToSide'))
-    assert.match(tree.provideTextDocumentContent({ path: '/chat-1.md' }), /^# First chat/)
-  } finally {
-    await server.close()
-  }
-})
-
 test('rename and delete go to the backend; deleting the current chat starts a new one; signed out lists nothing', async () => {
   reset()
   const { server, backend, chat } = await backendStub()
@@ -364,9 +343,30 @@ test('rename and delete go to the backend; deleting the current chat starts a ne
     await chat.remove('chat-1')
     assert.ok(server.hits.some(hit => hit.method === 'DELETE' && hit.url === '/api/chats/chat-1'))
     assert.equal(chat.current, undefined)
-    const out = new ChatsView(new Backend(secretStore()), chat)
-    assert.deepEqual(await out.getChildren(), [])
     assert.equal(backend.auth, 'token')
+  } finally {
+    await server.close()
+  }
+})
+
+test('with an OpenRouter chat model and no assessor, the analysis uses a model of yours that can assess, never the demonstration model', async () => {
+  reset()
+  const options = {
+    options: [
+      { id: 'or1', provider: 'openrouter', label: 'OpenRouter', model: 'vendor/free:free', external: true, source: 'personal' },
+      { id: 'demo', provider: 'demo', label: 'Demonstration', model: null, external: false, source: 'server' },
+      { id: 'lm1', provider: 'lmstudio', label: 'LM Studio', model: 'gemma', external: false, source: 'personal' },
+    ],
+    auto_configuration_id: null,
+    assessment: null,
+  }
+  const { server, analyser } = await backendStub({ options })
+  try {
+    config.chatModel = 'or1'
+    await analyser.analyseText('Plan a database migration for a small team', {})
+    // the stub answers as Groq, so the check refuses it; what matters is which model the request was aimed at
+    assert.match(analyser.lastError ?? '', /You chose LM Studio · gemma/)
+    config.chatModel = ''
   } finally {
     await server.close()
   }

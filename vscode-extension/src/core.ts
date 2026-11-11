@@ -111,7 +111,7 @@ export function analysisPlan(
   }
   if (assessor) return { via: assessor, manual: false, body: { ...common, allow_external: assessor.external } }
   const chat = extra.chat
-  if (!chat) return { error: 'This backend has no assessment model and no model was chosen. Configure Groq on the backend or add a model in the app (LLM config).' }
+  if (!chat) return { error: 'This backend has no assessment model and no model was chosen. Configure Groq on the backend or add a model in the app (LLM config). An OpenRouter model can chat but cannot assess a task: add Groq, LM Studio or another model for the analysis.' }
   const auto = options.auto_configuration_id === chat.id
   return {
     via: chat,
@@ -146,6 +146,28 @@ export function servedBy(analysis: Pick<Analysis, 'provider' | 'assessment_model
 // ---- errors in plain words ------------------------------------------------------------------------
 
 const GENERIC: Record<string, string> = {
+  // The codes below were missing; the words are the web app's (frontend/src/api.ts errorMessages).
+  no_eligible_candidate: 'No catalogue model meets the required capabilities. Review the task requirements or update the catalogue.',
+  no_history_for_coaching: 'Analyse a task first to generate guidance from your usage metadata.',
+  history_changed: 'Your history changed while guidance was being generated. Refresh and try again.',
+  api_key_required: 'Add an API key for this provider. The existing key can only be reused with the same provider.',
+  default_must_be_enabled: 'Enable the model before making it the Auto default.',
+  credentials_key_missing: 'The backend encryption key is missing. Restore it before changing saved credentials.',
+  credentials_key_unavailable: 'The backend encryption key cannot be read. Check the server configuration.',
+  credentials_unavailable: 'The saved credential could not be decrypted. Restore the matching backend key or replace this API key.',
+  email_already_registered: 'This email already has an account. Sign in to continue.',
+  authentication_required: 'Your session has expired. Please sign in again.',
+  authentication_unavailable: 'The sign-in service is temporarily unavailable. Please try again.',
+  verified_email_required: 'Confirm your email address before signing in.',
+  account_link_required: 'An existing AdaptAI account uses this email. Enter its previous password to keep your history.',
+  account_already_linked: 'This account is already linked. Sign in again or contact the project administrator.',
+  openrouter_catalogue_unavailable: 'The OpenRouter model catalogue could not be loaded. Check the connection and try again.',
+  openrouter_catalogue_invalid: 'OpenRouter returned a catalogue the app could not read. Try again later.',
+  model_not_found: 'This model is not in the OpenRouter catalogue. Reload the models and choose again.',
+  model_override_not_supported: 'A model can only be chosen manually for OpenRouter.',
+  previous_analysis_requires_session: 'Re-analysis needs its saved session. Start a new task and try again.',
+  previous_analysis_other_session: 'The previous analysis belongs to another session. Start a new task and try again.',
+  previous_analysis_incompatible: 'The previous analysis used an older profile version. Start a new task to compare from here.',
   external_processing_requires_consent: 'This model is external and the request did not carry your consent.',
   provider_not_configured: 'That model is not configured on this backend. Add it in the app (LLM config).',
   configuration_disabled: 'That model configuration is switched off in the app.',
@@ -155,6 +177,7 @@ const GENERIC: Record<string, string> = {
   model_not_compatible: 'That model cannot return the structured answer AdaptAI needs. Pick another model.',
   invalid_provider_output: 'The model answered, but not in the format AdaptAI needs (invalid output). Retry, or pick another model.',
   empty_answer: 'The model returned an empty answer. Retry, or pick another model.',
+  answer_truncated: 'The answer reached the length limit and was cut off. Select Continue to get the rest.',
   provider_output_truncated: 'The model stopped before finishing its answer. Retry, or pick another model.',
   provider_authentication: 'The provider refused the credentials (API key missing, wrong or without access).',
   provider_insufficient_credits: 'The provider account has no credit left.',
@@ -179,7 +202,7 @@ const LM_STUDIO: Record<string, string> = {
   provider_unsupported_request: 'LM Studio rejected the structured request. This model may not support JSON schema output.',
   model_not_compatible: 'This LM Studio model is not compatible with structured output. Pick another.',
   provider_output_truncated: 'The LM Studio model ran out of output budget before finishing. Retry, or use a model that reasons less.',
-  empty_answer: 'LM Studio returned an empty answer. Check that the model finished loading, then retry.',
+  empty_answer: 'LM Studio returned no text. Either the model is still loading, or it is a reasoning model that spent the short test budget thinking (the chat and the analysis give it more room and usually work). Retry, or send a real message.',
 }
 
 /** A message for an HTTP status and backend `detail` code. `provider` makes LM Studio errors specific. */

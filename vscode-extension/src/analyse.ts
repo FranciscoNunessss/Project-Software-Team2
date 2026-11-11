@@ -38,6 +38,8 @@ type Request = {
   noSelection?: boolean
   /** The Prompt Coach will be asked about the same text afterwards. */
   thenCoach?: boolean
+  /** The result is shown by the AdaptAI page, so no document is opened. */
+  quiet?: boolean
 }
 
 /** One analysis and what was done with it. */
@@ -84,6 +86,10 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
   readonly connections = new Map<string, Connection>()
   /** How long a model request may take before it is stopped. */
   timeoutMs = ANALYSIS_TIMEOUT_MS
+  /** A past session the next analysis continues (the app's "Continue in Assistant"): same session, compared with the last analysis. */
+  continueFrom: { sessionId: string; previousId: string; title: string } | undefined
+  /** Why the last analysis failed, for the page's analysis panel (the reason of the failure, never an answer). */
+  lastError: string | undefined
 
   constructor(private readonly backend: Backend) {}
 
@@ -163,9 +169,22 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
   }
 
   /** Text typed in the AdaptAI panel: the same consent, secret check and request as a typed task. */
-  async fromText(text: string): Promise<Result | undefined> {
+  async fromText(text: string, quiet = false, thenCoach = false): Promise<Result | undefined> {
     if (!text.trim()) return undefined
-    return this.run({ raw: text, source: 'text' })
+    return this.run({ raw: text, source: 'text', quiet, thenCoach })
+  }
+
+  /** The Prompt Coach on text written in the page: analyses it, asks the Coach in the given mode, shows nothing itself. */
+  async coachText(text: string, mode: CoachMode): Promise<Result | undefined> {
+    if (!text.trim()) return undefined
+    const result = await this.run({ raw: text, source: 'text', thenCoach: true, quiet: true })
+    if (!result) return undefined
+    if (!result.coachAvailable) {
+      void vscode.window.showWarningMessage('AdaptAI: Prompt Coach is not installed on this backend.')
+      return result
+    }
+    await this.coach(result, mode, true)
+    return result
   }
 
   async fromInput(): Promise<Result | undefined> {
@@ -258,7 +277,12 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
   private chatModel(options: LlmOptions): LlmOption | undefined {
     const wanted = vscode.workspace.getConfiguration('adaptai').get<string>('chatModel', '')
     const usable = options.options.filter(item => item.provider !== 'openrouter')
-    return usable.find(item => item.id === wanted) ?? usable.find(item => item.id === options.auto_configuration_id) ?? (usable.length === 1 ? usable[0] : undefined)
+    const exact = usable.find(item => item.id === wanted) ?? usable.find(item => item.id === options.auto_configuration_id)
+    if (exact) return exact
+    // An OpenRouter chat model cannot assess a task (the assessment needs strict JSON output): use a model of
+    // yours that can, never the demonstration model by accident.
+    if (options.options.some(item => item.id === wanted && item.provider === 'openrouter')) return usable.find(item => item.provider !== 'demo' && item.source === 'personal') ?? usable.find(item => item.provider !== 'demo')
+    return usable.length === 1 ? usable[0] : undefined
   }
 
   /**
@@ -312,6 +336,7 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
   // ---- analysis ----------------------------------------------------------------------------
 
   private async run(request: Request): Promise<Result | undefined> {
+    this.lastError = undefined
     if (!(await this.signedIn())) return undefined
     this.lastRequest = request
     const task = taskFrom(request.source === 'file' ? '' : request.raw, request.raw)
@@ -327,7 +352,7 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     }
     const options = await this.options()
     if (!options) return undefined
-    const plan = analysisPlan(task.text, options, { chat: this.chatModel(options) })
+    const plan = analysisPlan(task.text, options, { chat: this.chatModel(options), sessionId: this.continueFrom?.sessionId, previousId: this.continueFrom?.previousId })
     if ('error' in plan) return void vscode.window.showWarningMessage(`AdaptAI: ${plan.error}`)
     if (!(await this.confirmSend({ source: request.source, name: request.name, characters: task.text.length, noSelection: request.noSelection, thenCoach: request.thenCoach }, plan.via))) return undefined
     const started = Date.now()
@@ -348,11 +373,15 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
         source: request.source === 'file' ? `file ${request.name ?? ''}`.trim() : request.source === 'selection' ? 'selection' : request.source === 'clipboard' ? 'clipboard' : 'typed text',
         coachAvailable: Boolean(features.prompt_coach),
       }
-      await this.show(result, !request.thenCoach)
+      if (this.continueFrom) this.continueFrom = { ...this.continueFrom, previousId: analysis.id }
+      if (request.quiet) {
+        this.results.set(analysis.id, result)
+        this.lensChanged.fire()
+      } else await this.show(result, !request.thenCoach)
       this.refreshed.fire()
       return result
     } catch (error) {
-      return this.failed(task.text, error, plan.via)
+      return this.failed(task.text, error, plan.via, request.quiet)
     }
   }
 
@@ -360,7 +389,8 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
    * The analysis of a text typed in the chat (`/analyse`): the same call and confirmation, inside the chat's
    * own session, and nothing is opened: the chat shows the result. Returns undefined when cancelled or failed.
    */
-  async analyseText(text: string, extra: { sessionId?: string; previousId?: string; signal?: AbortSignal } = {}): Promise<Result | undefined> {
+  async analyseText(text: string, extra: { sessionId?: string; previousId?: string; signal?: AbortSignal; quiet?: boolean; thenCoach?: boolean } = {}): Promise<Result | undefined> {
+    this.lastError = undefined
     if (!(await this.signedIn())) return undefined
     const task = taskFrom(text, text)
     const secrets = secretsIn(task.text)
@@ -372,7 +402,7 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     if (!options) return undefined
     const plan = analysisPlan(task.text, options, { chat: this.chatModel(options), sessionId: extra.sessionId, previousId: extra.previousId })
     if ('error' in plan) return void vscode.window.showWarningMessage(`AdaptAI: ${plan.error}`)
-    if (!(await this.confirmSend({ source: 'text', characters: task.text.length }, plan.via))) return undefined
+    if (!(await this.confirmSend({ source: 'text', characters: task.text.length, thenCoach: extra.thenCoach }, plan.via))) return undefined
     try {
       const signal = extra.signal ? AbortSignal.any([extra.signal, AbortSignal.timeout(this.timeoutMs)]) : AbortSignal.timeout(this.timeoutMs)
       const analysis = await this.backend.api<Analysis>('/api/analyze', 'POST', plan.body, signal, plan.via?.provider)
@@ -384,14 +414,19 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
       this.refreshed.fire()
       return result
     } catch (error) {
-      return this.failed(task.text, error, plan.via)
+      return this.failed(task.text, error, plan.via, extra.quiet)
     }
   }
 
   /** A failed attempt is never presented as an answer: it is an error with the reason and a way to retry. */
-  private failed(task: string, error: unknown, via: LlmOption | undefined): undefined {
+  private failed(task: string, error: unknown, via: LlmOption | undefined, quiet = false): undefined {
     const message = explain(error, via?.provider)
     if (isCancel(message)) return undefined
+    this.lastError = message
+    if (quiet) {
+      if (via) this.connections.set(via.id, { state: 'failed', at: Date.now(), detail: message })
+      return undefined
+    }
     if (via) this.connections.set(via.id, { state: 'failed', at: Date.now(), detail: message })
     void this.notify('error', `AdaptAI: the request for “${task.slice(0, 60)}${task.length > 60 ? '…' : ''}” failed. ${message}`, { retry: true, settings: error instanceof ApiError && error.status === 0 })
     return undefined

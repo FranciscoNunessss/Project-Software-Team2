@@ -1,4 +1,5 @@
 import { candidateLabel, type HistoryItem } from './api'
+import './HistoryAnalysis.css'
 
 export function HistoryAnalysis({item,busy,onConfirm,onOpen}:{item:HistoryItem;busy:boolean;onConfirm:(item:HistoryItem,candidate:string)=>void;onOpen:()=>void}) {
   const candidates=[item.result.recommendation,...item.result.alternatives]

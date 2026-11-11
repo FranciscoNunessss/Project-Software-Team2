@@ -1,3 +1,5 @@
 .card { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
 .card h2 { margin: 0; color: var(--color-heading); font-size: 18px; letter-spacing: -.02em; }
 .card h3 { color: var(--color-heading-soft); }
+/* The title row of a card: heading on the left, a label or action on the right. */
+.card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }

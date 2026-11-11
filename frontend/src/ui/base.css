@@ -62,3 +62,10 @@ h1 { margin-bottom: 10px; font-size: clamp(28px, 2.4vw, 38px); line-height: 1.1;
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* On/off switches: <input type="checkbox" role="switch">. */
+input[role="switch"] { appearance: none; width: 42px; height: 24px; border: 1px solid var(--color-line); border-radius: 20px; background: var(--switch-off); flex-shrink: 0; position: relative; cursor: pointer; }
+input[role="switch"]::after { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; top: 2px; left: 2px; background: var(--switch-knob); transition: transform .15s; }
+input[role="switch"]:checked { background: var(--switch-on); }
+input[role="switch"]:checked::after { transform: translateX(18px); }
+input[role="switch"]:disabled { opacity: .5; cursor: not-allowed; }

@@ -1,4 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react'
+import './PagePanel.css'
 
 const PageActive = createContext(true)
 export const usePageActive = () => useContext(PageActive)

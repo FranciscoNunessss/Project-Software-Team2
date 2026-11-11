@@ -762,7 +762,10 @@ and [ADR-008](https://docs.google.com/document/d/14OXD4V0bvVtcoSMAqIJptNDTzpt6bD
 ## Git workflow
 
 Follow [GIT_WORKFLOW.md](GIT_WORKFLOW.md): feature branches target `develop`;
-protected branches are changed through reviewed pull requests.
+protected branches are changed through reviewed pull requests. Code cards are planned
+before they are built (cases, plan, approval), and every pull request carries the report in
+`.github/pull_request_template.md`; [AGENTS.md](AGENTS.md) has the short version for people
+and AI agents.
 
 ### Personal context and the progress dashboard
 

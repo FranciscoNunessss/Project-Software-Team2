@@ -36,7 +36,7 @@ export function Sheet({ open, onClose, label, id, heading, closeLabel = 'Close',
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
   return (
-    <aside className={cx('sheet', open && 'open', className)} aria-label={label} id={id}>
+    <aside className={cx('sheet', open && 'open', className)} aria-label={label} aria-hidden={!open} id={id}>
       <div className="sheet-backdrop" onClick={onClose} aria-hidden="true" />
       <div className="sheet-panel" aria-hidden={!open} {...panelProps}>
         <span className="sheet-handle" aria-hidden="true" />

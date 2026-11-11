@@ -376,7 +376,7 @@ def install_routes(app: FastAPI, configurations: ModelConfigurations, enabled):
                 raise HTTPException(502, "provider_authentication")
             return {"status": "ok", "model": None, "checked": "key"}
         try:
-            reply = await chat_model(row["provider"], settings, 64).ainvoke(
+            reply = await chat_model(row["provider"], settings, 512).ainvoke(
                 [("human", "Reply with the word OK. This is a synthetic connectivity test.")]
             )
         except Exception as exc:  # noqa: BLE001 - every provider error becomes its code

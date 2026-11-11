@@ -197,6 +197,7 @@
   --switch-off: #aaaaaa;
   --switch-on: #3e7761;
   --switch-knob: #ffffff;
+  --green: #5f5f5f;                  /* old name, kept as an alias (no own semantic token) */
   --badge-ok-line: #9fd5b4;          /* model evaluation state in the pickers */
   --badge-ok-ink: #1f7a45;
   --badge-info-line: #b9c9ef;
@@ -429,10 +430,11 @@
   --shadow-tier: 0 8px 28px rgba(0, 0, 0, .24);
   --shadow-segment-selected: none;
   --shadow-coach: 0 16px 40px rgba(0, 0, 0, .55);
+  --green: #d0d0d0;
 }
 
 /*
- * Old variable names, kept as aliases so screens that are not migrated yet keep working.
+ * Old variable names, kept as aliases for code that still reads them (see README.md).
  * They are declared on both scopes because var() is resolved where it is declared.
  */
 :root, .theme-dark {
@@ -444,5 +446,3 @@
   --line: var(--color-line);
   --surface: var(--color-surface);
 }
-:root { --green: #5f5f5f; }
-.theme-dark { --green: #d0d0d0; }

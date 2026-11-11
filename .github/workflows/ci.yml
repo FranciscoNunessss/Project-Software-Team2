@@ -214,16 +214,11 @@ jobs:
         working-directory: e2e
       - name: Install Chromium for Playwright
         working-directory: e2e
-        # Ubuntu's package mirrors sometimes fail to resolve on the runner. The runner image
-        # already has Chromium's libraries (apt only adds optional fonts), so retry the full
-        # install, then fall back to the browser alone, which comes from Playwright's CDN.
-        run: |
-          for attempt in 1 2 3; do
-            pnpm exec playwright install --with-deps chromium && exit 0
-            echo "::warning::playwright install --with-deps failed (attempt $attempt)"
-            sleep 15
-          done
-          pnpm exec playwright install chromium
+        # Browser only, no --with-deps: the runner image already has Chromium's libraries, and
+        # --with-deps goes through Ubuntu's package mirrors, which the runner sometimes cannot
+        # resolve (the step then hangs for many minutes and fails). Playwright's CDN is separate.
+        timeout-minutes: 10
+        run: pnpm exec playwright install chromium
       - run: pnpm exec playwright test
         working-directory: e2e
         env:

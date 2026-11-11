@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError, NEED_LABELS, type NeedName } from './api'
+import './AnalysisResult.css'
+import './ModelEvaluations.css'
 
 // Model evaluations (ADR-014): what was measured for each model you can use, where the levels
 // come from, and the consent for a paid evaluation with its estimated and maximum cost.

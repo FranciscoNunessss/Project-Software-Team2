@@ -1,6 +1,7 @@
 import { ModelEvaluations } from './ModelEvaluations'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { api, type LLMConfiguration, type LLMOptions } from './api'
+import './LLMConfig.css'
 
 type ProviderId = LLMConfiguration['provider']
 type ModelForm = {label:string; provider:ProviderId; model:string; api_key:string; responses_api:boolean; enabled:boolean; is_default:boolean}

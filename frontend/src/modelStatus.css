@@ -1,0 +1,6 @@
+/* Evaluation state of each model in the pickers (ADR-014 A12). Same colours in both themes. */
+.model-status { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 10px; font-weight: 600; vertical-align: middle; border: 1px solid var(--color-line); color: var(--color-muted); }
+.model-status.is-measured { border-color: var(--badge-ok-line); color: var(--badge-ok-ink); }
+.model-status.is-public, .model-status.is-provisional { border-color: var(--badge-info-line); color: var(--badge-info-ink); }
+.model-status.is-evaluating, .model-status.is-consent { border-color: var(--badge-warn-line); color: var(--badge-warn-ink); }
+.model-status.is-failed { border-color: var(--badge-bad-line); color: var(--badge-bad-ink); }

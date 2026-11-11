@@ -24,7 +24,10 @@
   --color-ink-soft: #555555;         /* secondary control text */
   --color-label: #636363;            /* eyebrow labels */
   --color-muted: #727272;            /* secondary text */
+  --color-muted-soft: #777777;       /* secondary text in cards (patterns, lessons) */
+  --color-muted-softer: #868686;     /* fine print */
   --color-subtle: #949494;           /* counters and other tertiary text */
+  --color-caption: #949494;          /* captions beside section headings */
   --color-placeholder: #a4a4a4;
 
   /* ---- Colour: lines ---- */
@@ -47,6 +50,8 @@
   --color-success-soft: #eaf2ed;
   --color-warm: #956b4e;
   --color-warm-soft: #f5ede5;
+  --color-info: #3b5a9a;
+  --color-info-soft: #e9eef8;
   --color-scrim: rgba(20, 20, 20, .28);         /* behind a sheet */
   --color-scrim-strong: rgba(20, 20, 20, .32);  /* behind the sidebar drawer */
 
@@ -73,6 +78,134 @@
   --status-degraded-ring: #e9e9e9;
   --composer-chat-ink: #333333;
 
+  /* Small labels and icon tiles */
+  --pill-bg: #f2f2f2;
+  --pill-ink: #5f5f5f;
+  --pill-ink-strong: #585858;
+  --pill-ink-soft: #6a6a6a;
+  --pill-ink-muted: #747474;
+  --icon-tile-bg: #f2f2f2;
+  --icon-tile-ink: #3a3a3a;
+  --icon-tile-ink-soft: #636363;
+  --note-bg: #f8f8f8;
+  --note-ink: #5c5c5c;
+  --inset-bg: #f8f8f8;
+  --well-bg: transparent;            /* an outlined label: chart period, cost row */
+  --well-line: #e4e4e4;
+  --well-ink: #737373;
+  --tooltip-bg: #262626;
+  --tooltip-ink: #ffffff;
+  --empty-bg: rgba(255, 255, 255, .55);
+  --empty-line: #d4d4d4;
+  --skeleton-bg: linear-gradient(90deg, #f0f0f0 20%, #f8f8f8 45%, #f0f0f0 70%);
+
+  /* Secondary text that dark mode lifts to one level */
+  --detail-ink: #636363;
+  --detail-ink-soft: #6e6e6e;
+  --detail-ink-strong: #545454;
+  --detail-ink-max: #434343;
+  --footer-ink: #919191;
+  --footer-link-ink: #808080;
+  --footer-brand: #4f4f4f;
+  --settings-eyebrow-ink: #727272;   /* eyebrows of the Profile settings cards */
+
+  /* Legacy Assistant: model override */
+  --segments-bg: #f4f4f4;
+  --segments-line: #dedede;
+  --segment-selected-bg: #ffffff;
+  --segment-selected-ink: #3a3a3a;
+  --override-applied-bg: #fdfdfd;
+  --override-applied-line: #bcbcbc;
+
+  /* Analysis: bars, recommended model, coverage */
+  --track-bg: #f0f0f0;
+  --bar-fill: linear-gradient(90deg, #5a5a5a, #3a3a3a);
+  --tier-line: #cbcbcb;
+  --fit-ink: #636363;
+  --fit-ink-ineligible: #b0b0b0;
+  --fit-track: #f2f2f2;
+  --fit-fill-strong: #3a3a3a;
+  --status-ok-bg: #e9f6ee;
+  --status-ok-ink: #1f6b3a;
+  --status-ok-line: #b9dfc6;
+  --status-warn-bg: #fff6e0;
+  --status-warn-bg-soft: #fffaf0;
+  --status-warn-ink: #7a5600;
+  --status-warn-line: #ecd9a4;
+  --status-bad-bg: #fdecec;
+  --status-bad-ink: #8f2424;
+  --status-bad-line: #efc1c1;
+
+  /* My progress */
+  --chart-grid: #ebebeb;
+  --chart-ink: #3a3a3a;
+  --chart-area-opacity: 1;
+  --choice-pending-bg: #f2f2f2;
+  --choice-pending-ink: #222222;
+  --trend-flat-bg: #f2f2f2;
+  --trend-flat-ink: #3a3a3a;
+  --trend-up-bg: #e6f4ea;
+  --trend-up-ink: #1e5631;
+  --trend-up-strong: #1e7a3c;
+  --trend-down-bg: #fbeaea;
+  --trend-down-ink: #7a2323;
+  --trend-down-strong: #a33a3a;
+
+  /* LLM config and sign-in */
+  --provider-groq-line: #9cb8ab;
+  --provider-groq-line-hover: var(--color-ink);
+  --auth-toggle-bg: #ffffff;
+  --auth-toggle-ink: #444444;
+  --auth-toggle-ink-hover: #3a3a3a;
+  --auth-toggle-line: #d4d4d4;
+  --auth-toggle-line-hover: #8e8e8e;
+  --auth-error-ink: #b34434;
+  --auth-error-line: #b75c4b;
+
+  /* Prompt Coach */
+  --coach-bg: #ffffff;
+  --coach-ink: #222222;
+  --coach-muted: #727272;
+  --coach-line: #e4e4e4;
+  --coach-sunk: #f4f4f4;
+  --coach-accent: #202020;
+  --coach-accent-ink: #ffffff;
+  --coach-warn: #b45309;
+  --coach-ins: #dcfce7;
+  --coach-del: #fee2e2;
+  --coach-mark: #fef3c7;
+
+  /* ---- Fixed colours: the same in both themes (the app never adapted them to dark mode).
+          Greys are named by their value. Candidates for semantic tokens in a later phase. ---- */
+  --grey-5e: #5e5e5e;
+  --grey-60: #606060;
+  --grey-65: #656565;
+  --grey-66: #666666;
+  --grey-72: #727272;
+  --grey-77: #777777;
+  --grey-9a: #9a9a9a;
+  --grey-a0: #a0a0a0;
+  --grey-a1: #a1a1a1;
+  --grey-c5: #c5c5c5;
+  --grey-ca: #cacaca;
+  --grey-f8: #f8f8f8;
+  --color-stale: #a16a32;            /* stale coaching report */
+  --color-backdrop: rgba(0, 0, 0, .533);
+  --coach-error: #b91c1c;
+  --chart-analysed: #737373;
+  --chart-confirmed: #438568;
+  --switch-off: #aaaaaa;
+  --switch-on: #3e7761;
+  --switch-knob: #ffffff;
+  --badge-ok-line: #9fd5b4;          /* model evaluation state in the pickers */
+  --badge-ok-ink: #1f7a45;
+  --badge-info-line: #b9c9ef;
+  --badge-info-ink: #3657a8;
+  --badge-warn-line: #ecd9a4;
+  --badge-warn-ink: #8a6412;
+  --badge-bad-line: #f0b9b9;
+  --badge-bad-ink: #a83636;
+
   /* ---- Shadows ---- */
   --shadow-sidebar: 0 10px 35px rgba(45, 45, 45, .06);
   --shadow-sidebar-compact: none;                         /* the top bar on phones */
@@ -83,6 +216,12 @@
   --shadow-popover: 0 16px 50px #0002;
   --shadow-panel: 0 24px 60px rgba(30, 30, 30, .18);      /* the analysis panel */
   --shadow-drawer: 12px 0 40px rgba(0, 0, 0, .12);        /* the sidebar drawer on phones */
+  --shadow-override: none;                                 /* legacy Assistant override box */
+  --shadow-tier: 0 8px 24px rgba(58, 58, 58, .08);         /* the recommended-model card */
+  --shadow-segment-selected: 0 1px 4px rgba(45, 45, 45, .12);
+  --shadow-coach: 0 16px 40px rgba(0, 0, 0, .16);
+  --shadow-dialog: 0 24px 80px rgba(0, 0, 0, .267);
+  --shadow-tooltip: 0 8px 22px rgba(33, 33, 33, .2);
 
   /* ---- Spacing (4px base) ---- */
   --space-1: 4px;
@@ -183,6 +322,102 @@
   --status-degraded-ring: #353535;
   --composer-chat-ink: #f3f3f3;
 
+  --color-muted-soft: #a9a9a9;
+  --color-muted-softer: #a9a9a9;
+  --color-caption: #b9b9b9;
+  --color-info: #a8bfee;
+  --color-info-soft: #212c43;
+
+  --pill-bg: #2d2d2d;
+  --pill-ink: #d4d4d4;
+  --pill-ink-strong: #d4d4d4;
+  --pill-ink-soft: #d4d4d4;
+  --pill-ink-muted: #d4d4d4;
+  --icon-tile-bg: #292929;
+  --icon-tile-ink: #eeeeee;
+  --icon-tile-ink-soft: #eeeeee;
+  --note-bg: #292929;
+  --note-ink: #d1d1d1;
+  --inset-bg: #222222;
+  --well-bg: #121212;
+  --well-line: #404040;
+  --well-ink: #aaaaaa;
+  --tooltip-bg: #f0f0f0;
+  --tooltip-ink: #151515;
+  --empty-bg: #222222;
+  --empty-line: #383838;
+  --skeleton-bg: #333333;
+
+  --detail-ink: #c1c1c1;
+  --detail-ink-soft: #c1c1c1;
+  --detail-ink-strong: #c1c1c1;
+  --detail-ink-max: #c1c1c1;
+  --footer-ink: #a9a9a9;
+  --footer-link-ink: #a9a9a9;
+  --footer-brand: #ededed;
+  --settings-eyebrow-ink: #b9b9b9;
+
+  --segments-bg: #121212;
+  --segments-line: #404040;
+  --segment-selected-bg: #eeeeee;
+  --segment-selected-ink: #111111;
+  --override-applied-bg: #191919;
+  --override-applied-line: #343434;
+
+  --track-bg: #333333;
+  --bar-fill: #e7e7e7;
+  --tier-line: #5a5a5a;
+  --fit-ink: #c4c4c4;
+  --fit-ink-ineligible: #c4c4c4;
+  --fit-track: #3a3a3a;
+  --fit-fill-strong: #e4e4e4;
+  --status-ok-bg: #17331f;
+  --status-ok-ink: #a9e2bb;
+  --status-ok-line: #2d5a3a;
+  --status-warn-bg: #3a2f12;
+  --status-warn-bg-soft: #2b2412;
+  --status-warn-ink: #f0d58f;
+  --status-warn-line: #5f4c1c;
+  --status-bad-bg: #3d1a1a;
+  --status-bad-ink: #f1b0b0;
+  --status-bad-line: #6a2a2a;
+
+  --chart-grid: #333333;
+  --chart-ink: #f0f0f0;
+  --chart-area-opacity: .5;
+  --choice-pending-bg: #121212;
+  --choice-pending-ink: #aaaaaa;
+  --trend-flat-bg: #242424;
+  --trend-flat-ink: #e4e4e4;
+  --trend-up-bg: #16301f;
+  --trend-up-ink: #b7e4c4;
+  --trend-up-strong: #8fd6a5;
+  --trend-down-bg: #3a1c1c;
+  --trend-down-ink: #f2c0c0;
+  --trend-down-strong: #f0a0a0;
+
+  --provider-groq-line: var(--color-line);
+  --provider-groq-line-hover: var(--color-line);
+  --auth-toggle-bg: var(--color-surface);
+  --auth-toggle-ink: var(--color-ink);
+  --auth-toggle-ink-hover: var(--color-ink);
+  --auth-toggle-line: var(--color-line);
+  --auth-toggle-line-hover: var(--color-line);
+  --auth-error-ink: #ffb6a8;
+  --auth-error-line: #86574f;
+
+  --coach-bg: #191919;
+  --coach-ink: #f2f2f2;
+  --coach-muted: #a3a3a3;
+  --coach-line: #343434;
+  --coach-sunk: #242424;
+  --coach-accent: #f2f2f2;
+  --coach-accent-ink: #191919;
+  --coach-warn: #fbbf24;
+  --coach-ins: #14532d;
+  --coach-del: #7f1d1d;
+  --coach-mark: #713f12;
+
   --shadow-sidebar: 0 12px 38px rgba(0, 0, 0, .34);
   --shadow-sidebar-compact: 0 12px 38px rgba(0, 0, 0, .34);
   --shadow-card: 0 8px 28px rgba(0, 0, 0, .24);
@@ -190,6 +425,10 @@
   --shadow-raised-compact: 0 8px 28px rgba(0, 0, 0, .24);
   --shadow-popover: 0 16px 50px #0007;
   --shadow-panel: 0 24px 60px #000a;
+  --shadow-override: 0 8px 28px rgba(0, 0, 0, .24);
+  --shadow-tier: 0 8px 28px rgba(0, 0, 0, .24);
+  --shadow-segment-selected: none;
+  --shadow-coach: 0 16px 40px rgba(0, 0, 0, .55);
 }
 
 /*

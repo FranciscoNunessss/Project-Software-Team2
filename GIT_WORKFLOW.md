@@ -78,7 +78,11 @@ To avoid a tangled history full of criss-crossing merge commits, we rebase inste
 
 - Periodically (e.g. at a release milestone, sprint end, or client delivery), a Pull Request is opened from `develop` into `main`.
 - This PR is reviewed like any other, following the `main` protection rules above (more approvals, required CI).
-- Merge it with a merge commit, never "Squash and merge": squashing `develop` into one commit on `main` makes the two branches drift apart, so the next promotion meets conflicts in changes both branches already contain.
+- `main` requires linear history, so a merge commit is not allowed, and "Squash and merge" would put one new commit on `main` that `develop` never gets, making the two branches drift apart. Once the release PR is approved, a repository admin fast-forwards `main` from the command line; GitHub then marks the PR as merged:
+  ```bash
+  git fetch origin
+  git push origin origin/develop:main   # fast-forward only; fails if main has commits develop lacks
+  ```
 - After merging, it's good practice to tag the resulting commit on `main` (e.g. `v1.2.0`) to mark that release point.
 
 ## 7. Commit Message Guidelines
@@ -95,7 +99,7 @@ To avoid a tangled history full of criss-crossing merge commits, we rebase inste
 | One feature branch per dev/task | Avoids stepping on each other's work |
 | Rebase feature branch onto `develop` before PR | Avoids merge commits, keeps history linear |
 | Designated reviewer(s) fix/approve PRs | Ensures quality and mergeability before integration |
-| Squash into `develop`; merge commit from `develop` to `main` | One commit per pull request, and `main` never drifts from `develop` |
+| Squash into `develop`; fast-forward from `develop` to `main` | One commit per pull request, and `main` never drifts from `develop` |
 | Plan approved (G1) before code; manual test (G2) before the PR | Design mistakes and missing cases are caught before review |
 | PR report from the template plus an LLM review | The reviewer has the cases, tests and risks in one place |
 | The approver merges (G3) | One clear owner for the merge |

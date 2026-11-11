@@ -227,3 +227,6 @@ no user text is ever sent or stored. `requested_by` is set to null when that acc
 deleted. `evaluation_disagreements` keeps only which user disagreed with which capability, and
 is deleted with the account or the evaluation.
 
+
+
+11 November 2026: the user-facing Privacy Policy (draft v0.1) is `frontend/src/content/privacy-policy.md`, shown in the app from the footer, Profile and the sign-in screen. It describes the behaviour documented in this file; items marked TO CONFIRM need AO/PO decisions, and there is still no self-service account deletion.

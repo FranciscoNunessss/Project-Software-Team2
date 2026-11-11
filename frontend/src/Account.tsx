@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode, type FormEvent } from 'react'
 import { api, ApiError } from './api'
 import { supabase } from './auth'
+import { PrivacyPolicy } from './PrivacyPolicy'
 import './Account.css'
 
 type User = { id: string; email: string }
@@ -20,6 +21,7 @@ export function Account({ children, dark, onToggleTheme }: { children: (account:
   const [notice, setNotice] = useState('')
   const [needsLink, setNeedsLink] = useState(false)
   const [recovery, setRecovery] = useState(false)
+  const [showPolicy, setShowPolicy] = useState(false)
   useEffect(() => {
     const controller = new AbortController()
     let generation = 0
@@ -102,6 +104,13 @@ export function Account({ children, dark, onToggleTheme }: { children: (account:
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not send reset email.') }
     finally { setBusy(false) }
   }
+  if (!user && showPolicy) return <div className="auth-shell">
+    <header className="auth-header">
+      <div className="auth-brand"><span className="brand-mark" aria-hidden="true">✦</span>AdaptAI</div>
+      <button type="button" className="button button-secondary" onClick={onToggleTheme}>{dark ? 'Light mode' : 'Dark mode'}</button>
+    </header>
+    <PrivacyPolicy onBack={() => setShowPolicy(false)} backLabel="Back to sign in" />
+  </div>
   if (loading || !user) return <div className="auth-shell">
     <header className="auth-header">
       <div className="auth-brand"><span className="brand-mark" aria-hidden="true">✦</span>AdaptAI</div>
@@ -125,10 +134,10 @@ export function Account({ children, dark, onToggleTheme }: { children: (account:
         </form>
         {supabase && !register && !needsLink && !recovery && <button type="button" className="button button-ghost" disabled={busy} onClick={resetPassword}>Forgot password?</button>}
         {needsLink || recovery ? <button type="button" className="button button-ghost" disabled={busy} onClick={logout}>Cancel and sign out</button> : <div className="auth-switch"><span>{register ? 'Already have an account?' : 'New to AdaptAI?'}</span><button type="button" disabled={busy} onClick={() => { setRegister(!register); setError(''); setNotice(''); setPassword(''); setShowPassword(false) }}>{register ? 'Sign in' : 'Create an account'}</button></div>}
-        <p className="auth-storage-note">Your preferences and model choices are saved to your account.</p>
+        <p className="auth-storage-note">Your preferences and model choices are saved to your account. {register ? 'By creating an account you confirm that you have read our ' : 'Read our '}<button type="button" className="auth-policy-link" onClick={() => setShowPolicy(true)}>Privacy Policy</button>.</p>
       </section>}
     </main>
-    <p className="auth-footer">Clearer choices. Better AI judgement.</p>
+    <p className="auth-footer">Clearer choices. Better AI judgement. · <button type="button" className="auth-policy-link" onClick={() => setShowPolicy(true)}>Privacy</button></p>
   </div>
   // Keyed by user, so nothing of one account's state survives into the next.
   return <div className="app-shell" key={user.id}>

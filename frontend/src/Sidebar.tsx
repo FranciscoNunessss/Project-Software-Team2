@@ -5,7 +5,7 @@ import { Icon } from './AnalysisResult'
 import { IconButton } from './ui'
 import './Sidebar.css'
 
-export type Screen = 'assistant' | 'progress' | 'profile' | 'llm'
+export type Screen = 'assistant' | 'progress' | 'profile' | 'llm' | 'privacy'
 
 // Small line icons for the sidebar (16px, drawn in the current text colour).
 const glyph = (path: ReactNode) => (
@@ -19,7 +19,7 @@ const ICONS = {
   llm: glyph(<><path d="M4 6h16M4 12h16M4 18h16" /><circle cx="9" cy="6" r="2" fill="var(--surface)" /><circle cx="15" cy="12" r="2" fill="var(--surface)" /><circle cx="7" cy="18" r="2" fill="var(--surface)" /></>),
 }
 
-const PAGES: { screen: Screen; label: string }[] = [
+const PAGES: { screen: Exclude<Screen, 'privacy'>; label: string }[] = [
   { screen: 'assistant', label: 'Assistant' },
   { screen: 'progress', label: 'My progress' },
   { screen: 'profile', label: 'Profile' },

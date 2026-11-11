@@ -6,6 +6,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, Req
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from httpx import Client, Limits
 from langsmith import tracing_context
 from psycopg.errors import ForeignKeyViolation
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -115,6 +116,25 @@ def create_app(
     store = Storage(settings.database_url.get_secret_value(), settings.database_schema)
     app.state.storage = store
     app.state.settings = settings
+    app.state.supabase_http = None
+
+    async def open_connections():
+        store.open_pool(settings.database_pool_size)
+        if settings.auth_mode == "supabase":
+            app.state.supabase_http = Client(
+                timeout=10,
+                limits=Limits(max_connections=16, max_keepalive_connections=8, keepalive_expiry=60),
+            )
+
+    async def close_connections():
+        if app.state.supabase_http is not None:
+            app.state.supabase_http.close()
+            app.state.supabase_http = None
+        store.close_pool()
+
+    app.router.add_event_handler("startup", open_connections)
+    app.router.add_event_handler("shutdown", close_connections)
+
     if settings.auth_mode == "supabase":
         app.add_middleware(
             CORSMiddleware,

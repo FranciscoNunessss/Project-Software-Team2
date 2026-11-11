@@ -1,5 +1,7 @@
 """Cloud trust boundary, account migration and cross-origin requests (no real Auth calls)."""
 
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from uuid import uuid4
 
 import httpx
@@ -57,6 +59,63 @@ def test_cloud_provisions_once_and_ignores_browser_identity(cloud):
     assert len(calls) == 2
     assert not first.cookies
     assert first.headers["cache-control"] == "no-store"
+
+
+def test_concurrent_first_login_and_reused_auth_client(monkeypatch):
+    identity = {
+        "id": str(uuid4()),
+        "email": "pooled@example.test",
+        "email_confirmed_at": "2026-11-07T00:00:00Z",
+    }
+    tokens = []
+    first_requests = Barrier(2, timeout=10)
+
+    def auth_response(request):
+        assert str(request.url) == PROJECT + "/auth/v1/user"
+        assert "cookie" not in request.headers
+        token = request.headers["authorization"]
+        tokens.append(token)
+        if token in {"Bearer first", "Bearer second"}:
+            first_requests.wait()
+        return httpx.Response(200, json=identity, headers={"set-cookie": "upstream-test=1; Path=/"})
+
+    upstream_clients = []
+
+    def build_auth_client(**kwargs):
+        client = httpx.Client(transport=httpx.MockTransport(auth_response), **kwargs)
+        upstream_clients.append(client)
+        return client
+
+    monkeypatch.setattr("app.main.Client", build_auth_client)
+    app = create_app(
+        Settings(
+            _env_file=None,
+            auth_mode="supabase",
+            supabase_url=PROJECT,
+            supabase_publishable_key="public-test-key",
+        )
+    )
+    store = app.state.storage
+    with TestClient(app) as client:
+
+        def me(token):
+            return client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+
+        with ThreadPoolExecutor(max_workers=2) as workers:
+            first, second = workers.map(me, ["first", "second"])
+        assert (first.status_code, second.status_code) == (200, 200)
+        assert first.json() == second.json()
+        with store.connect() as db:
+            assert db.execute("SELECT count(*) FROM auth_identities").fetchone()[0] == 1
+
+        def unexpected_lock(*_args):
+            pytest.fail("A previously associated identity should not need a provisioning lock")
+
+        monkeypatch.setattr(store, "lock_user", unexpected_lock)
+        assert me("later").json() == first.json()
+        assert len(upstream_clients) == 1
+        assert sorted(tokens) == ["Bearer first", "Bearer later", "Bearer second"]
+    assert upstream_clients[0].is_closed
 
 
 @pytest.mark.parametrize("authorization", ["", "Basic valid-token", "Bearer bad-token", "Bearer "])

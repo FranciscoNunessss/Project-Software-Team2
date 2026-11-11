@@ -11,18 +11,22 @@ def identity(request: Request) -> dict:
     scheme, _, token = request.headers.get("authorization", "").partition(" ")
     if scheme.lower() != "bearer" or not token.strip() or len(token) > 16384:
         raise HTTPException(401, "authentication_required")
+    url = settings.supabase_url.rstrip("/") + "/auth/v1/user"
+    headers = {
+        "apikey": settings.supabase_publishable_key.get_secret_value(),
+        "Authorization": "Bearer " + token.strip(),
+    }
     try:
         # Auth verifies the signature, expiry and project, and returns the current user.
         # Never trust a decoded, unverified JWT or browser-supplied user/email.
-        response = httpx.get(
-            settings.supabase_url.rstrip("/") + "/auth/v1/user",
-            headers={
-                "apikey": settings.supabase_publishable_key.get_secret_value(),
-                "Authorization": "Bearer " + token.strip(),
-            },
-            timeout=10,
-            follow_redirects=False,
-        )
+        client = request.app.state.supabase_http
+        if client is None:
+            response = httpx.get(url, headers=headers, timeout=10, follow_redirects=False)
+        else:
+            # A prebuilt request keeps the shared client's cookies out of user requests.
+            response = client.send(
+                httpx.Request("GET", url, headers=headers), follow_redirects=False
+            )
     except httpx.HTTPError:
         raise HTTPException(503, "authentication_unavailable") from None
     if response.status_code in {401, 403}:
@@ -47,14 +51,18 @@ def identity(request: Request) -> dict:
 def resolve_user(request: Request) -> dict:
     principal = identity(request)
     store = request.app.state.storage
+    lookup = (
+        "SELECT u.id,u.email FROM users u JOIN auth_identities i ON i.user_id=u.id "
+        "WHERE i.issuer=%s AND i.subject=%s"
+    )
+    identity_key = (principal["issuer"], principal["subject"])
     with store.connect() as db:
+        row = db.execute(lookup, identity_key).fetchone()
+        if row:
+            return dict(row)
         # Serialise first login and linking, including concurrent tabs/requests.
         store.lock_user(db, "identity:" + principal["issuer"] + ":" + principal["subject"])
-        row = db.execute(
-            "SELECT u.id,u.email FROM users u JOIN auth_identities i ON i.user_id=u.id "
-            "WHERE i.issuer=%s AND i.subject=%s",
-            (principal["issuer"], principal["subject"]),
-        ).fetchone()
+        row = db.execute(lookup, identity_key).fetchone()
         if row:
             return dict(row)
         store.lock_user(db, "email:" + principal["email"])

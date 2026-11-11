@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     browser_origin: str = "http://127.0.0.1:8443"
     auth_mode: Literal["local", "supabase"] = "local"
+    database_pool_size: int = Field(default=4, ge=0)
     supabase_url: str = ""
     supabase_publishable_key: SecretStr = SecretStr("")
 

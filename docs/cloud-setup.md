@@ -162,6 +162,19 @@ espera pelo estado live, verifica health e só depois publica no Netlify.
 5. Requests do frontend passam CORS; pedidos de outras origens são rejeitados.
 6. Confirmar consumo dos planos Free e o tempo de arranque após suspensão Render.
 
+## Ligações e validação de latência
+
+O FastAPI reutiliza até quatro ligações PostgreSQL por processo. O pool abre
+ligações à medida que são necessárias e funciona com o Session pooler do
+Supabase. Define `ADAPTAI_DATABASE_POOL_SIZE=0` para desativar temporariamente
+a reutilização de ligações PostgreSQL durante um diagnóstico.
+
+Depois do deploy, com a API ativa, compara o tempo de resposta da lista de
+chats e de **My Progress** no separador Network do browser. Usa a mesma conta
+de teste e repete cada pedido cinco vezes. Para **Analyse** e o chat, usa o
+mesmo texto sintético e o mesmo modelo em cada tentativa. Regista também o
+tempo até aparecer o primeiro texto do chat.
+
 ## Referências oficiais
 
 - [Supabase PostgreSQL connections](https://supabase.com/docs/guides/database/connecting-to-postgres)

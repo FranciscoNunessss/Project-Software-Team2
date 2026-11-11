@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import psycopg
 from psycopg import sql
+from psycopg_pool import ConnectionPool
 
 
 class Record(tuple):
@@ -73,20 +74,49 @@ class Storage:
             raise ValueError("Use a dedicated PostgreSQL schema, for example adaptai")
         self._database_url = database_url
         self.schema = schema
+        # Keep prepared statements disabled for compatibility with transaction poolers.
+        self._connection_options = {
+            "row_factory": record_row,
+            "connect_timeout": 10,
+            "prepare_threshold": None,
+        }
+        self._pool: ConnectionPool | None = None
         self.migrate()
+
+    def open_pool(self, max_size: int):
+        if max_size == 0 or self._pool is not None:
+            return
+        pool = ConnectionPool(
+            self._database_url,
+            kwargs=self._connection_options,
+            min_size=0,
+            max_size=max_size,
+            max_idle=60,
+            timeout=10,
+            open=False,
+        )
+        pool.open()
+        self._pool = pool
+
+    def close_pool(self):
+        if self._pool is not None:
+            self._pool.close()
+            self._pool = None
 
     @contextmanager
     def connect(self, *, user_id: str | None = None):
-        # Disabling prepared statements also supports Supabase's transaction pooler.
-        # SET LOCAL scopes search_path to this transaction, including through a pooler.
-        with psycopg.connect(
-            self._database_url,
-            row_factory=record_row,
-            connect_timeout=10,
-            prepare_threshold=None,
-        ) as db:
-            db.execute(sql.SQL("SET LOCAL search_path TO {} ").format(sql.Identifier(self.schema)))
-            db.execute("SET LOCAL lock_timeout = '15s'")
+        connection = (
+            self._pool.connection()
+            if self._pool is not None
+            else psycopg.connect(self._database_url, **self._connection_options)
+        )
+        with connection as db:
+            # Transaction-local settings are reset when the connection returns to the pool.
+            db.execute(
+                "SELECT set_config('search_path', %s, true), "
+                "set_config('lock_timeout', '15s', true)",
+                (self.schema,),
+            )
             if user_id is not None:
                 self.lock_user(db, user_id)
             yield db

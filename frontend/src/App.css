@@ -33,7 +33,7 @@
 .loading-label { position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; gap: 8px; margin: 0; color: var(--grey-60); font-size: 12px; font-weight: 600; }
 @keyframes shimmer { to { background-position: -250% 0; } }
 
-.app-main > footer { min-height: 70px; max-width: 1220px; margin: 0 auto 0 236px; padding: 0 28px; border-top: 1px solid var(--color-line); display: flex; align-items: center; gap: 22px; color: var(--footer-ink); font-size: 10px; }
+.app-main > footer { min-height: 70px; max-width: 1220px; margin: 0 auto; padding: 0 28px; border-top: 1px solid var(--color-line); display: flex; align-items: center; gap: 22px; color: var(--footer-ink); font-size: 10px; }
 .app-main > footer > span { color: var(--footer-brand); font-weight: 700; }
 .app-main > footer p { margin: 0 auto 0 0; }
 .app-main > footer button { border: 0; background: none; color: var(--footer-link-ink); font-size: 10px; }
@@ -57,8 +57,8 @@
   .segments { margin-top: 8px; }
   .segments button { min-width: 0; flex: 1; }
   .privacy { align-items: flex-start; line-height: 1.45; padding: 0 12px; text-align: left; }
-  footer { margin: 0; padding: 18px 16px; flex-wrap: wrap; }
-  footer p { width: 100%; order: 4; }
+  .app-main > footer { padding: 18px 16px; flex-wrap: wrap; }
+  .app-main > footer p { width: 100%; order: 4; }
   .active-session { align-items: flex-start; flex-wrap: wrap; }
 }
 

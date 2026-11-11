@@ -434,9 +434,9 @@ in Profile.
 Tests of the module carry the `prompt_coach` pytest marker. CI runs the backend suite and
 a `removal-drill` job that deletes the module, runs `pytest -m "not prompt_coach"`,
 migrates a real database, adds leftover `prompt_coach_events` and
-`prompt_coach_settings` tables and restarts the app over them, checking that
-`PRAGMA user_version` is unchanged. The module must therefore never change
-`PRAGMA user_version`: its tables (`prompt_coach_settings`) are created with
+`prompt_coach_settings` tables and restarts the app over them, checking that the core
+`schema_migrations` rows are unchanged. The module must therefore never add a core
+migration: its table (`prompt_coach_settings`) is created with
 `CREATE TABLE IF NOT EXISTS`, outside the core migrations. The Coach is mounted after
 every core route, so it can never shadow one. Branch protection should require the
 checks "backend" and "removal-drill".
@@ -661,23 +661,14 @@ Tests cover the demo workflow, capability gating, override validation, input pri
 external consent, adapter structured output, usage metadata, sanitised failures and
 timeouts. CI runs the checks above. These checks do not establish assessment accuracy.
 
-Next: validate real providers with agreed models/access,
-add the benchmark snapshot so real models get provisional levels, and calibrate them with
-the calibration set and the feedback report. Deployment, trend analytics, streaming, automatic fallback and autonomous
-agents are outside this increment.
+Next: the independent evaluation with the labelled task set, calibration of the levels
+with the calibration set and real task outcomes, and promotion of develop to main for the
+cloud deployment. Autonomous agents are outside the product.
 
 ## Database and accounts
 
-The default database is `backend/data/adaptai.sqlite3`; it is created automatically
-with schema version 8 (legacy databases with sessions require explicit privacy migration) and is ignored by Git, including WAL/SHM files. Configure an
-absolute `ADAPTAI_DATABASE_PATH` when running from another directory. No additional
-database server or dependency is required. SQLite enforces foreign keys, uses WAL
-and short transactions, and persists independently of application workers. Use a
-local persistent disk; a database on ephemeral storage will disappear on redeploy.
-Avoid putting the live database on a network or cloud-synchronised filesystem;
-for this OneDrive checkout, set the path to an unsynchronised local data directory.
-
-The backend now uses PostgreSQL through psycopg 3. Start the local database with
+The backend uses PostgreSQL through psycopg 3; SQLite is only a source for a one-off
+import (below). Start the local database with
 `docker compose up -d --wait postgres`; it listens only on `127.0.0.1:55432` and keeps
 its data in the `postgres-data` Docker volume. The Compose credentials are for local
 development only. `docker compose down` preserves the volume; `down -v` deletes it.

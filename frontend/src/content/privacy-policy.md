@@ -1,98 +1,109 @@
 # Privacy Policy
 
-**AdaptAI · Version 0.1 (draft for team review) · 11 November 2026**
+**AdaptAI · Version 0.2 (draft for team review) · Last updated: 11 November 2026**
 
-> **Status: draft.** This policy describes what the AdaptAI code does today. It has not yet been reviewed by the Architecture Owner and Product Owner, and items marked **[TO CONFIRM]** need a team decision before release. It is not legal advice.
+> **Status: draft.** This policy describes how AdaptAI handles personal data in its current implementation. It has not yet been approved by the Architecture Owner and the Product Owner. Items marked **[TO CONFIRM]** require a team decision before the policy is published. This document is informational and does not constitute legal advice.
 
-## 1. Who we are
+## 1. Introduction
 
-AdaptAI is a student software project (Software Project 2026/27, Team 2) that recommends an AI model for a task, lets you run the task in a chat, and helps you choose better over time.
+AdaptAI is a student software project (Software Project 2026/27, Team 2) that recommends a suitable AI model for a given task, lets you run that task in a chat, and helps you build better prompting and model-selection habits over time.
+
+This policy explains what personal data AdaptAI processes, why, who receives it, how long it is kept, and how you can exercise your rights under the General Data Protection Regulation (EU) 2016/679 ("GDPR"). We have written it to be read by users, not only by lawyers.
+
+## 2. Data controller and contact
 
 - **Controller:** the AdaptAI Team 2 project team **[TO CONFIRM: legal entity or institution responsible for the service]**.
 - **Privacy contact:** **[TO CONFIRM: team email address for privacy requests]**.
+- **Data protection officer:** none appointed **[TO CONFIRM]**.
 
-## 2. The short version
+## 3. Summary
 
-- We keep **metadata by default**: complexity scores, the model recommended, the model you chose, and timestamps. We do **not** keep your task text unless you switch that on.
-- **Saving conversation text, using memory and automatic learning suggestions are all off until you turn them on** in Profile. You can turn each one off again.
-- Your tasks leave our servers only when you press **Analyse** or **Send**, and only to the model provider you selected.
-- We do not sell your data, show ads, or use analytics or advertising trackers.
-- Your data is not used to train any model by us.
-- You can export your data and delete it from the app (see section 8).
+- **Metadata by default.** We store complexity scores, the model recommended, the model you chose, and timestamps. We do not store the text of your tasks unless you switch that on.
+- **You are in control.** Saving task text, saving and using memory, and automatic learning suggestions are all off until you enable them in Profile. You can disable each of them again at any time.
+- **Data leaves the service only on request.** Your task or chat text is sent to a model provider only when you press **Analyse** or **Send**, and only to the provider you selected.
+- **No selling, no advertising, no tracking.** We do not sell personal data, display advertising, or use analytics or advertising trackers.
+- **No model training.** We do not use your data to train any AI model.
+- **Your rights are available in the app.** You can export your data and delete most of it yourself (see section 9).
 
-## 3. What we collect and why
+## 4. Personal data we process
 
-| Data | When | Why |
+| Data | When it is processed | Purpose |
 | --- | --- | --- |
-| Email address and password | You create an account | To sign you in. Passwords are stored only as a salted hash (local accounts) or handled by Supabase Auth (cloud accounts). |
-| Sign-in session | You sign in | To keep you signed in (see section 7). |
-| Complexity scores, recommended model, the model you chose, completeness, timestamps and opaque session labels | Each analysis | To show your progress and compare your choices with the recommendations. |
-| Task feedback: verdict (resolved, resolved with refinement, not resolved, skipped), optional reason from a fixed list, model identifiers, numeric levels and counts of answers, retries and stops | When you give feedback on a task | To improve recommendations and your learning dashboard. **Contains no text.** |
+| Email address and password | You create an account | To authenticate you. Passwords are stored only as a salted hash (local accounts) or are managed by Supabase Auth (cloud accounts). |
+| Sign-in session | You sign in | To keep you signed in (see section 8). |
+| Complexity scores, recommended model, chosen model, completeness, timestamps and opaque session labels | Each analysis | To show your progress and compare your choices with the recommendations. |
+| Task feedback: verdict (resolved, resolved with refinement, not resolved, skipped), optional reason from a fixed list, model identifiers, and numeric levels and counts of answers, retries and stops | You give feedback on a task | To improve recommendations and your learning dashboard. This record contains no free text. |
 | Learned memory: derived profile values and tier choices | Only if **Save memory** is on | To personalise later recommendations. |
-| Preferences you type in Profile | Only if you save them | To tailor explanations. Do not enter sensitive information. |
-| Task text, extra context and the AI's full assessment response | Only if **Save task text and AI responses** is on | To let you review them and, with **Use memory** on, reuse up to five short excerpts. |
-| Chat messages and the model's answers | While a chat exists | A chat cannot show its history otherwise. Deleting the chat deletes them. |
-| Your model configurations and provider API keys | If you add them in LLM config | To call the provider you chose. Keys are stored encrypted. |
-| Prompt Coach settings | One on/off value | To remember whether you want the Prompt Coach. |
+| Preferences you type in Profile | Only if you save them | To tailor explanations to you. Please do not enter sensitive information. |
+| Task text, extra context and the AI's full assessment response | Only if **Save task text and AI responses** is on | To let you review them and, if **Use memory** is also on, to reuse up to five short excerpts. |
+| Chat messages and model answers | While the chat exists | A chat cannot display its history otherwise. Deleting the chat deletes these messages. |
+| Model configurations and provider API keys | You add them in LLM config | To call the provider you chose. Keys are stored encrypted. |
+| Prompt Coach setting | One on/off value | To remember whether you want the Prompt Coach. |
 
-We do not ask for, and you should not enter, passwords, API keys, health data, financial data or other sensitive personal data in tasks, chats or preferences.
+Please do not enter passwords, API keys, health data, financial data or other sensitive personal data in tasks, chats or preferences.
 
-## 4. Who receives your data
+## 5. Recipients and international transfers
 
-Your task or chat text is sent to a model provider only when you press **Analyse** or **Send**. Which provider receives it depends on the model you select:
+Your task or chat text is sent to a model provider only when you press **Analyse** or **Send**. The recipient depends on the model you select:
 
-- **Project-provided model (Groq).** Used for Auto mode, the Educator's learning suggestions and, if you enable it, automatic suggestions. Suggestions use derived metadata (scores and choices), not raw task text, unless you have turned on both text saving and Use memory, in which case up to five short excerpts may be included.
-- **Providers you configure yourself** (for example OpenAI, Anthropic, OpenRouter): your task text, and memory if enabled, goes to the provider you chose, under their terms and privacy policy. You supply your own key.
-- **Local models (Ollama, LM Studio):** processed on the machine running the backend and not sent to a third-party service.
-- **Prompt Coach:** if you switch it on and click for tips, the task text you are editing is sent to the same provider as your analysis. Nothing the Prompt Coach receives or returns is stored or logged.
+- **Project-provided model (Groq).** Used for Auto mode, for the Educator's learning suggestions and, if you enable it, for automatic suggestions. Suggestions are generated from derived metadata (scores and choices), not raw task text, unless you have turned on both task-text saving and Use memory, in which case up to five short excerpts may be included.
+- **Providers you configure yourself** (for example OpenAI, Anthropic or OpenRouter). Your task text, and your memory if enabled, is sent to the provider you chose and is governed by that provider's terms and privacy policy. You supply your own API key.
+- **Local models (Ollama, LM Studio).** Processing takes place on the machine that runs the backend. Nothing is sent to a third-party service.
+- **Prompt Coach.** If you switch it on and request tips, the task text you are editing is sent to the same provider as your analysis. Nothing the Prompt Coach receives or returns is stored or logged.
 
-Infrastructure providers that host or process data for us **[TO CONFIRM: final hosting choices]**: Supabase (sign-in and PostgreSQL database), Render (backend) and Netlify (frontend), with EU regions preferred. In local installations everything runs on the machine you or the team operate.
+**Infrastructure providers (processors)** that host or process data on our behalf **[TO CONFIRM: final hosting choices]**: Supabase (authentication and PostgreSQL database), Render (backend) and Netlify (frontend). We prefer EU regions. In a local installation, everything runs on the machine operated by you or by the team.
 
-Model providers may keep data under their own policies. We cannot control that, so choose the provider accordingly.
+Some model providers are located outside the European Economic Area. Where you send data to such a provider, the transfer is made at your request and is subject to that provider's safeguards. We do not control how model providers retain or use data, so please choose your provider accordingly.
 
-## 5. Legal bases (GDPR)
+## 6. Legal bases (GDPR Article 6)
 
-- **Contract:** your account and the core service you asked for.
-- **Consent:** saving task text, saving and using memory, automatic suggestions, the Prompt Coach and sending data to an external provider. You can withdraw consent at any time in Profile. Withdrawing does not affect what happened before.
-- **Legitimate interests:** security of the service, and keeping non-text technical metadata about model usage for reproducibility.
+- **Contract (Art. 6(1)(b)):** providing your account and the core service you asked for.
+- **Consent (Art. 6(1)(a)):** saving task text, saving and using memory, automatic suggestions, the Prompt Coach, and sending data to an external model provider. You may withdraw consent at any time in Profile. Withdrawal does not affect processing carried out before it.
+- **Legitimate interests (Art. 6(1)(f)):** keeping the service secure, and retaining non-text technical metadata about model usage for reproducibility. We have weighed these interests against your rights and consider the impact on you to be low.
 
-## 6. How long we keep data
+## 7. Retention
 
 - **Sign-in sessions** expire after 7 days by default.
-- **Everything else** is kept until you delete it or your account is removed. There is no automatic expiry yet **[TO CONFIRM: retention period for inactive accounts]**.
-- **Backups and exports:** deleting data removes it from the live database. Database or provider backups, and copies you exported yourself, may still hold earlier data. We do not promise forensic erasure from backups.
+- **All other data** is kept until you delete it or your account is removed. There is currently no automatic expiry **[TO CONFIRM: retention period for inactive accounts]**.
+- **Backups and exports.** Deleting data removes it from the live database. Database or provider backups, and copies you have exported yourself, may still contain earlier data. We do not promise erasure from backups.
 
-## 7. Cookies and browser storage
+## 8. Cookies and browser storage
 
-- A **sign-in cookie** (strictly necessary, HttpOnly, SameSite=Lax) in local mode; in cloud mode the Supabase session token is kept in your browser's storage.
+- **Sign-in cookie** (strictly necessary; HttpOnly; SameSite=Lax) in local mode. In cloud mode, the Supabase session token is kept in your browser's storage.
 - **Preference storage** in your browser: light or dark theme, the last page you viewed, and a timestamp used to refresh the progress page across tabs.
 
-We use no analytics, advertising or tracking cookies. Because these items are strictly necessary or purely functional, we do not show a cookie banner.
+We do not use analytics, advertising or tracking cookies. Because the items above are strictly necessary or purely functional, we do not show a cookie banner.
 
-## 8. Your rights and how to use them
+## 9. Your rights
 
-| You want to | How |
+Under the GDPR you have the following rights. This table shows how to exercise each one.
+
+| Right | How to exercise it |
 | --- | --- |
-| Access or export your data | My progress → **Export** (JSON file with preferences, coaching and sessions). |
-| Correct your data | Edit your preferences in Profile. |
-| Stop text saving, memory or automatic suggestions | Turn the switches off in Profile. |
-| Delete learned memory | Profile → **Clear learned memory**. |
-| Delete saved conversation text and generated coaching | Profile → **Delete saved conversations**. |
-| Delete one session | My progress → delete the session. |
-| Delete all your usage history | My progress → **Delete**. Your account, preferences and LLM configurations remain. |
-| Delete your account and all data | Email the privacy contact. There is no self-service account deletion yet **[TO CONFIRM: add one before release]**. |
-| Object, restrict processing or ask any question | Email the privacy contact. We aim to reply within one month. |
+| Access and portability (Arts. 15 and 20) | My progress → **Export** (a JSON file with preferences, coaching and sessions). |
+| Rectification (Art. 16) | Edit your preferences in Profile. |
+| Withdraw consent (Art. 7(3)) | Turn the relevant switches off in Profile. |
+| Erasure of learned memory (Art. 17) | Profile → **Clear learned memory**. |
+| Erasure of saved conversation text and generated coaching (Art. 17) | Profile → **Delete saved conversations**. |
+| Erasure of one session (Art. 17) | My progress → delete the session. |
+| Erasure of all usage history (Art. 17) | My progress → **Delete**. Your account, preferences and LLM configurations remain. |
+| Erasure of your account and all data (Art. 17) | Email the privacy contact. Self-service account deletion is not yet available **[TO CONFIRM: add before release]**. |
+| Restriction, objection and other questions (Arts. 18 and 21) | Email the privacy contact. |
 
-You can complain to your data protection authority. In Portugal this is the CNPD (Comissão Nacional de Protecção de Dados, cnpd.pt) **[TO CONFIRM: authority for the operating country]**.
+We aim to respond to requests within one month. You also have the right to lodge a complaint with a supervisory authority. In Portugal this is the Comissão Nacional de Proteção de Dados (CNPD, cnpd.pt) **[TO CONFIRM: authority for the operating country]**.
 
-## 9. Security
+## 10. Automated processing
 
-Passwords are salted and hashed, provider keys are encrypted, access is checked per account on every request, and traffic uses HTTPS when deployed. No system is perfectly secure; please use a strong, unique password.
+AdaptAI uses AI models to produce recommendations and suggestions. These are advisory only. They do not produce legal or similarly significant effects on you, and you decide which model to use and whether to follow a suggestion.
 
-## 10. Children
+## 11. Security
 
-AdaptAI is not intended for anyone under 16 **[TO CONFIRM: minimum age]**.
+We protect personal data with technical and organisational measures, including salted password hashing, encryption of provider keys, per-account access checks on every request, and HTTPS in deployed environments. No system is completely secure, so please use a strong and unique password. If a personal data breach is likely to put your rights at risk, we will notify the competent authority and affected users as required by law **[TO CONFIRM: breach-handling owner]**.
 
-## 11. Changes to this policy
+## 12. Children
 
-We will update this page when the product or its data handling changes and change the date and version at the top. Material changes that need your consent will be shown in the app before they apply.
+AdaptAI is not intended for anyone under the age of 16 **[TO CONFIRM: minimum age]**. If you believe a child has provided personal data, contact the privacy contact and we will delete it.
+
+## 13. Changes to this policy
+
+We will update this page whenever the product or its data handling changes, and we will revise the version and date at the top. Where a change requires your consent, we will ask for it in the app before the change applies.

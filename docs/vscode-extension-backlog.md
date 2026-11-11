@@ -6,7 +6,9 @@ first, and [ADR-013](adr/ADR-013-vscode-extension.md) for the decisions.
 
 Prepared with AI assistance (Claude, Anthropic); human review pending.
 
-**Update 11 November 2026.** Built on the branch `feature/ide`: IDE-01, IDE-02, IDE-03, IDE-05, IDE-07 and IDE-08 are done; IDE-10 was audited and closed; IDE-12 is partly done. IDE-04 (choose a file) was dropped by the team: it adds little in an editor, where the text is already in a file or a selection. Sessions and the export read from the same backend routes the web app uses; the team expects these to move to Supabase on develop, in which case the extension only needs its address and credentials (the routes and shapes do not change). The same day: the Coach can run after every analysis (an opt-in setting, `adaptai.coachAfterAnalysis`, switched on in Profile with its own consent dialog), the text box shows local hints while you type (nothing is sent), the analysis cards were made to say what the web app says, and 21 error codes the web app explains were added. The Assistant screen was rebuilt after the web app's chat screen (messages, composer with model picker and Prompt Coach bubble, analysis panel docked or as a bottom sheet) and the separate Chat tab was removed; the chat is the Assistant. What is open now: IDE-11 (a person in a real window), IDE-14 (the Architecture Owner), IDE-06, IDE-09, IDE-13 (decisions) and the rest of IDE-12.
+**Update 11 November 2026.** Built on the branch `feature/ide`: IDE-01, IDE-02, IDE-03, IDE-05, IDE-07 and IDE-08 are done; IDE-10 was audited and closed; IDE-12 is partly done. IDE-04 (choose a file) was dropped by the team: it adds little in an editor, where the text is already in a file or a selection. Sessions and the export read from the same backend routes the web app uses; the team expects these to move to Supabase on develop, in which case the extension only needs its address and credentials (the routes and shapes do not change). The same day: the Coach can run after every analysis (an opt-in setting, `adaptai.coachAfterAnalysis`, switched on in Profile with its own consent dialog), the text box shows local hints while you type (nothing is sent), the analysis cards were made to say what the web app says, and 21 error codes the web app explains were added. The Assistant screen was rebuilt after the web app's chat screen (messages, composer with model picker and Prompt Coach bubble, analysis panel docked or as a bottom sheet) and the separate Chat tab was removed; the chat is the Assistant. What is open now: IDE-11 (a person in a real window) and the formal sign-off of IDE-14 at review.
+
+**Update 11 November 2026, later.** IDE-12 is done. IDE-06, IDE-09, IDE-13, IDE-14 and IDE-15 were decided (see [ADR-013, Decisions of 11 November 2026](adr/ADR-013-vscode-extension.md)). Also fixed that day: the chat answer limit (a cut-off answer is flagged and offers Continue), an OpenRouter chat model no longer makes the analysis fall back to the demonstration model, a mention of an attachment is flagged, and the connection test of a reasoning model has room to answer. The accuracy study is in [analysis-accuracy](analysis-accuracy/report.md).
 
 ## Status of the parity
 
@@ -63,7 +65,7 @@ days, **L** more.
 * **Work.** A model menu in the chat composer that applies to the next message only (including OpenRouter catalogue models, `GET /api/openrouter/models`, shown with their evaluation state, with "Evaluate" that opens the consent dialog). `ChatService.send` takes an optional model; the setting `adaptai.chatModel` stays the default.
 * **Done when.** A message goes to the picked model and the next one back to the default; an external model asks the usual confirmation; stub and integration tests.
 
-### IDE-06 · Supabase (cloud) mode (L, needs a Supabase project)
+### IDE-06 · Supabase (cloud) mode (L, needs a Supabase project) · DECIDED 11 Nov 2026: keep "paste a token", build the browser sign-in later
 
 * **Why.** In cloud mode the password is checked by Supabase, so the extension cannot register, sign in or open a password session.
 * **Today.** The extension answers `use_supabase_auth` with "paste a token". Tokens are created in the web app.
@@ -82,7 +84,7 @@ days, **L** more.
 * **The app.** `TaskOutcomes.tsx` ("Your solved tasks").
 * **Work.** Show the per-model table already loaded and the answers per task if `GET /api/progress/outcomes` returns them; otherwise leave the table and close the item.
 
-### IDE-09 · Password recovery and the legacy-history link (M)
+### IDE-09 · Password recovery and the legacy-history link (M) · DECIDED 11 Nov 2026: not in the extension
 
 * **The app.** `Account.tsx` has recovery and "Keep your existing history" (`POST /api/auth/link-legacy`).
 * **Work.** Decide if both belong in the extension (they are account flows, mostly cloud mode). If yes: dialogs for them in the sign-in flow. If no: record the decision in ADR-013 and link to the web app for them.
@@ -97,33 +99,46 @@ days, **L** more.
 * **Why.** Nothing in the page was clicked through in a real VS Code window by a person; tests ran through code, a real backend and a mock page.
 * **Work.** Do the [manual checklist](#manual-acceptance-checklist), fix what breaks, and record the date and VS Code version in ADR-013 "Evidence".
 
-### IDE-12 · Clean-up of the first build (S) · PARTLY DONE 11 Nov 2026
+### IDE-12 · Clean-up of the first build (S) · DONE 11 Nov 2026
 
 * **Work.** The side-bar trees (`ChatsView`, `ModelsView`, `ProfileView`, `HistoryView`) are no longer registered. Move what the page still uses (data loading, `describeEvaluation`, `consentText`, `PROVIDERS`) into plain modules, delete the tree code and the commands that only served the trees (`adaptai.modelEdit`, `adaptai.evaluationConsent`, …) from `package.json`, and keep the tests that cover the rules.
 * **Done on 11 Nov.** The tree of chats, the history tree and the commands that served the trees were removed (the page does all of it). **Still open:** `ModelsView` and `ProfileView` stay in `models.ts` and `profile.ts` only because their unit and integration tests still use them; port those tests to the page's flows (`test/dashboard-flows.test.js` has a fake view that answers the dialogs) and delete the two classes, keeping `describeEvaluation`, `consentText`, `PROVIDERS`, `CAPABILITIES` and `CONSENT`.
 * **Done when.** `pnpm test` passes, no class exists only for a test, and the guide's table "Old trees" row is removed.
 
-### IDE-13 · Hosted backend and distribution (M, a decision)
+### IDE-13 · Hosted backend and distribution (M, a decision) · DECIDED 11 Nov 2026: `.vsix` only, CI added
 
 * **Questions.** Where does the hosted backend live ([hosting plan](hosting-plan.md))? `.vsix` only, or the Marketplace? The extension needs no code change for a hosted backend (the address is a setting, `https://` is required), but the first-run flow should offer the hosted address.
 * **Work after the decision.** Default `adaptai.backendUrl`, a welcome message on first run, the publisher and icon for the Marketplace, a CI job that runs `pnpm test` and packages the `.vsix`.
 
-### IDE-14 · Approval of the token module in the core (S, a decision)
+### IDE-14 · Approval of the token module in the core (S, a decision) · DECIDED 11 Nov 2026: go to review
 
 * **Why.** API tokens change the core (a migration and the authentication dependency). ADR-013 is "Proposed" until the Architecture Owner decides.
 * **Work.** Review of `backend/app/accounts.py`, `tokens.py`, `migrations/008_api_tokens.sql`, `tests/test_tokens.py`, `frontend/src/ApiTokens.tsx`, `e2e/tokens.spec.ts`; confirm the four `test_postgres.py` failures also happen on a clean develop; then open the pull request in the order backend → app screen → extension.
 
-### IDE-15 · Live tips from a local model while typing (M, a decision)
+### IDE-15 · Live tips from a local model while typing (M, a decision) · DECIDED 11 Nov 2026: not built
 
 * **Why.** The team asked for tips in real time. The local hints already in the page need no model. Tips from a model on every pause would send the text without a click (ADR-005), spend the provider's rate limit and be noisy, so they were not built.
 * **Option.** An opt-in switch that works only when the chat model is local (LM Studio or Ollama): the text then stays on the machine. It needs the Architecture Owner and the Product Owner, because the Prompt Coach is not yet approved by the client (task P3).
 * **Done when.** The decision is recorded in ADR-013; if yes: a debounce of at least 1.5 s, one request in flight, a visible "Thinking locally" state, nothing sent to an external model.
 
+### IDE-16 · Stability of the task profile (M, backend, for the team)
+
+* **Why.** The accuracy study ([report](analysis-accuracy/report.md)) found that the same task analysed three times by the same assessor gives the same level in only 62 to 77 percent of the cells, and a level differs by 2 in a few cells; "high" confidence covers 78 to 91 percent of the cells.
+* **Options.** Analyse twice and keep the level both agree on (or the median of three); ask the assessor for a short reason before the score; show the spread to the user.
+* **Done when.** The same study (`docs/analysis-accuracy/run.py`) shows at least 85 percent identical cells for the gpt-oss models.
+
+### IDE-17 · A missing attachment or source is not "clear" (S, backend, for the team)
+
+* **Why.** For "Summarise the attached Q3 report" (nothing attached) only two of four assessors give ambiguity 3. The extension already warns about it before sending (`localChecks`); the assessor should too.
+* **Work.** A line in the rubric prompt (a new rubric version) that a referred document that is not in the text means essential information is missing.
+* **Done when.** The study's tasks `summarise-missing` and `literature` get ambiguity 3 from at least three of four assessors.
+
 ## Order we recommend
 
-1. IDE-11 (a person tries the page) and IDE-14 (so the backend part can be reviewed): they decide the rest. Everything below is built and waiting for them.
-2. The rest of IDE-12 (port the two classes' tests to the page's flows).
-3. IDE-06, IDE-09, IDE-13 after the hosting decision; when sessions and the export move to Supabase on develop, check IDE-02 and IDE-01 against the new routes.
+1. IDE-11: a person clicks through the 18 checks below in a real window.
+2. IDE-14: open the pull requests (backend, app screen, extension) for review.
+3. IDE-16 and IDE-17 with the team.
+4. When there is a Supabase project, the browser sign-in of IDE-06; when sessions and the export move to Supabase on develop, check IDE-02 and IDE-01 against the new routes.
 
 ## Manual acceptance checklist
 

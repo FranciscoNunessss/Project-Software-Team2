@@ -4,8 +4,8 @@
 the rules to follow when adding to it. The decision is in
 [ADR-013](adr/ADR-013-vscode-extension.md) (proposed, waiting for the Architecture Owner). What is
 still missing is in the [backlog](vscode-extension-backlog.md). Nothing here is committed or
-published yet: the work is on the branch `feature/jose-ide-extension`, from `origin/develop`
-(`c249595`).
+published yet: the work is committed on the local branch `feature/ide`, from `origin/develop`
+(`c249595`), and has not been pushed.
 
 Prepared with AI assistance (Claude, Anthropic); human review pending.
 
@@ -30,7 +30,7 @@ extension neither bundles nor starts it. The plan is a hosted backend later
 | Backend client | `backend.ts` | The only code that talks to the network: credentials, token and cookie bound to an origin, SSE stream, password session for tokens |
 | Pure logic | `core.ts`, `format.ts`, `sse.ts`, `api.ts`, `progress.ts` (renderer) | Address policy, request building, error texts, Markdown rendering, SSE parser, API types. No `vscode` import, so they are tested without VS Code |
 | Editor surfaces | `analyse.ts`, `statusbar.ts` | Commands on a selection, CodeLens, diff editor for the Coach, the status bar item |
-| Leftovers of the first build | `models.ts`, `profile.ts` | `ModelsView` and `ProfileView` are no longer registered or constructed; they stay only because their tests use them. The page uses the helpers in the same files (`PROVIDERS`, `CAPABILITIES`, `describeEvaluation`, `consentText`, `CONSENT`). Remove the two classes when their tests are ported to the page's flows (backlog IDE-12) |
+| Helpers of the page | `models.ts`, `profile.ts` | Plain helpers the page uses (`PROVIDERS`, `CAPABILITIES`, `describeEvaluation`, `consentText`, `CONSENT`) and the progress report. The side-bar tree classes were deleted (IDE-12); the flows they had are tested through the page in `test/dashboard-models.test.js` |
 
 ### How a click becomes a backend call
 

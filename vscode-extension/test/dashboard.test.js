@@ -19,7 +19,7 @@ const backend = {
 const analyser = { onDidAnalyse: () => ({}), results: new Map() }
 const models = { refresh: async () => {} }
 const profile = { refresh: async () => {} }
-const dash = new Dashboard(backend, analyser, models, profile, { list: async () => [], remove: async () => {} }, {}, { open: async () => {} })
+const dash = new Dashboard(backend, analyser, { list: async () => [], remove: async () => {} }, { open: async () => {} })
 
 test('only known switches and deletions are handled; deletions need the dialog, which has no page here', async () => {
   calls.length = 0

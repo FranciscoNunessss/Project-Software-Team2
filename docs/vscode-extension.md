@@ -30,7 +30,7 @@ extension neither bundles nor starts it. The plan is a hosted backend later
 | Backend client | `backend.ts` | The only code that talks to the network: credentials, token and cookie bound to an origin, SSE stream, password session for tokens |
 | Pure logic | `core.ts`, `format.ts`, `sse.ts`, `api.ts`, `progress.ts` (renderer) | Address policy, request building, error texts, Markdown rendering, SSE parser, API types. No `vscode` import, so they are tested without VS Code |
 | Editor surfaces | `analyse.ts`, `statusbar.ts` | Commands on a selection, CodeLens, diff editor for the Coach, the status bar item |
-| Old trees | `models.ts`, `profile.ts`, `chat.ts`, `history.ts` | Tree views from the first build. They are no longer shown; the classes stay because the page reuses their data code and tests. Remove them when no test needs them (backlog IDE-12) |
+| Leftovers of the first build | `models.ts`, `profile.ts` | `ModelsView` and `ProfileView` are no longer registered or constructed; they stay only because their tests use them. The page uses the helpers in the same files (`PROVIDERS`, `CAPABILITIES`, `describeEvaluation`, `consentText`, `CONSENT`). Remove the two classes when their tests are ported to the page's flows (backlog IDE-12) |
 
 ### How a click becomes a backend call
 
@@ -44,7 +44,7 @@ page (dashboard.ts, HTML in a template literal)
 
 * **One view.** The page is a `WebviewViewProvider` registered as `adaptai.home` in the AdaptAI
   side bar. It keeps its state when hidden (`retainContextWhenHidden`).
-* **Screens.** Assistant, Chat, My progress, Profile, LLM config, Shortcuts. Each has a
+* **Screens.** Assistant (the web app's layout: the chat and the composer on one screen, with the model picker, the Prompt Coach bubble, Analyse and Send, and the analysis panel docked beside the chat on wide screens or as a bottom sheet in a narrow bar), My progress (charts in inline SVG, outcomes, learning, patterns, pending choices, sessions, export), Profile, LLM config, Shortcuts. Each has a
   `load()` branch in `dashboard.ts` that fetches plain data and a `...Tab(d)` function in the page
   script that draws it.
 * **Dialogs.** `Dashboard.ask(spec)` shows a modal in the page and returns the values (or
@@ -56,6 +56,21 @@ page (dashboard.ts, HTML in a template literal)
   messages that grow a bubble. When the stream ends the page reloads the saved messages.
 * **Password session.** A token cannot manage tokens (backend rule). `Backend.startManaging`
   confirms the password for 10 minutes, in memory only, and `tokenApi` is limited to `/api/tokens`.
+
+## Same words and layout as the web app
+
+The Assistant is the web app's chat screen (`ChatScreen.tsx`): messages above, the composer below (text box with the Prompt Coach bubble, the model picker, the counter, the recommended model, **Analyse** and **Send**), and `AnalysisDrawer.tsx` as the analysis panel with **Send this message** in its footer. **Analyse** runs inside the chat's own session, so the next message carries the analysis. The model picker sets the chat model like the web picker does (Auto, your models, the project's models, each with its evaluation status); for an OpenRouter model a second button opens the live catalogue.
+
+The analysis cards of the page use the web app's words, in the web app's order (`AnalysisDrawer.tsx`,
+`AnalysisResult.tsx`, `TipsCard.tsx`, `AnalysisChanges.tsx`), and the error texts are the web app's
+(`errorMessages` in `frontend/src/api.ts`). `richResult()` in `dashboard.ts` turns an analysis into plain
+data for the cards; `test/rich.test.js` checks it against a real answer of develop
+(`test/fixtures/develop-lmstudio-analysis.json`). To check it again after a change of the web app: run
+develop and the branch on the same backend, analyse the same task in both, and compare the text. A
+recommendation that names "Illustrative balanced model" is the backend's rule, not a bug of the page:
+it appears only while none of the user's models is classified (`recommendation.py`, `recommend`). A model
+is classified after its evaluation (a local LM Studio model takes about 8 minutes) or when it has public
+levels, so the backend that serves the extension must run with the evaluation worker on.
 
 ## Security rules (do not weaken)
 
@@ -106,7 +121,7 @@ cd e2e && pnpm exec playwright test tokens.spec.ts
 | `security.test.js` | Remote http refused, header filtering, credentials bound to origin, redirects, stream idle timeout, Stop | local stub servers |
 | `flows.test.js` | Analyse, consent, secrets, failure and Retry, cancel and timeouts, Coach, diff, Apply, outcome, Use this model | nothing |
 | `chat.test.js`, `profile.test.js`, `models.test.js` | The chat service, profile switches and deletions, models CRUD and evaluations | nothing |
-| `dashboard.test.js` | The page's handler: unknown messages and ids ignored, consent needed, token routes only | nothing |
+| `dashboard.test.js`, `dashboard-flows.test.js` | The page's handler with a fake view that answers its dialogs: unknown messages and ids ignored, consent needed, token routes only, sessions (open, continue, delete), a model for one message, the Coach in the page, the export | nothing |
 | `integration.test.js` | Register, sign in, tokens (create, list, revoke), analysis, Coach, outcome, chat, profile, models, all against a real backend | `ADAPTAI_TEST_BACKEND` |
 
 The self-test in a real VS Code window (`ADAPTAI_SELFTEST=1`, see the extension README) checks that

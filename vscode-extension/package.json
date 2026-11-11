@@ -93,12 +93,6 @@
         "icon": "$(edit)"
       },
       {
-        "command": "adaptai.refreshHistory",
-        "title": "Refresh recent analyses",
-        "category": "AdaptAI",
-        "icon": "$(refresh)"
-      },
-      {
         "command": "adaptai.coachClipboard",
         "title": "Coach the prompt on the clipboard",
         "category": "AdaptAI",
@@ -171,118 +165,10 @@
         "icon": "$(add)"
       },
       {
-        "command": "adaptai.chatOpen",
-        "title": "Open a chat transcript",
-        "category": "AdaptAI",
-        "icon": "$(comment)"
-      },
-      {
-        "command": "adaptai.chatRename",
-        "title": "Rename the chat",
-        "category": "AdaptAI",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "adaptai.chatDelete",
-        "title": "Delete the chat",
-        "category": "AdaptAI",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "adaptai.editPreferences",
-        "title": "Edit your preferences",
-        "category": "AdaptAI",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "adaptai.clearMemory",
-        "title": "Clear the learned memory",
-        "category": "AdaptAI",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "adaptai.clearConversations",
-        "title": "Delete the stored conversations",
-        "category": "AdaptAI",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "adaptai.clearHistory",
-        "title": "Delete all usage history",
-        "category": "AdaptAI",
-        "icon": "$(trash)"
-      },
-      {
         "command": "adaptai.openProgress",
         "title": "Open My progress",
         "category": "AdaptAI",
         "icon": "$(graph)"
-      },
-      {
-        "command": "adaptai.refreshProfile",
-        "title": "Refresh the profile",
-        "category": "AdaptAI",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "adaptai.refreshModels",
-        "title": "Refresh the models",
-        "category": "AdaptAI",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "adaptai.modelAdd",
-        "title": "Add a model",
-        "category": "AdaptAI",
-        "icon": "$(add)"
-      },
-      {
-        "command": "adaptai.modelEdit",
-        "title": "Edit the model",
-        "category": "AdaptAI",
-        "icon": "$(edit)"
-      },
-      {
-        "command": "adaptai.modelRemove",
-        "title": "Delete the model",
-        "category": "AdaptAI",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "adaptai.modelTest",
-        "title": "Test the connection of the model",
-        "category": "AdaptAI",
-        "icon": "$(plug)"
-      },
-      {
-        "command": "adaptai.evaluationConsent",
-        "title": "Decide on this evaluation",
-        "category": "AdaptAI",
-        "icon": "$(bell)"
-      },
-      {
-        "command": "adaptai.evaluationRedo",
-        "title": "Evaluate the model again",
-        "category": "AdaptAI",
-        "icon": "$(debug-restart)"
-      },
-      {
-        "command": "adaptai.evaluationDisagree",
-        "title": "I disagree with a level",
-        "category": "AdaptAI",
-        "icon": "$(comment)"
-      },
-      {
-        "command": "adaptai.evaluationAdd",
-        "title": "Add a model of the OpenRouter catalogue",
-        "category": "AdaptAI",
-        "icon": "$(search)"
-      },
-      {
-        "command": "adaptai.evaluationRemove",
-        "title": "Remove the model I picked from OpenRouter",
-        "category": "AdaptAI",
-        "icon": "$(close)"
       },
       {
         "command": "adaptai.register",
@@ -338,46 +224,6 @@
         },
         {
           "command": "adaptai.chatSendText",
-          "when": "false"
-        },
-        {
-          "command": "adaptai.chatOpen",
-          "when": "false"
-        },
-        {
-          "command": "adaptai.chatRename",
-          "when": "false"
-        },
-        {
-          "command": "adaptai.chatDelete",
-          "when": "false"
-        },
-        {
-          "command": "adaptai.modelEdit",
-          "when": "false"
-        },
-        {
-          "command": "adaptai.modelRemove",
-          "when": "false"
-        },
-        {
-          "command": "adaptai.modelTest",
-          "when": "false"
-        },
-        {
-          "command": "adaptai.evaluationConsent",
-          "when": "false"
-        },
-        {
-          "command": "adaptai.evaluationRedo",
-          "when": "false"
-        },
-        {
-          "command": "adaptai.evaluationDisagree",
-          "when": "false"
-        },
-        {
-          "command": "adaptai.evaluationRemove",
           "when": "false"
         }
       ],
@@ -446,6 +292,11 @@
             "The analysis opens as a Markdown document with the actions above it."
           ],
           "markdownDescription": "How an analysis is shown."
+        },
+        "adaptai.coachAfterAnalysis": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Run the Prompt Coach after every analysis started from the AdaptAI page. It is a second request with the same text, so it costs a second call and, for an external model, sends the text again. Switch it on in the Profile screen, which asks first."
         }
       }
     },

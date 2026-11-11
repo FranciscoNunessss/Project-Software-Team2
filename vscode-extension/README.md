@@ -10,10 +10,10 @@ The extension has no model and no rules of its own. Every result is what the bac
 | --- | --- |
 | Analyse a task | **Analyse selection / file / clipboard / a typed task**. The result opens as a Markdown preview beside the editor: recommended model and price, coverage per need, alternatives, notes, tips, profile and completeness. |
 | "Use this model", "Task solved?" | Actions after each analysis (notification, or CodeLens above the source view): **Use this model in the chat**, **Task solved?**, **Copy summary**. |
-| Prompt Coach | **Improve the prompt** (diff, then Apply; Undo restores), **Coach the clipboard**, and **Prompt Coach: improve** on an analysis. Tips, Edits or Rewrite. |
-| Chat | The participant **`@adaptai`** in VS Code's chat view: streaming, Stop, `/retry`, `/new`, `/analyse <task>` (inside the chat's session). A **Chats** view lists, opens, renames and deletes your chats. |
+| Prompt Coach (also in the page) | **Improve the prompt** (diff, then Apply; Undo restores), **Coach the clipboard**, and **Prompt Coach: improve** on an analysis. Tips, Edits or Rewrite. |
+| Chat and Assistant | The AdaptAI page: one screen with the conversation and a composer (model picker, Prompt Coach bubble, **Analyse**, **Send**), and the analysis panel beside it or as a sheet. The participant **`@adaptai`** in VS Code's chat view: streaming, Stop, `/retry`, `/new`, `/analyse <task>` (inside the chat's session). A **Chats** view lists, opens, renames and deletes your chats. |
 | Assistant history | **Recent analyses**. |
-| My progress | **Open My progress**: activity, over- and under-provisioning, solved tasks by model, whether you describe tasks better, the Educator's suggestions. |
+| My progress | Charts (activity and recommendation match), numbers, solved tasks by model, whether you describe tasks better, patterns, the Educator's suggestions, choices to confirm, your sessions (open an analysis, **Continue**, delete) and **Export my data** (preferences, coaching, sessions and chats). |
 | Profile and settings | **Profile and settings** view: memory switches, saving task text, automatic suggestions, Prompt Coach, "always analyse", preferences, and the three deletions. |
 | LLM config | **Models and evaluations** view: the project's models (the assessor marked), your models (add, edit, replace the key, test, delete) and how each was evaluated, with the consent dialog for a paid evaluation, re-evaluate, "I disagree", and adding a model of OpenRouter's live catalogue. |
 | Sign in | **Sign in** (email and password once, then only a token is kept) or **Sign in with a token**. |
@@ -36,6 +36,10 @@ Mac: `Cmd` for the chords. The extension cannot add buttons inside another exten
 * **Sign in** asks for your email and password once, signs in, asks the backend for a personal API token for this machine and keeps **only the token** in SecretStorage. The password is not stored.
 * **Sign in with a token** takes a token created in the app (Profile > API tokens). It is the way in when the backend uses **Supabase Auth** (the password is then checked by Supabase in the app, never here).
 * The token works with the local cookie login and with Supabase Auth, because it points at the same account. It expires (90 days by default) and can be revoked in the app; a revoked or expired token shows as "rejected".
+
+## While you write
+
+Under the text box the page shows **local hints** as you type: a very short description, an email address or phone number, a key or password, more than 8000 characters, and how many dimensions the last analysis was unsure about. They are computed in the page; nothing is sent. The **Prompt Coach** (Rewrite, Edits or Tips) runs when you press **Improve this prompt**. In Profile, **Run the Coach after every analysis** (off by default, with its own confirmation) makes **Analyse** ask for it too: that is a second request with the same text.
 
 ## Security and privacy
 

@@ -6,19 +6,21 @@ first, and [ADR-013](adr/ADR-013-vscode-extension.md) for the decisions.
 
 Prepared with AI assistance (Claude, Anthropic); human review pending.
 
+**Update 11 November 2026.** Built on the branch `feature/ide`: IDE-01, IDE-02, IDE-03, IDE-05, IDE-07 and IDE-08 are done; IDE-10 was audited and closed; IDE-12 is partly done. IDE-04 (choose a file) was dropped by the team: it adds little in an editor, where the text is already in a file or a selection. Sessions and the export read from the same backend routes the web app uses; the team expects these to move to Supabase on develop, in which case the extension only needs its address and credentials (the routes and shapes do not change). The same day: the Coach can run after every analysis (an opt-in setting, `adaptai.coachAfterAnalysis`, switched on in Profile with its own consent dialog), the text box shows local hints while you type (nothing is sent), the analysis cards were made to say what the web app says, and 21 error codes the web app explains were added. The Assistant screen was rebuilt after the web app's chat screen (messages, composer with model picker and Prompt Coach bubble, analysis panel docked or as a bottom sheet) and the separate Chat tab was removed; the chat is the Assistant. What is open now: IDE-11 (a person in a real window), IDE-14 (the Architecture Owner), IDE-06, IDE-09, IDE-13 (decisions) and the rest of IDE-12.
+
 ## Status of the parity
 
 | Area of the app | In the extension | Gap |
 | --- | --- | --- |
 | Account: register, sign in, sign out | Done | Supabase mode (IDE-06), password recovery and legacy-history link (IDE-09) |
 | API tokens | Done (needs the password, 10 minutes) | None |
-| Analyse, result cards, Use this model, Task solved? | Done | File upload (IDE-04), per-message model (IDE-05) |
-| Prompt Coach | Native diff, Apply, Undo | In-page coach next to the text (IDE-07) |
-| Chat | Done (streaming, Stop, Retry, `/analyse`, list, rename, delete) | Model choice per message (IDE-05) |
-| History and sessions | List of sessions | Detail and Continue in Assistant (IDE-02) |
-| My progress | Numbers, outcomes, learning, Educator, pending choices, export | Charts and patterns (IDE-03), outcomes list (IDE-08), conversations in the export (IDE-01) |
+| Analyse, result cards, Use this model, Task solved? | Done | None (file upload dropped, IDE-04) |
+| Prompt Coach | Native diff, Apply, Undo, and in the page (Rewrite, Edits, Tips, Use this text) | None known |
+| Chat | Done (streaming, Stop, Retry, `/analyse`, list, rename, delete, a model for one message including the OpenRouter catalogue) | None known |
+| History and sessions | Done: list, open an analysis, Continue, delete | None known |
+| My progress | Done: numbers, charts (activity and recommendation match), outcomes, learning, patterns, Educator, pending choices, export with chats | None known |
 | Profile | Switches, preferences, learned memory, deletions, conversations, tokens | None known |
-| LLM config and evaluations | Done (CRUD, test, consent, disagree, OpenRouter catalogue) | Provider catalogue screen (IDE-10) |
+| LLM config and evaluations | Done (CRUD, test, consent, disagree, OpenRouter catalogue) | None: the web does not use `/api/catalogue`, `/api/providers` or `/api/rubric` either (IDE-10) |
 | Shortcuts | Keys of origin, Change opens the keyboard editor | Show keys the user changed (not possible through the API) |
 
 ## Items
@@ -27,34 +29,34 @@ Each item: why it matters, what the web app does, the work, what is done when it
 Size is a rough guess for one person who knows the code: **S** under half a day, **M** one to two
 days, **L** more.
 
-### IDE-01 · Conversations in the export (S)
+### IDE-01 · Conversations in the export (S) · DONE 11 Nov 2026
 
 * **Why.** The export is the user's right to their data; it must match the app's.
 * **The app.** `Progress.tsx` `exportData` collects `context`, `progress/coaching` and every session with its analyses. The saved conversation text is part of the sessions.
 * **Work.** `Dashboard.exportData()` already writes preferences, coaching and sessions. Add `GET /api/chats` and `GET /api/chats/{id}` for each chat. Only chats that exist are exported; nothing is requested when saving is off.
 * **Done when.** The JSON has a `chats` array; a test with a stub backend checks the calls and the file content; the integration test exports after a chat.
 
-### IDE-02 · Session detail and Continue in Assistant (M)
+### IDE-02 · Session detail and Continue in Assistant (M) · DONE 11 Nov 2026 (delete yes, rename no: the backend has no rename)
 
 * **Why.** Without it a past analysis cannot be reopened or continued.
 * **The app.** `Progress.tsx` shows a session (`GET /api/sessions/{id}?limit=&offset=`), its analyses (`HistoryAnalysis.tsx`) with the choice, and **Continue in Assistant** (`onResume`) which reopens the analysis and sends the next one with the same session id and `previous_analysis_id`.
 * **Work.** New dialog or screen section in the page: list of sessions → open one → its analyses with the recommended and chosen model. **Continue** stores the session id and the analysis id on the `Analyser` (a new field, `continueFrom`, to add) and passes them to `analysisPlan(..., { sessionId, previousId })`, which already accepts both. Add rename and delete of a session (`PATCH`, `DELETE /api/sessions/{id}`).
 * **Done when.** A session opens, an analysis can be reopened as the result cards, Continue produces an analysis with `changes` against the previous one, rename and delete ask first. Stub test plus an integration test.
 
-### IDE-03 · Charts and patterns in My progress (M)
+### IDE-03 · Charts and patterns in My progress (M) · DONE 11 Nov 2026
 
 * **Why.** The web shows "Your judgement over time", the match chart and "What your choices reveal"; the extension has numbers only.
 * **The app.** `ProgressDashboard.tsx`, `LearningProgress.tsx`; data from `GET /api/progress/dashboard` (series), `/learning` (points), `/activity`.
 * **Work.** Draw with inline SVG in the page (a small `chart()` helper: bars and a line, theme colours, a text alternative). **No chart library**: the Content-Security-Policy allows no remote script and the page must stay small. Provide a table below each chart for accessibility.
 * **Done when.** Activity and recommendation-match charts, the completeness line, readable in light and dark and at 300 px; data tables present; a test of the helper with fixed input.
 
-### IDE-04 · Choose a file to analyse (S)
+### IDE-04 · Choose a file to analyse (S) · DROPPED by the team (11 Nov 2026)
 
 * **Why.** The web composer accepts a file (`upload-link`).
 * **Work.** A **Choose a file** button in the Assistant: `showOpenDialog`, then `Analyser.fromUri(uri)` (it already refuses `.env`, keys, binary files and files over 200 KB). Show the file name and size in the composer before sending.
 * **Done when.** A text file is analysed with the same consent as a selection; a secret file is refused with the message; tests in `flows.test.js`.
 
-### IDE-05 · Model choice per message and per analysis (M)
+### IDE-05 · Model choice per message (M) · DONE 11 Nov 2026
 
 * **Why.** The web has a model picker in the chat (`ModelPicker.tsx`, `OpenRouterModelPicker.tsx`); the extension has one chat model for everything.
 * **Rules.** ADR-014 A11: analysis always uses the project assessor; the picker is for the chat. Keep that.
@@ -69,13 +71,13 @@ days, **L** more.
 * **Work.** Decide with the Architecture Owner, then implement (b): a `UriHandler`, a PKCE-less flow that returns a short-lived access token, `POST /api/tokens` with it (the backend's `SessionUser` must then accept a Supabase JWT for token creation; it is a backend change and needs review).
 * **Done when.** Registration and sign-in work against a real Supabase project, a token is issued and used, and the cloud acceptance checks in [cloud-setup](cloud-setup.md) pass.
 
-### IDE-07 · The Coach inside the page (M)
+### IDE-07 · The Coach inside the page (M) · DONE 11 Nov 2026
 
 * **Why.** The web shows tips and a rewrite next to the composer (`PromptCoachBubble.tsx`, `PromptCoachTips.tsx`, `CoachingPanel.tsx`); the extension uses the native diff, which is better for a prompt in a file but not for text written in the page.
 * **Work.** In the Assistant, a **Improve this prompt** button under the text that calls `POST /api/prompt-coach` (it needs an `analysis_id`, so it runs on the analysis of that text) through `Analyser.coach()` and shows tips, edits or the rewrite as cards with **Use this text** (replaces the page text). Keep the diff and Apply for prompts in a file.
 * **Done when.** Tips, edits and rewrite are shown; the "nothing to improve" and the Coach-off states are clear; Coach off in Profile hides the button.
 
-### IDE-08 · Solved-tasks list (S)
+### IDE-08 · Solved-tasks list (S) · DONE 11 Nov 2026 (the app shows counts only, so the extension shows the same counts)
 
 * **The app.** `TaskOutcomes.tsx` ("Your solved tasks").
 * **Work.** Show the per-model table already loaded and the answers per task if `GET /api/progress/outcomes` returns them; otherwise leave the table and close the item.
@@ -85,7 +87,7 @@ days, **L** more.
 * **The app.** `Account.tsx` has recovery and "Keep your existing history" (`POST /api/auth/link-legacy`).
 * **Work.** Decide if both belong in the extension (they are account flows, mostly cloud mode). If yes: dialogs for them in the sign-in flow. If no: record the decision in ADR-013 and link to the web app for them.
 
-### IDE-10 · Providers, catalogue and rubric routes (S, audit)
+### IDE-10 · Providers, catalogue and rubric routes (S, audit) · CLOSED 11 Nov 2026
 
 * **Why.** A route comparison found these `/api/` routes unused by the extension: `/api/catalogue`, `/api/providers`, `/api/rubric`. The comparison was by route prefix, so it is only a hint.
 * **Work.** Read what the web app does with each. Add a read-only "About the models" card in LLM config if the web shows them; otherwise note in this item that the web does not either and close it.
@@ -95,10 +97,11 @@ days, **L** more.
 * **Why.** Nothing in the page was clicked through in a real VS Code window by a person; tests ran through code, a real backend and a mock page.
 * **Work.** Do the [manual checklist](#manual-acceptance-checklist), fix what breaks, and record the date and VS Code version in ADR-013 "Evidence".
 
-### IDE-12 · Clean-up of the first build (S)
+### IDE-12 · Clean-up of the first build (S) · PARTLY DONE 11 Nov 2026
 
 * **Work.** The side-bar trees (`ChatsView`, `ModelsView`, `ProfileView`, `HistoryView`) are no longer registered. Move what the page still uses (data loading, `describeEvaluation`, `consentText`, `PROVIDERS`) into plain modules, delete the tree code and the commands that only served the trees (`adaptai.modelEdit`, `adaptai.evaluationConsent`, …) from `package.json`, and keep the tests that cover the rules.
-* **Done when.** `pnpm test` passes, `package.json` has only commands that a user or the page can run, and the guide's table "Old trees" row is removed.
+* **Done on 11 Nov.** The tree of chats, the history tree and the commands that served the trees were removed (the page does all of it). **Still open:** `ModelsView` and `ProfileView` stay in `models.ts` and `profile.ts` only because their unit and integration tests still use them; port those tests to the page's flows (`test/dashboard-flows.test.js` has a fake view that answers the dialogs) and delete the two classes, keeping `describeEvaluation`, `consentText`, `PROVIDERS`, `CAPABILITIES` and `CONSENT`.
+* **Done when.** `pnpm test` passes, no class exists only for a test, and the guide's table "Old trees" row is removed.
 
 ### IDE-13 · Hosted backend and distribution (M, a decision)
 
@@ -110,13 +113,17 @@ days, **L** more.
 * **Why.** API tokens change the core (a migration and the authentication dependency). ADR-013 is "Proposed" until the Architecture Owner decides.
 * **Work.** Review of `backend/app/accounts.py`, `tokens.py`, `migrations/008_api_tokens.sql`, `tests/test_tokens.py`, `frontend/src/ApiTokens.tsx`, `e2e/tokens.spec.ts`; confirm the four `test_postgres.py` failures also happen on a clean develop; then open the pull request in the order backend → app screen → extension.
 
+### IDE-15 · Live tips from a local model while typing (M, a decision)
+
+* **Why.** The team asked for tips in real time. The local hints already in the page need no model. Tips from a model on every pause would send the text without a click (ADR-005), spend the provider's rate limit and be noisy, so they were not built.
+* **Option.** An opt-in switch that works only when the chat model is local (LM Studio or Ollama): the text then stays on the machine. It needs the Architecture Owner and the Product Owner, because the Prompt Coach is not yet approved by the client (task P3).
+* **Done when.** The decision is recorded in ADR-013; if yes: a debounce of at least 1.5 s, one request in flight, a visible "Thinking locally" state, nothing sent to an external model.
+
 ## Order we recommend
 
-1. IDE-11 (a person tries the page) and IDE-14 (so the backend part can be reviewed): they decide the rest.
-2. IDE-02, IDE-05, IDE-01, IDE-04: the functions people miss first.
-3. IDE-03, IDE-07, IDE-08: the visual parity.
-4. IDE-12 with the first of these, so the clean-up does not grow.
-5. IDE-06, IDE-09, IDE-13 after the hosting decision.
+1. IDE-11 (a person tries the page) and IDE-14 (so the backend part can be reviewed): they decide the rest. Everything below is built and waiting for them.
+2. The rest of IDE-12 (port the two classes' tests to the page's flows).
+3. IDE-06, IDE-09, IDE-13 after the hosting decision; when sessions and the export move to Supabase on develop, check IDE-02 and IDE-01 against the new routes.
 
 ## Manual acceptance checklist
 

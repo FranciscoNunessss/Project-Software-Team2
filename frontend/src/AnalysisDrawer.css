@@ -1,0 +1,3 @@
+/* Content of the analysis panel in the chat. The panel itself is ui/Sheet. */
+.drawer-loading { display: flex; align-items: center; gap: 8px; margin: 8px 4px; color: var(--color-muted); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.drawer-stale { margin: 0; padding: 10px 12px; border-radius: var(--radius-md); background: var(--color-hover); color: var(--color-ink); font-size: var(--text-sm); }

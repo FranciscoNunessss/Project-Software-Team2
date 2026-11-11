@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { usePageActive } from './PagePanel'
 import {
   api, createChat, renameChat, errorMessage, getChat, notifyProgressChange, streamChat, candidateLabel, putOutcome, ApiError,
@@ -11,6 +11,9 @@ import { OpenRouterModelPicker } from './OpenRouterModelPicker'
 import { statusKey, statusOf, type ModelStatus } from './modelStatus'
 import { PromptCoachBubble } from './PromptCoachBubble'
 import { OutcomeCard, SolvedButton } from './TaskOutcome'
+import { Button, useSheetClearance } from './ui'
+import './Composer.css'
+import './ChatScreen.css'
 
 // Optional chat (ADR-011). Shown only when /api/features reports "chat".
 const MAX_CHARS = 8000
@@ -324,36 +327,18 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
   const locked = busy || analysing
   // The analysis panel floats over the chat but stops above the message box, so Analyse,
   // Send and the Prompt Coach stay usable while it is open. Track where the box starts.
+  // The feedback card (ADR-014) sits right above the box and must stay reachable too.
   const composer = useRef<HTMLElement>(null)
-  const [composerSpace, setComposerSpace] = useState(0)
-  const measureComposer = () => {
-    if (!activePage) return
-    const element = composer.current
-    if (!element) return
-    // The feedback card (ADR-014) sits right above the box and must stay reachable too.
-    const card = element.parentElement?.querySelector<HTMLElement>(':scope > [data-outcome-card]')
-    const top = Math.min(element.getBoundingClientRect().top, card?.getBoundingClientRect().top ?? Infinity)
-    setComposerSpace(Math.max(0, Math.round(window.innerHeight - top)))
-  }
-  // After every render: notices and errors under the box move it without resizing it.
-  useLayoutEffect(measureComposer)
-  useLayoutEffect(() => {
-    const element = composer.current
-    if (!element) return
-    const observer = new ResizeObserver(measureComposer)
-    observer.observe(element)
-    window.addEventListener('resize', measureComposer)
-    return () => { observer.disconnect(); window.removeEventListener('resize', measureComposer) }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const composerSpace = useSheetClearance(composer, { active: activePage, above: '[data-outcome-card]' })
   // The sidebar must not switch chats mid-answer: switching remounts this screen.
   useEffect(() => { onBusyChange(locked) }, [locked]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => onBusyChange(false), []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <main className={`page chat-layout${drawer ? ' with-drawer' : ''}`} data-chat-screen="" style={{ '--composer-space': `${composerSpace}px` } as CSSProperties}>
+    <main className="page chat-layout" data-chat-screen="" style={{ '--composer-space': `${composerSpace}px` } as CSSProperties}>
       <section className="chat-main">
         <div className="chat-toolbar">
-          <span className="muted chat-title">{chatId ? title : ''}</span>
+          <span className="chat-title">{chatId ? title : ''}</span>
         </div>
         <div className="chat-messages" aria-live="polite">
           {messages.length === 0 ? (
@@ -393,12 +378,12 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
               {draftAnalysis && draftAnalysis.text === draft && useRecommended?.state === 'available' && (
                 <button type="button" className="chat-link" onClick={useRecommended.onUse} data-use-recommended="">Use</button>
               )}
-              <button type="button" className="button button-secondary" onClick={analyse} disabled={locked || !draft.trim() || modelsLoading || !selected} data-analyse-button="">
+              <Button variant="secondary" onClick={analyse} disabled={locked || !draft.trim() || modelsLoading || !selected} data-analyse-button="">
                 {analysing ? 'Analysing…' : 'Analyse'}
-              </button>
+              </Button>
               {busy
-                ? <button type="button" className="button button-secondary" onClick={stop} data-chat-stop="">Stop</button>
-                : <button type="button" className="button button-primary" onClick={send} disabled={analysing || !draft.trim() || modelsLoading || !selected || (usesRouter && !routerValue)} title={usesRouter && !routerValue ? 'Choose an OpenRouter model first' : undefined} data-chat-send="">Send</button>}
+                ? <Button variant="secondary" onClick={stop} data-chat-stop="">Stop</Button>
+                : <Button onClick={send} disabled={analysing || !draft.trim() || modelsLoading || !selected || (usesRouter && !routerValue)} title={usesRouter && !routerValue ? 'Choose an OpenRouter model first' : undefined} data-chat-send="">Send</Button>}
             </div>
           </div>
         </section>
@@ -406,7 +391,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
           ? (assessor.external || selected?.external) && <p className="processing-notice" data-processing-notice="">Selecting <strong>Analyse</strong> sends your text to <strong>{assessor.provider}</strong> (the project's assessor); <strong>Send</strong> sends it to <strong>{selected?.provider}</strong>. Messages are saved in this chat until you delete it.</p>
           : selected?.external && <p className="processing-notice">Selecting <strong>Analyse</strong> or <strong>Send</strong> sends your text to <strong>{selected.provider}</strong>. Messages are saved in this chat until you delete it.</p>}
       </section>
-      <div className="drawer-slot">
+      <div className="sheet-slot">
         <AnalysisDrawer open={drawer} onClose={() => setDrawer(false)} error={analysisError || undefined} useRecommended={recommendedFor(shown)} useSuggestion={recommendedFor(shown, 'suggestion')} analysis={shown} task={draftAnalysis && shown && draftAnalysis.analysis.id === shown.id ? draft : undefined} loading={analysing} stale={stale} fromHistory={shownFromHistory}
           onSend={sendable && !busy && !analysing ? () => { setDrawer(false); void send() } : undefined} />
       </div>

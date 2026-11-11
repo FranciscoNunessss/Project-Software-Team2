@@ -506,8 +506,7 @@ def install_coaching(app, store, settings):
                 raise ProviderFailure("invalid_provider_output")
         except ProviderFailure as exc:
             raise HTTPException(502, exc.code) from None
-        with store.connect() as db:
-            store.lock_user(db, user_id)
+        with store.connect(user_id=user_id) as db, store.reuse_connection(db):
             # A deletion while the model was running must not recreate deleted history.
             actual_fingerprint, _ = snapshot(store, user_id)
             if actual_fingerprint != fingerprint:

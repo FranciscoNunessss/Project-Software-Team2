@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-11T22:11:19.518Z",
-  "date": "2026-11-11",
+  "generatedAt": "2026-11-12T15:22:17.585Z",
+  "date": "2026-11-12",
   "repo": "FranciscoNunessss/Project-Software-Team2",
   "branch": "develop",
   "semester": {
@@ -125,7 +125,7 @@
         }
       ],
       "progress": null,
-      "expected": 45.7,
+      "expected": 48.6,
       "status": "no-data",
       "note": "Not measured. Labelled task set v1 (OI-8) closed on ClickUp on 1 Nov; evaluation protocol and the 2–3 outside reviewers not chosen yet.",
       "updated": "2026-11-04",
@@ -159,7 +159,7 @@
         }
       ],
       "progress": null,
-      "expected": 45.7,
+      "expected": 48.6,
       "status": "no-data",
       "note": "Not measurable — the catalogue tiers are illustrative, with no real prices (AA-004).",
       "updated": "2026-11-04",
@@ -192,7 +192,7 @@
         }
       ],
       "progress": null,
-      "expected": 45.7,
+      "expected": 48.6,
       "status": "no-data",
       "note": "No usability session yet (AA-015, planned for week 10).",
       "updated": "2026-11-04",
@@ -231,7 +231,7 @@
         }
       ],
       "progress": 0,
-      "expected": 45.7,
+      "expected": 48.6,
       "status": "behind",
       "note": "0 of 3. AA-012 (over-provisioning) and the synthetic usage histories are in Backlog, unassigned.",
       "updated": "2026-11-04",
@@ -259,7 +259,7 @@
         }
       ],
       "progress": null,
-      "expected": 25.4,
+      "expected": 27,
       "status": "no-data",
       "note": "Not measured on simulated profiles. My progress shows agreement on saved sessions (PR #12).",
       "updated": "2026-11-04",
@@ -298,7 +298,7 @@
         }
       ],
       "progress": null,
-      "expected": 45.7,
+      "expected": 48.6,
       "status": "no-data",
       "note": "Not started. AA-013 in Backlog, unassigned; KR owner still to assign (OI-9).",
       "updated": "2026-11-04",
@@ -382,7 +382,7 @@
         }
       ],
       "progress": null,
-      "expected": 9.5,
+      "expected": 14.3,
       "status": "no-data",
       "note": "Baseline 0 per PR (18 PRs). The baseline has 0 changes requested per pull request, so a reduction cannot be measured.",
       "evidence": [

@@ -72,6 +72,54 @@ it appears only while none of the user's models is classified (`recommendation.p
 is classified after its evaluation (a local LM Studio model takes about 8 minutes) or when it has public
 levels, so the backend that serves the extension must run with the evaluation worker on.
 
+## Using the Supabase database
+
+Decided on 13 November 2026, when the team's Supabase project became the database to use. Local
+Docker PostgreSQL still works and is the fallback when there is no network.
+
+| Use | Database | Schema | Auth mode | Backend address in the extension |
+|---|---|---|---|---|
+| Development and the automated tests | Supabase PostgreSQL, Session pooler | `ide_dev` | `local` | `http://127.0.0.1:8000` |
+| Acceptance of the cloud login | Supabase PostgreSQL, Session pooler | `ide_dev` | `supabase` | `http://127.0.0.1:8000` |
+| The deployed app | Supabase PostgreSQL (Render) | `adaptai` | `supabase` | `https://adaptai-team2-api.onrender.com` |
+
+**Why a schema of its own.** The backend applies the migrations to the schema it is pointed at when
+it starts. Pointing a development backend at `adaptai` would create `api_tokens` (migration 008) in
+the deployed app's data before the token module is reviewed, and the tests would leave accounts,
+tokens, chats and model evaluations there. A schema of its own in the same project uses the real
+Supabase PostgreSQL (the same server, pooler, TLS and limits as production) and keeps the deployed
+data untouched; it can be dropped at any time. The Free plan's 500 MB and connection limit are
+shared, so the evaluation worker (40 requests per model) is the main thing to keep an eye on.
+
+**Why `local` auth for the tests.** The tests register a fresh account each run. In `supabase` mode
+that would create real Supabase Auth users and send confirmation emails (email confirmation is on
+in the project). `local` mode keeps the accounts in `ide_dev` only. The `supabase` mode is checked
+separately with one account a person creates in the Supabase dashboard (Authentication > Users >
+Add user, Auto Confirm User); nobody types a password for it into a script, and it is not an
+`admin`/`admin` style account, because the same Auth serves the public site.
+
+**How the extension signs in.** In `local` mode the extension registers and signs in with the
+password, as before. In `supabase` mode the password is checked by Supabase, so the extension asks
+for a token (IDE-06): sign in to the web app (local in Supabase mode, or
+`https://adaptai-team2.netlify.app` once the deployed backend has the token module), create a token
+in Profile, and paste it in the extension.
+
+**Set up.** The settings are in `.env.supabase` at the repository root (ignored by git, like every
+`.env.*`). Fill in `ADAPTAI_DATABASE_URL` (Supabase > Connect > Session pooler, with the password and
+`?sslmode=require`), then:
+
+```bash
+python -m uv run --env-file .env.supabase python -m uvicorn app.main:create_app --factory --app-dir backend --host 127.0.0.1 --port 8000
+```
+
+```bash
+cd vscode-extension && ADAPTAI_TEST_BACKEND=http://127.0.0.1:8000 pnpm test
+```
+
+**What the deploy needs** (not done here): the token pull requests merged into `main`, the CI
+deploy to Render and Netlify, and then `adaptai.backendUrl` set to the Render address. The Netlify
+address is the web app, not the API.
+
 ## Security rules (do not weaken)
 
 These are tested in `test/security.test.js` and `test/dashboard.test.js`.

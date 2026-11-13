@@ -94,9 +94,9 @@ shared, so the evaluation worker (40 requests per model) is the main thing to ke
 **Why `local` auth for the tests.** The tests register a fresh account each run. In `supabase` mode
 that would create real Supabase Auth users and send confirmation emails (email confirmation is on
 in the project). `local` mode keeps the accounts in `ide_dev` only. The `supabase` mode is checked
-separately with one account a person creates in the Supabase dashboard (Authentication > Users >
-Add user, Auto Confirm User); nobody types a password for it into a script, and it is not an
-`admin`/`admin` style account, because the same Auth serves the public site.
+separately by a person with their own account: sign in to the web app, create a token in Profile and
+paste it in the extension. No account password goes into a file or a script, because the same Auth
+serves the public site.
 
 **How the extension signs in.** In `local` mode the extension registers and signs in with the
 password, as before. In `supabase` mode the password is checked by Supabase, so the extension asks

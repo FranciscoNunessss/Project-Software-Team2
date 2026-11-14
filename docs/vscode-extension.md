@@ -116,6 +116,8 @@ python -m uv run --env-file .env.supabase python -m uvicorn app.main:create_app 
 cd vscode-extension && ADAPTAI_TEST_BACKEND=http://127.0.0.1:8000 pnpm test
 ```
 
+**Evidence, 14 November 2026.** A backend from this branch (rebased on `main` `8d0c92b`) ran against the team's Supabase through the Session pooler (eu-west-1) with `ADAPTAI_DATABASE_SCHEMA=ide_dev`: the migrations created `ide_dev` (21 tables, including `api_tokens`) and the extension's 141 tests passed against it, the 11 integration tests included. A read-only comparison of `adaptai` before and after showed the same 20 tables, the same row counts in every table and no `api_tokens`: the deployed app's data was not touched.
+
 **What the deploy needs** (not done here): the token pull requests merged into `main`, the CI
 deploy to Render and Netlify, and then `adaptai.backendUrl` set to the Render address. The Netlify
 address is the web app, not the API.

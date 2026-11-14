@@ -98,6 +98,7 @@ days, **L** more.
 
 * **Why.** Nothing in the page was clicked through in a real VS Code window by a person; tests ran through code, a real backend and a mock page.
 * **Work.** Do the [manual checklist](#manual-acceptance-checklist), fix what breaks, and record the date and VS Code version in ADR-013 "Evidence".
+* **For an agent that controls the computer** (Codex): [acceptance run](vscode-extension-acceptance-codex.md), 26 checks against the backend on Supabase (`ide_dev`) with LM Studio, with safety rules and a report format.
 
 ### IDE-12 · Clean-up of the first build (S) · DONE 11 Nov 2026
 

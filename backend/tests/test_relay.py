@@ -220,6 +220,7 @@ def test_the_relay_needs_a_signed_in_user(client):
 # -- the model on the client ----------------------------------------------------------------------
 
 
+@pytest.mark.chat
 def test_a_chat_answer_comes_from_the_model_on_the_client(client):
     headers = user(client, "alice@example.com")
     config = add_model(client, headers)
@@ -258,6 +259,7 @@ def test_a_structured_call_goes_through_the_client_too(app, client):
     assert reply.content == "Plain answer"
 
 
+@pytest.mark.chat
 def test_without_a_client_the_request_fails_at_once_and_says_why(client):
     headers = user(client, "alice@example.com")
     config = add_model(client, headers)
@@ -269,6 +271,7 @@ def test_without_a_client_the_request_fails_at_once_and_says_why(client):
     assert answer["content"] == ""
 
 
+@pytest.mark.chat
 def test_a_server_configuration_never_uses_the_relay(client):
     headers = user(client, "alice@example.com")
     config = add_model(client, headers, execution="server")
@@ -278,6 +281,7 @@ def test_a_server_configuration_never_uses_the_relay(client):
     assert answer["error"] != "relay_unavailable"  # it tried LM Studio on the server's localhost
 
 
+@pytest.mark.chat
 def test_a_client_that_takes_a_request_and_never_answers_ends_with_a_timeout(client):
     headers = user(client, "alice@example.com")
     config = add_model(client, headers)
@@ -286,6 +290,7 @@ def test_a_client_that_takes_a_request_and_never_answers_ends_with_a_timeout(cli
     assert answer["status"] == "failed" and answer["error"] == "relay_timeout"
 
 
+@pytest.mark.chat
 def test_a_request_nobody_confirms_goes_back_in_the_queue_and_then_fails(client, monkeypatch):
     import app.relay as relay
 
@@ -299,6 +304,7 @@ def test_a_request_nobody_confirms_goes_back_in_the_queue_and_then_fails(client,
     assert answer["status"] == "failed" and answer["error"] == "relay_unavailable"
 
 
+@pytest.mark.chat
 def test_an_error_from_the_client_is_the_error_of_the_request(client):
     headers = user(client, "alice@example.com")
     config = add_model(client, headers)
@@ -307,6 +313,7 @@ def test_an_error_from_the_client_is_the_error_of_the_request(client):
     assert answer["status"] == "failed" and answer["error"] == "relay_client_error"
 
 
+@pytest.mark.chat
 def test_a_model_that_answers_with_an_error_status_is_a_provider_error(client):
     headers = user(client, "alice@example.com")
     config = add_model(client, headers)
@@ -323,6 +330,7 @@ def test_a_model_that_answers_with_an_error_status_is_a_provider_error(client):
 # -- ownership and limits -------------------------------------------------------------------------
 
 
+@pytest.mark.chat
 def test_a_request_is_only_ever_given_to_the_client_of_the_same_account(client):
     alice = user(client, "alice@example.com")
     bob = user(client, "bob@example.com")
@@ -334,6 +342,7 @@ def test_a_request_is_only_ever_given_to_the_client_of_the_same_account(client):
     assert bobs.seen == []
 
 
+@pytest.mark.chat
 def test_a_client_cannot_answer_a_job_of_another_account(client):
     alice = user(client, "alice@example.com")
     bob = user(client, "bob@example.com")

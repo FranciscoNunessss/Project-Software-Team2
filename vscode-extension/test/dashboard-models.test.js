@@ -15,8 +15,12 @@ const calls = []
 let responses = {}
 const backend = {
   auth: 'token',
+  url: 'http://127.0.0.1:8000',
   managing: false,
   urlProblem: undefined,
+  tokens: true,
+  supportsTokens: async () => backend.tokens,
+  signInWithToken: async token => (token === 'adaptai_pat_ok' ? 'a@b.c' : Promise.reject(new Error('bad'))),
   onDidChangeSession: () => ({}),
   status: async () => ({ email: 'a@b.c', online: true }),
   api: async (path, method = 'GET', body) => {
@@ -330,4 +334,87 @@ test('each deletion asks, names what stays, and is sent only after the confirmat
     await dash.handle({ type: 'delete', what })
     assert.deepEqual(writes()[0].slice(0, 2), ['DELETE', path])
   }
+})
+
+// ---- where an LM Studio model runs (the relay, ADR-015) ----------------------------------------------
+
+test('an LM Studio model asks where it runs, and the answer is saved with it', async () => {
+  reset()
+  await openModels([])
+  answers.push({ provider: 'lmstudio' }, { label: 'Mine', model: 'gemma', execution: 'client' })
+  await dash.handle({ type: 'modelAdd' })
+  const field = dialogs[1].fields.find(f => f.name === 'execution')
+  assert.deepEqual(field.options.map(o => o.value), ['client', 'server'])
+  assert.equal(field.value, 'server', 'a backend on this machine runs it itself by default')
+  assert.equal(writes()[0][2].execution, 'client')
+  reset()
+  answers.push({ provider: 'lmstudio' }, { label: 'Mine', model: 'gemma' })
+  await dash.handle({ type: 'modelAdd' })
+  assert.equal(writes()[0][2].execution, 'server')
+})
+
+test('a hosted backend suggests running LM Studio on this computer, and other providers never ask', async () => {
+  reset()
+  const local = backend.url
+  backend.url = 'https://adaptai.example.com'
+  try {
+    await openModels([])
+    answers.push({ provider: 'lmstudio' }, { label: 'Mine', model: 'gemma' })
+    await dash.handle({ type: 'modelAdd' })
+    assert.equal(dialogs[1].fields.find(f => f.name === 'execution').value, 'client')
+  } finally {
+    backend.url = local
+  }
+  reset()
+  await openModels([])
+  answers.push({ provider: 'groq' }, { label: 'G', model: 'm', key: 'k' })
+  await dash.handle({ type: 'modelAdd' })
+  assert.equal(dialogs[1].fields.some(f => f.name === 'execution'), false)
+  assert.equal('execution' in writes()[0][2], false)
+})
+
+test('editing keeps where a model runs, and changing it is saved', async () => {
+  reset()
+  const lm = { ...mine, id: 'l1', label: 'Local', provider: 'lmstudio', model: 'gemma', has_key: false, external: false, execution: 'client' }
+  await openModels([lm], [])
+  answers.push({ label: 'Local', model: 'gemma', execution: 'client', enabled: true, is_default: false })
+  await dash.handle({ type: 'modelEdit', id: 'l1' })
+  assert.equal(dialogs[0].fields.find(f => f.name === 'execution').value, 'client')
+  assert.equal(writes()[0][2].execution, 'client')
+  reset()
+  answers.push({ label: 'Local', model: 'gemma', execution: 'server', enabled: true, is_default: false })
+  await dash.handle({ type: 'modelEdit', id: 'l1' })
+  assert.equal(writes()[0][2].execution, 'server')
+})
+
+test('the models tab carries where each model runs and the state of the relay', async () => {
+  reset()
+  const lm = { ...mine, id: 'l1', label: 'Local', provider: 'lmstudio', model: 'gemma', has_key: false, external: false, execution: 'client' }
+  await openModels([lm, mine], [])
+  const data = posted.findLast(m => m.type === 'data' && m.tab === 'models')
+  assert.deepEqual(data.configs.map(c => [c.provider, c.execution]), [['lmstudio', 'client'], ['groq', 'server']])
+  assert.ok(data.relay && typeof data.relay.state === 'string', 'the relay state is part of the page data')
+})
+
+test('token sign-in: a backend without the token module is said plainly, and a cloud backend can open the web app', async () => {
+  const vscode = require('vscode')
+  reset()
+  backend.tokens = false
+  await dash.signInWithToken(true)
+  assert.equal(dialogs.length, 0, 'no dialog for a backend that cannot issue tokens')
+  assert.match(toasts().at(-1).text, /does not have personal tokens/)
+  reset()
+  backend.tokens = true
+  config.webAppUrl = 'https://app.example.com'
+  answers.push({ __extra: 'web' }, { token: 'adaptai_pat_ok' })
+  await dash.signInWithToken(true)
+  assert.deepEqual(vscode.env.opened, ['https://app.example.com'])
+  assert.equal(dialogs.length, 2, 'the dialog comes back after the browser opens')
+  assert.match(toasts().at(-1).text, /Signed in as a@b.c/)
+  reset()
+  config.webAppUrl = 'http://app.example.com'
+  vscode.env.opened.length = 0
+  answers.push({ __extra: 'web' }, undefined)
+  await dash.signInWithToken(true)
+  assert.deepEqual(vscode.env.opened, [], 'a plain http address is never opened')
 })

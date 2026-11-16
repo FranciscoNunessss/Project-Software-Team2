@@ -7,6 +7,7 @@ import type { Analysis, Candidate, CoachMode, LlmOptions } from './api'
 import { CAPABILITIES, PROVIDERS, consentText, describeEvaluation, type CatalogueModel, type Evaluation, type PersonalConfig } from './models'
 import { CONSENT, type ProgressReport, type Settings } from './profile'
 import { describeFailure } from './core'
+import type { RelayAgent } from './relay'
 import { assessedBy, modelName, price, summaryLine } from './format'
 import type { Result } from './analyse'
 
@@ -73,6 +74,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
     private readonly analyser: Analyser,
     private readonly chat: ChatService,
     private readonly progress: ProgressReport,
+    private readonly relay?: RelayAgent,
   ) {
     analyser.onDidAnalyse(() => void this.reload())
     backend.onDidChangeSession(() => void this.reload())
@@ -105,6 +107,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
   }
 
   async reload(): Promise<void> {
+    void this.relay?.refresh()
     if (!this.view) return
     if (this.backend.auth === 'none') return this.post({ type: 'data', tab: this.tab, signedOut: true })
     try {
@@ -156,7 +159,8 @@ export class Dashboard implements vscode.WebviewViewProvider {
       return {
         chatModel,
         project: options.options.filter(item => item.source === 'server').map(item => ({ id: item.id, label: item.label, provider: item.provider, model: item.model, assessor: options.assessment?.id === item.id })),
-        configs: configs.map(item => ({ id: item.id, label: item.label, provider: item.provider, model: item.model, hasKey: item.has_key, external: item.external })),
+        configs: configs.map(item => ({ id: item.id, label: item.label, provider: item.provider, model: item.model, hasKey: item.has_key, external: item.external, execution: item.execution ?? 'server' })),
+        relay: this.relay?.state ?? { state: 'off', text: '' },
         evaluations: evaluations.map(entry => ({ key: `${entry.provider}/${entry.model}`, provider: entry.provider, model: entry.model, shared: entry.shared, picked: Boolean(entry.picked), ...describeEvaluation(entry) })),
       }
     }
@@ -270,12 +274,23 @@ export class Dashboard implements vscode.WebviewViewProvider {
 
   async signInWithToken(cloud = false): Promise<void> {
     await Promise.race([this.ready, new Promise(resolve => setTimeout(resolve, 6000))])
-    const answer = await this.ask({
-      title: 'Sign in with a token',
-      text: cloud ? 'This backend signs in with Supabase, in the cloud app. Create a token there (Profile > API tokens) and paste it here.' : 'Paste a personal API token.',
-      fields: [{ name: 'token', label: 'Token', type: 'password', required: true, placeholder: 'adaptai_pat_…' }],
-      confirm: 'Sign in',
-    })
+    if ((await this.backend.supportsTokens()) === false) {
+      return this.toast('err', 'This backend does not have personal tokens yet (it answers 404 on /api/tokens), so the extension cannot sign in to it. Use a backend that runs the token module, or a local one.')
+    }
+    let answer: Record<string, unknown> | undefined
+    for (;;) {
+      answer = await this.ask({
+        title: 'Sign in with a token',
+        text: cloud ? 'This backend signs in with Supabase, in the cloud app. Create a token there (Profile > API tokens) and paste it here.' : 'Paste a personal API token.',
+        fields: [{ name: 'token', label: 'Token', type: 'password', required: true, placeholder: 'adaptai_pat_…' }],
+        confirm: 'Sign in',
+        extra: cloud ? [{ key: 'web', label: 'Open the web app' }] : undefined,
+      })
+      if (answer?.__extra !== 'web') break
+      const web = vscode.workspace.getConfiguration('adaptai').get<string>('webAppUrl', '')
+      if (/^https:\/\//i.test(web)) await vscode.env.openExternal(vscode.Uri.parse(web))
+      else this.toast('err', 'Set adaptai.webAppUrl to the https address of the web app.')
+    }
     if (!answer) return
     try {
       this.toast('ok', `Signed in as ${await this.backend.signInWithToken(String(answer.token))}.`)
@@ -330,11 +345,15 @@ export class Dashboard implements vscode.WebviewViewProvider {
       { name: 'label', label: 'Name', value: provider.label, required: true },
       { name: 'model', label: 'Model', placeholder: provider.hint, required: provider.provider !== 'openrouter', hint: provider.hint },
     ]
+    if (provider.provider === 'lmstudio') {
+      const local = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:|\/|$)/.test(this.backend.url)
+      fields.push({ name: 'execution', label: 'Where it runs', type: 'select', value: local ? 'server' : 'client', options: [{ value: 'client', label: 'On this computer, through this extension (needed when the backend is online)' }, { value: 'server', label: 'On the machine where the backend runs' }] })
+    }
     if (provider.key) fields.push({ name: 'key', label: 'API key', type: 'password', required: true, hint: provider.provider === 'openrouter' ? 'Encrypted on the backend. Each model is also evaluated in the background (about 40 requests); free OpenRouter models allow around 50 requests a day in total.' : 'Encrypted on the backend. It is never shown again.' })
     const form = await this.ask({ title: `Add ${provider.label}`, fields, confirm: 'Add model' })
     if (!form) return
     await this.act(
-      () => this.backend.api('/api/llm-configs', 'POST', { label: String(form.label).trim(), provider: provider.provider, model: String(form.model ?? '').trim(), api_key: provider.key ? String(form.key) : undefined, enabled: true, is_default: false }),
+      () => this.backend.api('/api/llm-configs', 'POST', { label: String(form.label).trim(), provider: provider.provider, model: String(form.model ?? '').trim(), api_key: provider.key ? String(form.key) : undefined, enabled: true, is_default: false, ...(provider.provider === 'lmstudio' ? { execution: form.execution === 'client' ? 'client' : 'server' } : {}) }),
       `${String(form.label).trim()} added. Test it, and it is evaluated in the background.`,
     )
   }
@@ -346,13 +365,14 @@ export class Dashboard implements vscode.WebviewViewProvider {
         { name: 'label', label: 'Name', value: config.label, required: true },
         { name: 'model', label: 'Model', value: config.model },
         ...(PROVIDERS.find(item => item.provider === config.provider)?.key ? [{ name: 'key', label: 'Replace the API key', type: 'password' as const, hint: 'Leave empty to keep the current key.' }] : []),
+        ...(config.provider === 'lmstudio' ? [{ name: 'execution', label: 'Where it runs', type: 'select' as const, value: config.execution ?? 'server', options: [{ value: 'client', label: 'On this computer, through this extension' }, { value: 'server', label: 'On the machine where the backend runs' }] }] : []),
         { name: 'enabled', label: 'Enabled', type: 'checkbox', value: config.enabled },
         { name: 'is_default', label: 'Use as my default', type: 'checkbox', value: config.is_default },
       ],
       confirm: 'Save',
     })
     if (!form) return
-    const body: Record<string, unknown> = { label: String(form.label).trim(), provider: config.provider, model: String(form.model ?? '').trim(), responses_api: config.responses_api, enabled: form.enabled === true, is_default: form.is_default === true }
+    const body: Record<string, unknown> = { label: String(form.label).trim(), provider: config.provider, model: String(form.model ?? '').trim(), responses_api: config.responses_api, enabled: form.enabled === true, is_default: form.is_default === true, execution: config.provider === 'lmstudio' ? (form.execution === 'client' ? 'client' : 'server') : 'server' }
     if (form.key) body.api_key = String(form.key)
     await this.act(() => this.backend.api(`/api/llm-configs/${encodeURIComponent(config.id)}`, 'PUT', body), 'Saved.')
   }
@@ -1529,7 +1549,8 @@ function page(nonce: string, csp: string, tab: Tab): string {
     for (const m of d.project) p.append(row(m.label + (m.model ? ' · ' + m.model : ''), m.provider + (m.assessor ? ' · analyses every task' : ''), m.id === d.chatModel ? el('span', { class: 'pill', text: 'chat model' }) : btn('Use for chat', 'chatModel', { id: m.id })))
     const y = card('Yours', 'Your models'); y.append(el('div', { class: 'btns', style: 'margin-bottom:6px' }, el('button', { class: 'btn primary small', text: 'Add a model', onclick: () => send('modelAdd') })))
     if (!d.configs.length) y.append(el('p', { class: 'muted', text: 'None yet.' }))
-    for (const m of d.configs) y.append(row(m.label + ' · ' + m.model, m.provider + (m.external ? ' · external' : ' · local') + (m.hasKey ? ' · key saved' : ''), m.id === d.chatModel ? el('span', { class: 'pill', text: 'chat model' }) : btn('Use for chat', 'chatModel', { id: m.id }), btn('Test', 'modelTest', { id: m.id }), btn('Edit', 'modelEdit', { id: m.id }), btn('Delete', 'modelRemove', { id: m.id }, 'danger')))
+    for (const m of d.configs) y.append(row(m.label + ' · ' + m.model, m.provider + (m.external ? ' · external' : m.execution === 'client' ? ' · runs on this computer' : ' · local') + (m.hasKey ? ' · key saved' : ''), m.id === d.chatModel ? el('span', { class: 'pill', text: 'chat model' }) : btn('Use for chat', 'chatModel', { id: m.id }), btn('Test', 'modelTest', { id: m.id }), btn('Edit', 'modelEdit', { id: m.id }), btn('Delete', 'modelRemove', { id: m.id }, 'danger')))
+    if (d.configs.some(m => m.execution === 'client')) y.append(el('p', { class: 'notice', role: 'status' }, el('strong', { text: 'LM Studio on this computer: ' }), d.relay && d.relay.text ? d.relay.text : 'Not connected.'))
     const v = card('Evaluations', 'How models were evaluated'); v.append(el('div', { class: 'btns', style: 'margin-bottom:6px' }, btn('Add from the OpenRouter catalogue', 'openrouter')))
     if (!d.evaluations.length) v.append(el('p', { class: 'muted', text: 'Nothing evaluated yet.' }))
     for (const e of d.evaluations) v.append(row(e.model, e.provider + ' · ' + e.text, e.consent ? btn('Decide', 'evalConsent', { id: e.key }, 'primary') : null, btn('Evaluate again', 'evalRedo', { id: e.key }), btn('I disagree', 'evalDisagree', { id: e.key }), e.picked ? btn('Remove', 'evalRemove', { id: e.key }, 'danger') : null))

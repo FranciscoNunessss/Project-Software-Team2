@@ -61,11 +61,15 @@ class Configuration(BaseModel):
     responses_api: bool = False
     enabled: bool = True
     is_default: bool = False
+    # ADR-015: "client" runs the model on the owner's machine through their VS Code extension.
+    execution: Literal["server", "client"] = "server"
 
     @model_validator(mode="after")
     def model_needed(self):
         if not self.model and self.provider != "openrouter":
             raise ValueError("model is required for this provider")
+        if self.execution == "client" and self.provider != "lmstudio":
+            raise ValueError("only LM Studio can run on the client")
         return self
 
     @field_validator("api_key")
@@ -82,6 +86,7 @@ def public_config(row):
         "responses_api": bool(row["responses_api"]),
         "enabled": bool(row["enabled"]),
         "is_default": bool(row["is_default"]),
+        "execution": row["execution"],
         "external": row["provider"] not in LOCAL_PROVIDERS,
         "source": "personal",
     }
@@ -168,7 +173,8 @@ class ModelConfigurations:
             if previous:
                 cursor = db.execute(
                     """UPDATE llm_configs SET label=%s,provider=%s,model=%s,key_ciphertext=%s,
-                       responses_api=%s,enabled=%s,is_default=%s WHERE id=%s AND user_id=%s""",
+                       responses_api=%s,enabled=%s,is_default=%s,execution=%s
+                       WHERE id=%s AND user_id=%s""",
                     (
                         body.label,
                         body.provider,
@@ -177,6 +183,7 @@ class ModelConfigurations:
                         int(body.responses_api),
                         int(body.enabled),
                         int(body.is_default),
+                        body.execution,
                         identifier,
                         user_id,
                     ),
@@ -186,7 +193,8 @@ class ModelConfigurations:
             else:
                 db.execute(
                     """INSERT INTO llm_configs(id,user_id,label,provider,model,key_ciphertext,
-                       responses_api,enabled,is_default) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                       responses_api,enabled,is_default,execution)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (
                         identifier,
                         user_id,
@@ -197,6 +205,7 @@ class ModelConfigurations:
                         int(body.responses_api),
                         int(body.enabled),
                         int(body.is_default),
+                        body.execution,
                     ),
                 )
         return public_config(self.owned(user_id, identifier))
@@ -212,6 +221,8 @@ class ModelConfigurations:
             except (InvalidToken, ValueError, KeyError, TypeError, AttributeError):
                 raise HTTPException(503, "credentials_unavailable") from None
         update["openai_use_responses_api"] = bool(row["responses_api"])
+        if row.get("execution") == "client" and row["provider"] == "lmstudio":
+            update["lmstudio_relay_user"] = row["user_id"]
         return self.settings.model_copy(update=update)
 
     def resolve(self, user_id, body, enabled):

@@ -5,6 +5,7 @@ import { ApiError, Backend } from './backend'
 import { ChatService, registerParticipant } from './chat'
 import { Dashboard } from './dashboard'
 import { PROGRESS_SCHEME, ProgressReport } from './profile'
+import { RelayAgent, RelayStatus } from './relay'
 import { StatusBar } from './statusbar'
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -13,7 +14,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const analyser = new Analyser(backend)
   const chat = new ChatService(backend, analyser, context.workspaceState)
   const progress = new ProgressReport(backend)
-  const dashboard = new Dashboard(backend, analyser, chat, progress)
+  const relay = new RelayAgent(backend)
+  const dashboard = new Dashboard(backend, analyser, chat, progress, relay)
 
   // Development only: the self-test writes what it sees to a file and quits (see the README).
   const selftest = Boolean(process.env.ADAPTAI_SELFTEST)
@@ -26,9 +28,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     : undefined
 
   const statusBar = new StatusBar(backend, () => void dashboard.reload())
+  const relayStatus = new RelayStatus(relay)
+  relay.watch()
+  void relay.refresh()
 
   context.subscriptions.push(
     statusBar,
+    relay,
+    relayStatus,
+    relay.onDidChange(() => void dashboard.reload()),
     vscode.window.registerWebviewViewProvider(Dashboard.viewType, dashboard, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.workspace.registerTextDocumentContentProvider(PROGRESS_SCHEME, progress),
     ...(registerParticipant(chat) ? [registerParticipant(chat) as vscode.Disposable] : []),

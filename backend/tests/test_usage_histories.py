@@ -176,6 +176,24 @@ def test_a_detected_pattern_disappears_when_later_choices_follow_the_recommendat
     assert before != after  # A saved coaching report goes stale with the verdict.
 
 
+def test_the_verdict_uses_the_educators_sample_of_the_fifty_newest_analyses():
+    app = create_app(Settings(_env_file=None))
+    client = account(app)
+    for kind in ["over"] * 6 + ["match"] * 50:
+        choose(app, client, kind)
+    dashboard = client.get("/api/progress/dashboard").json()
+    # The six oldest choices fell out of the sample; the all-time count keeps them.
+    assert dashboard["over"] == 6
+    assert dashboard["patterns"]["confirmed_choices"] == 50
+    assert dashboard["patterns"]["over_provisioning"] == {
+        "status": "not_detected",
+        "count": 0,
+        "share": 0.0,
+    }
+    _, metadata = snapshot(app.state.storage, user_of(client))
+    assert metadata["usage_patterns"] == dashboard["patterns"]
+
+
 def test_clearing_the_history_clears_the_verdict():
     app = create_app(Settings(_env_file=None))
     client = account(app)

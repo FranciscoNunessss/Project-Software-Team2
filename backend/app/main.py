@@ -16,7 +16,7 @@ from app.accounts import AuthenticatedUser, check_origin
 from app.accounts import router as accounts_router
 from app.assessment import PROFILE_VERSION, RUBRIC_VERSION, explain_changes
 from app.catalogue import active_catalogue
-from app.coaching import install_coaching, usage_patterns
+from app.coaching import install_coaching, recent_usage_patterns
 from app.evaluations import Ratings, install_evaluations, pending_for
 from app.evaluations import _router_snapshot as router_snapshot
 from app.evaluations import label as evaluation_label
@@ -491,7 +491,6 @@ def create_app(
     @app.get("/api/progress/dashboard")
     def dashboard(user: AuthenticatedUser):
         over = under = 0
-        every_gap = []
         with store.connect() as db:
             rows = db.execute(
                 """SELECT a.result_json, s.id, s.title, s.created_at, d.candidate_id
@@ -504,7 +503,6 @@ def create_app(
             for row in rows:
                 recommended = json.loads(row["result_json"])["recommendation"]
                 gap = choice_gap(row)
-                every_gap.append(gap)
                 over += gap > 0
                 under += gap < 0
                 point = points.setdefault(
@@ -536,7 +534,8 @@ def create_app(
             "over": over,
             "under": under,
             "series": series,
-            "patterns": usage_patterns(every_gap),
+            # Over the 50 newest analyses, like the Educator; over and under count every choice.
+            "patterns": recent_usage_patterns(store, user["id"]),
         }
 
     @app.get("/api/sessions/{identifier}")

@@ -376,15 +376,31 @@ def learning_progress(store, user_id):
     }
 
 
-def snapshot(store, user_id):
+def _recent_analyses(store, user_id):
+    """The sample every Educator figure is computed from: the 50 newest analyses."""
     with store.connect() as db:
-        rows = db.execute(
+        return db.execute(
             """SELECT a.id,a.result_json,d.candidate_id FROM analyses a
                JOIN sessions s ON s.id=a.session_id
                LEFT JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=%s
                ORDER BY a.created_at DESC,a.sequence_id DESC LIMIT 50""",
             (user_id,),
         ).fetchall()
+
+
+def recent_usage_patterns(store, user_id):
+    """The verdict My progress shows: same sample and rule as the coaching snapshot."""
+    gaps = []
+    for row in _recent_analyses(store, user_id):
+        result = json.loads(row["result_json"])
+        eligible = [result["recommendation"], *result["alternatives"]]
+        if any(item["id"] == row["candidate_id"] for item in eligible):
+            gaps.append(candidate_gap(result, row["candidate_id"]))
+    return usage_patterns(gaps)
+
+
+def snapshot(store, user_id):
+    rows = _recent_analyses(store, user_id)
     records = []
     for row in rows:
         result = json.loads(row["result_json"])

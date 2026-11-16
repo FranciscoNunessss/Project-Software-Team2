@@ -122,6 +122,14 @@ days, **L** more.
 * **Option.** An opt-in switch that works only when the chat model is local (LM Studio or Ollama): the text then stays on the machine. It needs the Architecture Owner and the Product Owner, because the Prompt Coach is not yet approved by the client (task P3).
 * **Done when.** The decision is recorded in ADR-013; if yes: a debounce of at least 1.5 s, one request in flight, a visible "Thinking locally" state, nothing sent to an external model.
 
+### IDE-18 · A model on the user's machine through a hosted backend: the relay (L, backend core) · PROTOTYPE 16 Nov 2026
+
+* **Why.** A hosted backend cannot reach the LM Studio on a user's computer. The team wants one hosted backend and each person using their own local model.
+* **What.** [ADR-015](adr/ADR-015-relay-for-models-on-the-users-machine.md): the extension keeps a request open on the backend and runs the backend's requests on the local LM Studio. Built on the branch `feature/ide-relay`: migration 009, `backend/app/relay.py`, the extension's `relay.ts`, a "Where it runs" choice in LLM config, a status bar item.
+* **Evidence.** 22 backend and 17 extension tests; an end-to-end run with a backend whose LM Studio address is dead (the chat and the analysis are answered through the extension); the same in a real VS Code window.
+* **Open.** The Architecture Owner's decision (core change, after the token module); Ollama on the client; the queue for more than one backend instance; the Render sleep with the open request; the evaluation of a client-run model.
+* **Done when.** The relay is approved and merged after the token module, and a person uses a hosted backend with their own LM Studio (checks 27 to 30 of the [acceptance run](vscode-extension-acceptance-codex.md)).
+
 ### IDE-16 · Stability of the task profile (M, backend, for the team)
 
 * **Why.** The accuracy study ([report](analysis-accuracy/report.md)) found that the same task analysed three times by the same assessor gives the same level in only 62 to 77 percent of the cells, and a level differs by 2 in a few cells; "high" confidence covers 78 to 91 percent of the cells.

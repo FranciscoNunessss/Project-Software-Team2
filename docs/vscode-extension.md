@@ -122,6 +122,44 @@ cd vscode-extension && ADAPTAI_TEST_BACKEND=http://127.0.0.1:8000 pnpm test
 deploy to Render and Netlify, and then `adaptai.backendUrl` set to the Render address. The Netlify
 address is the web app, not the API.
 
+## Using your own LM Studio with a hosted backend (the relay)
+
+A hosted backend (Render) cannot call the LM Studio on your computer: its `localhost` is the server.
+The relay turns the connection around ([ADR-015](adr/ADR-015-relay-for-models-on-the-users-machine.md)).
+While you are signed in and have a model set to run on your computer, the extension keeps a request
+open on the backend; when the backend needs that model it sends the request down that connection, the
+extension runs it on your LM Studio and sends the answer back. Nothing of your computer is opened to the
+internet, and a request is only ever given to the extension of the account that made it.
+
+**Use it**
+
+1. Start the LM Studio server (Developer tab) with a model loaded.
+2. In the extension: **LLM config > Add a model > LM Studio**, and in **Where it runs** choose **On this
+   computer, through this extension** (it is the default when the backend address is not this machine).
+3. The status bar shows **LM Studio relay** while it is connected; the LLM config screen says
+   "Connected: your LM Studio answers requests from the backend". Pick that model in the Assistant.
+
+The address of LM Studio is the setting `adaptai.relay.lmStudioUrl` (default `http://127.0.0.1:1234`);
+it must be this computer. Every other model (Groq, OpenRouter, OpenAI, Claude) keeps working without the
+extension. If the extension is closed, a request to the model on your computer fails with "Your model on
+this computer is not available" and nothing else is affected.
+
+**What a backend needs:** migration `009_llm_config_execution` (a column on `llm_configs`), the module
+`backend/app/relay.py`, and the extension's personal token or session to ask for requests. A backend
+without it answers 404 on `/api/relay/next` and the extension says "This backend has no relay yet".
+
+**Check it without a hosted backend.** Start the backend with a dead LM Studio address, so it cannot reach
+the model itself, and use the model through the extension:
+
+```bash
+ADAPTAI_LMSTUDIO_BASE_URL=http://127.0.0.1:9/v1 ADAPTAI_EVALUATIONS_WORKER=false \
+  python -m uv run --env-file .env.supabase python -m uvicorn app.main:create_app --factory --app-dir backend --host 127.0.0.1 --port 8033
+```
+
+A model set to run on the server fails ("LM Studio could not be reached"); the same model set to run on
+this computer answers. An older backend refuses a schema that has migration 009, so use a schema of its
+own (`ide_dev`) and never `adaptai` until the migration is approved.
+
 ## Security rules (do not weaken)
 
 These are tested in `test/security.test.js` and `test/dashboard.test.js`.

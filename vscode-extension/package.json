@@ -237,6 +237,11 @@
           "default": "http://127.0.0.1:8000",
           "markdownDescription": "Address of the AdaptAI backend, for example `http://127.0.0.1:8000`. **Plain `http://` is only accepted for this machine (`localhost`, `127.0.0.1`, `::1`); any other address must use `https://`.** Nothing is sent to an address that fails this rule."
         },
+        "adaptai.relay.lmStudioUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:1234",
+          "markdownDescription": "Address of **your** LM Studio server, used for models set to run on this computer (the relay). It must be this machine (`127.0.0.1` or `localhost`): the relay never calls another address."
+        },
         "adaptai.confirmExternal": {
           "type": "boolean",
           "default": true,

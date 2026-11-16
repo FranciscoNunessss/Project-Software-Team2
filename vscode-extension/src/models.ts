@@ -12,7 +12,7 @@ export type Evaluation = {
   levels: Record<string, number> | null
   evaluation: null | { id: string; status: string; progress: number; total: number; errors: number; failure: string | null; estimate: Estimate | null; spent_usd: number | null; finished_at: string | null; levels: Record<string, number> | null }
 }
-export type PersonalConfig = { id: string; label: string; provider: string; model: string; has_key: boolean; enabled: boolean; is_default: boolean; external: boolean; responses_api: boolean }
+export type PersonalConfig = { id: string; label: string; provider: string; model: string; has_key: boolean; enabled: boolean; is_default: boolean; external: boolean; responses_api: boolean; execution?: 'server' | 'client' }
 export type CatalogueModel = { id: string; name: string; organisation: string; context_length?: number | null; price_input_per_million?: number | null; price_output_per_million?: number | null; free?: boolean; selectable?: boolean; reason?: string | null }
 
 export const PROVIDERS = [

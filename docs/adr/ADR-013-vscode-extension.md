@@ -123,6 +123,10 @@ formal decision at review, and each can be reversed without losing work.
 | IDE-11 · real-window check | **Open, needs a person.** Done instead: the installed `.vsix` was run in a real VS Code extension host (activation, 30 commands, the side bar opens, real providers) and the page was checked in a browser at wide and narrow width | A person still has to click through the 18 checks in the backlog |
 | Quality of the analysis | **Ship as a pilot** and keep the study ([report](../analysis-accuracy/report.md)): 83 to 86 percent exact level, within one level almost always, stable in 62 to 77 percent of the cells across three runs | Good enough to try with real users; the instability and the weak recommendation are backend items for the team (see backlog IDE-16 and IDE-17) |
 
+## Related decision
+
+A model that runs on the user's own machine while the backend is hosted (the relay) is a separate decision: [ADR-015](ADR-015-relay-for-models-on-the-users-machine.md). It builds on the personal tokens of this ADR.
+
 ## Open questions
 
 1. Will there be a hosted backend, or does everyone run their own (it changes the first-run experience)?

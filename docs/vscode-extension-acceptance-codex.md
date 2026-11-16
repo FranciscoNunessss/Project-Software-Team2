@@ -91,6 +91,26 @@ and write PASS, FAIL (with what you saw instead) or SKIP (with why). Do not fix 
 | 25 | Select a few lines of text in any file and press Ctrl+Alt+A | A confirmation names the backend and the model; the analysis opens beside the editor |
 | 26 | Select a prompt in a file and press Ctrl+K Ctrl+E | A diff with the improved prompt opens; **Apply** replaces the text; Undo (Ctrl+Z) restores it |
 
+## The relay: a model on this computer through a backend that cannot reach it (checks 27 to 30)
+
+Do these only if the person asks for the relay run. Start the backend like this instead of step 2 of the
+set-up (note the dead LM Studio address, which makes the backend unable to reach LM Studio itself, and
+the evaluation worker off so it does not use LM Studio on its own):
+
+```bash
+cd C:/Users/josem/Desktop/AdaptAI-ide
+set ADAPTAI_LMSTUDIO_BASE_URL=http://127.0.0.1:9/v1
+set ADAPTAI_EVALUATIONS_WORKER=false
+python -m uv run --env-file .env.supabase python -m uvicorn app.main:create_app --factory --app-dir backend --host 127.0.0.1 --port 8033
+```
+
+| # | Steps | Expected |
+|---|---|---|
+| 27 | **LLM config** > **Add a model** > LM Studio, name "LM Studio server", model `gemma4-12b-qat-uncensored-hauhaucs-balanced`, **Where it runs: On the machine where the backend runs**. Make it the chat model and send `Reply with just the word PONG.` | The answer is an error: "LM Studio could not be reached…" (the backend cannot reach it itself) |
+| 28 | Add a second model the same way, name "LM Studio my computer", **Where it runs: On this computer, through this extension**. Look at the status bar and at LLM config | The status bar shows **LM Studio relay**; LLM config says "Connected: your LM Studio answers requests from the backend" |
+| 29 | Make "LM Studio my computer" the chat model, send `Reply with just the word PONG.`, then run **Analyse** on a task | The answer streams in like any other (it comes from your LM Studio through the extension); the analysis opens with a full profile; the status bar shows it working while it runs |
+| 30 | Close LM Studio's server (or run the command **Developer: Reload Window**), wait 10 seconds, and send a message to "LM Studio my computer" | A clear message ("The extension could not reach LM Studio…" or "Your model on this computer is not available…"), and a message to any other model still works |
+
 ## Clean up
 
 1. Close the test VS Code window. Stop the backend (Ctrl+C in its terminal).

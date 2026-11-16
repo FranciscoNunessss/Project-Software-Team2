@@ -323,7 +323,7 @@ the catalogue's capability cards. It does not execute the task or generate catal
 | --- | --- |
 | `GET /api/health` | Process health |
 | `GET /api/progress` | Current user session, analysis, choice and match counts |
-| `GET /api/progress/dashboard` | Last six sessions with choices and over/under counts |
+| `GET /api/progress/dashboard` | Last six sessions with choices, over/under counts and the over- and under-provisioning verdict (`patterns`: detected, not detected or too few confirmed choices) |
 | `GET /api/progress/outcomes` | Feedback totals: solved, after refining, not solved, followed the recommendation, per model |
 | `GET /api/context`, `PUT /api/context` | Read/save account preferences and memory settings |
 | `DELETE /api/context/memory` | Clear learned metadata memory without deleting progress |

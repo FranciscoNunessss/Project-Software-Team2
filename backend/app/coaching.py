@@ -16,7 +16,7 @@ from app.outcomes import outcome_summary
 from app.providers import ProviderFailure, structured_call
 from app.recommendation import candidate_gap
 
-COACHING_POLICY_VERSION = "progress-3"
+COACHING_POLICY_VERSION = "progress-4"
 
 
 class PatternAdvice(BaseModel):
@@ -67,6 +67,14 @@ TREND_SENTENCE = (
     "completeness_trend.verdict is computed by the backend: use it as the trend, never "
     "contradict it, and use completeness_trend.dimensions to say which dimensions the user "
     "now describes more or less often. "
+)
+PATTERN_SENTENCE = (
+    "usage_patterns is computed by the backend from confirmed choices only: for "
+    "over_provisioning and under_provisioning, status is detected (more than half of the "
+    "confirmed choices), not_detected, or insufficient_history (fewer than min_choices "
+    "confirmed choices). Use that status and never contradict it: describe a pattern only "
+    "when it is detected; when it is not_detected say no pattern shows in this sample; "
+    "when it is insufficient_history say there are too few confirmed choices to tell. "
 )
 # ADR-009 (decision S3): numeric size metrics from optional modules never unlock
 # prompting.status; only opted-in conversation_excerpts do (PR #12 rule, enforced below).
@@ -139,8 +147,41 @@ EDUCATOR_PROMPT_END = (
     "limitations briefly. Suggest concrete next actions grounded in counts, "
     "dimensions and choice patterns; never execute tasks. Respond in English."
 )
-EDUCATOR_PROMPT = EDUCATOR_PROMPT_START + TREND_SENTENCE + EDUCATOR_PROMPT_END
+EDUCATOR_PROMPT = EDUCATOR_PROMPT_START + TREND_SENTENCE + PATTERN_SENTENCE + EDUCATOR_PROMPT_END
 MIN_TREND_SESSIONS = 5
+MIN_PATTERN_CHOICES = 5
+
+
+def usage_patterns(gaps):
+    """Is the user over- or under-provisioning? Decided here, never by the language model.
+
+    ``gaps`` holds one choice gap per confirmed choice (above 0: more than the task needs,
+    below 0: covers less than the recommendation, 0: the recommendation). Pending choices
+    are not passed in. A pattern is detected when more than half of the confirmed choices
+    go that way; with fewer than MIN_PATTERN_CHOICES confirmed choices the sample is too
+    small to say either way. Numeric only, no task text.
+    """
+    total = len(gaps)
+
+    def verdict(count):
+        if total < MIN_PATTERN_CHOICES:
+            status = "insufficient_history"
+        else:
+            status = "detected" if count * 2 > total else "not_detected"
+        return {
+            "status": status,
+            "count": count,
+            "share": round(count / total, 2) if total else None,
+        }
+
+    return {
+        "confirmed_choices": total,
+        "min_choices": MIN_PATTERN_CHOICES,
+        "over_provisioning": verdict(sum(gap > 0 for gap in gaps)),
+        "under_provisioning": verdict(sum(gap < 0 for gap in gaps)),
+    }
+
+
 SERIES_LIMIT = 50
 
 # Optional modules register here; the core never imports them.
@@ -220,6 +261,7 @@ def educator_prompt(names=None):
     prompt = (
         EDUCATOR_PROMPT_START
         + TREND_SENTENCE
+        + PATTERN_SENTENCE
         + (SIZE_METRICS_SENTENCE if sizes else "")
         + EDUCATOR_PROMPT_END
     )
@@ -397,6 +439,8 @@ def snapshot(store, user_id):
         "sample_size": len(metadata),
         "sample_limit": 50,
         "metrics": metrics,
+        # Decided in Python so the model explains a verdict instead of inventing one.
+        "usage_patterns": usage_patterns([row["choice_gap"] for row in confirmed]),
         # The user's own feedback per task (ADR-014): counts only, never text.
         "task_outcomes": outcome_summary(store, user_id),
         "assessments": metadata,

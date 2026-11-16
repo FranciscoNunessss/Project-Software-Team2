@@ -123,6 +123,17 @@ formal decision at review, and each can be reversed without losing work.
 | IDE-11 · real-window check | **Open, needs a person.** Done instead: the installed `.vsix` was run in a real VS Code extension host (activation, 30 commands, the side bar opens, real providers) and the page was checked in a browser at wide and narrow width | A person still has to click through the 18 checks in the backlog |
 | Quality of the analysis | **Ship as a pilot** and keep the study ([report](../analysis-accuracy/report.md)): 83 to 86 percent exact level, within one level almost always, stable in 62 to 77 percent of the cells across three runs | Good enough to try with real users; the instability and the weak recommendation are backend items for the team (see backlog IDE-16 and IDE-17) |
 
+## Decisions of 16 November 2026 (recommended by the author; the Architecture Owner confirms)
+
+These answer the open questions below with the option the author recommends, so the team can accept or change them in one reading. None of them is an approval.
+
+1. **Hosted backend or everyone their own?** Both, and the extension needs no change for either: the address is a setting. Recommended default for the team: the hosted backend once it runs the token module; a local backend for development and for local models (or the relay of ADR-015).
+2. **MVP or extra?** An extra. Neither the Product Specification v1.1 nor the Explore Scope asks for it; the proposed requirement is in [vscode-extension-requirement](../vscode-extension-requirement.md) for the Product Owner to accept or drop (Process Charter OI-1 asks the client).
+3. **`.vsix` only or the Marketplace?** `.vsix` only, built by CI. The Marketplace needs a publisher account and a support commitment nobody has asked for.
+4. **Tokens in the core?** Recommended yes: tokens are hashed (SHA-256), expire (90 days), are revocable, capped at 10 and cannot manage tokens, which is the least a client outside the browser needs. The alternative (cookie sessions copied out of the browser) is weaker.
+5. **Supabase sign-in (IDE-06).** Paste a token; see the backlog. **Not connected to the published product today:** the published API answers 404 on `/api/tokens` because production runs the `main` without migration 008; it connects when the token pull request is merged and deployed.
+6. **Real window (IDE-11).** The extension was exercised inside a real VS Code extension host (activation, 30 commands, every tab's data, chat, analysis, Coach, Stop, sign out: 23 of 23, and the relay 7 of 7, on 15 and 16 November). A person, or an agent that controls the computer, still has to click the page: [the acceptance run](../vscode-extension-acceptance-codex.md).
+
 ## Related decision
 
 A model that runs on the user's own machine while the backend is hosted (the relay) is a separate decision: [ADR-015](ADR-015-relay-for-models-on-the-users-machine.md). It builds on the personal tokens of this ADR.

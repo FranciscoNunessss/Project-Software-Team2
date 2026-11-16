@@ -94,6 +94,11 @@ function installVscode(config) {
       onDidChangeActiveColorTheme: () => ({ dispose() {} }),
     },
     env: {
+      opened: [],
+      async openExternal(uri) {
+        this.opened.push(uri.value)
+        return true
+      },
       clipboard: {
         text: '',
         async readText() {
@@ -119,6 +124,7 @@ function installVscode(config) {
     ConfigurationTarget: { Global: 1 },
     Uri: {
       from: value => ({ ...value }),
+      parse: value => ({ value }),
       file: path => ({ scheme: 'file', path }),
       joinPath: (base, ...parts) => ({ ...base, path: [base.path, ...parts].join('/') }),
     },

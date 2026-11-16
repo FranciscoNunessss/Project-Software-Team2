@@ -107,6 +107,13 @@ tasks of a client-run model through the user's LM Studio; Ollama (the backend us
 not the OpenAI one, so only LM Studio can run on the client for now); other platforms and VS Code
 versions.
 
+## Recommended answers (16 November 2026, the author; the Architecture Owner confirms)
+
+1. **Accept the relay in the core?** Recommended yes, after the token module: it is one module, one column and two routes, and every path is unchanged when a configuration is `server`. If the Architecture Owner prefers no core change, the fallback is the two-backend setup of today.
+2. **Evaluation of a client-run model on by default?** No. It stays the explicit, consented action it already is for every other model: 40 synthetic requests through a person's computer are theirs to allow.
+3. **Ollama on the client?** Later, through Ollama's OpenAI-compatible endpoint (`/v1/chat/completions`), which the relay already speaks; it needs a provider flag, not a new protocol. Not built now to keep this decision small.
+4. **Queue with more than one instance?** Not needed for the Free plan (one instance). When it is, move the queue to the database (`LISTEN/NOTIFY` or a jobs table) behind the same `Broker` interface; recorded as a condition for scaling, not built.
+
 ## Open questions
 
 1. Is the Architecture Owner willing to accept the relay in the core (after the token module)?

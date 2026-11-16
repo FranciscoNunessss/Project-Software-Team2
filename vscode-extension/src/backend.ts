@@ -270,6 +270,16 @@ export class Backend {
     }
   }
 
+  /** Whether the backend has the token module: `/api/tokens` answers 401 when it does and 404 when it does not. Undefined when unreachable. */
+  async supportsTokens(): Promise<boolean | undefined> {
+    try {
+      const response = await this.call({ path: '/api/tokens', method: 'GET', headers: {}, body: null }, AbortSignal.timeout(5000), { token: undefined })
+      return response.status !== 404
+    } catch {
+      return undefined
+    }
+  }
+
   /** Stores a token after checking that the backend accepts it. Returns the account email. */
   async signInWithToken(raw: string): Promise<string> {
     const token = raw.trim()

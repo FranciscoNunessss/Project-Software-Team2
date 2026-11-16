@@ -274,12 +274,23 @@ export class Dashboard implements vscode.WebviewViewProvider {
 
   async signInWithToken(cloud = false): Promise<void> {
     await Promise.race([this.ready, new Promise(resolve => setTimeout(resolve, 6000))])
-    const answer = await this.ask({
-      title: 'Sign in with a token',
-      text: cloud ? 'This backend signs in with Supabase, in the cloud app. Create a token there (Profile > API tokens) and paste it here.' : 'Paste a personal API token.',
-      fields: [{ name: 'token', label: 'Token', type: 'password', required: true, placeholder: 'adaptai_pat_…' }],
-      confirm: 'Sign in',
-    })
+    if ((await this.backend.supportsTokens()) === false) {
+      return this.toast('err', 'This backend does not have personal tokens yet (it answers 404 on /api/tokens), so the extension cannot sign in to it. Use a backend that runs the token module, or a local one.')
+    }
+    let answer: Record<string, unknown> | undefined
+    for (;;) {
+      answer = await this.ask({
+        title: 'Sign in with a token',
+        text: cloud ? 'This backend signs in with Supabase, in the cloud app. Create a token there (Profile > API tokens) and paste it here.' : 'Paste a personal API token.',
+        fields: [{ name: 'token', label: 'Token', type: 'password', required: true, placeholder: 'adaptai_pat_…' }],
+        confirm: 'Sign in',
+        extra: cloud ? [{ key: 'web', label: 'Open the web app' }] : undefined,
+      })
+      if (answer?.__extra !== 'web') break
+      const web = vscode.workspace.getConfiguration('adaptai').get<string>('webAppUrl', '')
+      if (/^https:\/\//i.test(web)) await vscode.env.openExternal(vscode.Uri.parse(web))
+      else this.toast('err', 'Set adaptai.webAppUrl to the https address of the web app.')
+    }
     if (!answer) return
     try {
       this.toast('ok', `Signed in as ${await this.backend.signInWithToken(String(answer.token))}.`)

@@ -18,6 +18,9 @@ const backend = {
   url: 'http://127.0.0.1:8000',
   managing: false,
   urlProblem: undefined,
+  tokens: true,
+  supportsTokens: async () => backend.tokens,
+  signInWithToken: async token => (token === 'adaptai_pat_ok' ? 'a@b.c' : Promise.reject(new Error('bad'))),
   onDidChangeSession: () => ({}),
   status: async () => ({ email: 'a@b.c', online: true }),
   api: async (path, method = 'GET', body) => {
@@ -391,4 +394,27 @@ test('the models tab carries where each model runs and the state of the relay', 
   const data = posted.findLast(m => m.type === 'data' && m.tab === 'models')
   assert.deepEqual(data.configs.map(c => [c.provider, c.execution]), [['lmstudio', 'client'], ['groq', 'server']])
   assert.ok(data.relay && typeof data.relay.state === 'string', 'the relay state is part of the page data')
+})
+
+test('token sign-in: a backend without the token module is said plainly, and a cloud backend can open the web app', async () => {
+  const vscode = require('vscode')
+  reset()
+  backend.tokens = false
+  await dash.signInWithToken(true)
+  assert.equal(dialogs.length, 0, 'no dialog for a backend that cannot issue tokens')
+  assert.match(toasts().at(-1).text, /does not have personal tokens/)
+  reset()
+  backend.tokens = true
+  config.webAppUrl = 'https://app.example.com'
+  answers.push({ __extra: 'web' }, { token: 'adaptai_pat_ok' })
+  await dash.signInWithToken(true)
+  assert.deepEqual(vscode.env.opened, ['https://app.example.com'])
+  assert.equal(dialogs.length, 2, 'the dialog comes back after the browser opens')
+  assert.match(toasts().at(-1).text, /Signed in as a@b.c/)
+  reset()
+  config.webAppUrl = 'http://app.example.com'
+  vscode.env.opened.length = 0
+  answers.push({ __extra: 'web' }, undefined)
+  await dash.signInWithToken(true)
+  assert.deepEqual(vscode.env.opened, [], 'a plain http address is never opened')
 })

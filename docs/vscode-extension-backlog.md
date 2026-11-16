@@ -65,7 +65,9 @@ days, **L** more.
 * **Work.** A model menu in the chat composer that applies to the next message only (including OpenRouter catalogue models, `GET /api/openrouter/models`, shown with their evaluation state, with "Evaluate" that opens the consent dialog). `ChatService.send` takes an optional model; the setting `adaptai.chatModel` stays the default.
 * **Done when.** A message goes to the picked model and the next one back to the default; an external model asks the usual confirmation; stub and integration tests.
 
-### IDE-06 · Supabase (cloud) mode (L, needs a validated Supabase login) · DECIDED 11 Nov 2026: keep "paste a token" for now, build the browser sign-in later
+### IDE-06 · Supabase (cloud) mode (L, needs a validated Supabase login) · DECIDED 11 Nov 2026: keep "paste a token"; 16 Nov 2026: the paste path is the supported one, with a button that opens the web app
+
+* **Decision of 16 Nov 2026.** Paste-a-token stays as the supported sign-in for a backend that uses Supabase accounts, and the browser sign-in (b below) is not built: it would make the backend accept a Supabase JWT for token creation, a core change, for a one-time step that the web app already does well, and the password never reaches the extension in either case. What was added: the sign-in dialog of such a backend has **Open the web app** (the setting `adaptai.webAppUrl`, `https://` only) so the person creates the token in Profile, and the extension says plainly when the backend has no token module (`/api/tokens` answers 404), as the published backend does today, instead of failing at the paste. Revisit (b) only if the team wants one-click sign-in.
 
 * **Why.** In cloud mode the password is checked by Supabase, so the extension cannot register, sign in or open a password session.
 * **Today.** The extension answers `use_supabase_auth` with "paste a token". Tokens are created in the web app.

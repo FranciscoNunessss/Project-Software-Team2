@@ -477,7 +477,7 @@ chat id as `session_id`, then send it with the `analysis_id` to link the two.
 | GET/PATCH/DELETE | `/api/chats/{id}` | Messages (with each analysis' completeness), rename, delete |
 | POST | `/api/chats/{id}/messages` | Send `{content, provider, configuration_id?, model?, analysis_id?, allow_external}` and get `{title, message, answer}`, or a stream (below) |
 | POST | `/api/chats/{id}/messages/{answer_id}/retry` | Answer the last question again (`{provider, configuration_id?, allow_external}`) |
-| GET/PUT | `/api/chat/settings` | `{auto_analyse}`, off by default |
+| GET/PUT | `/api/chat/settings` | `{auto_analyse}`, off by default; the "Always analyse before sending" switch in Profile. On, Send analyses a message that has no analysis and then sends it with that analysis |
 
 The answer comes from the chosen model (`configuration_id`, or the server provider; `auto`
 means Groq) with the last 20 turns or 12,000 characters of the chat. The click on Send is

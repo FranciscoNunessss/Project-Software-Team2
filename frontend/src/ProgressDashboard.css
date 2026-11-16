@@ -22,6 +22,7 @@
 .pattern-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
 .pattern-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: var(--icon-tile-bg); color: var(--icon-tile-ink); }
 .pattern-status { padding: 5px 8px; border-radius: 999px; font-size: 9px; font-weight: 700; color: var(--pill-ink-muted); background: var(--pill-bg); }
+.pattern-status.detected { color: var(--color-accent-ink); background: var(--color-accent); }
 .pattern-card h3 { margin-bottom: 8px; font-size: 14px; }
 .pattern-card > p { min-height: 40px; margin-bottom: 18px; color: var(--color-muted-soft); font-size: 11px; line-height: 1.6; }
 .next-time { padding: 12px; border-radius: 8px; background: var(--inset-bg); display: grid; gap: 5px; }

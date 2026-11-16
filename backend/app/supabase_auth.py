@@ -1,4 +1,8 @@
-"""Validate bearer tokens against Supabase Auth; no service-role key is needed."""
+"""Validate bearer tokens against Supabase Auth; no service-role key is needed for that.
+
+The optional service-role key is used only by ``delete_identity``, when a user deletes the
+account.
+"""
 
 from uuid import UUID, uuid4
 
@@ -46,6 +50,27 @@ def identity(request: Request) -> dict:
         "subject": subject,
         "email": email,
     }
+
+
+def delete_identity(request: Request, subject: str) -> bool:
+    """Remove a user's sign-in from Supabase Auth. False when no service-role key is set.
+
+    Raises 503 when Supabase cannot be reached or refuses, so the caller can keep the
+    account as it was. A sign-in that is already gone counts as removed.
+    """
+    settings = request.app.state.settings
+    key = settings.supabase_service_role_key.get_secret_value()
+    if not key:
+        return False
+    url = settings.supabase_url.rstrip("/") + "/auth/v1/admin/users/" + str(UUID(subject))
+    headers = {"apikey": key, "Authorization": "Bearer " + key}
+    try:
+        response = httpx.delete(url, headers=headers, timeout=10, follow_redirects=False)
+    except httpx.HTTPError:
+        raise HTTPException(503, "authentication_unavailable") from None
+    if response.status_code not in {200, 204, 404}:
+        raise HTTPException(503, "authentication_unavailable")
+    return True
 
 
 def resolve_user(request: Request) -> dict:

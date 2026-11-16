@@ -176,8 +176,10 @@ def delete_account(
     chats, model configurations with their encrypted keys, coaching and login sessions.
     Project-level model evaluations stay, without the name of who asked for them.
 
-    With Supabase Auth the sign-in itself is held by Supabase and is not removed here (the
-    backend has no service-role key); signing in again starts an empty account.
+    With Supabase Auth the sign-in itself is held by Supabase. It is removed too when the
+    backend has the optional service-role key; without it the response says the sign-in was
+    kept, and signing in again starts an empty account. If Supabase cannot remove it, nothing
+    is deleted: the rows are only removed once the sign-in is.
     """
     settings = request.app.state.settings
     local = settings.auth_mode == "local"
@@ -198,13 +200,22 @@ def delete_account(
             valid = secrets.compare_digest(password_hash(body.password or "", salt), expected)
             if not row or not valid:
                 raise HTTPException(401, "invalid_credentials")
+        identity = db.execute(
+            "SELECT subject FROM auth_identities WHERE user_id=%s", (user["id"],)
+        ).fetchone()
         db.execute("DELETE FROM users WHERE id=%s", (user["id"],))
+        sign_in_removed = local
+        if not local and identity:
+            from app.supabase_auth import delete_identity
+
+            # Inside the transaction: a failure here rolls the row deletion back.
+            sign_in_removed = delete_identity(request, identity["subject"])
     if local:
         response.delete_cookie(
             COOKIE, path="/api", secure=settings.cookie_secure, httponly=True, samesite="lax"
         )
     response.headers["Cache-Control"] = "no-store"
-    return {"status": "account_deleted", "sign_in_kept": not local}
+    return {"status": "account_deleted", "sign_in_kept": not sign_in_removed}
 
 
 def require_local_auth(request: Request):

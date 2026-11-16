@@ -12,6 +12,7 @@ export function DeleteAccount({ email }: { email: string }) {
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [signInKept, setSignInKept] = useState(false)
   const matches = typed.trim().toLowerCase() === email.toLowerCase() && !!email
   const ready = matches && (cloudAuth || password.length > 0)
 
@@ -20,21 +21,35 @@ export function DeleteAccount({ email }: { email: string }) {
     if (!ready || busy) return
     setBusy(true); setError('')
     try {
-      await api('auth/account', { email: typed.trim(), ...(cloudAuth ? {} : { password }) }, undefined, 'DELETE')
-      // The data is gone: end the sign-in on this device and start again from the sign-in page.
-      if (supabase) await supabase.auth.signOut().catch(() => undefined)
-      window.location.reload()
+      const result = await api<{ sign_in_kept: boolean }>('auth/account', { email: typed.trim(), ...(cloudAuth ? {} : { password }) }, undefined, 'DELETE')
+      // The server could not remove the sign-in held by the sign-in service: say so before leaving.
+      if (result.sign_in_kept) { setSignInKept(true); return }
+      await leave()
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Could not delete the account')
       setBusy(false)
     }
   }
 
+  // The data is gone: end the sign-in on this device and start again from the sign-in page.
+  const leave = async () => {
+    if (supabase) await supabase.auth.signOut().catch(() => undefined)
+    window.location.reload()
+  }
+
+  if (signInKept) return (
+    <section className="card profile-card-settings" data-delete-account>
+      <p className="eyebrow">Account</p><h2>Your account was deleted</h2>
+      <p role="status">Everything AdaptAI stored for this account is deleted. Your sign-in (email and password) is still held by the sign-in service, which this installation cannot delete: email the privacy contact in the Privacy Policy to have it removed. Signing in again would start an empty account.</p>
+      <button type="button" className="button button-primary" onClick={() => void leave()}>Sign out</button>
+    </section>
+  )
+
   return (
     <section className="card profile-card-settings" data-delete-account>
       <p className="eyebrow">Account</p><h2>Delete my account</h2>
       <p>Permanently deletes this account and everything stored for it: sessions, analyses, model choices, task feedback, learned memory, saved conversations, chats, your model configurations and their keys, and coaching. This cannot be undone.</p>
-      {cloudAuth && <p className="muted">Your sign-in (email and password) is kept by the sign-in service and is not deleted here. Signing in again starts an empty account.</p>}
+      {cloudAuth && <p className="muted">Your sign-in (email and password) is held by the sign-in service. It is deleted too where this installation is set up for it; if it is not, you are told right after the deletion.</p>}
       {!open
         ? <button type="button" className="button button-danger" onClick={() => setOpen(true)}>Delete my account…</button>
         : <form className="history-delete" onSubmit={remove}>

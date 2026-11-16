@@ -3,6 +3,7 @@
 from uuid import uuid4
 
 import httpx
+import pytest
 from app.main import create_app
 from app.providers import Settings
 from fastapi.testclient import TestClient
@@ -177,3 +178,157 @@ def test_with_supabase_auth_the_data_is_erased_and_the_sign_in_is_reported_as_ke
     again = client.get("/api/auth/me").json()
     assert again["id"] != first["id"] and again["email"] == "cloud@example.test"
     assert client.get("/api/sessions").json() == []
+
+
+# --- Cases of the card: every kind of row, every device, nothing logged, cloud sign-in ---
+
+USER_TABLES = (
+    "auth_sessions",
+    "sessions",
+    "analyses",
+    "decisions",
+    "task_outcomes",
+    "user_context",
+    "memory_entries",
+    "conversation_content",
+    "llm_configs",
+    "coaching_reports",
+)
+
+
+def row_counts(app, tables):
+    with app.state.storage.connect() as db:
+        return {
+            table: db.execute(
+                sql.SQL("SELECT count(*) FROM {}").format(sql.Identifier(table))
+            ).fetchone()[0]
+            for table in tables
+        }
+
+
+def test_every_kind_of_row_is_removed_on_every_device_and_nothing_is_logged(caplog):
+    import logging
+
+    app = create_app(Settings(_env_file=None))
+    client, user = account(app)
+    use_everything(client)
+    configured = client.post(
+        "/api/llm-configs",
+        json={
+            "label": "Personal Groq",
+            "provider": "groq",
+            "model": "personal-model",
+            "api_key": "personal-test-key",
+        },
+    )
+    assert configured.status_code == 201
+    with app.state.storage.connect() as db:
+        db.execute(
+            "INSERT INTO coaching_reports(user_id,fingerprint,model,report_json,source_json) "
+            "VALUES (%s,'f','m','{}','{}')",
+            (user["id"],),
+        )
+    # A second device signed in to the same account.
+    phone = TestClient(app)
+    signed_in = phone.post(
+        "/api/auth/login", json={"email": "erase@example.com", "password": PASSWORD}
+    )
+    assert signed_in.status_code == 200
+    before = row_counts(app, USER_TABLES)
+    assert all(count > 0 for count in before.values()), before
+    assert before["auth_sessions"] == 2
+
+    with caplog.at_level(logging.DEBUG):
+        assert delete(client, email="erase@example.com", password=PASSWORD).status_code == 200
+
+    assert row_counts(app, (*USER_TABLES, "users")) == dict.fromkeys((*USER_TABLES, "users"), 0)
+    assert "personal-test-key" not in stored_text(app)
+    assert phone.get("/api/auth/me").status_code == 401
+    assert phone.get("/api/sessions").status_code == 401
+    for private in ("erase@example.com", user["id"], "ERASURE_MARKER", PASSWORD):
+        assert private not in caplog.text
+
+
+def cloud_app(monkeypatch, *, service_key=""):
+    origin, project = "https://adaptai-test.netlify.app", "https://test-project.supabase.co"
+    identity = {
+        "id": str(uuid4()),
+        "email": "cloud@example.test",
+        "email_confirmed_at": "2026-11-07T00:00:00Z",
+        "is_anonymous": False,
+    }
+    monkeypatch.setattr(
+        "app.supabase_auth.httpx.get", lambda url, **kwargs: httpx.Response(200, json=identity)
+    )
+    app = create_app(
+        Settings(
+            _env_file=None,
+            auth_mode="supabase",
+            supabase_url=project,
+            supabase_publishable_key="public-test-key",
+            supabase_service_role_key=service_key,
+            browser_origin=origin,
+        )
+    )
+    client = TestClient(app, headers={"Authorization": "Bearer valid-token", "Origin": origin})
+    return app, client, identity, project
+
+
+def test_with_the_service_role_key_the_supabase_sign_in_is_removed_too(monkeypatch):
+    app, client, identity, project = cloud_app(monkeypatch, service_key="service-test-key")
+    calls = []
+
+    def remove(url, **kwargs):
+        calls.append((url, kwargs["headers"]))
+        return httpx.Response(200, json={})
+
+    monkeypatch.setattr("app.supabase_auth.httpx.delete", remove)
+    first = client.get("/api/auth/me").json()
+    assert client.post("/api/analyze", json={"task": TASK}).status_code == 200
+
+    deleted = delete(client, email="cloud@example.test")
+    assert deleted.status_code == 200
+    assert deleted.json() == {"status": "account_deleted", "sign_in_kept": False}
+    assert calls == [
+        (
+            f"{project}/auth/v1/admin/users/{identity['id']}",
+            {"apikey": "service-test-key", "Authorization": "Bearer service-test-key"},
+        )
+    ]
+    after = stored_text(app)
+    assert first["id"] not in after and identity["id"] not in after
+    # The service-role key never reaches a response.
+    assert "service-test-key" not in deleted.text
+
+
+@pytest.mark.parametrize("failure", [500, 403, "network"])
+def test_when_supabase_cannot_remove_the_sign_in_nothing_is_deleted(monkeypatch, failure):
+    app, client, identity, _ = cloud_app(monkeypatch, service_key="service-test-key")
+
+    def remove(url, **kwargs):
+        if failure == "network":
+            raise httpx.ConnectError("no route")
+        return httpx.Response(failure, json={"message": "refused"})
+
+    monkeypatch.setattr("app.supabase_auth.httpx.delete", remove)
+    first = client.get("/api/auth/me").json()
+    assert client.post("/api/analyze", json={"task": TASK}).status_code == 200
+
+    refused = delete(client, email="cloud@example.test")
+    assert refused.status_code == 503
+    assert refused.json() == {"detail": "authentication_unavailable"}
+    # A consistent state: the account and its history are exactly as before.
+    assert client.get("/api/auth/me").json() == first
+    assert client.get("/api/progress").json()["analyses"] == 1
+    assert row_counts(app, ("users", "auth_identities")) == {"users": 1, "auth_identities": 1}
+
+
+def test_a_sign_in_supabase_no_longer_has_counts_as_removed(monkeypatch):
+    app, client, _, _ = cloud_app(monkeypatch, service_key="service-test-key")
+    monkeypatch.setattr(
+        "app.supabase_auth.httpx.delete", lambda url, **kwargs: httpx.Response(404, json={})
+    )
+    client.get("/api/auth/me")
+    deleted = delete(client, email="cloud@example.test")
+    assert deleted.json() == {"status": "account_deleted", "sign_in_kept": False}
+    assert row_counts(app, ("users",)) == {"users": 0}

@@ -87,7 +87,7 @@ Under the GDPR you have the following rights. This table shows how to exercise e
 | Erasure of saved conversation text and generated coaching (Art. 17) | Profile → **Delete saved conversations**. |
 | Erasure of one session (Art. 17) | My progress → delete the session. |
 | Erasure of all usage history (Art. 17) | My progress → **Delete**. Your account, preferences and LLM configurations remain. |
-| Erasure of your account and all data (Art. 17) | Email the privacy contact. Self-service account deletion is not yet available **[TO CONFIRM: add before release]**. |
+| Erasure of your account and all data (Art. 17) | Profile → **Delete my account**. This deletes the account and everything stored for it in AdaptAI. Where you sign in through the hosted sign-in service, the sign-in itself (email and password) is held by that service and is not removed by this button; email the privacy contact to have it removed. |
 | Restriction, objection and other questions (Arts. 18 and 21) | Email the privacy contact. |
 
 We aim to respond to requests within one month. You also have the right to lodge a complaint with a supervisory authority. In Portugal this is the Comissão Nacional de Proteção de Dados (CNPD, cnpd.pt) **[TO CONFIRM: authority for the operating country]**.

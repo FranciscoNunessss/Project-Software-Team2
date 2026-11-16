@@ -28,6 +28,14 @@ class Credentials(BaseModel):
         return value
 
 
+class AccountDeletion(BaseModel):
+    """The user types the account's email, and in local mode the password, to confirm."""
+
+    model_config = ConfigDict(extra="forbid")
+    email: str = Field(min_length=3, max_length=254)
+    password: str | None = Field(default=None, min_length=1, max_length=128)
+
+
 def password_hash(password: str, salt: str) -> str:
     return hashlib.scrypt(password.encode(), salt=bytes.fromhex(salt), n=16384, r=8, p=1).hex()
 
@@ -155,6 +163,48 @@ def logout(request: Request, response: Response):
         samesite="lax",
     )
     return {"status": "logged_out"}
+
+
+@router.delete("/account")
+def delete_account(
+    body: AccountDeletion, request: Request, response: Response, user: AuthenticatedUser
+):
+    """Erase the account and everything stored for it (self-service erasure).
+
+    Every table that holds a user's data references ``users`` with ON DELETE CASCADE, so one
+    delete removes sessions, analyses, choices, feedback, memory, saved conversation text,
+    chats, model configurations with their encrypted keys, coaching and login sessions.
+    Project-level model evaluations stay, without the name of who asked for them.
+
+    With Supabase Auth the sign-in itself is held by Supabase and is not removed here (the
+    backend has no service-role key); signing in again starts an empty account.
+    """
+    settings = request.app.state.settings
+    local = settings.auth_mode == "local"
+    if body.email.strip().lower() != user["email"]:
+        raise HTTPException(403, "account_email_mismatch")
+    store = request.app.state.storage
+    with store.connect() as db:
+        store.lock_user(db, user["id"])
+        if local:
+            row = db.execute(
+                "SELECT password_hash FROM users WHERE id=%s", (user["id"],)
+            ).fetchone()
+            salt, expected = (
+                row["password_hash"].split(":")
+                if row and ":" in row["password_hash"]
+                else ("00" * 16, "00" * 64)
+            )
+            valid = secrets.compare_digest(password_hash(body.password or "", salt), expected)
+            if not row or not valid:
+                raise HTTPException(401, "invalid_credentials")
+        db.execute("DELETE FROM users WHERE id=%s", (user["id"],))
+    if local:
+        response.delete_cookie(
+            COOKIE, path="/api", secure=settings.cookie_secure, httponly=True, samesite="lax"
+        )
+    response.headers["Cache-Control"] = "no-store"
+    return {"status": "account_deleted", "sign_in_kept": not local}
 
 
 def require_local_auth(request: Request):

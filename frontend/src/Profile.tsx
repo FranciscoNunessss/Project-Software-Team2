@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, notifyProgressChange, type MemorySettings } from './api'
 import { PromptCoachToggle } from './PromptCoachToggle'
+import { DeleteAccount } from './DeleteAccount'
 import './Profile.css'
 
 export function ProfileScreen({ onOpenPrivacy }: { onOpenPrivacy?: () => void }) {
@@ -65,6 +66,7 @@ export function ProfileScreen({ onOpenPrivacy }: { onOpenPrivacy?: () => void })
         <div className="history-delete">{forget ? <><p>Clear all learned memory? This cannot be undone. Your progress history and manually saved preferences remain available.</p><div className="history-actions"><button className="button button-danger" disabled={busy} onClick={() => void clear()}>Clear learned memory</button><button className="button button-secondary" disabled={busy} onClick={() => setForget(false)}>Cancel</button></div></> : <button className="button button-danger" disabled={busy || !settings.memory.length} onClick={() => setForget(true)}>Clear learned memory…</button>}</div>
       </section>
       <section className="card profile-card-settings"><p className="eyebrow">Privacy</p><h2>How we handle your data</h2><p>Read what AdaptAI collects, who receives it, how long it is kept and how to use your rights.</p>{onOpenPrivacy && <button type="button" className="button button-secondary" onClick={onOpenPrivacy}>Read the Privacy Policy</button>}</section>
+      <DeleteAccount email={email} />
       <p className="confidence-note">My progress contains your dashboard, saved suggestions, export and session deletion controls. Conversation text is retained only after explicit permission. Clearing learned metadata above does not delete saved conversation text.</p>
     </>}
   </main>

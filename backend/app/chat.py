@@ -26,7 +26,7 @@ from fastapi.responses import StreamingResponse
 from langsmith import tracing_context
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app import limits
+from app import limits, quotas
 from app.accounts import AuthenticatedUser
 from app.catalogue import active_catalogue
 from app.llm_config import ModelConfigurations
@@ -370,6 +370,8 @@ def install_chat(
             model = body.model
         if provider in external_providers and not body.allow_external:
             raise HTTPException(403, "external_processing_requires_consent")
+        if configuration_id.startswith("server:") and provider in external_providers:
+            quotas.enforce(store, settings, user_id, "message")
         if provider == "openrouter" and openrouter_catalogue is not None:
             try:
                 # A chat needs a text-in, text-out model, not structured output.

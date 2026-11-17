@@ -55,11 +55,13 @@ atexit.register(cleanup_collection)
 @pytest.fixture(autouse=True)
 def no_rate_limits_between_tests():
     """app.limits is per process: one test's rate-limited model must not affect the next."""
-    from app import limits
+    from app import limits, quotas
 
     limits.clear()
+    quotas.clear()
     yield
     limits.clear()
+    quotas.clear()
 
 
 @pytest.fixture(autouse=True)

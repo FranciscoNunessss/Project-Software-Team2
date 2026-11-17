@@ -11,7 +11,7 @@ from langsmith import tracing_context
 from psycopg.errors import ForeignKeyViolation
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from app import limits
+from app import limits, quotas
 from app.accounts import AuthenticatedUser, check_origin
 from app.accounts import router as accounts_router
 from app.assessment import PROFILE_VERSION, RUBRIC_VERSION, explain_changes
@@ -637,6 +637,8 @@ def create_app(
             raise HTTPException(409, "provider_not_configured")
         if actual_provider in external_providers and not body.allow_external:
             raise HTTPException(403, "external_processing_requires_consent")
+        if configuration_id.startswith("server:") and actual_provider in external_providers:
+            quotas.enforce(store, settings, user["id"], "analysis")
         if actual_provider == "openrouter":
             try:
                 await router_models.check(actual_model)

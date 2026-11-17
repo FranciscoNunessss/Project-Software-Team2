@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     browser_origin: str = "http://127.0.0.1:8443"
     auth_mode: Literal["local", "supabase"] = "local"
     database_pool_size: int = Field(default=4, ge=0)
+    # Per-person share of the project's shared hosted models (app/quotas.py); 0 = no limit.
+    user_analyses_per_minute: int = Field(default=2, ge=0)
+    user_analyses_per_day: int = Field(default=30, ge=0)
+    user_messages_per_minute: int = Field(default=10, ge=0)
+    user_messages_per_day: int = Field(default=150, ge=0)
     supabase_url: str = ""
     supabase_publishable_key: SecretStr = SecretStr("")
 

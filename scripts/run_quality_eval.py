@@ -29,7 +29,9 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 from app import quality_eval as qe  # noqa: E402
 from app.assessment import PROFILE_VERSION, RUBRIC_VERSION, completeness  # noqa: E402
-from app.providers import LangChainProvider, ProviderFailure, Settings  # noqa: E402
+from app.models import Assessment, Profile  # noqa: E402
+from app.prompt_builder import build_assessment_prompt, load_rubric  # noqa: E402
+from app.providers import LangChainProvider, ProviderFailure, Settings, structured_call  # noqa: E402
 from app.recommendation import POLICY_VERSION  # noqa: E402
 
 QUALITY = ROOT / "backend/eval/quality"
@@ -76,7 +78,21 @@ def has_key(provider: str, settings: Settings) -> bool:
     return bool(value.get_secret_value() if hasattr(value, "get_secret_value") else value)
 
 
-async def analyse(provider: LangChainProvider, text: str) -> tuple[dict, float]:
+class RubricProvider:
+    """The assessor with the prompt of a chosen rubric version, to compare it with the active."""
+
+    def __init__(self, provider: str, settings: Settings, version: str):
+        self.provider, self.settings = provider, settings
+        self.prompt = build_assessment_prompt(load_rubric(version))
+
+    async def assess(self, task: str) -> Assessment:
+        parsed, usage = await structured_call(
+            self.provider, self.settings, Profile, self.prompt, task, "assessment"
+        )
+        return Assessment(profile=Profile.model_validate(parsed), usage=usage)
+
+
+async def analyse(provider, text: str) -> tuple[dict, float]:
     started = time.monotonic()
     try:
         assessment = await provider.assess(text)
@@ -179,13 +195,17 @@ def run(args) -> int:
         "mode": "subset" if args.subset else "full",
         "repeats": args.repeats,
         "profile": PROFILE_VERSION,
-        "rubric": RUBRIC_VERSION,
+        "rubric": args.rubric or RUBRIC_VERSION,
         "policy": POLICY_VERSION,
         "catalogue": catalogue_version(),
     }
     rows: list[dict] = []
     if has_key(args.provider, settings):
-        provider = LangChainProvider(args.provider, settings)
+        provider = (
+            RubricProvider(args.provider, settings, args.rubric)
+            if args.rubric
+            else LangChainProvider(args.provider, settings)
+        )
 
         async def everything():
             for repeat in range(args.repeats):
@@ -228,6 +248,32 @@ def run(args) -> int:
     return finish(report, result)
 
 
+def diff(args) -> int:
+    """Per-dimension agreement of two reports (for example rubric-2.0 and rubric-2.1)."""
+    first, second = (
+        json.loads(Path(p).read_text(encoding="utf-8")) for p in (args.first, args.second)
+    )
+    for report in (first, second):
+        print(f"{report['rubric']:12} {report['suite']:9} {report['model']}")
+    print(f"{'':14}{first['rubric']:>12}{second['rubric']:>12}   change")
+    rows = [("overall", first["metrics"]["overall"], second["metrics"]["overall"])]
+    names = first["metrics"]["by_dimension"].keys() | second["metrics"]["by_dimension"].keys()
+    rows += [
+        (n, first["metrics"]["by_dimension"].get(n), second["metrics"]["by_dimension"].get(n))
+        for n in qe.DIMENSIONS
+        if n in names
+    ]
+    for name, one, two in rows:
+        a = one["agreement"] if one else None
+        b = two["agreement"] if two else None
+        change = f"{b - a:+.1f}" if a is not None and b is not None else ""
+        print(
+            f"{name:14}{a if a is not None else '-':>11}%"
+            f"{b if b is not None else '-':>11}%   {change}"
+        )
+    return 0
+
+
 def compare(args) -> int:
     report = json.loads(Path(args.report).read_text(encoding="utf-8"))
     baseline_path = baseline_file(
@@ -243,6 +289,7 @@ def main() -> int:
     runner.add_argument("--provider", required=True)
     runner.add_argument("--model", required=True)
     runner.add_argument("--suite", choices=sorted(SUITES), default="profile")
+    runner.add_argument("--rubric", help="a rubric version to use instead of the active one")
     runner.add_argument("--subset", action="store_true")
     runner.add_argument("--repeats", type=int, default=1)
     runner.add_argument(
@@ -251,8 +298,13 @@ def main() -> int:
     runner.add_argument("--update-baseline", action="store_true")
     scorer = sub.add_parser("compare")
     scorer.add_argument("report")
+    sides = sub.add_parser("diff", help="two reports of the same suite, side by side")
+    sides.add_argument("first")
+    sides.add_argument("second")
     args = parser.parse_args()
-    return run(args) if args.command == "run" else compare(args)
+    if args.command == "run":
+        return run(args)
+    return diff(args) if args.command == "diff" else compare(args)
 
 
 if __name__ == "__main__":

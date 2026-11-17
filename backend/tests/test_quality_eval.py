@@ -175,3 +175,42 @@ def test_the_injection_and_pairs_sets_are_well_formed_and_hold_no_user_data():
     for pair in pairs["pairs"]:
         assert len(pair["vague"]) < len(pair["complete"])
     assert 0 < sum(pair["subset"] for pair in pairs["pairs"]) < 10
+
+
+def runner():
+    import importlib.util
+
+    path = Path(__file__).resolve().parents[2] / "scripts/run_quality_eval.py"
+    spec = importlib.util.spec_from_file_location("run_quality_eval", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_runner_can_assess_with_another_rubric_version_than_the_active_one():
+    from app.prompt_builder import build_assessment_prompt, load_rubric
+
+    module = runner()
+    older = module.RubricProvider("groq", module.Settings(_env_file=None), "rubric-2.0")
+    newer = module.RubricProvider("groq", module.Settings(_env_file=None), "rubric-2.1")
+    assert older.prompt == build_assessment_prompt(load_rubric("rubric-2.0"))
+    assert older.prompt != newer.prompt
+
+
+def test_diff_prints_the_two_reports_side_by_side(tmp_path, capsys):
+    module = runner()
+
+    def saved(name, rubric, agreement, reasoning):
+        data = report(agreement, rubric=rubric, suite="profile")
+        data["metrics"]["by_dimension"] = {"reasoning": {"agreement": reasoning}}
+        path = tmp_path / name
+        path.write_text(json.dumps(data), encoding="utf-8")
+        return str(path)
+
+    args = type("Args", (), {})()
+    args.first = saved("a.json", "rubric-2.0", 80.0, 70.0)
+    args.second = saved("b.json", "rubric-2.1", 86.0, 90.0)
+    assert module.diff(args) == 0
+    text = capsys.readouterr().out
+    assert "rubric-2.0" in text and "rubric-2.1" in text
+    assert "+6.0" in text and "+20.0" in text

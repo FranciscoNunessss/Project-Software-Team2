@@ -48,6 +48,14 @@ ACCEPTED = QUALITY / "accepted.json"
 NEEDS_KEY = {"groq": "groq_api_key", "openai": "openai_api_key", "claude": "anthropic_api_key"}
 
 
+def shown(path: Path) -> str:
+    """A path relative to the repository when it is inside it."""
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def slug(provider: str, model: str) -> str:
     return f"{provider}_{model}".replace("/", "_").replace(":", "_")
 
@@ -231,10 +239,11 @@ def run(args) -> int:
     metrics = qe.score_pairs(rows) if args.suite == "pairs" else qe.score(rows, expected)
     report = {**base, "metrics": metrics, "status": qe.run_status(metrics), "rows": rows}
     REPORTS.mkdir(parents=True, exist_ok=True)
-    stem = f"{slug(args.provider, args.model)}-{args.suite}-{base['mode']}-{base['date'][:10]}"
+    version = f"-{args.rubric}" if args.rubric else ""
+    stem = f"{slug(args.provider, args.model)}-{args.suite}{version}-{base['mode']}-{base['date'][:10]}"
     out = REPORTS / f"{stem}.json"
     out.write_text(json.dumps(report, indent=1), encoding="utf-8")
-    print(f"wrote {out.relative_to(ROOT)}")
+    print(f"wrote {shown(out)}")
     baseline_path = baseline_file(args.provider, args.model, args.suite)
     result = decide(report, baseline_path, ACCEPTED)
     if args.update_baseline and report["status"] == qe.PASS and base["mode"] == "full":
@@ -242,7 +251,7 @@ def run(args) -> int:
         baseline_path.write_text(
             json.dumps({k: v for k, v in report.items() if k != "rows"}, indent=1), encoding="utf-8"
         )
-        print(f"baseline updated: {baseline_path.relative_to(ROOT)}")
+        print(f"baseline updated: {shown(baseline_path)}")
     elif args.update_baseline:
         print("The baseline is only updated from a full run that was measured.", file=sys.stderr)
     return finish(report, result)

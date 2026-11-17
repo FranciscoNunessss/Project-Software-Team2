@@ -214,3 +214,21 @@ def test_diff_prints_the_two_reports_side_by_side(tmp_path, capsys):
     text = capsys.readouterr().out
     assert "rubric-2.0" in text and "rubric-2.1" in text
     assert "+6.0" in text and "+20.0" in text
+
+
+def test_reports_of_two_rubric_versions_do_not_overwrite_each_other(monkeypatch, tmp_path):
+    module = runner()
+    monkeypatch.setattr(module, "REPORTS", tmp_path)
+    monkeypatch.setattr(module, "BASELINES", tmp_path / "baselines")
+    monkeypatch.setenv("ADAPTAI_GROQ_API_KEY", "")  # no key: no call is made, the run is NOT RUN
+
+    class Args:
+        provider, model, suite, subset, repeats, pause = "groq", "m", "pairs", True, 1, 0
+        update_baseline = False
+
+    for version in ("rubric-2.0", "rubric-2.1"):
+        Args.rubric = version
+        assert module.run(Args) == 3
+    names = sorted(path.name for path in tmp_path.glob("*.json"))
+    assert len(names) == 2
+    assert "rubric-2.0" in names[0] and "rubric-2.1" in names[1]

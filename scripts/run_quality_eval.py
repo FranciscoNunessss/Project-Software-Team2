@@ -240,7 +240,8 @@ def run(args) -> int:
     report = {**base, "metrics": metrics, "status": qe.run_status(metrics), "rows": rows}
     REPORTS.mkdir(parents=True, exist_ok=True)
     version = f"-{args.rubric}" if args.rubric else ""
-    stem = f"{slug(args.provider, args.model)}-{args.suite}{version}-{base['mode']}-{base['date'][:10]}"
+    name = slug(args.provider, args.model)
+    stem = f"{name}-{args.suite}{version}-{base['mode']}-{base['date'][:10]}"
     out = REPORTS / f"{stem}.json"
     out.write_text(json.dumps(report, indent=1), encoding="utf-8")
     print(f"wrote {shown(out)}")

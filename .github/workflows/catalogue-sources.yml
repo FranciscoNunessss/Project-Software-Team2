@@ -3,8 +3,14 @@ name: Catalogue sources
 # from (ADR-014, docs/model-classification.md). On a data/** branch it also commits the
 # files to that branch; a person reviews them and builds the new catalogue version in a
 # pull request. Nothing reaches develop or main from here.
+# Every Monday the scheduled run does the same on a new branch data/sources-<date>, so the
+# weekly routine (docs/testing-model-evaluations.md, section 4) starts with the snapshots
+# already fetched. GitHub runs a schedule only from the default branch, and pauses it
+# after 60 days without repository activity.
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 1" # Mondays, 05:00 UTC, before the weekly replenishment
   push:
     branches: ["data/**"]
 permissions:
@@ -36,11 +42,30 @@ jobs:
           name: catalogue-sources
           path: backend/data/catalogue/sources/
           retention-days: 30
+      - name: Open the week's data branch (scheduled run only)
+        id: weekly
+        if: github.event_name == 'schedule'
+        run: |
+          branch="data/sources-$(date -u +%F)"
+          if git ls-remote --exit-code --heads origin "$branch" > /dev/null; then
+            echo "$branch already exists: sources kept as an artifact only"
+          else
+            git switch -c "$branch"
+            echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          fi
       - name: Commit the sources to the data branch
-        if: startsWith(github.ref, 'refs/heads/data/')
+        if: startsWith(github.ref, 'refs/heads/data/') || steps.weekly.outputs.branch != ''
+        env:
+          WEEKLY_BRANCH: ${{ steps.weekly.outputs.branch }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git add backend/data/catalogue/sources/
           git diff --cached --quiet || git commit -m "Catalogue sources $(date -u +%F)"
-          git pull --rebase && git push
+          if [ -n "$WEEKLY_BRANCH" ]; then
+            # A new branch: nothing to rebase on. Pushed even without changes, so the team
+            # sees that the week's run happened.
+            git push --set-upstream origin "$WEEKLY_BRANCH"
+          else
+            git pull --rebase && git push
+          fi

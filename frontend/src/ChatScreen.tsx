@@ -149,6 +149,7 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
       .catch(failure => {
         if (controller.signal.aborted) return
         if (failure instanceof ApiError && failure.status === 404) {
+          createdChat.current = null // The deleted chat must not receive the next message.
           setChatId(null); onChatCreated(null); setMessages([]); setShown(null); setDraftAnalysis(null); setDrawer(false)
         } else setError('Could not refresh your chat.')
       })

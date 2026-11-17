@@ -161,7 +161,7 @@ Report each step as OK or with the screenshot of what differed.
 
 | Step | Command or place | Check |
 |---|---|---|
-| 1 | GitHub › Actions › "Catalogue sources" › Run workflow on a new branch `data/sources-<date>` (or push that branch) | The run is green; the branch gets `sources/lmarena-<date>.json`, `aa-<date>.json`, `openrouter-<date>.json` |
+| 1 | Every Monday at 05:00 UTC the "Catalogue sources" workflow creates the branch `data/sources-<date>` by itself. To run it on another day: GitHub › Actions › "Catalogue sources" › Run workflow on a new branch `data/sources-<date>` (or push that branch) | The run is green; the branch gets `sources/lmarena-<date>.json`, `aa-<date>.json`, `openrouter-<date>.json` |
 | 2 | Locally on that branch: `uv run python scripts/build_arena_mapping.py --snapshot sources/lmarena-<date>.json` | "thresholds unchanged"; `arena-mapping-1.json` now points to the new file |
 | 3 | Update `backend/data/catalogue/most-used.json` from https://openrouter.ai/rankings (monthly) | New top models listed |
 | 4 | `uv run pytest backend/tests/test_arena.py -q` | Green. If `test_most_used_models_have_levels` fails, it names the models: add a checked link to `arena-aliases.json` or `aa-aliases.json`, or move them to `no_public_source` with the reason (layer 3 measures them) |

@@ -1,0 +1,18 @@
+# Gitleaks configuration (docs/secret-scanning.md). The default rules stay on; this only lists
+# what is known not to be a secret, so the scan can stay strict everywhere else.
+title = "AdaptAI"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented placeholders and test values"
+paths = [
+  '''\.env\.example$''',
+  '''backend/tests/.*''',
+  '''e2e/.*''',
+]
+regexes = [
+  '''sb_publishable_[A-Za-z0-9_\-]+''',  # Supabase publishable keys are public by design
+  '''adaptai_pat_x+''',                    # token-shaped test values
+]

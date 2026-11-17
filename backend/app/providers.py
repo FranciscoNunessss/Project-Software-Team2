@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     lmstudio_models: str = ""
     # Background evaluation of configured models (ADR-014); off in tests and scripts.
     evaluations_worker: bool = True
+    # Days without activity after which a session is deleted (app/retention.py); 0 = never.
+    retention_days: int = Field(default=0, ge=0)
     # The project's own OpenRouter key, only for evaluating models no public source rates
     # (ADR-014 A10, layer 3). Never used for chats or analyses. Empty: layer 3 is off.
     evaluation_openrouter_key: SecretStr = SecretStr("")
@@ -58,8 +60,6 @@ class Settings(BaseSettings):
     browser_origin: str = "http://127.0.0.1:8443"
     auth_mode: Literal["local", "supabase"] = "local"
     database_pool_size: int = Field(default=4, ge=0)
-    # Days without activity after which a session is deleted (app/retention.py); 0 = never.
-    retention_days: int = Field(default=0, ge=0)
     supabase_url: str = ""
     supabase_publishable_key: SecretStr = SecretStr("")
 

@@ -35,3 +35,5 @@
   .auth-card h1 { font-size: 28px; }
   .auth-footer { padding-bottom: 20px; }
 }
+.auth-consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.5; margin: 4px 0 8px; text-align: left; }
+.auth-consent input { margin-top: 3px; }

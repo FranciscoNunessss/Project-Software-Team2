@@ -229,9 +229,9 @@ is deleted with the account or the evaluation.
 
 
 
-16 November 2026: a user can delete the account in Profile (`DELETE /api/auth/account`, confirmed with the account's email and, for local accounts, the password). Every table that holds a user's data references `users` with `ON DELETE CASCADE`, so the one delete removes everything listed in this document for that account, and all its login sessions; `model_evaluations.requested_by` becomes null. In cloud mode the Supabase Auth user is removed as well when `ADAPTAI_SUPABASE_SERVICE_ROLE_KEY` is set, before the rows are committed; without the key the rows are erased and the user is told the sign-in was kept. Nothing about the deletion is logged. Backups are not erased. The Privacy Policy (draft v0.3) says the same in sections 7 and 9.
+16 November 2026: a user can delete the account in Profile (`DELETE /api/auth/account`, confirmed with the account's email and, for local accounts, the password). Every table that holds a user's data references `users` with `ON DELETE CASCADE`, so the one delete removes everything listed in this document for that account, and all its login sessions; `model_evaluations.requested_by` becomes null. In cloud mode the Supabase Auth user is removed as well when `ADAPTAI_SUPABASE_SERVICE_ROLE_KEY` is set, before the rows are committed; without the key the rows are erased and the user is told the sign-in was kept. Nothing about the deletion is logged. Backups are not erased. The Privacy Policy says the same in sections 7 and 9.
 
-11 November 2026: the user-facing Privacy Policy (draft v0.1) is `frontend/src/content/privacy-policy.md`, shown in the app from the footer, Profile and the sign-in screen. It describes the behaviour documented in this file; items marked TO CONFIRM need AO/PO decisions, and there is still no self-service account deletion.
+11 November 2026: the user-facing Privacy Policy (draft v0.1, completed as version 1.0 on 17 November 2026) is `frontend/src/content/privacy-policy.md`, shown in the app from the footer, Profile and the sign-in screen. It describes the behaviour documented in this file; items marked TO CONFIRM need AO/PO decisions.
 
 ## Models that run on the user's computer (ADR-015, proposed)
 
@@ -249,3 +249,14 @@ backend that issued it. No task text is stored because of a token.
 ## Code sent from the extension
 
 When the **Selection** button of the extension's chat is On, or when the command **Suggest a change to the selection** is used, the selected lines go to the chat model through the backend, with the file path, the language and the line numbers, inside the message. A message is saved in the chat like any other until the user deletes the chat, so the code is saved with it. Before it leaves the machine the code is checked for keys and passwords (the user can cancel), and a model outside the machine asks its usual confirmation. Nothing is sent unless the button is On or the command is used, and a proposed change is written to the file only after the answer arrives and can be rejected before it is saved.
+
+## Privacy Policy acceptance (17 November 2026)
+
+- `users.policy_version` and `users.policy_accepted_at` (migration 014) record which version of
+  the Privacy Policy the user accepted and when (GDPR Art. 7(1)). Nothing else is stored for
+  consent. The version the server asks for is `PRIVACY_POLICY_VERSION` in `backend/app/privacy.py`;
+  a test keeps it equal to the "Version" line of `frontend/src/content/privacy-policy.md`. Raising
+  it makes the app ask every user to accept again before it opens.
+- The acceptance record is deleted with the account (`DELETE /api/auth/account`, see above).
+- The policy is readable without signing in at `/privacy`.
+

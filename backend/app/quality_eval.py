@@ -75,7 +75,9 @@ def score(rows: list[dict], expected: dict[str, dict[str, int]]) -> dict:
 
 
 def score_pairs(rows: list[dict]) -> dict:
-    """M7: for each pair of the same intent, the complete version must be more complete.
+    """Assessor sensitivity to completeness (not M7, which measures the Prompt Coach).
+
+    For each pair of the same intent, the complete version must be more complete.
 
     ``rows``: one per analysis, ``{"task": pair id, "repeat", "variant": "vague" or "complete",
     "completeness"}`` or ``{"task", "variant", "error"}``. ``agreement`` is the share of pairs

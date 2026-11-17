@@ -25,6 +25,11 @@ on:
         description: "Run the full set with 3 repeats (before a milestone)"
         type: boolean
         default: false
+      suite:
+        description: "Which suite to run (a pull request always runs profile)"
+        type: choice
+        options: [profile, injection, pairs]
+        default: profile
 permissions:
   contents: read
 jobs:
@@ -47,7 +52,7 @@ jobs:
           mode="--subset"
           if [ "${{ inputs.full }}" = "true" ]; then mode="--repeats 3"; fi
           set +e
-          uv run python scripts/run_quality_eval.py run --provider "$EVAL_PROVIDER" --model "$EVAL_MODEL" $mode
+          uv run python scripts/run_quality_eval.py run --provider "$EVAL_PROVIDER" --model "$EVAL_MODEL" --suite "${{ inputs.suite || 'profile' }}" $mode
           code=$?
           # 3 is NOT RUN. Without the secret: a warning and a neutral end (forks cannot read it).
           # With the secret: a failure, because a check that measured nothing must not look green.

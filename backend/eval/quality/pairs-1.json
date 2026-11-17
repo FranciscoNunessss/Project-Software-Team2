@@ -1,7 +1,7 @@
 {
  "version": 1,
  "suite": "pairs",
- "status": "DRAFT: ten pairs of the same intent, one vague and one complete (05 section 7.7, M7). The check: the completeness of the complete version is higher than that of the vague one. Synthetic tasks, not user data.",
+ "status": "DRAFT: ten pairs of the same intent, one vague and one complete (an assessor check; M7 of 05 section 7.7 measures the Prompt Coach and is NOT covered here). The check: the completeness of the complete version is higher than that of the vague one. Synthetic tasks, not user data.",
  "rubric": "rubric-2.0",
  "pairs": [
   {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, notifyProgressChange, type MemorySettings } from './api'
 import { ApiTokens } from './ApiTokens'
+import { ThemePicker } from './ThemePicker'
 import { PromptCoachToggle } from './PromptCoachToggle'
 import { DeleteAccount } from './DeleteAccount'
 import { AlwaysAnalyseToggle } from './AlwaysAnalyseToggle'
@@ -68,6 +69,7 @@ export function ProfileScreen({ onOpenPrivacy }: { onOpenPrivacy?: () => void })
         {settings.memory.map((entry,index) => <details className="memory-entry" key={entry.analysis_id}><summary>Assessment {index+1} · {entry.recommended_model ? `recommended ${entry.recommended_model} · ${entry.chosen_model ? `chosen ${entry.chosen_model}` : 'choice pending'}` : `recommended tier ${entry.recommended_capacity} · ${entry.chosen_capacity ? `chosen tier ${entry.chosen_capacity}` : 'choice pending'}`}</summary><dl>{Object.entries(entry.profile).map(([dimension,value]) => <div key={dimension}><dt>{dimension}</dt><dd>{value===null?'Undetermined':Array.isArray(value)?value.join(', '):value}</dd></div>)}</dl></details>)}
         <div className="history-delete">{forget ? <><p>Clear all learned memory? This cannot be undone. Your progress history and manually saved preferences remain available.</p><div className="history-actions"><button className="button button-danger" disabled={busy} onClick={() => void clear()}>Clear learned memory</button><button className="button button-secondary" disabled={busy} onClick={() => setForget(false)}>Cancel</button></div></> : <button className="button button-danger" disabled={busy || !settings.memory.length} onClick={() => setForget(true)}>Clear learned memory…</button>}</div>
       </section>
+      <ThemePicker />
       <section className="card profile-card-settings"><p className="eyebrow">Privacy</p><h2>How we handle your data</h2><p>Read what AdaptAI collects, who receives it, how long it is kept and how to use your rights.</p>{onOpenPrivacy && <button type="button" className="button button-secondary" onClick={onOpenPrivacy}>Read the Privacy Policy</button>}</section>
       <ApiTokens />
       <DeleteAccount email={email} />

@@ -34,6 +34,10 @@ A session that is still in use is never touched: opening it again, analysing or 
 2. Set `ADAPTAI_RETENTION_DAYS=365` in the backend's environment (Render). The first run at start-up deletes
    everything older at once: take a backup first if there is anything worth keeping.
 3. Deleted sessions cannot be restored.
+4. **Nobody is told.** A failed purge is only logged and retried a day later, and a person is not warned
+   before their history is deleted. That is acceptable while the setting is 0; before turning it on, add
+   the email warning above (SMTP, `docs/decision-pack.md` D2), or accept that the policy sentence is the
+   only notice.
 
 Roll back by setting it to 0; deleted data does not come back.
 

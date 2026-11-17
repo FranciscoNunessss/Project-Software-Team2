@@ -25,6 +25,8 @@ INTERVAL_SECONDS = 24 * 3600
 
 
 def cutoff(days: int, now: datetime | None = None) -> str:
+    # The result is compared as TEXT with the stored timestamps, which use exactly this format
+    # (UTC, milliseconds, "Z"). Change one and the other, or the comparison silently breaks.
     moment = (now or datetime.now(UTC)) - timedelta(days=days)
     return moment.strftime("%Y-%m-%dT%H:%M:%S.000Z")
 

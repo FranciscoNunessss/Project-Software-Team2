@@ -49,15 +49,25 @@ answer.
   comparable" and the baseline must be rebuilt.
 * **Provider outage or no key: NOT RUN.** More than 10% of analyses failing, or no analysis at all,
   is reported as NOT RUN with a warning and in the job summary; it is never worded as a pass.
-  Without the `GROQ_API_KEY` secret the job always says NOT RUN.
+  Without the `EVAL_GROQ_API_KEY` secret the job ends neutral with a warning annotation; with the
+  secret set, a NOT RUN **fails** the job, so a green check always means "measured".
+* The model is `openai/gpt-oss-20b`, the one production assesses with (`/api/providers`, 17 Nov).
+  A regression of the production model is therefore what the gate sees. Run another model by hand
+  with `--model` (its baseline is separate).
+* **Use a separate Groq account for CI**, not the production key: otherwise each pull request run
+  spends the free quota the users share.
+
+**What the gate measures.** Agreement with one reader's draft labels, not KR1.1 (16 of 20 correct
+recommendations). Read it as "did the assessor change", not "is the assessor right". 05 sections
+7.4 to 7.6 (Drive) have not been updated to point here; the owner of 05 should add the link.
 
 Exit codes of the script: 0 passed, accepted or no baseline yet; 1 regression; 3 NOT RUN.
 
 ## Use
 
 ```bash
-python scripts/run_quality_eval.py run --provider groq --model openai/gpt-oss-120b --subset
-python scripts/run_quality_eval.py run --provider groq --model openai/gpt-oss-120b --repeats 3 --update-baseline
+python scripts/run_quality_eval.py run --provider groq --model openai/gpt-oss-20b --subset
+python scripts/run_quality_eval.py run --provider groq --model openai/gpt-oss-20b --repeats 3 --update-baseline
 python scripts/run_quality_eval.py compare backend/eval/quality/reports/<file>.json
 ```
 
@@ -72,13 +82,15 @@ pull request that makes it, so the team reviews the number it will be held to.
 | Live run on LM Studio (Gemma 12B, subset) | 8 of 8 analyses, 81.5% agreement over 27 cells, no baseline yet |
 | For comparison, the study of 15 November (full set, 3 repeats) | 83% for the same model |
 | **No baseline is committed for Groq** | It needs a full run with the team's key; nobody has run it |
-| The `GROQ_API_KEY` secret | Not added by this change: until it is, CI says NOT RUN |
+| The `EVAL_GROQ_API_KEY` secret | Not added by this change: until it is, CI ends neutral with a warning |
 
 ## Decisions that belong to the team
 
-1. Add the `GROQ_API_KEY` secret to the repository (the free quota is 8000 tokens per minute: a
+1. Add the `EVAL_GROQ_API_KEY` secret to the repository (the free quota is 8000 tokens per minute: a
    subset run uses about 8 analyses, 20 000 tokens, over several minutes).
-2. Run the full set once with the team's key and commit the baseline.
+2. **The Team Lead runs the full set once, before the first merge that touches the assessor, with the
+   CI key, and commits the baseline in its own pull request.** Until then every run ends
+   NO_BASELINE (exit 0) and the gate blocks nothing.
 3. Make the job a required check only after step 2, otherwise every such pull request is blocked or
    shows NOT RUN.
 4. Replace the draft task set with the labelled set (OI-8) and rebuild the baseline.

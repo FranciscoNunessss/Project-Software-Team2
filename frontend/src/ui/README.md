@@ -140,3 +140,16 @@ Still to do in a later phase:
 - [ ] `PromptCoachBubble` still has its own pop-up logic (outside click, Escape, placement); move it onto `Popover`.
 - [ ] Replace hand-written `className="button button-…"` buttons on these screens with `Button`.
 - [ ] Fold the component tokens and fixed colours into fewer semantic tokens (this changes how things look, so it needs a design decision).
+
+## Themes
+
+Light (`:root`) and Dark (`.theme-dark`) live in `tokens.css`. The other themes (Midnight, Paper,
+Sage, Ocean, Neo, High contrast) live in `themes.css`: each sets about a dozen seed colours
+(`--t-bg`, `--t-surface`, `--t-ink`, `--t-muted`, `--t-line`, `--t-accent`, `--t-accent-ink`,
+`--t-danger`, `--t-success`, `--t-warn`, `--t-info`, `--t-shadow`) and one shared block derives
+every design token from them with `color-mix`. To add a theme: add a seed block and a name to the
+shared selector in `themes.css`, add it to `THEMES` in `src/theme.tsx`, and to the list in
+`e2e/themes.spec.ts`, which checks text, muted text, button and status contrast (4.5:1, 7:1 for
+High contrast). The choice is stored in `localStorage` under `adaptai-theme`; "System" follows
+`prefers-color-scheme`. Components still read tokens only.
+

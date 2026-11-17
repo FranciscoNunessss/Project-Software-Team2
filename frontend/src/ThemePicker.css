@@ -1,0 +1,10 @@
+.theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); margin-top: var(--space-3); }
+.theme-tile { display: grid; gap: 4px; text-align: left; padding: 10px; border: 1px solid var(--color-line); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-ink); }
+.theme-tile:hover { background: var(--color-hover); }
+.theme-tile[aria-checked='true'] { border-color: var(--color-accent); outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.theme-swatch { display: grid; place-items: center; height: 64px; border-radius: var(--radius-sm); border: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
+.theme-swatch-card { display: grid; gap: 5px; align-content: center; width: 72%; height: 62%; padding: 0 10px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, .18); }
+.theme-swatch-line { display: block; height: 5px; width: 100%; border-radius: 3px; }
+.theme-swatch-line.short { width: 60%; }
+.theme-name { font-weight: var(--weight-semibold, 600); font-size: var(--text-sm, 14px); }
+.theme-note { color: var(--color-muted); font-size: var(--text-xs, 12px); line-height: 1.4; }

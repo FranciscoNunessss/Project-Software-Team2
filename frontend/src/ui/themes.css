@@ -1,0 +1,257 @@
+/*
+ * Extra themes. Each theme sets about a dozen seed colours (--t-*); the one shared block below
+ * derives every design token from them, so a theme never repeats the 230 tokens of tokens.css.
+ * Light and Dark stay in tokens.css. The class goes on .app (see src/theme.ts).
+ * e2e/themes.spec.ts checks the contrast of text, muted text and buttons in every theme.
+ */
+
+.theme-midnight, .theme-paper, .theme-sage, .theme-ocean, .theme-neo, .theme-contrast {
+  --t-transparent: transparent;
+  --color-bg: var(--t-bg);
+  --color-surface: var(--t-surface);
+  --color-control: color-mix(in srgb, var(--t-ink) 4%, var(--t-surface));
+  --color-hover: color-mix(in srgb, var(--t-ink) 6%, var(--t-surface));
+  --color-hover-strong: color-mix(in srgb, var(--t-ink) 10%, var(--t-surface));
+  --color-text: var(--t-ink);
+  --color-ink: var(--t-ink);
+  --color-ink-max: var(--t-ink);
+  --color-heading-strong: var(--t-ink);
+  --color-heading: var(--t-ink);
+  --color-heading-soft: var(--t-ink);
+  --color-body: var(--t-ink);
+  --color-ink-soft: color-mix(in srgb, var(--t-ink) 82%, var(--t-surface));
+  --color-label: color-mix(in srgb, var(--t-muted) 100%, var(--t-surface));
+  --color-muted: var(--t-muted);
+  --color-muted-soft: var(--t-muted);
+  --color-muted-softer: var(--t-muted);
+  --color-subtle: color-mix(in srgb, var(--t-muted) 80%, var(--t-surface));
+  --color-caption: color-mix(in srgb, var(--t-muted) 85%, var(--t-surface));
+  --color-placeholder: color-mix(in srgb, var(--t-muted) 65%, var(--t-surface));
+  --color-line: var(--t-line);
+  --color-line-soft: color-mix(in srgb, var(--t-line) 70%, var(--t-surface));
+  --color-line-strong: var(--t-line);
+  --color-line-quiet: var(--t-line);
+  --color-line-control: color-mix(in srgb, var(--t-line) 80%, var(--t-ink));
+  --color-line-control-hover: var(--t-muted);
+  --color-accent: var(--t-accent);
+  --color-accent-hover: color-mix(in srgb, var(--t-accent) 86%, var(--t-ink));
+  --color-accent-strong: var(--t-accent);
+  --color-accent-ink: var(--t-accent-ink);
+  --color-focus: var(--t-accent);
+  --color-danger: var(--t-danger);
+  --color-danger-line: color-mix(in srgb, var(--t-danger) 70%, var(--t-surface));
+  --color-success: var(--t-success);
+  --color-success-soft: color-mix(in srgb, var(--t-success) 14%, var(--t-surface));
+  --color-warm: var(--t-warn);
+  --color-warm-soft: color-mix(in srgb, var(--t-warn) 14%, var(--t-surface));
+  --color-info: var(--t-info);
+  --color-info-soft: color-mix(in srgb, var(--t-info) 14%, var(--t-surface));
+  --color-scrim: color-mix(in srgb, var(--t-shadow) 45%, transparent);
+  --color-scrim-strong: color-mix(in srgb, var(--t-shadow) 55%, transparent);
+  --color-stale: var(--t-warn);
+  --color-backdrop: color-mix(in srgb, var(--t-shadow) 60%, transparent);
+  --sidebar-bg: color-mix(in srgb, var(--t-surface) 94%, var(--t-transparent));
+  --button-primary-bg: var(--t-accent);
+  --button-primary-bg-hover: color-mix(in srgb, var(--t-accent) 86%, var(--t-ink));
+  --button-secondary-bg: var(--t-surface);
+  --button-secondary-bg-hover: color-mix(in srgb, var(--t-ink) 5%, var(--t-surface));
+  --button-secondary-ink: color-mix(in srgb, var(--t-ink) 90%, var(--t-surface));
+  --button-secondary-ink-hover: var(--t-ink);
+  --button-danger-bg: var(--t-surface);
+  --button-danger-bg-hover: color-mix(in srgb, var(--t-ink) 5%, var(--t-surface));
+  --button-danger-ink: color-mix(in srgb, var(--t-ink) 85%, var(--t-surface));
+  --toggle-ink: color-mix(in srgb, var(--t-ink) 85%, var(--t-surface));
+  --status-label: var(--t-muted);
+  --status-dot: var(--t-ink);
+  --status-dot-ring: var(--t-line);
+  --status-degraded-ink: color-mix(in srgb, var(--t-ink) 75%, var(--t-surface));
+  --status-degraded-bg: transparent;
+  --status-degraded-line: var(--t-line);
+  --status-degraded-dot: var(--t-muted);
+  --status-degraded-ring: var(--t-line);
+  --composer-chat-ink: var(--t-ink);
+  --pill-bg: color-mix(in srgb, var(--t-ink) 8%, var(--t-surface));
+  --pill-ink: color-mix(in srgb, var(--t-ink) 82%, var(--t-surface));
+  --pill-ink-strong: color-mix(in srgb, var(--t-ink) 82%, var(--t-surface));
+  --pill-ink-soft: color-mix(in srgb, var(--t-ink) 82%, var(--t-surface));
+  --pill-ink-muted: color-mix(in srgb, var(--t-ink) 82%, var(--t-surface));
+  --icon-tile-bg: color-mix(in srgb, var(--t-ink) 8%, var(--t-surface));
+  --icon-tile-ink: var(--t-ink);
+  --icon-tile-ink-soft: color-mix(in srgb, var(--t-ink) 80%, var(--t-surface));
+  --note-bg: color-mix(in srgb, var(--t-ink) 5%, var(--t-surface));
+  --note-ink: color-mix(in srgb, var(--t-ink) 82%, var(--t-surface));
+  --inset-bg: color-mix(in srgb, var(--t-ink) 4%, var(--t-surface));
+  --well-bg: transparent;
+  --well-line: var(--t-line);
+  --well-ink: var(--t-muted);
+  --tooltip-bg: var(--t-ink);
+  --tooltip-ink: var(--t-surface);
+  --empty-bg: color-mix(in srgb, var(--t-surface) 60%, var(--t-bg));
+  --empty-line: var(--t-line);
+  --skeleton-bg: color-mix(in srgb, var(--t-ink) 10%, var(--t-surface));
+  --detail-ink: color-mix(in srgb, var(--t-ink) 78%, var(--t-surface));
+  --detail-ink-soft: color-mix(in srgb, var(--t-ink) 78%, var(--t-surface));
+  --detail-ink-strong: color-mix(in srgb, var(--t-ink) 78%, var(--t-surface));
+  --detail-ink-max: color-mix(in srgb, var(--t-ink) 78%, var(--t-surface));
+  --footer-ink: var(--t-muted);
+  --footer-link-ink: var(--t-muted);
+  --footer-brand: var(--t-ink);
+  --settings-eyebrow-ink: var(--t-muted);
+  --segments-bg: color-mix(in srgb, var(--t-ink) 5%, var(--t-surface));
+  --segments-line: var(--t-line);
+  --segment-selected-bg: var(--t-surface);
+  --segment-selected-ink: var(--t-ink);
+  --override-applied-bg: var(--t-surface);
+  --override-applied-line: var(--t-line);
+  --track-bg: color-mix(in srgb, var(--t-ink) 9%, var(--t-surface));
+  --bar-fill: var(--t-accent);
+  --tier-line: color-mix(in srgb, var(--t-line) 80%, var(--t-ink));
+  --fit-ink: color-mix(in srgb, var(--t-ink) 78%, var(--t-surface));
+  --fit-ink-ineligible: color-mix(in srgb, var(--t-muted) 60%, var(--t-surface));
+  --fit-track: color-mix(in srgb, var(--t-ink) 8%, var(--t-surface));
+  --fit-fill-strong: var(--t-accent);
+  --status-ok-bg: color-mix(in srgb, var(--t-success) 14%, var(--t-surface));
+  --status-ok-ink: color-mix(in srgb, var(--t-success) 70%, var(--t-ink));
+  --status-ok-line: color-mix(in srgb, var(--t-success) 35%, var(--t-surface));
+  --status-warn-bg: color-mix(in srgb, var(--t-warn) 14%, var(--t-surface));
+  --status-warn-ink: color-mix(in srgb, var(--t-warn) 70%, var(--t-ink));
+  --status-warn-line: color-mix(in srgb, var(--t-warn) 35%, var(--t-surface));
+  --status-bad-bg: color-mix(in srgb, var(--t-danger) 14%, var(--t-surface));
+  --status-bad-ink: color-mix(in srgb, var(--t-danger) 70%, var(--t-ink));
+  --status-bad-line: color-mix(in srgb, var(--t-danger) 35%, var(--t-surface));
+  --status-warn-bg-soft: color-mix(in srgb, var(--t-warn) 9%, var(--t-surface));
+  --chart-grid: color-mix(in srgb, var(--t-ink) 10%, var(--t-surface));
+  --chart-ink: var(--t-accent);
+  --chart-area-opacity: .6;
+  --chart-analysed: var(--t-muted);
+  --chart-confirmed: var(--t-success);
+  --choice-pending-bg: color-mix(in srgb, var(--t-ink) 6%, var(--t-surface));
+  --choice-pending-ink: var(--t-ink);
+  --trend-flat-bg: color-mix(in srgb, var(--t-ink) 8%, var(--t-surface));
+  --trend-flat-ink: color-mix(in srgb, var(--t-ink) 85%, var(--t-surface));
+  --trend-up-bg: color-mix(in srgb, var(--t-success) 14%, var(--t-surface));
+  --trend-up-ink: color-mix(in srgb, var(--t-success) 70%, var(--t-ink));
+  --trend-up-strong: var(--t-success);
+  --trend-down-bg: color-mix(in srgb, var(--t-danger) 14%, var(--t-surface));
+  --trend-down-ink: color-mix(in srgb, var(--t-danger) 70%, var(--t-ink));
+  --trend-down-strong: var(--t-danger);
+  --provider-groq-line: color-mix(in srgb, var(--t-success) 55%, var(--t-line));
+  --provider-groq-line-hover: var(--t-ink);
+  --auth-toggle-bg: var(--t-surface);
+  --auth-toggle-ink: color-mix(in srgb, var(--t-ink) 90%, var(--t-surface));
+  --auth-toggle-ink-hover: var(--t-ink);
+  --auth-toggle-line: var(--t-line);
+  --auth-toggle-line-hover: var(--t-muted);
+  --auth-error-ink: var(--t-danger);
+  --auth-error-line: color-mix(in srgb, var(--t-danger) 60%, var(--t-surface));
+  --coach-bg: var(--t-surface);
+  --coach-ink: var(--t-ink);
+  --coach-muted: var(--t-muted);
+  --coach-line: var(--t-line);
+  --coach-sunk: color-mix(in srgb, var(--t-ink) 6%, var(--t-surface));
+  --coach-accent: var(--t-accent);
+  --coach-accent-ink: var(--t-accent-ink);
+  --coach-warn: var(--t-warn);
+  --coach-error: var(--t-danger);
+  --coach-ins: color-mix(in srgb, var(--t-success) 24%, var(--t-surface));
+  --coach-del: color-mix(in srgb, var(--t-danger) 24%, var(--t-surface));
+  --coach-mark: color-mix(in srgb, var(--t-warn) 30%, var(--t-surface));
+  --switch-off: color-mix(in srgb, var(--t-muted) 60%, var(--t-surface));
+  --switch-on: var(--t-accent);
+  --switch-knob: var(--t-surface);
+  --badge-ok-line: color-mix(in srgb, var(--t-success) 45%, var(--t-surface));
+  --badge-ok-ink: color-mix(in srgb, var(--t-success) 75%, var(--t-ink));
+  --badge-info-line: color-mix(in srgb, var(--t-info) 45%, var(--t-surface));
+  --badge-info-ink: color-mix(in srgb, var(--t-info) 75%, var(--t-ink));
+  --badge-warn-line: color-mix(in srgb, var(--t-warn) 45%, var(--t-surface));
+  --badge-warn-ink: color-mix(in srgb, var(--t-warn) 75%, var(--t-ink));
+  --badge-bad-line: color-mix(in srgb, var(--t-danger) 45%, var(--t-surface));
+  --badge-bad-ink: color-mix(in srgb, var(--t-danger) 75%, var(--t-ink));
+  --grey-5e: color-mix(in srgb, var(--t-ink) 70%, var(--t-surface));
+  --grey-60: color-mix(in srgb, var(--t-ink) 66%, var(--t-surface));
+  --grey-65: color-mix(in srgb, var(--t-ink) 62%, var(--t-surface));
+  --grey-66: color-mix(in srgb, var(--t-ink) 60%, var(--t-surface));
+  --grey-72: color-mix(in srgb, var(--t-ink) 55%, var(--t-surface));
+  --grey-77: color-mix(in srgb, var(--t-ink) 50%, var(--t-surface));
+  --grey-9a: color-mix(in srgb, var(--t-ink) 40%, var(--t-surface));
+  --grey-a0: color-mix(in srgb, var(--t-ink) 36%, var(--t-surface));
+  --grey-a1: color-mix(in srgb, var(--t-ink) 35%, var(--t-surface));
+  --grey-c5: color-mix(in srgb, var(--t-ink) 25%, var(--t-surface));
+  --grey-ca: color-mix(in srgb, var(--t-ink) 22%, var(--t-surface));
+  --grey-f8: color-mix(in srgb, var(--t-ink) 4%, var(--t-surface));
+  --green: var(--t-muted);
+  --blue: var(--t-accent);
+  --blue-dark: color-mix(in srgb, var(--t-accent) 86%, var(--t-ink));
+  --blue-soft: color-mix(in srgb, var(--t-ink) 6%, var(--t-surface));
+  --ink: var(--t-ink);
+  --muted: var(--t-muted);
+  --line: var(--t-line);
+  --surface: var(--t-surface);
+  --shadow-sidebar: 0 10px 35px color-mix(in srgb, var(--t-shadow) 8%, transparent);
+  --shadow-card: 0 8px 24px color-mix(in srgb, var(--t-shadow) 7%, transparent);
+  --shadow-raised: 0 12px 38px color-mix(in srgb, var(--t-shadow) 10%, transparent);
+  --shadow-raised-compact: 0 8px 24px color-mix(in srgb, var(--t-shadow) 8%, transparent);
+  --shadow-button: 0 4px 12px color-mix(in srgb, var(--t-shadow) 18%, transparent);
+  --shadow-popover: 0 16px 50px color-mix(in srgb, var(--t-shadow) 16%, transparent);
+  --shadow-panel: 0 24px 60px color-mix(in srgb, var(--t-shadow) 22%, transparent);
+  --shadow-drawer: 12px 0 40px color-mix(in srgb, var(--t-shadow) 14%, transparent);
+  --shadow-tier: 0 8px 24px color-mix(in srgb, var(--t-shadow) 10%, transparent);
+  --shadow-segment-selected: 0 1px 4px color-mix(in srgb, var(--t-shadow) 14%, transparent);
+  --shadow-coach: 0 16px 40px color-mix(in srgb, var(--t-shadow) 20%, transparent);
+  --shadow-dialog: 0 24px 80px color-mix(in srgb, var(--t-shadow) 30%, transparent);
+  --shadow-tooltip: 0 8px 22px color-mix(in srgb, var(--t-shadow) 22%, transparent);
+  --shadow-override: none;
+}
+
+.theme-midnight {
+  color-scheme: dark;
+  --t-bg: #0b1020; --t-surface: #141b31; --t-ink: #e9edfa; --t-muted: #98a4c8; --t-line: #27325a;
+  --t-accent: #8f82ff; --t-accent-ink: #0b1020;
+  --t-danger: #ff8f7f; --t-success: #6fe3b5; --t-warn: #f2c46e; --t-info: #7fb6ff; --t-shadow: #000;
+}
+
+.theme-paper {
+  color-scheme: light;
+  --t-bg: #f3eee4; --t-surface: #fbf8f1; --t-ink: #2b2520; --t-muted: #75695d; --t-line: #e1d7c6;
+  --t-accent: #b4502f; --t-accent-ink: #ffffff;
+  --t-danger: #b3382c; --t-success: #3c7a55; --t-warn: #9d6a12; --t-info: #3d6890; --t-shadow: #5a4630;
+}
+
+.theme-sage {
+  color-scheme: light;
+  --t-bg: #edf1ea; --t-surface: #f8faf6; --t-ink: #1e2a22; --t-muted: #5f6e63; --t-line: #d3dccf;
+  --t-accent: #3d7a59; --t-accent-ink: #ffffff;
+  --t-danger: #b04234; --t-success: #2f7a50; --t-warn: #8f6a1a; --t-info: #3a6a8a; --t-shadow: #27412f;
+}
+
+.theme-ocean {
+  color-scheme: light;
+  --t-bg: #eaf2fb; --t-surface: #ffffff; --t-ink: #0f2238; --t-muted: #566b82; --t-line: #d3e0ef;
+  --t-accent: #1d6fdb; --t-accent-ink: #ffffff;
+  --t-danger: #c0392b; --t-success: #1e7a52; --t-warn: #9a6a0a; --t-info: #1d6fdb; --t-shadow: #0f3a6b;
+}
+
+.theme-neo {
+  color-scheme: light;
+  --t-bg: #fff4c9; --t-surface: #ffffff; --t-ink: #111111; --t-muted: #4b4b4b; --t-line: #111111;
+  --t-accent: #ff4f8b; --t-accent-ink: #111111;
+  --t-danger: #d62828; --t-success: #1b7f4b; --t-warn: #a65f00; --t-info: #1f54d6; --t-shadow: #111111;
+}
+
+.theme-contrast {
+  color-scheme: dark;
+  --t-bg: #000000; --t-surface: #000000; --t-ink: #ffffff; --t-muted: #d9d9d9; --t-line: #ffffff;
+  --t-accent: #ffe14d; --t-accent-ink: #000000;
+  --t-danger: #ff7b6b; --t-success: #5dffa0; --t-warn: #ffd23f; --t-info: #7fd0ff; --t-shadow: #000;
+}
+
+
+/* Character beyond colour: each theme may add a little, always through tokens. */
+.app.theme-midnight { background: radial-gradient(1100px 600px at 85% -10%, color-mix(in srgb, var(--t-accent) 22%, transparent), transparent 60%), radial-gradient(900px 520px at -10% 110%, color-mix(in srgb, var(--t-info) 16%, transparent), transparent 60%), var(--color-bg); }
+.theme-paper h1, .theme-paper h2 { font-family: Georgia, 'Iowan Old Style', 'Times New Roman', serif; letter-spacing: -.02em; }
+.theme-neo { --radius-sm: 4px; --radius-control: 4px; --radius-md: 4px; --radius-bubble: 6px; --radius-lg: 6px; --radius-xl: 6px;
+  --shadow-card: 4px 4px 0 var(--t-ink); --shadow-raised: 5px 5px 0 var(--t-ink); --shadow-raised-compact: 3px 3px 0 var(--t-ink); --shadow-button: 3px 3px 0 var(--t-ink); --shadow-sidebar: 4px 0 0 var(--t-ink); --shadow-panel: 8px 8px 0 var(--t-ink); --shadow-tier: 4px 4px 0 var(--t-ink); --shadow-popover: 4px 4px 0 var(--t-ink); }
+.theme-neo h1, .theme-neo h2, .theme-neo h3 { font-weight: 800; }
+.theme-contrast { --shadow-card: none; --shadow-raised: none; --shadow-raised-compact: none; --shadow-sidebar: none; --shadow-panel: none; --shadow-tier: none; --chart-area-opacity: .35; }
+.theme-contrast a { text-decoration: underline; }
+.theme-contrast :focus-visible { outline-width: 4px; }

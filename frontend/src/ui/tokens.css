@@ -294,6 +294,7 @@
   --color-line-control: #484848;
   --color-line-control-hover: #777777;
 
+  --color-danger: #ef8b7d;           /* red text readable on the dark surfaces (4.5:1) */
   --color-accent: #ededed;
   --color-accent-hover: #ffffff;
   --color-accent-strong: #f2f2f2;

@@ -42,3 +42,7 @@ e2e/playwright-report/
 
 # Quality evaluation reports (ids, levels and costs; CI keeps them as artifacts)
 backend/eval/quality/reports/
+
+# Local acceptance run of the VS Code extension (docs/vscode-extension-acceptance-codex.md)
+acceptance-codex-report.md
+acceptance-codex-screens/

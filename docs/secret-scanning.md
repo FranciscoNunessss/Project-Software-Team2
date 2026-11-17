@@ -16,8 +16,15 @@ finds as leaked: revoke the key first, then decide whether to rewrite history.
 ## What it does not do
 
 * It does not see the contents of GitHub or Render secrets, only what is committed.
-* It cannot tell a real key from a look-alike in a file the allowlist skips (`.env.example`, the
-  tests, `e2e/`). Keep real values out of those too.
+* `.env.example` is skipped by path. In the tests, `e2e/` and the extension tests a finding is hidden
+  only when the **path and a marker in the value both match** (`synthetic`, `not_real`, `test-key`,
+  ...; see `.gitleaks.toml`). A real key pasted into a test file has no marker and is reported.
+  Name a fake value with one of the markers, or add a narrow regex for it; do not allow a folder.
+* Every run first plants a random GitHub-token-shaped value in a throw-away file and fails if
+  gitleaks does not report it, so a green scan cannot come from a scanner that stopped seeing keys.
+* A push that creates a branch scans only its newest commit, not the whole history. Audit the whole
+  history once with the manual run ("full history") before the first merge, so the first push to
+  `develop` holds no surprise.
 * GitHub's own secret scanning and push protection, if enabled by an administrator of the repository,
   are a second layer; this workflow does not need them and does not prove they are on.
 

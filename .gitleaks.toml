@@ -9,10 +9,22 @@ useDefault = true
 description = "Documented placeholders and test values"
 paths = [
   '''\.env\.example$''',
-  '''backend/tests/.*''',
-  '''e2e/.*''',
 ]
 regexes = [
   '''sb_publishable_[A-Za-z0-9_\-]+''',  # Supabase publishable keys are public by design
   '''adaptai_pat_x+''',                    # token-shaped test values
+]
+
+# Test files may hold look-alike keys, but only values that say they are fake. A path alone does not
+# hide a finding: a real key pasted into a test file has no such marker and is still reported.
+[[allowlists]]
+description = "Fake keys in tests and end-to-end tests (path AND a marker in the value)"
+condition = "AND"
+paths = [
+  '''backend/tests/.*''',
+  '''e2e/.*''',
+  '''vscode-extension/test/.*''',
+]
+regexes = [
+  '''(?i)(synthetic|not[_-]?real|never[_-]?leak|be-ignored|test-key|sk-or-e2e|sk-or-user|sk-or-personal|hunter2)''',
 ]

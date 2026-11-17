@@ -66,6 +66,15 @@ def no_rate_limits_between_tests():
 
 @pytest.fixture(autouse=True)
 def isolated_database(tmp_path, monkeypatch):
+    # The per-person limits (app/quotas.py) are tested in test_user_limits.py; the other tests
+    # make many calls in a minute as one person, so they run without them.
+    for name in (
+        "ADAPTAI_USER_ANALYSES_PER_MINUTE",
+        "ADAPTAI_USER_ANALYSES_PER_DAY",
+        "ADAPTAI_USER_MESSAGES_PER_MINUTE",
+        "ADAPTAI_USER_MESSAGES_PER_DAY",
+    ):
+        monkeypatch.setenv(name, "0")
     schema = "test_" + uuid4().hex
     monkeypatch.setenv("ADAPTAI_DATABASE_URL", TEST_DATABASE_URL)
     monkeypatch.setenv("ADAPTAI_DATABASE_SCHEMA", schema)

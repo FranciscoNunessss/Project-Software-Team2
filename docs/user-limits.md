@@ -17,7 +17,7 @@ chatted. They are small next to analyses.
 
 | Limit | Default | Setting |
 |---|---|---|
-| Analyses per minute, per person | 2 | `ADAPTAI_USER_ANALYSES_PER_MINUTE` |
+| Analyses per minute, per person | 4 | `ADAPTAI_USER_ANALYSES_PER_MINUTE` |
 | Analyses per day (24 hours), per person | 30 | `ADAPTAI_USER_ANALYSES_PER_DAY` |
 | Chat answers per minute, per person | 10 | `ADAPTAI_USER_MESSAGES_PER_MINUTE` |
 | Chat answers per day, per person | 150 | `ADAPTAI_USER_MESSAGES_PER_DAY` |

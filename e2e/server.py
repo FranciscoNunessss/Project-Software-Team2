@@ -234,6 +234,11 @@ def build():
     settings = Settings(
         _env_file=None,
         groq_api_key="e2e-fake-key",
+        # The specs run many analyses in a minute as one person: limits are tested in the backend.
+        user_analyses_per_minute=0,
+        user_analyses_per_day=0,
+        user_messages_per_minute=0,
+        user_messages_per_day=0,
         browser_origin=os.environ.get("E2E_WEB_ORIGIN", "http://127.0.0.1:8543"),
     )
     return create_app(

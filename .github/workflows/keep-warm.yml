@@ -1,0 +1,29 @@
+name: Keep warm
+# The free Render service sleeps after 15 minutes without traffic, and the first request after that
+# took 42.5 s on 16-17 November 2026. This asks /api/health every 10 minutes during the day so a
+# person or a demo does not meet that wait. Docs: docs/hosting-plan.md ("Keeping the free server awake").
+# GitHub runs a schedule only from the default branch (main) and pauses it after 60 days without
+# repository activity. It needs the repository variable API_ORIGIN (the same one the deploy uses);
+# without it the job says so and does nothing.
+on:
+  schedule:
+    - cron: "*/10 5-21 * * *" # every 10 minutes, 05:00 to 21:59 UTC
+  workflow_dispatch:
+permissions: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      API_ORIGIN: ${{ vars.API_ORIGIN }}
+    steps:
+      - name: Ask /api/health
+        run: |
+          if [ -z "$API_ORIGIN" ]; then
+            echo "::warning title=Keep warm::the repository variable API_ORIGIN is not set, nothing was pinged"
+            exit 0
+          fi
+          case "$API_ORIGIN" in https://*) ;; *) echo "::error::API_ORIGIN must start with https://"; exit 1 ;; esac
+          # A cold start can take a minute: wait for it, and fail the run if the service stays down.
+          curl -fsS --retry 3 --retry-delay 20 --max-time 90 "${API_ORIGIN%/}/api/health"
+          echo

@@ -90,3 +90,22 @@ services. No paid subscription should be assumed from this proposal.
 - [Railway plans](https://docs.railway.com/pricing/plans)
 - [Railway Dockerfiles](https://docs.railway.com/builds/dockerfiles)
 - [Railway private networking](https://docs.railway.com/networking/private-networking)
+
+## Keeping the free server awake
+
+The Render Free service sleeps after 15 minutes without traffic. The first request afterwards took
+42.5 s on 16 to 17 November 2026 (67 s in another measurement), warm requests take about 0.1 s.
+`.github/workflows/keep-warm.yml` asks `/api/health` every 10 minutes between 05:00 and 21:59 UTC,
+so the service stays awake during the day and the night is left to sleep.
+
+* It needs the repository variable `API_ORIGIN` (the deploy uses the same one). Without it the job
+  warns and does nothing.
+* GitHub runs scheduled workflows only from the default branch, so it starts to work when this change
+  reaches `main`. It pauses itself after 60 days without activity in the repository.
+* The repository is public, so the runs cost no Actions minutes. Render Free gives 750 instance hours
+  a month, enough for one service awake the whole month.
+* **It does not keep the database awake.** `/api/health` does not touch it. A Supabase Free project
+  pauses after a week without database activity; real use keeps it awake, a quiet holiday week might not.
+* Pinging a free service to defeat its sleep is a use the platform tolerates today, not one it
+  promises. If Render objects, remove the workflow; nothing else depends on it. The paid plan (7 USD a
+  month) removes the sleep for good.

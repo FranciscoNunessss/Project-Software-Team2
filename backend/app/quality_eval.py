@@ -74,6 +74,33 @@ def score(rows: list[dict], expected: dict[str, dict[str, int]]) -> dict:
     }
 
 
+def score_pairs(rows: list[dict]) -> dict:
+    """M7: for each pair of the same intent, the complete version must be more complete.
+
+    ``rows``: one per analysis, ``{"task": pair id, "repeat", "variant": "vague" or "complete",
+    "completeness"}`` or ``{"task", "variant", "error"}``. ``agreement`` is the share of pairs
+    (and repeats) in which the complete version scored higher; a pair with a failed analysis is not
+    counted. The numbers measure the assessor, not the Prompt Coach.
+    """
+    pairs: dict[tuple, dict] = defaultdict(dict)
+    failed = 0
+    for row in rows:
+        if "error" in row or "completeness" not in row:
+            failed += 1
+            continue
+        pairs[(row["task"], row.get("repeat", 0))][row["variant"]] = row["completeness"]
+    whole = [pair for pair in pairs.values() if {"vague", "complete"} <= set(pair)]
+    ordered = sum(pair["complete"] > pair["vague"] for pair in whole)
+    cell = {
+        "n": len(whole),
+        "agreement": round(100 * ordered / len(whole), 1) if whole else None,
+        "within_1": None,
+        "mean_abs_error": None,
+        "undetermined": 0,
+    }
+    return {"analyses": len(rows), "failed": failed, "overall": cell, "by_dimension": {}}
+
+
 def run_status(metrics: dict) -> str:
     """``not_run`` when too many analyses failed to say anything about quality."""
     analyses = metrics["analyses"]
@@ -105,11 +132,13 @@ def compare(
             "verdict": NO_BASELINE,
             "reason": "no baseline for this model yet: this run can become it",
         }
-    same = all(baseline.get(key) == current.get(key) for key in ("task_set", "rubric", "model"))
+    same = all(
+        baseline.get(key) == current.get(key) for key in ("task_set", "rubric", "model")
+    ) and (baseline.get("suite", "profile") == current.get("suite", "profile"))
     if not same:
         return {
             "verdict": NOT_COMPARABLE,
-            "reason": "the task set, the rubric or the model differs from the baseline",
+            "reason": "the suite, the task set, the rubric or the model differs from the baseline",
         }
     before = baseline["metrics"]["overall"]["agreement"]
     now = current["metrics"]["overall"]["agreement"]

@@ -1,0 +1,68 @@
+{
+ "version": 1,
+ "suite": "pairs",
+ "status": "DRAFT: ten pairs of the same intent, one vague and one complete (05 section 7.7, M7). The check: the completeness of the complete version is higher than that of the vague one. Synthetic tasks, not user data.",
+ "rubric": "rubric-2.0",
+ "pairs": [
+  {
+   "id": "email",
+   "vague": "Write an email.",
+   "complete": "Write a polite email to our supplier asking to move Friday's delivery to next Tuesday because of a public holiday.",
+   "subset": true
+  },
+  {
+   "id": "summary",
+   "vague": "Summarise it.",
+   "complete": "Summarise this paragraph in three bullet points for a manager: 'Our two warehouses shipped 12,000 parcels in October, 8% more than in September. Late deliveries fell from 6% to 4%. The Porto warehouse had two days of power cuts.'",
+   "subset": false
+  },
+  {
+   "id": "code",
+   "vague": "Fix my code.",
+   "complete": "Fix this Python function so that it returns the sum instead of None: def add(a, b): a + b",
+   "subset": true
+  },
+  {
+   "id": "translate",
+   "vague": "Translate this.",
+   "complete": "Translate 'Where is the nearest train station?' into Portuguese.",
+   "subset": false
+  },
+  {
+   "id": "trip",
+   "vague": "Plan something for the weekend.",
+   "complete": "Plan a two-day trip to Porto for two adults with a budget of 300 euros, travelling by train, who like museums and food.",
+   "subset": false
+  },
+  {
+   "id": "sql",
+   "vague": "Write a query.",
+   "complete": "Write a PostgreSQL query that returns the ten customers with the highest total orders in 2025, from customers(id, name) and orders(customer_id, total, created_at).",
+   "subset": true
+  },
+  {
+   "id": "essay",
+   "vague": "Write about climate.",
+   "complete": "Write 200 words for secondary-school students on how rising sea levels affect coastal cities.",
+   "subset": false
+  },
+  {
+   "id": "data",
+   "vague": "Analyse the data.",
+   "complete": "Calculate the mean and the median of 4, 8, 15, 16, 23, 42 and say which one describes the typical value better.",
+   "subset": false
+  },
+  {
+   "id": "decision",
+   "vague": "Should I do it?",
+   "complete": "Should I accept a job offer of 45,000 euros a year in Lisbon over my current 40,000 euro job in Porto, if the new job has no remote work?",
+   "subset": true
+  },
+  {
+   "id": "recipe",
+   "vague": "Give me a recipe.",
+   "complete": "Give me a vegetarian dinner recipe for four people using chickpeas and spinach, ready in 30 minutes.",
+   "subset": false
+  }
+ ]
+}

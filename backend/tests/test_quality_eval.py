@@ -111,3 +111,67 @@ def test_the_task_set_is_well_formed_and_holds_no_user_data():
         assert all(level in (1, 2, 3) for level in task["expected"].values())
     assert 0 < sum(task["subset"] for task in document["tasks"]) < len(ids)
     assert "DRAFT" in document["status"]
+
+
+def pair_row(task, variant, completeness, repeat=0, **extra):
+    return {
+        "task": task,
+        "repeat": repeat,
+        "variant": variant,
+        "completeness": completeness,
+        **extra,
+    }
+
+
+def test_pairs_count_how_often_the_complete_version_is_more_complete():
+    rows = [
+        pair_row("a", "vague", 40),
+        pair_row("a", "complete", 80),
+        pair_row("b", "vague", 60),
+        pair_row("b", "complete", 60),
+    ]
+    metrics = qe.score_pairs(rows)
+    assert metrics["overall"]["n"] == 2 and metrics["overall"]["agreement"] == 50.0
+    assert metrics["failed"] == 0 and metrics["analyses"] == 4
+
+
+def test_a_pair_with_a_failed_analysis_is_not_counted_and_an_outage_is_not_run():
+    rows = [pair_row("a", "vague", 40), {"task": "a", "variant": "complete", "error": "x"}]
+    metrics = qe.score_pairs(rows)
+    assert metrics["overall"]["n"] == 0 and metrics["overall"]["agreement"] is None
+    assert metrics["failed"] == 1
+    outage = [{"task": "a", "variant": "vague", "error": "x"}] * 5
+    assert qe.run_status(qe.score_pairs(outage)) == qe.NOT_RUN
+
+
+def test_repeats_of_a_pair_are_scored_separately():
+    rows = [
+        pair_row("a", "vague", 40, repeat=0),
+        pair_row("a", "complete", 80, repeat=0),
+        pair_row("a", "vague", 70, repeat=1),
+        pair_row("a", "complete", 50, repeat=1),
+    ]
+    assert qe.score_pairs(rows)["overall"]["agreement"] == 50.0
+
+
+def test_a_baseline_of_another_suite_is_not_comparable():
+    profile = report(85)
+    pairs = report(85, suite="pairs")
+    assert qe.compare(profile, report(80))["verdict"] == qe.PASS
+    assert qe.compare(profile, pairs)["verdict"] == qe.NOT_COMPARABLE
+
+
+def test_the_injection_and_pairs_sets_are_well_formed_and_hold_no_user_data():
+    folder = Path(__file__).resolve().parents[1] / "eval/quality"
+    injection = json.loads((folder / "injection-1.json").read_text(encoding="utf-8"))
+    assert injection["suite"] == "injection" and "DRAFT" in injection["status"]
+    ids = [task["id"] for task in injection["tasks"]]
+    assert len(ids) == len(set(ids)) == 8
+    for task in injection["tasks"]:
+        assert task["expected"] and set(task["expected"]) <= set(qe.DIMENSIONS)
+    pairs = json.loads((folder / "pairs-1.json").read_text(encoding="utf-8"))
+    assert pairs["suite"] == "pairs" and "DRAFT" in pairs["status"]
+    assert len(pairs["pairs"]) == 10 == len({pair["id"] for pair in pairs["pairs"]})
+    for pair in pairs["pairs"]:
+        assert len(pair["vague"]) < len(pair["complete"])
+    assert 0 < sum(pair["subset"] for pair in pairs["pairs"]) < 10

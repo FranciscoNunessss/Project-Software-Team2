@@ -230,3 +230,16 @@ is deleted with the account or the evaluation.
 
 
 11 November 2026: the user-facing Privacy Policy (draft v0.1) is `frontend/src/content/privacy-policy.md`, shown in the app from the footer, Profile and the sign-in screen. It describes the behaviour documented in this file; items marked TO CONFIRM need AO/PO decisions, and there is still no self-service account deletion.
+
+## Models that run on the user's computer (ADR-015, proposed)
+
+A configuration may be set to run its model on the user's own computer through their VS Code extension. The text of a request is sent from the backend to that user's extension and from there to the LM Studio on that computer; it is held in memory only while the request is open (a queue per user, on one backend instance) and is not stored for this reason. Nothing is opened to the internet, and a request is only ever given to the extension of the account that made it. `llm_configs.execution` (`server` or `client`) is the only thing stored.
+
+## API tokens (ADR-013, proposed)
+
+`api_tokens` holds, per personal token, its name, a SHA-256 hash, the first 16 characters (to
+recognise it in a list), creation, expiry, last use (updated at most once a minute) and revocation
+time. The token itself is shown once and never stored. Rows are deleted with the account. A token
+is created and revoked only from a browser session, never by another token. It is used by the
+VS Code extension (`vscode-extension/`), which keeps it in the editor's SecretStorage, bound to the
+backend that issued it. No task text is stored because of a token.

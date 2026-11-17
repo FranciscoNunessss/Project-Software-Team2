@@ -3,7 +3,10 @@ name: Quality evaluation
 # expected levels of the labelled task set and compares the result with the last baseline
 # (backend/eval/quality/baselines). A drop of more than 5 percentage points fails the job unless
 # the Architecture Owner accepted it in an ADR (backend/eval/quality/accepted.json).
-# If the provider is down or there is no key, the job says NOT RUN: it never reports a pass.
+# If there is no key the job ends neutral with a warning annotation; if there IS a key and nothing
+# could be measured (provider down) the job fails, so a green check always means "measured".
+# The key is EVAL_GROQ_API_KEY: a separate Groq account from production, so that CI never spends
+# the quota of the users (8000 tokens a minute).
 # Docs: docs/quality-eval.md
 on:
   pull_request:
@@ -22,6 +25,11 @@ on:
         description: "Run the full set with 3 repeats (before a milestone)"
         type: boolean
         default: false
+      suite:
+        description: "Which suite to run (a pull request always runs profile)"
+        type: choice
+        options: [profile, injection, pairs]
+        default: profile
 permissions:
   contents: read
 jobs:
@@ -30,8 +38,9 @@ jobs:
     timeout-minutes: 30
     env:
       EVAL_PROVIDER: groq
-      EVAL_MODEL: openai/gpt-oss-120b
-      ADAPTAI_GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      EVAL_MODEL: openai/gpt-oss-20b  # the model production assesses with
+      ADAPTAI_GROQ_API_KEY: ${{ secrets.EVAL_GROQ_API_KEY }}
+      HAS_EVAL_KEY: ${{ secrets.EVAL_GROQ_API_KEY != '' }}
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v7
@@ -43,10 +52,17 @@ jobs:
           mode="--subset"
           if [ "${{ inputs.full }}" = "true" ]; then mode="--repeats 3"; fi
           set +e
-          uv run python scripts/run_quality_eval.py run --provider "$EVAL_PROVIDER" --model "$EVAL_MODEL" $mode
+          uv run python scripts/run_quality_eval.py run --provider "$EVAL_PROVIDER" --model "$EVAL_MODEL" --suite "${{ inputs.suite || 'profile' }}" $mode
           code=$?
-          # 3 is NOT RUN: shown as a warning and in the summary, never as a pass. 1 is a regression.
-          if [ "$code" -eq 3 ]; then exit 0; fi
+          # 3 is NOT RUN. Without the secret: a warning and a neutral end (forks cannot read it).
+          # With the secret: a failure, because a check that measured nothing must not look green.
+          if [ "$code" -eq 3 ]; then
+            if [ "$HAS_EVAL_KEY" != "true" ]; then
+              echo "::warning title=Quality eval NOT RUN::EVAL_GROQ_API_KEY is not set; nothing was measured."
+              exit 0
+            fi
+            echo "::error title=Quality eval NOT RUN::The key is set but the run could not measure (provider outage or more than 10% failed)."
+          fi
           exit "$code"
       - uses: actions/upload-artifact@v4
         if: always()

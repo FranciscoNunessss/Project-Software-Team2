@@ -1,0 +1,35 @@
+name: VS Code extension
+on:
+  push:
+    paths: ['vscode-extension/**', '.github/workflows/vscode-extension.yml']
+  pull_request:
+    paths: ['vscode-extension/**', '.github/workflows/vscode-extension.yml']
+permissions:
+  contents: read
+jobs:
+  extension:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: vscode-extension
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: vscode-extension/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      # The unit and page-flow tests need no backend; the integration file skips itself without ADAPTAI_TEST_BACKEND.
+      - run: pnpm test
+      - name: Package the .vsix
+        run: pnpm package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adaptai-vsix
+          path: vscode-extension/*.vsix
+          if-no-files-found: error

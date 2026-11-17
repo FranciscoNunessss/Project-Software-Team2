@@ -1,0 +1,57 @@
+name: Quality evaluation
+# A quality eval with a real model, not a contract test: it scores the task profile against the
+# expected levels of the labelled task set and compares the result with the last baseline
+# (backend/eval/quality/baselines). A drop of more than 5 percentage points fails the job unless
+# the Architecture Owner accepted it in an ADR (backend/eval/quality/accepted.json).
+# If the provider is down or there is no key, the job says NOT RUN: it never reports a pass.
+# Docs: docs/quality-eval.md
+on:
+  pull_request:
+    paths:
+      - "backend/app/assessment.py"
+      - "backend/app/prompt_builder.py"
+      - "backend/app/recommendation.py"
+      - "backend/app/workflow.py"
+      - "backend/rubric/**"
+      - "backend/data/catalogue/**"
+      - "backend/eval/quality/**"
+      - "scripts/run_quality_eval.py"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Run the full set with 3 repeats (before a milestone)"
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  quality-eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EVAL_PROVIDER: groq
+      EVAL_MODEL: openai/gpt-oss-120b
+      ADAPTAI_GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Run the evaluation
+        run: |
+          mode="--subset"
+          if [ "${{ inputs.full }}" = "true" ]; then mode="--repeats 3"; fi
+          set +e
+          uv run python scripts/run_quality_eval.py run --provider "$EVAL_PROVIDER" --model "$EVAL_MODEL" $mode
+          code=$?
+          # 3 is NOT RUN: shown as a warning and in the summary, never as a pass. 1 is a regression.
+          if [ "$code" -eq 3 ]; then exit 0; fi
+          exit "$code"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-eval-report
+          path: backend/eval/quality/reports/
+          if-no-files-found: ignore
+          retention-days: 30

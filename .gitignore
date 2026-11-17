@@ -39,3 +39,6 @@ backups/
 # End-to-end test output
 e2e/test-results/
 e2e/playwright-report/
+
+# Quality evaluation reports (ids, levels and costs; CI keeps them as artifacts)
+backend/eval/quality/reports/

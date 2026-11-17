@@ -7,6 +7,7 @@ import { AnalysisChanges } from './AnalysisChanges'
 import { ProgressScreen } from './Progress'
 import { ProfileScreen } from './Profile'
 import { LLMConfigScreen } from './LLMConfig'
+import { ThemeProvider } from './theme'
 import { PrivacyPolicy, PublicPrivacyPage, isPrivacyAddress } from './PrivacyPolicy'
 import { ModelPicker } from './ModelPicker'
 import { OpenRouterModelPicker } from './OpenRouterModelPicker'
@@ -286,22 +287,17 @@ function AssistantScreen({ resume, onConfigureModels }: { resume: Resume | null;
 }
 
 export default function App() {
-  const [dark, setDark] = useState(() => window.localStorage.getItem('adaptai-theme') === 'dark')
-  const toggleTheme = () => {
-    setDark((current) => {
-      const next = !current
-      window.localStorage.setItem('adaptai-theme', next ? 'dark' : 'light')
-      return next
-    })
-  }
-  if (isPrivacyAddress()) return <div className={dark ? 'app theme-dark' : 'app'}><PublicPrivacyPage dark={dark} onToggleTheme={toggleTheme} /></div>
-  return (
-    <div className={dark ? 'app theme-dark' : 'app'}>
-      <Account dark={dark} onToggleTheme={toggleTheme}>
-        {account => <Shell account={account} dark={dark} onToggleTheme={toggleTheme} />}
-      </Account>
-    </div>
-  )
+  return <ThemeProvider>{theme => {
+    const className = `app ${theme.className}`.trim()
+    if (isPrivacyAddress()) return <div className={className}><PublicPrivacyPage dark={theme.dark} onToggleTheme={theme.toggle} /></div>
+    return (
+      <div className={className}>
+        <Account dark={theme.dark} onToggleTheme={theme.toggle}>
+          {account => <Shell account={account} dark={theme.dark} onToggleTheme={theme.toggle} />}
+        </Account>
+      </div>
+    )
+  }}</ThemeProvider>
 }
 
 // Everything shown once signed in. Remounted per user by Account.

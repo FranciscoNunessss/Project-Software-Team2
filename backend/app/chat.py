@@ -38,7 +38,7 @@ from app.storage import Storage
 MAX_MESSAGE_CHARS = 8000
 MAX_HISTORY_TURNS = 20
 MAX_HISTORY_CHARS = 12000
-MAX_ANSWER_TOKENS = 1024
+MAX_ANSWER_TOKENS = 4096
 TITLE_CHARS = 60
 NEW_CHAT_TITLE = "New chat"
 DEMO_ANSWER = (
@@ -136,11 +136,16 @@ class ChatModel:
 
     def __init__(self, provider: str, settings: Settings, model: str | None):
         self.provider, self.settings, self.model = provider, settings, model
+        # True when the provider ended the answer because it reached the token limit.
+        self.truncated = False
 
     async def stream(self, messages: list[tuple[str, str]]) -> AsyncIterator[str]:
         llm = chat_model(self.provider, self.settings, MAX_ANSWER_TOKENS)
         with tracing_context(enabled=False):
             async for chunk in llm.astream(messages):
+                finish = (getattr(chunk, "response_metadata", None) or {}).get("finish_reason")
+                if finish in ("length", "max_tokens"):
+                    self.truncated = True
                 text = (
                     chunk.content
                     if isinstance(chunk.content, str)
@@ -232,6 +237,9 @@ async def answer_events(
             yield {"event": "delta", "text": text}
         if "".join(parts).strip():
             status = "complete"
+            # An answer cut off by the length limit is not shown as a finished one.
+            if getattr(answer, "truncated", False):
+                error = "answer_truncated"
         else:
             # Some models (reasoning models in particular) sometimes end without any answer
             # text. An empty reply is a failure the user can retry, never a "complete" answer.

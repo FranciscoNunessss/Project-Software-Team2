@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { usePageActive } from './PagePanel'
 import {
-  api, createChat, renameChat, errorMessage, getChat, notifyProgressChange, streamChat, candidateLabel, putOutcome, ApiError,
+  api, createChat, renameChat, errorMessage, getChat, getChatSettings, notifyProgressChange, streamChat, candidateLabel, putOutcome, ApiError,
   type Analysis, type ChatMessage, type HistoryItem, type LLMOption, type LLMOptions, type OutcomeReason, type TaskOutcome,
 } from './api'
 import { AnalysisDrawer, type UseRecommended } from './AnalysisDrawer'
@@ -207,20 +207,37 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
   const routerValue = routerModel ?? selected?.model ?? ''
   const target = { provider: 'auto' as const, configuration_id: model === 'auto' ? undefined : model, model: usesRouter ? routerValue : undefined, allow_external: selected?.external === true }
 
+  // Send can analyse first (FR-16) and then needs the chat that analysis just created, before
+  // the state update is visible to it.
+  const createdChat = useRef<string | null>(null)
   const ensureChat = async () => {
     if (chatId) return chatId
+    if (createdChat.current) return createdChat.current
     const id = (await createChat()).id
+    createdChat.current = id
     setChatId(id); onChatCreated(id)
     return id
   }
 
   const [analysisError, setAnalysisError] = useState('')
-  const analyse = async () => {
+  // "Always analyse before sending" (ADR-011 D4, FR-16): the user's switch in Profile.
+  const [autoAnalyse, setAutoAnalyse] = useState(false)
+  useEffect(() => {
+    const controller = new AbortController()
+    getChatSettings(controller.signal).then(settings => setAutoAnalyse(settings.auto_analyse)).catch(() => undefined)
+    const changed = (event: Event) => setAutoAnalyse((event as CustomEvent<{ auto_analyse: boolean }>).detail.auto_analyse)
+    window.addEventListener('adaptai-chat-settings-updated', changed)
+    return () => { controller.abort(); window.removeEventListener('adaptai-chat-settings-updated', changed) }
+  }, [])
+  const analyse = () => { void runAnalysis(true) }
+  // Returns the analysis, or null when it failed or could not start. Analyse opens the panel;
+  // Send with "Always analyse" does not, the message's chip opens it afterwards.
+  const runAnalysis = async (openPanel: boolean): Promise<Analysis | null> => {
     const content = draft.trim()
-    if (!content || busy || analysing || !selected) return
+    if (!content || busy || analysing || !selected) return null
     // A new analysis starts a new task: the open one, if answered, gets its question now.
     if (!draftAnalysis) askAboutOpenTask()
-    setAnalysing(true); setDrawer(true); setError(''); setAnalysisError('')
+    setAnalysing(true); if (openPanel) setDrawer(true); setError(''); setAnalysisError('')
     try {
       const fresh = !chatId
       const id = await ensureChat()
@@ -243,9 +260,11 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
       cache.current.set(result.id, result)
       setDraftAnalysis({ analysis: result, text: draft }); setShown(result); setShownFromHistory(false)
       notifyProgressChange(); refreshList()
+      return result
     } catch (failure) {
       const message = failure instanceof ApiError ? failure.message : 'The analysis failed. Please retry.'
       setError(message); setAnalysisError(message)
+      return null
     } finally { setAnalysing(false) }
   }
 
@@ -295,14 +314,20 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
 
   const send = async () => {
     const content = draft.trim()
-    if (!content || busy || content.length > MAX_CHARS) return
+    if (!content || busy || analysing || content.length > MAX_CHARS) return
+    // The analysis goes with the message only if it was made from this exact text.
+    let analysis = draftAnalysis && draftAnalysis.text === draft ? draftAnalysis.analysis : null
+    // With "Always analyse before sending" a message without one is analysed first. If that
+    // fails the message is still sent, and the user is told it went without an analysis.
+    const analysedNow = autoAnalyse && !analysis && !!selected
+    if (analysedNow) analysis = await runAnalysis(false)
     let id: string
     try { id = await ensureChat() } catch { setError('Could not create a chat.'); return }
-    // The analysis goes with the message only if it was made from this exact text.
-    const analysisId = draftAnalysis && draftAnalysis.text === draft ? draftAnalysis.analysis.id : undefined
+    const analysisId = analysis?.id
     setDraft(''); setDraftAnalysis(null)
-    const question: ChatMessage = { ...placeholder('draft-question'), role: 'user', content, analysis_id: analysisId ?? null, completeness: analysisId ? draftAnalysis?.analysis.completeness ?? null : null }
+    const question: ChatMessage = { ...placeholder('draft-question'), role: 'user', content, analysis_id: analysisId ?? null, completeness: analysis?.completeness ?? null }
     await run(id, `chats/${id}/messages`, { content, ...target, analysis_id: analysisId }, [...messages, question, placeholder('draft-answer')])
+    if (analysedNow && !analysis) setError(current => current || 'The analysis failed, so this message was sent without one.')
   }
   const retry = () => {
     const last = messages[messages.length - 1]

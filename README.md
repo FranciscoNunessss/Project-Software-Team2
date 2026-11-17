@@ -477,7 +477,7 @@ chat id as `session_id`, then send it with the `analysis_id` to link the two.
 | GET/PATCH/DELETE | `/api/chats/{id}` | Messages (with each analysis' completeness), rename, delete |
 | POST | `/api/chats/{id}/messages` | Send `{content, provider, configuration_id?, model?, analysis_id?, allow_external}` and get `{title, message, answer}`, or a stream (below) |
 | POST | `/api/chats/{id}/messages/{answer_id}/retry` | Answer the last question again (`{provider, configuration_id?, allow_external}`) |
-| GET/PUT | `/api/chat/settings` | `{auto_analyse}`, off by default |
+| GET/PUT | `/api/chat/settings` | `{auto_analyse}`, off by default; the "Always analyse before sending" switch in Profile. On, Send analyses a message that has no analysis and then sends it with that analysis |
 
 The answer comes from the chosen model (`configuration_id`, or the server provider; `auto`
 means Groq) with the last 20 turns or 12,000 characters of the chat. The click on Send is
@@ -761,6 +761,13 @@ The local PostgreSQL volume stays running afterwards.
 
 Decisions: [ADR-007](https://docs.google.com/document/d/1nYv2V3qVu7JhkedKD31n-TyjsXwVnYHe5CZAvsG-JfI/edit)
 and [ADR-008](https://docs.google.com/document/d/14OXD4V0bvVtcoSMAqIJptNDTzpt6bDBlLk7qlKJZ4BU/edit).
+
+## API tokens and the VS Code extension (PROPOSED, ADR-013)
+
+Profile > API tokens creates a personal token (`adaptai_pat_...`, shown once, 90 days by default,
+at most 10 active). Send it as `Authorization: Bearer <token>`; it works in local and Supabase
+modes. Tokens can only be created or revoked with the browser session. `vscode-extension/` is a
+native VS Code client that uses it (see its README); `pnpm test` there runs without a backend.
 
 ## Git workflow
 

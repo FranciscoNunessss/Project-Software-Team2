@@ -34,6 +34,7 @@ from app.providers import (
     with_server_models,
 )
 from app.recommendation import POLICY_VERSION, Option, candidate_gap
+from app.retention import install_retention
 from app.storage import Storage, history_result, stored_result
 from app.workflow import build_workflow
 
@@ -219,6 +220,7 @@ def create_app(
         router=router_models,
         **({"worker": settings.evaluations_worker} | (evaluation_options or {})),
     )
+    install_retention(app, store, settings.retention_days)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, _exc: RequestValidationError):

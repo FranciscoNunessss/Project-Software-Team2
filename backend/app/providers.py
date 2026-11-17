@@ -58,6 +58,8 @@ class Settings(BaseSettings):
     browser_origin: str = "http://127.0.0.1:8443"
     auth_mode: Literal["local", "supabase"] = "local"
     database_pool_size: int = Field(default=4, ge=0)
+    # Days without activity after which a session is deleted (app/retention.py); 0 = never.
+    retention_days: int = Field(default=0, ge=0)
     supabase_url: str = ""
     supabase_publishable_key: SecretStr = SecretStr("")
 

@@ -2,7 +2,8 @@
 
     # A relevant subset (what CI runs on a pull request that touches prompts or the catalogue):
     python scripts/run_quality_eval.py run --provider P --model M --subset
-    # Other suites: --suite injection (orders aimed at the assessor), --suite pairs (assessor sensitivity to completeness; NOT M7).
+    # Other suites: --suite injection (orders aimed at the assessor), --suite pairs (the
+    # assessor's sensitivity to completeness; NOT M7).
     # The full set, 3 repeats (before a milestone), and make this run the new baseline:
     python scripts/run_quality_eval.py run --provider P --model M --repeats 3 --update-baseline
     # Compare a saved report with the baseline again:
@@ -34,8 +35,9 @@ from app.recommendation import POLICY_VERSION  # noqa: E402
 
 QUALITY = ROOT / "backend/eval/quality"
 # The suites: the profile of ordinary tasks, tasks that carry an instruction aimed at the assessor
-# (injection), and pairs of a vague and a complete version of one intent. This measures the ASSESSOR (the complete
-# version should score higher), not the Prompt Coach: 05 section 7.7 defines M7 as the Coach measure.
+# (injection), and pairs of a vague and a complete version of one intent. The pairs suite measures
+# the ASSESSOR (the complete version should score higher), not the Prompt Coach: 05 section 7.7
+# defines M7 as the Coach measure.
 SUITES = {
     "profile": QUALITY / "tasks-1.json",
     "injection": QUALITY / "injection-1.json",

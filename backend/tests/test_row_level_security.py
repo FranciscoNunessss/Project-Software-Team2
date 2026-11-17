@@ -50,8 +50,28 @@ def test_the_application_still_works_with_row_level_security_on():
         register(client, "rls@example.com")
         me = client.get("/api/auth/me")
         assert me.status_code == 200 and me.json()["email"] == "rls@example.com"
-        assert client.post("/api/sessions", json={}).status_code in (200, 201, 422)
-        assert client.get("/api/sessions").status_code == 200
+        # A real write and a read back: RLS must not get in the owner's way.
+        analysis = client.post("/api/analyze", json={"task": "Plan a trip", "provider": "demo"})
+        assert analysis.status_code == 200, analysis.text
+        assert len(client.get("/api/sessions").json()) == 1
+
+
+def test_the_startup_can_refuse_to_run_with_row_level_security_off(caplog, monkeypatch):
+    with TestClient(create_app(Settings(_env_file=None))) as client:
+        store = client.app.state.storage
+        with store.connect() as db:
+            db.execute("CREATE TABLE unsecured_probe (id TEXT PRIMARY KEY)")
+        assert store.rls_off_tables() == ["unsecured_probe"]
+        # A start that cannot enable RLS (a role that does not own the tables) is simulated by
+        # turning the securing step off. The default only logs an error; the setting refuses.
+        monkeypatch.setattr(type(store), "_secure_tables", lambda self, db: None)
+        with caplog.at_level("ERROR"):
+            create_app(Settings(_env_file=None, require_rls=False))
+        assert "Row Level Security is OFF" in caplog.text
+        with pytest.raises(RuntimeError, match="ADAPTAI_REQUIRE_RLS"):
+            create_app(Settings(_env_file=None, require_rls=True))
+        with store.connect() as db:
+            db.execute("DROP TABLE unsecured_probe")
 
 
 def test_a_table_created_later_is_secured_on_the_next_start():

@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     timeout_seconds: float = Field(default=30, gt=0, le=120)
     database_url: SecretStr = SecretStr("postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai")
     database_schema: str = "adaptai"
+    # Refuse to start when Row Level Security is off on any table (see docs/cloud-setup.md).
+    require_rls: bool = False
     credentials_key_path: str = ""
     credentials_key: SecretStr = SecretStr("")
     session_days: int = Field(default=7, ge=1, le=30)

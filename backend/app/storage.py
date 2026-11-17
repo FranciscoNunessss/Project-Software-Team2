@@ -226,7 +226,18 @@ class Storage:
                         )
                     )
             except psycopg.errors.InsufficientPrivilege:
-                log.warning("Row Level Security not enabled on %s: not the table owner", row[0])
+                log.error("Row Level Security NOT enabled on %s: not the table owner", row[0])
+
+    def rls_off_tables(self) -> list[str]:
+        """Tables of the schema that still lack Row Level Security (empty when all are secured)."""
+        with self.connect() as db:
+            rows = db.execute(
+                """SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                   WHERE n.nspname=%s AND c.relkind IN ('r','p') AND NOT c.relrowsecurity
+                   ORDER BY c.relname""",
+                (self.schema,),
+            ).fetchall()
+        return [row[0] for row in rows]
 
     def table_names(self):
         with self.connect() as db:

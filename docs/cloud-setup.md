@@ -63,6 +63,11 @@ nos painéis ou em ficheiros locais ignorados pelo Git.
    contornar a configuração de email.
 5. Não adicionar `adaptai` aos schemas expostos na Data API. O frontend só usa
    Supabase Auth; os dados da aplicação são acedidos pelo backend via PostgreSQL.
+   Como segunda barreira, o backend liga o Row Level Security em todas as tabelas do schema no
+   arranque (`Storage._secure_tables`, depois das migrations e de cada módulo opcional), sem
+   políticas: o backend liga-se como dono das tabelas e continua a filtrar por utilizador em cada
+   consulta; qualquer outro papel que chegue ao schema (`anon`, `authenticated`) não vê linhas. Não
+   criar políticas nem `FORCE ROW LEVEL SECURITY` sem rever primeiro o papel com que o backend se liga.
 
 As migrations `backend/migrations/*.sql` são aplicadas pelo backend no arranque.
 Não copiar o SQL para o painel manualmente. O histórico local não é transferido

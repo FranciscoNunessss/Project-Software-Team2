@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 import re
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -11,6 +12,8 @@ from uuid import uuid4
 import psycopg
 from psycopg import sql
 from psycopg_pool import ConnectionPool
+
+log = logging.getLogger(__name__)
 
 
 class Record(tuple):
@@ -188,12 +191,42 @@ class Storage:
                     "INSERT INTO schema_migrations(version,checksum) VALUES (%s,%s)",
                     (version, checksum),
                 )
+            self._secure_tables(db)
 
     def install_module(self, statements):
         with self.connect() as db:
             self._lock_schema(db)
             for statement in statements:
                 db.execute(statement)
+            self._secure_tables(db)
+
+    def _secure_tables(self, db):
+        """Turn Row Level Security on for every table of the schema (a second barrier).
+
+        The application is the only intended client and it connects as the owner of the tables
+        (or as a role that bypasses RLS), so nothing changes for it: it still filters by user in
+        every query. With RLS on and no policy, any other role that can reach the schema, such as
+        the Supabase Data API roles ``anon`` and ``authenticated``, sees no rows at all. Tables of
+        optional modules are created at startup, after the migrations, so this runs again after
+        each module. A role that does not own a table cannot change it: that is logged, never
+        fatal, because the application filters by user regardless.
+        """
+        rows = db.execute(
+            """SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+               WHERE n.nspname=%s AND c.relkind IN ('r','p') AND NOT c.relrowsecurity
+               ORDER BY c.relname""",
+            (self.schema,),
+        ).fetchall()
+        for row in rows:
+            try:
+                with db.transaction():
+                    db.execute(
+                        sql.SQL("ALTER TABLE {}.{} ENABLE ROW LEVEL SECURITY").format(
+                            sql.Identifier(self.schema), sql.Identifier(row[0])
+                        )
+                    )
+            except psycopg.errors.InsufficientPrivilege:
+                log.warning("Row Level Security not enabled on %s: not the table owner", row[0])
 
     def table_names(self):
         with self.connect() as db:

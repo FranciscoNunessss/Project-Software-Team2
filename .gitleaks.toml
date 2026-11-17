@@ -5,7 +5,7 @@ title = "AdaptAI"
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "Documented placeholders and test values"
 paths = [
   '''\.env\.example$''',

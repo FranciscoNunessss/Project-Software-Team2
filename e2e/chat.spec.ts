@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { closePanel, signUp } from './helpers'
+import { closePanel, goTo, signUp } from './helpers'
 
 // The chat (ADR-011) is the Assistant tab when the module is installed. FakeChat in
 // e2e/server.py answers "Fake answer: <question>"; FakeAssessor treats a task with "board"
@@ -148,4 +148,51 @@ test('without the chat module the Assistant page is shown', async ({ page }) => 
   await signUp(page)
   await expect(page.getByText('Choose capability with confidence.')).toBeVisible()
   await expect(page.locator('[data-chat-screen]')).toHaveCount(0)
+})
+
+test('"Always analyse before sending" is off by default; on, Send analyses first and carries the analysis', async ({ page }) => {
+  await openChat(page)
+  const drawer = page.locator('[data-analysis-drawer]')
+  // Off by default: Send does not analyse.
+  const plain = page.waitForRequest(request => /\/api\/chats\/[^/]+\/messages$/.test(request.url()))
+  await send(page, 'Explain what an API is.')
+  expect((await plain).postDataJSON().analysis_id).toBeFalsy()
+  await expect(page.locator('[data-analysis-chip]')).toHaveCount(0)
+
+  await goTo(page, 'Profile')
+  const toggle = page.getByRole('switch', { name: 'Always analyse before sending' })
+  await expect(toggle).not.toBeChecked()
+  const saved = page.waitForResponse(response => response.url().endsWith('/api/chat/settings') && response.request().method() === 'PUT')
+  await toggle.click()
+  expect((await saved).status()).toBe(200)
+  await expect(toggle).toBeChecked()
+
+  // On: one click on Send analyses, then sends with that analysis; the panel stays closed.
+  await goTo(page, 'Assistant')
+  const analysed = page.waitForRequest(request => request.url().endsWith('/api/analyze'))
+  const sent = page.waitForRequest(request => /\/api\/chats\/[^/]+\/messages$/.test(request.url()))
+  await page.locator('[data-chat-input]').fill(COMPLETE)
+  await page.locator('[data-chat-send]').click()
+  expect((await analysed).postDataJSON().task).toBe(COMPLETE)
+  expect((await sent).postDataJSON().analysis_id).toBeTruthy()
+  await expect(page.locator('[data-chat-message="assistant"]').last()).toContainText('Fake answer:')
+  await expect(page.locator('[data-analysis-chip]')).toHaveText('Analysis 100/100')
+  await expect(drawer).toBeHidden()
+  await expect(page.locator('[data-chat-message]')).toHaveCount(4) // Same chat, not a second one.
+
+  // A message already analysed by hand is not analysed twice.
+  await page.locator('[data-chat-input]').fill(VAGUE)
+  await page.locator('[data-analyse-button]').click()
+  await expect(drawer.getByText('50/100')).toBeVisible()
+  await closePanel(page)
+  let analyses = 0
+  page.on('request', request => { if (request.url().endsWith('/api/analyze')) analyses += 1 })
+  await page.locator('[data-chat-send]').click()
+  await expect(page.locator('[data-chat-message]')).toHaveCount(6)
+  expect(analyses).toBe(0)
+
+  // The choice is kept for the account.
+  await page.reload()
+  await goTo(page, 'Profile')
+  await expect(page.getByRole('switch', { name: 'Always analyse before sending' })).toBeChecked()
 })

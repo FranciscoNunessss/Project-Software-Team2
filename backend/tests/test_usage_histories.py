@@ -7,6 +7,7 @@ from app.coaching import (
     MIN_PATTERN_CHOICES,
     PATTERN_SENTENCE,
     CoachingReport,
+    apply_verdicts,
     educator_prompt,
     snapshot,
     usage_patterns,
@@ -202,6 +203,105 @@ def test_clearing_the_history_clears_the_verdict():
     patterns = client.get("/api/progress/dashboard").json()["patterns"]
     assert patterns["confirmed_choices"] == 0
     assert patterns["under_provisioning"]["status"] == "insufficient_history"
+
+
+def coached(monkeypatch, name):
+    """The coaching report saved for one synthetic history; the model always answers REPORT."""
+
+    class Coach:
+        def __init__(self, settings):
+            pass
+
+        async def generate(self, metadata):
+            return CoachingReport.model_validate(REPORT)
+
+    monkeypatch.setattr("app.coaching.GroqCoach", Coach)
+    app = create_app(Settings(_env_file=None, groq_api_key="synthetic-key"))
+    client = account(app)
+    play(app, client, BY_NAME[name])
+    generated = client.post(
+        "/api/progress/coaching",
+        json={"allow_external": True, "expected_model": app.state.settings.groq_model},
+    )
+    assert generated.status_code == 200
+    saved = client.get("/api/progress/coaching").json()["saved"]
+    assert saved["report"] == generated.json()["report"] and not saved["stale"]
+    return saved["report"]
+
+
+def test_a_detected_pattern_keeps_the_models_advice_and_the_other_gets_none(monkeypatch):
+    """AA-013: the suggestion refers to the detected pattern; no pattern, no suggestion."""
+    report = coached(monkeypatch, "over_provisioning")
+    over, under = report["patterns"]["over_provisioning"], report["patterns"]["under_provisioning"]
+    assert over == REPORT["patterns"]["over_provisioning"] | {"status": "detected"}
+    assert under == {
+        "status": "not_detected",
+        "explanation": "No pattern: 0 of 9 confirmed choices used a model that covers less "
+        "than the recommendation.",
+        "action": None,
+    }
+    assert REPORT["patterns"]["under_provisioning"]["action"] not in str(report["patterns"])
+
+
+def test_under_provisioning_is_treated_the_same_way(monkeypatch):
+    report = coached(monkeypatch, "under_provisioning")
+    assert report["patterns"]["under_provisioning"] == REPORT["patterns"]["under_provisioning"] | {
+        "status": "detected"
+    }
+    assert report["patterns"]["over_provisioning"]["action"] is None
+    assert report["patterns"]["over_provisioning"]["status"] == "not_detected"
+
+
+@pytest.mark.parametrize(
+    ("name", "explanation"),
+    [
+        (
+            "control_follows_recommendation",
+            "No pattern: 0 of 10 confirmed choices used a model that is more than the task needs.",
+        ),
+        (
+            "control_occasional_deviation",
+            "No pattern: 2 of 10 confirmed choices used a model that is more than the task needs.",
+        ),
+        (
+            "control_exactly_half",
+            "No pattern: 3 of 6 confirmed choices used a model that is more than the task needs.",
+        ),
+        (
+            "control_too_few_choices",
+            "Too few confirmed choices to tell: 4 so far, at least 5 are needed.",
+        ),
+        (
+            "control_only_pending",
+            "Too few confirmed choices to tell: 0 so far, at least 5 are needed.",
+        ),
+    ],
+)
+def test_a_control_history_gets_no_advice_for_either_pattern(monkeypatch, name, explanation):
+    report = coached(monkeypatch, name)
+    for pattern in ("over_provisioning", "under_provisioning"):
+        advice = report["patterns"][pattern]
+        assert advice["action"] is None
+        assert advice["status"] == getattr(BY_NAME[name], pattern.split("_")[0])
+        # Nothing the model wrote about this pattern survives.
+        assert advice["explanation"] != REPORT["patterns"][pattern]["explanation"]
+    assert report["patterns"]["over_provisioning"]["explanation"] == explanation
+    # What the rule does not cover is left as the model wrote it.
+    assert report["patterns"]["prompting"] == REPORT["patterns"]["prompting"]
+    assert report["suggestions"] == REPORT["suggestions"]
+    assert report["summary"] == REPORT["summary"]
+
+
+def test_applying_the_verdicts_only_touches_the_two_choice_patterns():
+    import copy
+
+    report = copy.deepcopy(REPORT)
+    result = apply_verdicts(report, usage_patterns([1, 1, 1, 0, 0]))
+    assert result["patterns"]["over_provisioning"]["status"] == "detected"
+    assert result["patterns"]["over_provisioning"]["action"]
+    assert result["patterns"]["under_provisioning"]["action"] is None
+    assert "status" in result["patterns"]["prompting"]
+    assert result["patterns"]["prompting"] == REPORT["patterns"]["prompting"]
 
 
 def test_the_educator_is_told_to_follow_the_verdict():

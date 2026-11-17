@@ -1,3 +1,4 @@
+import copy
 import json
 
 import pytest
@@ -7,6 +8,7 @@ from app.coaching import (
     TREND_SENTENCE,
     CoachingReport,
     GroqCoach,
+    apply_verdicts,
     register_snapshot_extension,
     snapshot,
     unregister_snapshot_extension,
@@ -41,6 +43,12 @@ REPORT = {
         }
     ],
 }
+
+
+def saved_form(report, app, client):
+    """The report as it is saved: advice only for the patterns the rule detected."""
+    _, metadata = snapshot(app.state.storage, client.get("/api/auth/me").json()["id"])
+    return apply_verdicts(copy.deepcopy(report), metadata["usage_patterns"])
 
 
 @pytest.fixture(autouse=True)
@@ -270,7 +278,8 @@ def test_coaching_is_explicit_cached_stale_and_private(monkeypatch):
         == 409
     )
     response = alice.post("/api/progress/coaching", json=body)
-    assert response.status_code == 200 and response.json()["report"] == REPORT
+    assert response.status_code == 200
+    assert response.json()["report"] == saved_form(REPORT, app, alice)
     assert response.headers["cache-control"] == "no-store"
     assert "PRIVATE_TASK_SENTINEL" not in json.dumps(calls)
     assert "synthetic-coaching-key" not in json.dumps(calls)
@@ -444,7 +453,7 @@ def test_old_coaching_cache_is_stale_and_replaced_without_altering_history(monke
             "expected_model": settings.groq_model,
         },
     ).json()
-    assert saved["report"]["patterns"] == REPORT["patterns"]
+    assert saved["report"]["patterns"] == saved_form(REPORT, app, client)["patterns"]
     assert saved["report"]["schema_version"] == 3 and not saved["stale"]
     assert client.get("/api/progress").json() == before
 

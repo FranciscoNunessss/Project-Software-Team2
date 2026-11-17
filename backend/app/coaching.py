@@ -16,7 +16,7 @@ from app.outcomes import outcome_summary
 from app.providers import ProviderFailure, structured_call
 from app.recommendation import candidate_gap
 
-COACHING_POLICY_VERSION = "progress-4"
+COACHING_POLICY_VERSION = "progress-5"
 
 
 class PatternAdvice(BaseModel):
@@ -376,6 +376,41 @@ def learning_progress(store, user_id):
     }
 
 
+_PATTERN_WORDING = {
+    "over_provisioning": "used a model that is more than the task needs",
+    "under_provisioning": "used a model that covers less than the recommendation",
+}
+
+
+def apply_verdicts(report: dict, patterns: dict) -> dict:
+    """Keep the model's advice for a pattern only when that pattern is detected (AA-013).
+
+    The coaching model always writes an explanation and an action for over- and
+    under-provisioning, because its answer has a fixed shape. For a pattern the rule did not
+    detect, that text is advice about a habit the user does not have, so it is replaced here
+    by a plain statement of the counts with no action. Each of the two patterns also carries
+    the rule's ``status``. Prompting and the lessons are left as the model wrote them.
+    """
+    total = patterns["confirmed_choices"]
+    for name, wording in _PATTERN_WORDING.items():
+        verdict = patterns[name]
+        advice = report["patterns"][name]
+        advice["status"] = verdict["status"]
+        if verdict["status"] == "detected":
+            continue
+        if verdict["status"] == "insufficient_history":
+            advice["explanation"] = (
+                f"Too few confirmed choices to tell: {total} so far, "
+                f"at least {patterns['min_choices']} are needed."
+            )
+        else:
+            advice["explanation"] = (
+                f"No pattern: {verdict['count']} of {total} confirmed choices {wording}."
+            )
+        advice["action"] = None
+    return report
+
+
 def _recent_analyses(store, user_id):
     """The sample every Educator figure is computed from: the 50 newest analyses."""
     with store.connect() as db:
@@ -585,7 +620,7 @@ def install_coaching(app, store, settings):
                     user_id,
                     fingerprint,
                     settings.groq_model,
-                    report.model_dump_json(),
+                    json.dumps(apply_verdicts(report.model_dump(), metadata["usage_patterns"])),
                     json.dumps(
                         {
                             "assessments": metadata["sample_size"],

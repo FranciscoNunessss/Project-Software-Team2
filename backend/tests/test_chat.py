@@ -342,3 +342,23 @@ def test_only_the_last_answer_can_be_retried():
         json={"provider": "groq", "allow_external": True},
     )
     assert response.status_code == 409 and response.json()["detail"] == "not_the_last_answer"
+
+
+class TruncatedChat(FakeChat):
+    """A model whose answer ends because it reached the token limit."""
+
+    def __init__(self, provider, settings, model):
+        super().__init__(provider, settings, model)
+        self.truncated = False
+
+    async def stream(self, messages):
+        yield "A long answer that was cut"
+        self.truncated = True
+
+
+def test_an_answer_cut_off_by_the_length_limit_is_marked_not_shown_as_finished():
+    client = register(build(TruncatedChat))
+    chat_id = new_chat(client)
+    answer = send(client, chat_id).json()["answer"]
+    assert answer["content"] == "A long answer that was cut"
+    assert answer["status"] == "complete" and answer["error"] == "answer_truncated"

@@ -1,0 +1,13539 @@
+{
+ "expected": {
+  "celsius": {
+   "reasoning": 1,
+   "context": 1,
+   "ambiguity": 1,
+   "domain": 1,
+   "risk": 1,
+   "tools": 1
+  },
+  "typos": {
+   "reasoning": 1,
+   "context": 1,
+   "ambiguity": 1,
+   "domain": 1,
+   "risk": 1,
+   "tools": 1
+  },
+  "translate": {
+   "reasoning": 1,
+   "context": 1,
+   "ambiguity": 1,
+   "domain": 1,
+   "risk": 1,
+   "tools": 1
+  },
+  "email-supplier": {
+   "reasoning": 1,
+   "context": 1,
+   "ambiguity": null,
+   "domain": 1,
+   "risk": 1,
+   "tools": 1
+  },
+  "rename-var": {
+   "reasoning": 1,
+   "context": 1,
+   "ambiguity": 1,
+   "domain": 1,
+   "risk": 1,
+   "tools": 1
+  },
+  "mortgage-kid": {
+   "reasoning": 1,
+   "context": 1,
+   "ambiguity": 1,
+   "domain": 1,
+   "risk": 1,
+   "tools": 1
+  },
+  "haiku": {
+   "reasoning": 1,
+   "context": 1,
+   "ambiguity": null,
+   "domain": 1,
+   "risk": 1,
+   "tools": 1
+  },
+  "laptops": {
+   "reasoning": 2,
+   "context": 1,
+   "ambiguity": null,
+   "domain": 1,
+   "risk": 1,
+   "tools": 1
+  },
+  "palindrome": {
+   "reasoning": null,
+   "context": 1,
+   "ambiguity": 1,
+   "domain": 2,
+   "risk": 1,
+   "tools": 1
+  },
+  "sql-top10": {
+   "reasoning": null,
+   "context": null,
+   "ambiguity": null,
+   "domain": 2,
+   "risk": 1,
+   "tools": 1
+  },
+  "debug-none": {
+   "reasoning": null,
+   "context": 1,
+   "ambiguity": 1,
+   "domain": 2,
+   "risk": 1,
+   "tools": 1
+  },
+  "django-leak": {
+   "reasoning": 3,
+   "context": 3,
+   "ambiguity": null,
+   "domain": null,
+   "risk": 3,
+   "tools": null
+  },
+  "db-schema": {
+   "reasoning": 3,
+   "context": null,
+   "ambiguity": null,
+   "domain": null,
+   "risk": null,
+   "tools": null
+  },
+  "sqrt2-proof": {
+   "reasoning": 3,
+   "context": null,
+   "ambiguity": 1,
+   "domain": null,
+   "risk": null,
+   "tools": 1
+  },
+  "itinerary": {
+   "reasoning": 2,
+   "context": 1,
+   "ambiguity": null,
+   "domain": 1,
+   "risk": 1,
+   "tools": null
+  },
+  "literature": {
+   "reasoning": null,
+   "context": 3,
+   "ambiguity": null,
+   "domain": null,
+   "risk": null,
+   "tools": null
+  },
+  "spa-clause": {
+   "reasoning": null,
+   "context": null,
+   "ambiguity": null,
+   "domain": 3,
+   "risk": 3,
+   "tools": null
+  },
+  "clinical": {
+   "reasoning": null,
+   "context": null,
+   "ambiguity": null,
+   "domain": 3,
+   "risk": 3,
+   "tools": null
+  },
+  "make-better": {
+   "reasoning": null,
+   "context": null,
+   "ambiguity": 3,
+   "domain": null,
+   "risk": null,
+   "tools": null
+  },
+  "summarise-missing": {
+   "reasoning": null,
+   "context": null,
+   "ambiguity": 3,
+   "domain": null,
+   "risk": null,
+   "tools": null
+  },
+  "job-offer": {
+   "reasoning": null,
+   "context": null,
+   "ambiguity": 3,
+   "domain": null,
+   "risk": null,
+   "tools": null
+  },
+  "fx-live": {
+   "reasoning": 1,
+   "context": 1,
+   "ambiguity": 1,
+   "domain": 1,
+   "risk": null,
+   "tools": 3
+  },
+  "prod-delete": {
+   "reasoning": null,
+   "context": null,
+   "ambiguity": null,
+   "domain": null,
+   "risk": 3,
+   "tools": 3
+  },
+  "tax-evasion": {
+   "reasoning": null,
+   "context": null,
+   "ambiguity": null,
+   "domain": null,
+   "risk": 3,
+   "tools": null
+  }
+ },
+ "rows": [
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "celsius",
+   "seconds": 2.4,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "GPT-OSS 20B",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "celsius",
+   "seconds": 2.5,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "GPT-OSS 20B",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "celsius",
+   "seconds": 2.8,
+   "profile": {
+    "reasoning": [
+     1,
+     "low"
+    ],
+    "context": [
+     1,
+     "low"
+    ],
+    "ambiguity": [
+     1,
+     "low"
+    ],
+    "domain": [
+     1,
+     "low"
+    ],
+    "risk": [
+     1,
+     "low"
+    ],
+    "tools": [
+     1,
+     "low"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "low"
+   ],
+   "completeness": 60,
+   "recommendation": [
+    "GPT-OSS 20B",
+    "covers_as_described",
+    false
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "typos",
+   "seconds": 1.7,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "GPT-OSS 20B",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "typos",
+   "seconds": 2.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "GPT-OSS 20B",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "typos",
+   "seconds": 2.1,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "GPT-OSS 20B",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "translate",
+   "seconds": 1.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "GPT-OSS 20B",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "translate",
+   "seconds": 1.8,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "GPT-OSS 20B",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "translate",
+   "seconds": 1.7,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "medium"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "qwen3.8-27b",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "celsius",
+   "seconds": 13.7,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "GPT-OSS 20B",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "email-supplier",
+   "seconds": 1.8,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "GPT-OSS 20B",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "email-supplier",
+   "seconds": 1.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "GPT-OSS 20B",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "email-supplier",
+   "seconds": 3.8,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "qwen3.8-27b",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "rename-var",
+   "seconds": 1.8,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "GPT-OSS 120B",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "typos",
+   "seconds": 11.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "GPT-OSS 20B",
+    "covers",
+    false
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "rename-var",
+   "seconds": 21.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "rename-var",
+   "seconds": 21.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     null,
+     "undetermined"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "low"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "low"
+   ],
+   "completeness": 51,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "translate",
+   "seconds": 15.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "mortgage-kid",
+   "seconds": 1.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "mortgage-kid",
+   "seconds": 22.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "haiku",
+   "seconds": 3.4,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "email-supplier",
+   "seconds": 12.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "mortgage-kid",
+   "seconds": 21.7,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "rename-var",
+   "seconds": 12.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "haiku",
+   "seconds": 25.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "laptops",
+   "seconds": 22.9,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "mortgage-kid",
+   "seconds": 14.4,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "palindrome",
+   "seconds": 4.5,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "haiku",
+   "seconds": 22.9,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "haiku",
+   "seconds": 11.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "laptops",
+   "seconds": 2.4,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "laptops",
+   "seconds": 23.2,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "sql-top10",
+   "seconds": 23.3,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "laptops",
+   "seconds": 22.1,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "debug-none",
+   "seconds": 4.0,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "palindrome",
+   "seconds": 22.9,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 80,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "palindrome",
+   "seconds": 22.4,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "palindrome",
+   "seconds": 20.6,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "django-leak",
+   "seconds": 24.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "sql-top10",
+   "seconds": 23.2,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "sql-top10",
+   "seconds": 22.8,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "sql-top10",
+   "seconds": 14.6,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "debug-none",
+   "seconds": 1.2,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "db-schema",
+   "seconds": 2.9,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "medium"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "debug-none",
+   "seconds": 1.9,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "debug-none",
+   "seconds": 17.8,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "sqrt2-proof",
+   "seconds": 23.0,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "django-leak",
+   "seconds": 22.7,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "itinerary",
+   "seconds": 3.0,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "django-leak",
+   "seconds": 18.1,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "db-schema",
+   "seconds": 17.2,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "db-schema",
+   "seconds": 23.1,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 80,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "literature",
+   "seconds": 22.9,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     null,
+     "undetermined"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 64,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "sqrt2-proof",
+   "seconds": 2.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "sqrt2-proof",
+   "seconds": 20.7,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "itinerary",
+   "seconds": 22.4,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "medium"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 72,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "spa-clause",
+   "seconds": 23.4,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "clinical",
+   "seconds": 2.6,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "itinerary",
+   "seconds": 17.1,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "make-better",
+   "seconds": 2.5,
+   "profile": {
+    "reasoning": [
+     null,
+     "undetermined"
+    ],
+    "context": [
+     null,
+     "undetermined"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 44,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 3,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "literature",
+   "seconds": 16.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "literature",
+   "seconds": 24.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "summarise-missing",
+   "seconds": 23.6,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "spa-clause",
+   "seconds": 17.2,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "django-leak",
+   "seconds": 124.5,
+   "profile": {
+    "reasoning": [
+     3,
+     "medium"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "low"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 78,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "db-schema",
+   "seconds": 1.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "spa-clause",
+   "seconds": 22.8,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "clinical",
+   "seconds": 17.1,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "job-offer",
+   "seconds": 22.8,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "fx-live",
+   "seconds": 3.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "sqrt2-proof",
+   "seconds": 23.1,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "make-better",
+   "seconds": 21.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 64,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 2,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "clinical",
+   "seconds": 25.2,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "make-better",
+   "seconds": 1.5,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 64,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 2,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "summarise-missing",
+   "seconds": 13.8,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "prod-delete",
+   "seconds": 23.3,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "itinerary",
+   "seconds": 23.0,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "summarise-missing",
+   "seconds": 23.0,
+   "profile": {
+    "reasoning": [
+     2,
+     "medium"
+    ],
+    "context": [
+     1,
+     "low"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "medium"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "medium"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 60,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 2,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "job-offer",
+   "seconds": 16.9,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "job-offer",
+   "seconds": 2.2,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 64,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 2,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 0,
+   "task": "tax-evasion",
+   "seconds": 23.5,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     1,
+     "medium"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "literature",
+   "seconds": 22.1,
+   "profile": {
+    "reasoning": [
+     3,
+     "medium"
+    ],
+    "context": [
+     3,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "low"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "medium"
+   ],
+   "completeness": 70,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "celsius",
+   "seconds": 2.9,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "fx-live",
+   "seconds": 16.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "typos",
+   "seconds": 3.5,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "translate",
+   "seconds": 2.1,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "email-supplier",
+   "seconds": 1.9,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "fx-live",
+   "seconds": 24.8,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "rename-var",
+   "seconds": 2.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "prod-delete",
+   "seconds": 20.4,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "medium"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "spa-clause",
+   "seconds": 22.2,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     2,
+     "low"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 78,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "prod-delete",
+   "seconds": 22.7,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 0,
+   "task": "tax-evasion",
+   "seconds": 21.8,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "mortgage-kid",
+   "seconds": 23.1,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "haiku",
+   "seconds": 3.8,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "celsius",
+   "seconds": 15.4,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 0,
+   "task": "tax-evasion",
+   "seconds": 23.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "typos",
+   "seconds": 12.9,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "laptops",
+   "seconds": 22.9,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "translate",
+   "seconds": 10.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "palindrome",
+   "seconds": 2.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "sql-top10",
+   "seconds": 2.2,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "clinical",
+   "seconds": 63.6,
+   "profile": {
+    "reasoning": [
+     3,
+     "medium"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "celsius",
+   "seconds": 22.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "email-supplier",
+   "seconds": 13.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "typos",
+   "seconds": 2.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "translate",
+   "seconds": 2.1,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "rename-var",
+   "seconds": 12.9,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "debug-none",
+   "seconds": 24.7,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "django-leak",
+   "seconds": 2.8,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "mortgage-kid",
+   "seconds": 14.9,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "db-schema",
+   "seconds": 4.2,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "email-supplier",
+   "seconds": 22.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "rename-var",
+   "seconds": 2.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "sqrt2-proof",
+   "seconds": 3.4,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "mortgage-kid",
+   "seconds": 1.4,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "haiku",
+   "seconds": 12.9,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "laptops",
+   "seconds": 20.6,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "itinerary",
+   "seconds": 23.7,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "haiku",
+   "seconds": 21.7,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "literature",
+   "seconds": 2.9,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     null,
+     "undetermined"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 64,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "palindrome",
+   "seconds": 13.2,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "laptops",
+   "seconds": 22.0,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "sql-top10",
+   "seconds": 16.1,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "palindrome",
+   "seconds": 1.8,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "spa-clause",
+   "seconds": 22.4,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "debug-none",
+   "seconds": 14.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "sql-top10",
+   "seconds": 22.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "clinical",
+   "seconds": 22.7,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "make-better",
+   "seconds": 125.0,
+   "profile": {
+    "reasoning": [
+     null,
+     "undetermined"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     null,
+     "undetermined"
+    ],
+    "risk": [
+     null,
+     "undetermined"
+    ],
+    "tools": [
+     null,
+     "undetermined"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 34,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 2,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "make-better",
+   "seconds": 2.4,
+   "profile": {
+    "reasoning": [
+     1,
+     "low"
+    ],
+    "context": [
+     1,
+     "low"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 65,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "django-leak",
+   "seconds": 20.0,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "summarise-missing",
+   "seconds": 2.1,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "medium"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "debug-none",
+   "seconds": 22.7,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "db-schema",
+   "seconds": 18.4,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "django-leak",
+   "seconds": 2.2,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "summarise-missing",
+   "seconds": 24.2,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "job-offer",
+   "seconds": 23.7,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "job-offer",
+   "seconds": 3.2,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "sqrt2-proof",
+   "seconds": 20.9,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "db-schema",
+   "seconds": 22.6,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 64,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 2,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "fx-live",
+   "seconds": 21.8,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "sqrt2-proof",
+   "seconds": 1.8,
+   "profile": {
+    "reasoning": [
+     2,
+     "medium"
+    ],
+    "context": [
+     1,
+     "low"
+    ],
+    "ambiguity": [
+     1,
+     "low"
+    ],
+    "domain": [
+     2,
+     "medium"
+    ],
+    "risk": [
+     1,
+     "low"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 77,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "fx-live",
+   "seconds": 23.5,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "itinerary",
+   "seconds": 2.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "itinerary",
+   "seconds": 17.8,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "prod-delete",
+   "seconds": 3.6,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 1,
+   "task": "tax-evasion",
+   "seconds": 2.7,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "medium"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "celsius",
+   "seconds": 2.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "literature",
+   "seconds": 18.6,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "medium"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "typos",
+   "seconds": 2.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "prod-delete",
+   "seconds": 23.5,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "literature",
+   "seconds": 21.7,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "spa-clause",
+   "seconds": 17.2,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 0,
+   "task": "tax-evasion",
+   "seconds": 22.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     null,
+     "undetermined"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 60,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "translate",
+   "seconds": 23.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "spa-clause",
+   "seconds": 23.0,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "email-supplier",
+   "seconds": 2.4,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "clinical",
+   "seconds": 2.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "clinical",
+   "seconds": 18.8,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "rename-var",
+   "seconds": 2.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "make-better",
+   "seconds": 1.3,
+   "profile": {
+    "reasoning": [
+     null,
+     "undetermined"
+    ],
+    "context": [
+     null,
+     "undetermined"
+    ],
+    "ambiguity": [
+     null,
+     "undetermined"
+    ],
+    "domain": [
+     null,
+     "undetermined"
+    ],
+    "risk": [
+     null,
+     "undetermined"
+    ],
+    "tools": [
+     null,
+     "undetermined"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 0,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 3,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "mortgage-kid",
+   "seconds": 2.6,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "haiku",
+   "seconds": 2.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "make-better",
+   "seconds": 14.1,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "medium"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "celsius",
+   "seconds": 22.4,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "typos",
+   "seconds": 1.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "summarise-missing",
+   "seconds": 22.5,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "summarise-missing",
+   "seconds": 18.5,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "laptops",
+   "seconds": 24.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "palindrome",
+   "seconds": 2.2,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "sql-top10",
+   "seconds": 2.7,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "job-offer",
+   "seconds": 19.5,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "job-offer",
+   "seconds": 22.7,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "fx-live",
+   "seconds": 14.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "debug-none",
+   "seconds": 22.9,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "fx-live",
+   "seconds": 22.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "django-leak",
+   "seconds": 3.2,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "medium"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "prod-delete",
+   "seconds": 2.0,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     1,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "medium"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "medium"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "translate",
+   "seconds": 62.8,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "db-schema",
+   "seconds": 4.0,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "medium"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "prod-delete",
+   "seconds": 19.8,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "email-supplier",
+   "seconds": 1.8,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "medium"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "sqrt2-proof",
+   "seconds": 3.6,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "rename-var",
+   "seconds": 1.2,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "mortgage-kid",
+   "seconds": 2.2,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "itinerary",
+   "seconds": 3.2,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 1,
+   "task": "tax-evasion",
+   "seconds": 22.2,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "haiku",
+   "seconds": 23.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "literature",
+   "seconds": 23.8,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     null,
+     "undetermined"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 64,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "celsius",
+   "seconds": 16.1,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "spa-clause",
+   "seconds": 2.4,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "typos",
+   "seconds": 13.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "laptops",
+   "seconds": 22.7,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 1,
+   "task": "tax-evasion",
+   "seconds": 63.6,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 80,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "translate",
+   "seconds": 12.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "palindrome",
+   "seconds": 2.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "medium"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "celsius",
+   "seconds": 1.7,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "clinical",
+   "seconds": 22.6,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "typos",
+   "seconds": 1.7,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "make-better",
+   "seconds": 3.7,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "translate",
+   "seconds": 2.2,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "email-supplier",
+   "seconds": 12.7,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "summarise-missing",
+   "seconds": 2.7,
+   "profile": {
+    "reasoning": [
+     2,
+     "medium"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "medium"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "rename-var",
+   "seconds": 11.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "job-offer",
+   "seconds": 7.6,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     null,
+     "undetermined"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 64,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 2,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "sql-top10",
+   "seconds": 22.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "low"
+    ],
+    "ambiguity": [
+     2,
+     "low"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 73,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "fx-live",
+   "seconds": 2.7,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "email-supplier",
+   "seconds": 22.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "mortgage-kid",
+   "seconds": 15.0,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "rename-var",
+   "seconds": 3.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "mortgage-kid",
+   "seconds": 1.8,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "haiku",
+   "seconds": 11.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "debug-none",
+   "seconds": 22.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "prod-delete",
+   "seconds": 22.5,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     null,
+     "undetermined"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 64,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 2,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "django-leak",
+   "seconds": 2.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "medium"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-120b",
+   "rep": 2,
+   "task": "tax-evasion",
+   "seconds": 3.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "laptops",
+   "seconds": 13.3,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "haiku",
+   "seconds": 22.7,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "palindrome",
+   "seconds": 13.2,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "laptops",
+   "seconds": 2.4,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "db-schema",
+   "seconds": 21.7,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "sql-top10",
+   "seconds": 12.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "palindrome",
+   "seconds": 22.4,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "debug-none",
+   "seconds": 15.4,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "sqrt2-proof",
+   "seconds": 21.7,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "sql-top10",
+   "seconds": 2.3,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "django-leak",
+   "seconds": 25.7,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "debug-none",
+   "seconds": 22.1,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "db-schema",
+   "seconds": 18.1,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "django-leak",
+   "seconds": 21.6,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "db-schema",
+   "seconds": 2.0,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "sqrt2-proof",
+   "seconds": 17.5,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "itinerary",
+   "seconds": 62.5,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "sqrt2-proof",
+   "seconds": 22.1,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "itinerary",
+   "seconds": 19.9,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "literature",
+   "seconds": 13.8,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "medium"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "itinerary",
+   "seconds": 23.2,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text",
+     "image"
+    ],
+    "medium"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "spa-clause",
+   "seconds": 15.3,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "literature",
+   "seconds": 1.9,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "spa-clause",
+   "seconds": 2.4,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "clinical",
+   "seconds": 18.0,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "clinical",
+   "seconds": 23.6,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     1,
+     "low"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 70,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "make-better",
+   "seconds": 16.4,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "medium"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "summarise-missing",
+   "seconds": 17.9,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "job-offer",
+   "seconds": 19.4,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "literature",
+   "seconds": 127.4,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     null,
+     "undetermined"
+    ],
+    "risk": [
+     2,
+     "low"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 50,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 2,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "fx-live",
+   "seconds": 16.1,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "spa-clause",
+   "seconds": 1.2,
+   "profile": {
+    "reasoning": [
+     2,
+     "medium"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "low"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "medium"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 70,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "clinical",
+   "seconds": 1.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "make-better",
+   "seconds": 65.4,
+   "profile": {
+    "reasoning": [
+     null,
+     "undetermined"
+    ],
+    "context": [
+     null,
+     "undetermined"
+    ],
+    "ambiguity": [
+     null,
+     "undetermined"
+    ],
+    "domain": [
+     null,
+     "undetermined"
+    ],
+    "risk": [
+     null,
+     "undetermined"
+    ],
+    "tools": [
+     null,
+     "undetermined"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 0,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 3,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "prod-delete",
+   "seconds": 17.2,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "gemma-local",
+   "rep": 2,
+   "task": "tax-evasion",
+   "seconds": 18.3,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "lmstudio",
+   "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "make-better",
+   "seconds": 63.5,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 64,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 2,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "summarise-missing",
+   "seconds": 21.8,
+   "profile": {
+    "reasoning": [
+     2,
+     "medium"
+    ],
+    "context": [
+     2,
+     "low"
+    ],
+    "ambiguity": [
+     3,
+     "low"
+    ],
+    "domain": [
+     2,
+     "medium"
+    ],
+    "risk": [
+     3,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "low"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 51,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 2,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "job-offer",
+   "seconds": 1.0,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "medium"
+    ],
+    "risk": [
+     3,
+     "medium"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "fx-live",
+   "seconds": 21.5,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "prod-delete",
+   "seconds": 21.5,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "low"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 60,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 2,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 1,
+   "task": "tax-evasion",
+   "seconds": 1.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "celsius",
+   "seconds": 21.4,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "typos",
+   "seconds": 21.5,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "translate",
+   "seconds": 21.6,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "email-supplier",
+   "seconds": 1.0,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "rename-var",
+   "seconds": 23.3,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "summarise-missing",
+   "seconds": 301.9,
+   "error": "502 {\"detail\":\"provider_rate_limit\"}"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "mortgage-kid",
+   "seconds": 63.1,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "job-offer",
+   "seconds": 3.1,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "medium"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "medium"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "haiku",
+   "seconds": 1.1,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "laptops",
+   "seconds": 62.1,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "palindrome",
+   "seconds": 62.4,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative small model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "sql-top10",
+   "seconds": 1.3,
+   "profile": {
+    "reasoning": [
+     2,
+     "medium"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "debug-none",
+   "seconds": 21.5,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "django-leak",
+   "seconds": 123.3,
+   "profile": {
+    "reasoning": [
+     3,
+     "medium"
+    ],
+    "context": [
+     3,
+     "medium"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     2,
+     "low"
+    ],
+    "risk": [
+     3,
+     "low"
+    ],
+    "tools": [
+     2,
+     "low"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "medium"
+   ],
+   "completeness": 69,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "db-schema",
+   "seconds": 1.3,
+   "profile": {
+    "reasoning": [
+     2,
+     "medium"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "medium"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "medium"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "sqrt2-proof",
+   "seconds": 3.0,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     1,
+     "high"
+    ],
+    "domain": [
+     2,
+     "high"
+    ],
+    "risk": [
+     1,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 100,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "fx-live",
+   "seconds": 301.7,
+   "error": "502 {\"detail\":\"provider_rate_limit\"}"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "itinerary",
+   "seconds": 61.9,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     2,
+     "medium"
+    ],
+    "ambiguity": [
+     2,
+     "low"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     2,
+     "medium"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 78,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "literature",
+   "seconds": 1.8,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     null,
+     "undetermined"
+    ],
+    "ambiguity": [
+     null,
+     "undetermined"
+    ],
+    "domain": [
+     null,
+     "undetermined"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 30,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 3,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "spa-clause",
+   "seconds": 3.2,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     2,
+     "medium"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "clinical",
+   "seconds": 21.5,
+   "profile": {
+    "reasoning": [
+     3,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "make-better",
+   "seconds": 21.9,
+   "profile": {
+    "reasoning": [
+     null,
+     "undetermined"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     null,
+     "undetermined"
+    ],
+    "tools": [
+     null,
+     "undetermined"
+    ]
+   },
+   "modality": [
+    null,
+    "undetermined"
+   ],
+   "completeness": 34,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 3,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "summarise-missing",
+   "seconds": 62.7,
+   "profile": {
+    "reasoning": [
+     2,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     2,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     2,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 92,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "job-offer",
+   "seconds": 1.2,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     1,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     1,
+     "high"
+    ],
+    "risk": [
+     2,
+     "high"
+    ],
+    "tools": [
+     1,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative balanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "fx-live",
+   "seconds": 1.2,
+   "profile": {
+    "reasoning": [
+     1,
+     "low"
+    ],
+    "context": [
+     1,
+     "low"
+    ],
+    "ambiguity": [
+     1,
+     "low"
+    ],
+    "domain": [
+     2,
+     "medium"
+    ],
+    "risk": [
+     1,
+     "low"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 73,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 0,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "prod-delete",
+   "seconds": 63.5,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     2,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     2,
+     "medium"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-qwen3.8-27b",
+   "rep": 2,
+   "task": "tax-evasion",
+   "seconds": 22.1,
+   "profile": {
+    "reasoning": [
+     1,
+     "high"
+    ],
+    "context": [
+     3,
+     "high"
+    ],
+    "ambiguity": [
+     3,
+     "high"
+    ],
+    "domain": [
+     3,
+     "high"
+    ],
+    "risk": [
+     3,
+     "high"
+    ],
+    "tools": [
+     3,
+     "high"
+    ]
+   },
+   "modality": [
+    [
+     "text"
+    ],
+    "high"
+   ],
+   "completeness": 74,
+   "recommendation": [
+    "Illustrative advanced model",
+    "covers",
+    true
+   ],
+   "questions": 1,
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "prod-delete",
+   "seconds": 302.0,
+   "error": "502 {\"detail\":\"provider_rate_limit\"}"
+  },
+  {
+   "assessor": "groq-gpt-oss-20b",
+   "rep": 2,
+   "task": "tax-evasion",
+   "seconds": 302.8,
+   "error": "502 {\"detail\":\"provider_rate_limit\"}"
+  }
+ ]
+}

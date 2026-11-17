@@ -93,6 +93,7 @@ test('signing out clears every preserved page before another account signs in', 
   await page.getByRole('button', { name: 'Create an account', exact: true }).click()
   await page.getByLabel('Email address', { exact: true }).fill(`new-${Date.now()}@example.com`)
   await page.getByLabel('Password', { exact: true }).fill('test-password-123')
+  await page.getByRole('checkbox', { name: /Privacy Policy/ }).check()
   await page.getByRole('button', { name: 'Create account', exact: true }).click()
   await expect(page.locator('[data-chat-input]')).toBeVisible()
   await expect(page.locator('[data-chat-input]')).toHaveValue('')

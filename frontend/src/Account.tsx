@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode, type FormEvent } from 'react'
 import { api, ApiError } from './api'
 import { supabase } from './auth'
 import { PrivacyPolicy } from './PrivacyPolicy'
+import { PolicyConsent, acceptCurrentPolicy } from './PolicyConsent'
 import './Account.css'
 
 type User = { id: string; email: string }
@@ -22,6 +23,7 @@ export function Account({ children, dark, onToggleTheme }: { children: (account:
   const [needsLink, setNeedsLink] = useState(false)
   const [recovery, setRecovery] = useState(false)
   const [showPolicy, setShowPolicy] = useState(false)
+  const [accepted, setAccepted] = useState(false)
   useEffect(() => {
     const controller = new AbortController()
     let generation = 0
@@ -66,7 +68,7 @@ export function Account({ children, dark, onToggleTheme }: { children: (account:
         } else if (register) {
           const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } })
           if (error) throw error
-          if (data.session) setUser(await api<User>('auth/me'))
+          if (data.session) { const account = await api<User>('auth/me'); if (accepted) await acceptCurrentPolicy().catch(() => undefined); setUser(account) }
           else { setNotice('Check your email to confirm your account, then sign in.'); setRegister(false) }
         } else {
           const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -75,7 +77,9 @@ export function Account({ children, dark, onToggleTheme }: { children: (account:
         }
         setPassword(''); return
       }
-      setUser(await api<User>(register ? 'auth/register' : 'auth/login', { email, password }))
+      const account = await api<User>(register ? 'auth/register' : 'auth/login', { email, password })
+      if (register && accepted) await acceptCurrentPolicy().catch(() => undefined) // the acceptance screen asks again if this fails
+      setUser(account)
       setPassword('')
     } catch (failure) {
       if (failure instanceof ApiError && failure.detail === 'account_link_required') { setNeedsLink(true); setPassword('') }
@@ -128,13 +132,14 @@ export function Account({ children, dark, onToggleTheme }: { children: (account:
           <div className="password-label"><label htmlFor="account-password">Password</label><button type="button" aria-controls="account-password" aria-pressed={showPassword} disabled={busy} onClick={() => setShowPassword(!showPassword)}>{showPassword ? 'Hide' : 'Show'}</button></div>
           <input id="account-password" type={showPassword ? 'text' : 'password'} required minLength={12} maxLength={128} aria-describedby="password-hint" autoComplete={register ? 'new-password' : 'current-password'} placeholder={register ? 'Choose a password' : 'Enter your password'} disabled={busy} value={password} onChange={event => setPassword(event.target.value)} />
           <p id="password-hint" className="auth-hint">{needsLink ? 'Enter the password used in AdaptAI before the Supabase migration.' : 'Use 12–128 characters.'}</p>
+          {register && !needsLink && !recovery && <label className="auth-consent"><input id="account-policy" type="checkbox" required checked={accepted} disabled={busy} onChange={event => setAccepted(event.target.checked)} /><span>I have read the <button type="button" className="auth-policy-link" onClick={() => setShowPolicy(true)}>Privacy Policy</button> and I am at least 16 years old.</span></label>}
           {notice && <p role="status">{notice}</p>}
           {error && <p role="alert" className="api-error">{error}</p>}
           <button className="button button-primary auth-submit" disabled={busy}>{busy ? 'Please wait…' : needsLink ? 'Link my history' : recovery ? 'Save password' : register ? 'Create account' : 'Sign in'}<span aria-hidden="true">→</span></button>
         </form>
         {supabase && !register && !needsLink && !recovery && <button type="button" className="button button-ghost" disabled={busy} onClick={resetPassword}>Forgot password?</button>}
         {needsLink || recovery ? <button type="button" className="button button-ghost" disabled={busy} onClick={logout}>Cancel and sign out</button> : <div className="auth-switch"><span>{register ? 'Already have an account?' : 'New to AdaptAI?'}</span><button type="button" disabled={busy} onClick={() => { setRegister(!register); setError(''); setNotice(''); setPassword(''); setShowPassword(false) }}>{register ? 'Sign in' : 'Create an account'}</button></div>}
-        <p className="auth-storage-note">Your preferences and model choices are saved to your account. {register ? 'By creating an account you confirm that you have read our ' : 'Read our '}<button type="button" className="auth-policy-link" onClick={() => setShowPolicy(true)}>Privacy Policy</button>.</p>
+        <p className="auth-storage-note">Your preferences and model choices are saved to your account. Read our <button type="button" className="auth-policy-link" onClick={() => setShowPolicy(true)}>Privacy Policy</button>.</p>
       </section>}
     </main>
     <p className="auth-footer">Clearer choices. Better AI judgement. · <button type="button" className="auth-policy-link" onClick={() => setShowPolicy(true)}>Privacy</button></p>
@@ -142,6 +147,6 @@ export function Account({ children, dark, onToggleTheme }: { children: (account:
   // Keyed by user, so nothing of one account's state survives into the next.
   return <div className="app-shell" key={user.id}>
     {error && <p role="alert" className="api-error account-error">{error}</p>}
-    {children({ email: user.email, busy, signOut: () => void logout() })}
+    <PolicyConsent onSignOut={() => void logout()}>{children({ email: user.email, busy, signOut: () => void logout() })}</PolicyConsent>
   </div>
 }

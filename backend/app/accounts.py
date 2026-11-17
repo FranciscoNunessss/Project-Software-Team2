@@ -5,7 +5,7 @@ from typing import Annotated
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from psycopg.errors import UniqueViolation
+from psycopg.errors import ForeignKeyViolation, UniqueViolation
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 COOKIE = "adaptai_session"
@@ -120,10 +120,14 @@ def issue_session(request: Request, response: Response, user: dict):
     duration = settings.session_days * 86400
     with request.app.state.storage.connect() as db:
         db.execute("DELETE FROM auth_sessions WHERE expires_at<=%s", (int(time.time()),))
-        db.execute(
-            "INSERT INTO auth_sessions VALUES (%s,%s,%s)",
-            (token_hash(token), user["id"], int(time.time()) + duration),
-        )
+        try:
+            db.execute(
+                "INSERT INTO auth_sessions VALUES (%s,%s,%s)",
+                (token_hash(token), user["id"], int(time.time()) + duration),
+            )
+        except ForeignKeyViolation:
+            # The account was deleted between the password check and now.
+            raise HTTPException(401, "invalid_credentials") from None
     response.set_cookie(
         COOKIE,
         token,

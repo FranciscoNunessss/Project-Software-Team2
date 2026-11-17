@@ -62,6 +62,8 @@ class Settings(BaseSettings):
     database_pool_size: int = Field(default=4, ge=0)
     supabase_url: str = ""
     supabase_publishable_key: SecretStr = SecretStr("")
+    # Optional. Lets account deletion also remove the Supabase sign-in record (Admin API).
+    supabase_service_role_key: SecretStr = SecretStr("")
 
 
 SERVER_MODEL_PROVIDERS = ("openai", "claude", "groq", "ollama", "lmstudio")

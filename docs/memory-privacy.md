@@ -229,7 +229,7 @@ is deleted with the account or the evaluation.
 
 
 
-11 November 2026: the user-facing Privacy Policy (draft v0.1) is `frontend/src/content/privacy-policy.md`, shown in the app from the footer, Profile and the sign-in screen. It describes the behaviour documented in this file; items marked TO CONFIRM need AO/PO decisions, and there is still no self-service account deletion.
+11 November 2026: the user-facing Privacy Policy (version 1.0) is `frontend/src/content/privacy-policy.md`, shown in the app from the footer, Profile and the sign-in screen. It describes the behaviour documented in this file; items marked TO CONFIRM need AO/PO decisions, and there is still no self-service account deletion.
 
 ## Models that run on the user's computer (ADR-015, proposed)
 
@@ -243,3 +243,19 @@ time. The token itself is shown once and never stored. Rows are deleted with the
 is created and revoked only from a browser session, never by another token. It is used by the
 VS Code extension (`vscode-extension/`), which keeps it in the editor's SecretStorage, bound to the
 backend that issued it. No task text is stored because of a token.
+
+## Privacy Policy acceptance and account deletion (17 November 2026)
+
+- `users.policy_version` and `users.policy_accepted_at` (migration 010) record which version of
+  the Privacy Policy the user accepted and when (GDPR Art. 7(1)). Nothing else is stored for
+  consent. The version the server asks for is `PRIVACY_POLICY_VERSION` in `backend/app/privacy.py`;
+  a test keeps it equal to the "Version" line of `frontend/src/content/privacy-policy.md`. Raising
+  it makes the app ask every user to accept again before it opens.
+- `DELETE /api/account` (browser session only, never an API token) deletes the `users` row after
+  the user types their email, and their password in local mode. Every table that holds user data
+  references `users(id) ON DELETE CASCADE`, and a test checks that no row with the user's id is
+  left in any table. In cloud mode the Supabase sign-in record is removed too when
+  `ADAPTAI_SUPABASE_SERVICE_ROLE_KEY` is set on the server; otherwise the response says
+  `sign_in_record_removed: false` and the app tells the user to email the privacy contact.
+- The policy is readable without signing in at `/privacy`.
+

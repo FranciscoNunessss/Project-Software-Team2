@@ -25,6 +25,7 @@ from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
 from app.openrouter import CatalogueUnavailable, OpenRouterCatalogue, fetch_models
 from app.outcomes import install_outcomes, record_decision
+from app.privacy import install_privacy
 from app.prompt_builder import active_rubric, public_rubric
 from app.providers import (
     DemonstrationProvider,
@@ -147,6 +148,7 @@ def create_app(
         )
     app.include_router(accounts_router)
     install_tokens(app, store)
+    install_privacy(app, store)
     install_relay(app)
     schedule_coaching = install_coaching(app, store, settings)
     install_outcomes(
@@ -171,6 +173,7 @@ def create_app(
                 "/api/prompt-coach",
                 "/api/chat",
                 "/api/tokens",
+                "/api/account",
             )
         ):
             response.headers["Cache-Control"] = "no-store"

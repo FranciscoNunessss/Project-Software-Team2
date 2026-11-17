@@ -23,6 +23,8 @@ services:
         sync: false
       - key: ADAPTAI_SUPABASE_PUBLISHABLE_KEY
         sync: false
+      - key: ADAPTAI_SUPABASE_SERVICE_ROLE_KEY
+        sync: false
       - key: ADAPTAI_CREDENTIALS_KEY
         sync: false
       - key: ADAPTAI_GROQ_MODEL

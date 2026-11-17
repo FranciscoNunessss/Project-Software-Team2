@@ -98,6 +98,18 @@ The Render Free service sleeps after 15 minutes without traffic. The first reque
 `.github/workflows/keep-warm.yml` asks `/api/health` every 10 minutes between 05:00 and 21:59 UTC,
 so the service stays awake during the day and the night is left to sleep.
 
+* **The window is in UTC** (05:00 to 21:59). Portugal is on UTC in winter and UTC+1 in summer, so from
+  the last Sunday of March the same window is 06:00 to 22:59 local time. Move the cron hours if a
+  demo falls outside it.
+* About 102 pings a day keep the service awake 17 hours a day: 17 h x 31 days is 527 h, inside the 750
+  instance hours a month of one Render Free service.
+* **It does not help before it reaches `main`.** Until then, wake the server by hand before a demo or
+  a meeting (the first answer takes up to a minute, then it is fast):
+
+  ```bash
+  curl -sS --max-time 120 https://<API_ORIGIN>/api/health
+  ```
+
 * It needs the repository variable `API_ORIGIN` (the deploy uses the same one). Without it the job
   warns and does nothing.
 * GitHub runs scheduled workflows only from the default branch, so it starts to work when this change

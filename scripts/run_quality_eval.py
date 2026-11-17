@@ -88,7 +88,11 @@ def has_key(provider: str, settings: Settings) -> bool:
 
 
 class RubricProvider:
-    """The assessor with the prompt of a chosen rubric version, to compare it with the active."""
+    """The assessor with the prompt of a chosen rubric version, to compare it with the active.
+
+    It calls the model directly (``structured_call``) and so skips the assessor chain's fallback to
+    another model: on purpose, because a comparison must measure one model, not whichever answered.
+    """
 
     def __init__(self, provider: str, settings: Settings, version: str):
         self.provider, self.settings = provider, settings
@@ -266,6 +270,12 @@ def diff(args) -> int:
     )
     for report in (first, second):
         print(f"{report['rubric']:12} {report['suite']:9} {report['model']}")
+    for key in ("provider", "model", "suite", "task_set", "mode"):
+        if first.get(key) != second.get(key):
+            print(
+                f"WARNING: the two reports differ in {key} "
+                f"({first.get(key)!r} and {second.get(key)!r}): not a like-for-like comparison."
+            )
     print(f"{'':14}{first['rubric']:>12}{second['rubric']:>12}   change")
     rows = [("overall", first["metrics"]["overall"], second["metrics"]["overall"])]
     names = first["metrics"]["by_dimension"].keys() | second["metrics"]["by_dimension"].keys()

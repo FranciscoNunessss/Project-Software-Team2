@@ -100,9 +100,10 @@ analysis and demo SSE through Nginx, recreates the app containers and verifies s
 data plus the credential-key fingerprint. The container smoke test uses a disposable
 database and synthetic credentials; it makes no real provider calls.
 
-Cloud hosting is still being planned. See [the hosting proposal](docs/hosting-plan.md)
-for the free-tier recommendation and the planned Supabase Auth integration. It is
-separate from the working local Compose stack and has not been deployed.
+The product is deployed on free cloud plans since 7 November 2026: frontend on Netlify
+(https://adaptai-team2.netlify.app), API on Render (https://adaptai-team2-api.onrender.com),
+database and sign-in on Supabase. CI publishes `main` after every check passes. See
+[the cloud setup](docs/cloud-setup.md) and [the hosting plan](docs/hosting-plan.md).
 
 ## Run locally with native development tools
 

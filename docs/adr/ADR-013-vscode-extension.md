@@ -5,7 +5,7 @@ on the local branch `feature/ide`, so the team can try it before deciding. Waiti
 Architecture Owner's decision (the token module is a change in the backend core) and the Product
 Owner's decision on scope. The first draft assumed the whole SPA inside a webview; the team chose a
 native extension instead (see "What changed from the first draft").
-Owner: José Moura (author). Deciders: Architecture Owner (Francisco Velhinho) for the architecture,
+Owner: José Moura (author; Architecture Owner since 18 Nov 2026). Deciders: the Architecture Owner for the architecture, with the Team Lead (Francisco Velhinho) as second reviewer because the Architecture Owner wrote it,
 Product Owner for the scope. Baseline: ADR-005 (privacy), ADR-008 (providers), ADR-009 and ADR-011
 (optional modules), ADR-012 (OpenRouter and LM Studio), ADR-014 (recommendation by task needs).
 Prepared with AI assistance (Claude, Anthropic); human review pending.

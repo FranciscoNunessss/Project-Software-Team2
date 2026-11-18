@@ -1,181 +1,155 @@
-# Configuração cloud: Netlify + Render + Supabase
+# Cloud setup: Netlify + Render + Supabase
 
-**Atualização, 11 de novembro de 2026:** o job `deploy` do CI publicou a `main` (`e207fd9`)
-no Render e no Netlify a 7 de novembro de 2026, com o health check `/api/health` a passar no CI.
-A `main` ainda não tem o trabalho do ADR-014 (PRs #37, #43, #47). O texto abaixo descreve o
-estado antes desse deploy. `render.yaml` não declara `ADAPTAI_EVALUATION_OPENROUTER_KEY`: sem
-ela, a avaliação com a key do projeto (ADR-014 A10) não corre em produção.
+**State on 18 November 2026.** The product is deployed. The `deploy` job of CI published `main`
+to Render and Netlify on 7 November 2026 (`e207fd9`) and again with each release to `main`
+(11 November, `8d0c92b`; 17 November, `74d6872`), each time after every check passed and the
+`/api/health` check answered. Published addresses: frontend `https://adaptai-team2.netlify.app`,
+API `https://adaptai-team2-api.onrender.com`. `render.yaml` does not declare
+`ADAPTAI_EVALUATION_OPENROUTER_KEY`: without it, the evaluation with the project key
+(ADR-014 A10) does not run in production. Owner of the hosting: Francisco Nunes (cloud and
+infrastructure).
 
-Estado em 7 de novembro de 2026: integração escrita na branch
-`feature/infra-postgres`; 462 testes backend passaram e o frontend compila.
-Ainda não foi validado um login contra um projeto Supabase real nem realizado
-um deploy cloud. Os ficheiros locais ainda não foram publicados no GitHub.
+The free plans have two effects users notice: the Render server sleeps after 15 idle minutes
+(the first request then took 38 to 67 seconds on 16 and 17 November), and the Supabase project
+pauses after a quiet week. A keep-awake job is in review (#73).
 
-A ligação ao Supabase via Session pooler foi validada a partir do container
-Linux, com TLS confirmado no cliente. As migrations 1 e 2 foram aplicadas no
-schema privado `adaptai`: 12 tabelas, inicialmente sem utilizadores ou sessões.
-O histórico local ainda não foi importado para esta base cloud.
-
-## Serviços reservados para o primeiro deploy
+## Services
 
 - Render: [adaptai-team2-api](https://dashboard.render.com/web/srv-dbnm3mmc6qcc73e93vc0),
-  ID `srv-dbnm3mmc6qcc73e93vc0`, Free/Frankfurt/Docker, branch `main`, auto-deploy Off.
-  URL reservada: `https://adaptai-team2-api.onrender.com`.
-  Variáveis runtime Supabase, Groq, Auth, origem frontend e Fernet foram gravadas.
-  Os builds iniciais falharam porque a main ainda não tem `backend/Dockerfile`.
-  O HTTP health check `/api/health` foi confirmado pela API autenticada.
+  ID `srv-dbnm3mmc6qcc73e93vc0`, Free/Frankfurt/Docker, branch `main`, auto-deploy Off
+  (CI deploys). Runtime variables for Supabase, Groq, Auth, the frontend origin and Fernet are
+  set in the Render dashboard.
 - Netlify: [adaptai-team2](https://app.netlify.com/projects/adaptai-team2),
-  ID `aebecfdb-e729-4c0c-b3b0-319051d2a181`, equipa Free `kikonuesnnene`.
-  URL reservada: `https://adaptai-team2.netlify.app`. Ainda sem deploy.
-  O projeto foi criado vazio para publicação CLI pelo GitHub Actions; não é
-  necessário ativar builds Git nem duplicar aí as variáveis do build Actions.
-  A gravação de variáveis pelo conector Netlify devolveu HTTP 403; não ficou aplicada.
-- GitHub: variáveis/segredos ainda não foram configurados. Os valores públicos
-  e os campos dos tokens estão preparados em `.env.deploy` (ignorado pelo Git),
-  juntamente com a chave Fernet de produção. Os tokens `RENDER_API_KEY` e
-  `NETLIFY_AUTH_TOKEN` já foram criados e validados por consultas autenticadas
-  aos dois serviços (HTTP 200); falta guardá-los como GitHub Actions Secrets.
+  ID `aebecfdb-e729-4c0c-b3b0-319051d2a181`. Published by the CLI from GitHub Actions; Git
+  builds are not used, and the build variables live in GitHub, not in the Netlify dashboard.
+- GitHub: the variables and secrets of section 5 are set in the `production` environment.
 
-Os serviços estão reservados, não publicados. Não criar outro Blueprint por cima
-deste serviço existente: `render.yaml` mantém a definição para reprodução, enquanto
-o GitHub Actions aponta para os IDs acima e não faz Blueprint sync.
+Do not create another Blueprint on top of the existing service: `render.yaml` keeps the
+definition for reproduction, while GitHub Actions points to the IDs above and does no
+Blueprint sync.
 
-## 1. Identificar os projetos existentes
+## 1. Use the existing projects
 
-Usar os projetos já criados; não criar duplicados. Confirmar o plano Free nos
-três serviços. Anotar os URLs públicos Supabase, Netlify e Render e os IDs de
-site/serviço. Os URLs públicos podem ser partilhados; passwords e tokens ficam
-nos painéis ou em ficheiros locais ignorados pelo Git.
+Use the projects that exist; do not create duplicates. Confirm the Free plan on the three
+services. Public URLs may be shared; passwords and tokens stay in the dashboards or in local
+files ignored by Git.
 
 ## 2. Supabase
 
-1. Em Connect, copiar a ligação PostgreSQL **Session pooler**. Substituir a
-   password, codificando caracteres reservados, e adicionar `sslmode=require`
-   aos parâmetros. O pooler permite ligação IPv4 sem comprar o add-on IPv4.
-2. Obter o Project URL (`https://<ref>.supabase.co`) e a **publishable key** em
-   API Keys/Connect. Não usar secret key ou service_role no frontend.
-3. Em Authentication, manter o fornecedor Email ativo e confirmação de email.
-   Em URL Configuration, definir Site URL e Redirect URLs para o URL exato do
-   frontend Netlify. Adicionar o URL local apenas se for testar Auth cloud localmente.
-4. Para utilizadores fora da equipa Supabase, configurar SMTP próprio. O envio
-   incluído só serve endereços de membros da equipa; confirmação de registo e
-   recuperação de password dependem disso. Não desativar confirmação para
-   contornar a configuração de email.
-5. Não adicionar `adaptai` aos schemas expostos na Data API. O frontend só usa
-   Supabase Auth; os dados da aplicação são acedidos pelo backend via PostgreSQL.
+1. In Connect, copy the PostgreSQL **Session pooler** connection. Replace the password,
+   encoding reserved characters, and add `sslmode=require`. The pooler allows IPv4 without
+   buying the IPv4 add-on.
+2. Get the Project URL (`https://<ref>.supabase.co`) and the **publishable key** from API
+   Keys/Connect. Never use the secret or service_role key in the frontend.
+3. In Authentication, keep the Email provider and email confirmation on. In URL
+   Configuration, set the Site URL and Redirect URLs to the exact Netlify URL. Add the local
+   URL only to test cloud Auth locally.
+4. For users outside the Supabase team, configure your own SMTP. The built-in sender only
+   serves team members' addresses; sign-up confirmation and password recovery depend on it.
+   Do not turn confirmation off to work around email.
+5. Do not add `adaptai` to the schemas exposed by the Data API. The frontend only uses
+   Supabase Auth; application data is reached by the backend through PostgreSQL.
 
-As migrations `backend/migrations/*.sql` são aplicadas pelo backend no arranque.
-Não copiar o SQL para o painel manualmente. O histórico local não é transferido
-automaticamente: combinar uma importação controlada antes de criar dados cloud.
-A associação de contas preserva o histórico já presente na base de dados destino
-e exige a sessão Supabase e a password AdaptAI anterior.
+The backend applies `backend/migrations/*.sql` at start-up. Do not copy SQL into the dashboard
+by hand. Local history is not transferred automatically: agree a controlled import before
+creating cloud data. Linking accounts keeps the history already in the target database and
+requires the Supabase session and the previous AdaptAI password.
 
 ## 3. Render
 
-Configurar o serviço existente como Web Service / Docker, plano Free, região
-Frankfurt se ainda estiver por criar. Repo: Project-Software-Team2. Branch final:
-`main`. Dockerfile: `backend/Dockerfile`; build context: raiz do repositório;
-health check: `/api/health`. Não definir Root Directory como `backend`, pois o
-Dockerfile também precisa dos manifests na raiz. Auto-deploy: **Off**.
+Web Service / Docker, Free plan, Frankfurt. Repository: Project-Software-Team2. Branch:
+`main`. Dockerfile: `backend/Dockerfile`; build context: repository root; health check:
+`/api/health`. Do not set Root Directory to `backend`: the Dockerfile also needs the
+manifests at the root. Auto-deploy: **Off**.
 
-| Variável runtime | Valor |
+| Runtime variable | Value |
 | --- | --- |
 | `ADAPTAI_AUTH_MODE` | `supabase` |
-| `ADAPTAI_DATABASE_URL` | URL Session pooler com password e SSL; segredo |
+| `ADAPTAI_DATABASE_URL` | Session pooler URL with password and SSL; secret |
 | `ADAPTAI_DATABASE_SCHEMA` | `adaptai` |
 | `ADAPTAI_SUPABASE_URL` | Project URL |
 | `ADAPTAI_SUPABASE_PUBLISHABLE_KEY` | Publishable key |
-| `ADAPTAI_BROWSER_ORIGIN` | Origem HTTPS exata do frontend, sem barra final |
-| `ADAPTAI_CREDENTIALS_KEY` | Fernet key estável; segredo |
-| `ADAPTAI_GROQ_MODEL` | `openai/gpt-oss-20b`, se for usar o modelo do projeto |
-| `ADAPTAI_GROQ_API_KEY` | Chave do projeto, se houver; segredo |
+| `ADAPTAI_BROWSER_ORIGIN` | Exact HTTPS origin of the frontend, no trailing slash |
+| `ADAPTAI_CREDENTIALS_KEY` | Stable Fernet key; secret |
+| `ADAPTAI_GROQ_MODEL` | `openai/gpt-oss-20b`, to use the project model |
+| `ADAPTAI_GROQ_API_KEY` | Project key, if any; secret |
 
-Sem uma chave/modelo acessível, o modo demonstração continua disponível, mas não
-equivale a uma avaliação semântica por IA. Ollama num portátil não fica acessível
-automaticamente a partir do Render.
+Without a reachable key and model, demo mode still works, but it is not a semantic AI
+assessment. Ollama on a laptop is not reachable from Render; the relay (ADR-015) is the way
+to use a model on the user's own computer.
 
-Para uma base cloud nova sem credenciais encriptadas, gerar a Fernet key localmente:
+For a new cloud database with no encrypted credentials, generate the Fernet key locally:
 
 ```powershell
 uv run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-Guardar o resultado apenas no segredo Render. Ao importar credenciais encriptadas
-existentes, conservar a chave correspondente em vez de gerar uma nova.
-
-`render.yaml` descreve este serviço. Só usar o Blueprint depois de o ficheiro e
-todo o código necessário estarem no GitHub, através de feature -> develop -> main.
-Não tentar publicar a main antiga que ainda não contém esta integração.
+Keep it only in the Render secret. When importing existing encrypted credentials, keep their
+key instead of generating a new one.
 
 ## 4. Netlify
 
-Configuração de build: base `frontend`, comando `pnpm build`, publish `dist`,
-Node 22. O `netlify.toml` na raiz já contém estes valores, fallback SPA e headers.
-Nunca publicar o código fonte ou a pasta raiz como diretório de publicação.
+Build: base `frontend`, command `pnpm build`, publish `dist`, Node 22. `netlify.toml` at the
+root holds these values, the SPA fallback and the headers. Never publish the source code or
+the root folder.
 
-| Variável pública de build | Valor |
+| Public build variable | Value |
 | --- | --- |
 | `VITE_AUTH_MODE` | `supabase` |
-| `VITE_API_ORIGIN` | Origem HTTPS exata do backend Render, sem `/api` |
+| `VITE_API_ORIGIN` | Exact HTTPS origin of the Render backend, without `/api` |
 | `VITE_SUPABASE_URL` | Project URL |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Publishable key |
 
-Todas as variáveis `VITE_*` ficam públicas no JavaScript. Não colocar nelas URL
-PostgreSQL, passwords, tokens de deploy ou chaves de fornecedores de IA.
+Every `VITE_*` variable is public in the JavaScript. Never put a PostgreSQL URL, passwords,
+deploy tokens or AI provider keys in them.
 
-Para o fluxo GitHub Actions, o build acontece no runner: as variáveis necessárias
-têm também de estar no GitHub, não basta configurá-las no painel Netlify. Evitar
-builds/publicações Git automáticos em paralelo com Actions: usar um site de
-deploy manual/CLI ou desligar builds Git automáticos na configuração do projeto.
-O deploy Actions usa o site existente, identificado por `NETLIFY_SITE_ID`.
+With GitHub Actions the build runs on the runner, so these variables must be in GitHub;
+setting them in the Netlify dashboard is not enough. Avoid automatic Git builds in parallel
+with Actions. The Actions deploy uses the existing site, identified by `NETLIFY_SITE_ID`.
 
-## 5. GitHub Actions: ativar só no fim
+## 5. GitHub Actions
 
-No GitHub, criar/usar o Environment `production`. Em Settings -> Secrets and
-variables -> Actions (ou no Environment `production`), configurar:
+In the `production` environment (or in Settings -> Secrets and variables -> Actions):
 
-| Tipo | Nome | Valor |
+| Type | Name | Value |
 | --- | --- | --- |
-| Variable | `API_ORIGIN` | URL HTTPS backend |
+| Variable | `API_ORIGIN` | Backend HTTPS URL |
 | Variable | `SUPABASE_URL` | Project URL |
-| Variable | `SUPABASE_PUBLISHABLE_KEY` | Publishable key pública |
-| Variable | `RENDER_SERVICE_ID` | ID `srv-...` do serviço |
-| Variable | `NETLIFY_SITE_ID` | Project/Site ID Netlify |
-| Secret | `RENDER_API_KEY` | Token API Render |
-| Secret | `NETLIFY_AUTH_TOKEN` | Token de deploy Netlify |
+| Variable | `SUPABASE_PUBLISHABLE_KEY` | Public publishable key |
+| Variable | `RENDER_SERVICE_ID` | `srv-...` ID of the service |
+| Variable | `NETLIFY_SITE_ID` | Netlify project/site ID |
+| Secret | `RENDER_API_KEY` | Render API token |
+| Secret | `NETLIFY_AUTH_TOKEN` | Netlify deploy token |
 
-Só depois de todos os passos estarem prontos, criar a **Repository Variable**
-`CLOUD_DEPLOY_ENABLED=true` (deve existir a nível do repositório, pois controla
-o agendamento do job antes de o Environment ser carregado).
+The repository variable `CLOUD_DEPLOY_ENABLED=true` turns the deploy job on (it must exist at
+repository level, because it gates the job before the environment loads).
 
-O workflow `.github/workflows/ci.yml` valida todas as branches. O job deploy só
-executa em **push para main**, com a variável de ativação, depois de todos os
-checks passarem. Faz build cloud do frontend, publica o commit testado no Render,
-espera pelo estado live, verifica health e só depois publica no Netlify.
+`.github/workflows/ci.yml` checks every branch. The deploy job runs only on a **push to
+main**, with that variable, after every check passes. It builds the frontend for the cloud,
+publishes the tested commit to Render, waits until it is live, checks health, and only then
+publishes to Netlify.
 
-## 6. Verificação final
+## 6. Checks after a deploy
 
-1. Backend `/api/health` responde com `{"status":"ok"}`.
-2. Frontend abre, confirma email e faz login, refresh e logout.
-3. Sessões/histórico ficam isolados por utilizador e sobrevivem a novo login.
-4. Análise, decisão e chat/streaming funcionam com o modelo configurado.
-5. Requests do frontend passam CORS; pedidos de outras origens são rejeitados.
-6. Confirmar consumo dos planos Free e o tempo de arranque após suspensão Render.
+1. The backend `/api/health` answers `{"status":"ok"}`.
+2. The frontend opens, confirms an email, signs in, refreshes and signs out.
+3. Sessions and history stay per user and survive a new sign-in.
+4. Analysis, decision and chat streaming work with the configured model.
+5. Frontend requests pass CORS; requests from other origins are refused.
+6. Free-plan usage and the start-up time after the Render server sleeps are within limits.
 
-## Ligações e validação de latência
+## Connections and latency
 
-O FastAPI reutiliza até quatro ligações PostgreSQL por processo. O pool abre
-ligações à medida que são necessárias e funciona com o Session pooler do
-Supabase. Define `ADAPTAI_DATABASE_POOL_SIZE=0` para desativar temporariamente
-a reutilização de ligações PostgreSQL durante um diagnóstico.
+FastAPI reuses up to four PostgreSQL connections per process. The pool opens connections as
+needed and works with the Supabase Session pooler. Set `ADAPTAI_DATABASE_POOL_SIZE=0` to turn
+connection reuse off temporarily during a diagnosis.
 
-Depois do deploy, com a API ativa, compara o tempo de resposta da lista de
-chats e de **My Progress** no separador Network do browser. Usa a mesma conta
-de teste e repete cada pedido cinco vezes. Para **Analyse** e o chat, usa o
-mesmo texto sintético e o mesmo modelo em cada tentativa. Regista também o
-tempo até aparecer o primeiro texto do chat.
+With the API awake, compare the response time of the chat list and of **My Progress** in the
+browser's Network tab, with the same test account and five repetitions. For **Analyse** and
+the chat, use the same synthetic text and the same model each time, and record the time to
+the first chat text.
 
-## Referências oficiais
+## Official references
 
 - [Supabase PostgreSQL connections](https://supabase.com/docs/guides/database/connecting-to-postgres)
 - [Supabase email/SMTP](https://supabase.com/docs/guides/auth/auth-smtp)
@@ -183,3 +157,6 @@ tempo até aparecer o primeiro texto do chat.
 - [Render Free limits](https://render.com/docs/free)
 - [Netlify file-based configuration](https://docs.netlify.com/build/configure-builds/file-based-configuration/)
 - [Netlify deploy CLI](https://cli.netlify.com/commands/deploy/)
+
+Revision: 18 Nov 2026, translated into English and brought to the deployed state; prepared with
+AI assistance (Claude, Anthropic) for Ricardo Rodrigues.

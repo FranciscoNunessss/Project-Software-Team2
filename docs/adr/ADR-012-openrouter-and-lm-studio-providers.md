@@ -1,7 +1,7 @@
 # ADR-012: OpenRouter and LM Studio providers
 
 Status: Proposed (5 November 2026). Waiting for the Architecture Owner's decision after team
-review. Owner: José Moura (author). Decider: Architecture Owner (Francisco Velhinho).
+review. Owner: José Moura (author; Architecture Owner since 18 Nov 2026). Decider: the Architecture Owner, with the Team Lead (Francisco Velhinho) as second reviewer because the Architecture Owner wrote it.
 Baseline: ADR-004 (model knowledge as data), ADR-005 (metadata only), ADR-007, ADR-008
 (multiple LLM providers), ADR-009 (shared analysis core). Related, not decided here: ADR-011
 (chat with in-line analysis). The full document, with the evidence and the risks, is

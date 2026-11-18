@@ -61,7 +61,8 @@ CI also runs the removal drill (deletes the Prompt Coach and chat modules and ru
 2. The diff matches the plan; unexplained files or behaviour block.
 3. No key, secret, `.env` content or personal data in the diff, tests or logs.
 4. Migrations and changes to stored data are declared in the report.
-5. A changed prompt, rubric, model or catalogue comes with an evaluation (05, 7.6).
+5. A changed prompt, rubric, model or catalogue comes with an evaluation (05, 7.6), run on the
+   production model before release; a run on another model is labelled as such (PD-48).
 6. Docs do not contradict the code.
 7. New paths do not fail silently or show internal detail to the user.
 8. Dead code, duplication, misleading names: suggestions only, never a blocker.
@@ -84,5 +85,9 @@ Rate each finding blocker, major, minor or nit.
   change needs a new ADR, or the same step fails twice.
 - **Commits.** Clear summary line (Conventional Commits prefixes welcome) and the AI
   co-author trailer. The card is linked in the pull request, not in each commit.
+- **Review (PD-44).** A human approval carries at least one written finding or a "checked: …"
+  line naming what was verified. An approval without one does not count for G3.
+- **Open pull requests (PD-47).** At most 5 open pull requests per author. When the limit is
+  reached, review others' pull requests before specifying new work.
 - **Prompt Coach isolation.** The module never adds a core migration; its tests carry the
   `prompt_coach` marker.

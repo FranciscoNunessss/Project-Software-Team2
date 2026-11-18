@@ -61,6 +61,9 @@ Before step 1, every code card goes through the plan-first flow in 08 Constructi
   - Start from the report and the LLM review, then check the diff for correctness, style, and conflicts with other in-flight work.
   - Request changes or fix small issues directly (with the author's awareness) so the PR is mergeable.
   - Confirm the PR is rebased on the latest `develop` before approving.
+  - Write at least one finding or a "checked: …" line in the review before approving; an approval without one does not count for G3 (PD-44, 18 Nov 2026).
+  - Keep at most 5 pull requests open per author; at the limit, review before opening new work (PD-47, 18 Nov 2026).
+  - Every pull request targets `develop`; only the release pull request targets `main` (§6). Lesson: #54 and #59 went straight to `main`, the branches diverged and #77 had to bring `main` back into `develop`.
   - Merge the PR (G3) once CI is green, the report is complete, the LLM review has no open blocker and majors are fixed or justified. The approver merges; the author and AI agents never merge their own work.
 
 ## 5. Keeping History Clean: Rebase Strategy

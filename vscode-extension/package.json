@@ -33,6 +33,21 @@
     },
     "commands": [
       {
+        "command": "adaptai.startDiagnostics",
+        "title": "Start local latency capture",
+        "category": "AdaptAI"
+      },
+      {
+        "command": "adaptai.stopDiagnostics",
+        "title": "Stop latency capture",
+        "category": "AdaptAI"
+      },
+      {
+        "command": "adaptai.showDiagnostics",
+        "title": "Show latency report",
+        "category": "AdaptAI"
+      },
+      {
         "command": "adaptai.openApp",
         "title": "Open AdaptAI",
         "category": "AdaptAI",
@@ -362,7 +377,8 @@
   "scripts": {
     "build": "tsc -p ./",
     "package": "npx --yes @vscode/vsce@3 package --no-dependencies --allow-missing-repository --skip-license",
-    "test": "tsc -p ./ && node --test test/*.test.js"
+    "test": "tsc -p ./ && node --test test/*.test.js",
+    "test:page": "tsc -p ./ && node test/page.browser.cjs"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

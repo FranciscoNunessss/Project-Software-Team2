@@ -178,6 +178,178 @@ These are tested in `test/security.test.js` and `test/dashboard.test.js`.
 
 ## Run, test, package
 
+### Local latency capture
+
+Run **AdaptAI: Start local latency capture** in the Command Palette. Capture is off by default
+and resets on every start. It keeps the most recent 1,000 completed timings in memory and
+writes timing metadata to the local **AdaptAI Latency** log output channel. Nothing is uploaded.
+Run **Show latency report** to open a JSON document, and **Stop latency capture** when finished.
+VS Code retains the local output log according to its normal log lifecycle; stopping capture
+does not remove records already written. Capture also stops when the extension is disposed.
+
+The only recorded fields are sequence, milliseconds since capture started, phase, endpoint
+template, HTTP method/status when available, duration and success/error/cancellation. Query
+strings and resource identifiers are removed; unknown endpoints become `other`. Bodies,
+headers, credentials, model answers, email addresses and exception messages are never recorded.
+The capture does not change consent, model selection, caching or request ordering.
+
+Measure five repetitions after warming the API, using the same account, model and synthetic
+prompt, as in `cloud-setup.md`. Record rate limits and failures separately from successful runs.
+Do not include the first wake-up request in warm latency statistics.
+
+* `api`: request through complete JSON response consumption, including network time. Authentication
+  and status probes that call `Backend.call` directly are not individual `api` samples.
+* `firstText`: from starting the chat stream request to its first non-empty text delta. Metadata
+  and empty deltas do not count. No sample is emitted if there is no text. This excludes model
+  discovery, consent and chat creation before the request, and the webview's paint time.
+* `stream`: stream lifetime through completion, failure, Stop or consumer cancellation. An SSE
+  error counts as a failure even with HTTP 200. This overlaps `firstText`; do not add them.
+* `reload`: time to check status, load the active tab and enqueue its update to the webview.
+  This includes the health/auth probes, but excludes painting. It overlaps its child API requests.
+
+Use `sequence` and `startedMs` to recognise concurrent reloads and repeated endpoints. Compare
+panel loading, the `/api/analyze` request, `firstText` and stream completion separately; the
+analysis result's `latency_ms` is a backend measurement and is not click-to-visible latency.
+
+### Panel latency improvements (18 November 2026)
+
+Panel reads run in parallel with a shared limit of three operations. Connection checks now
+run separately through the status bar, outside the navigation path. Other extension activity,
+such as the relay or model calls, is separate. Concurrent reloads of the same view share one promise;
+tab/session changes cancel queued reads and obsolete responses cannot update the page or
+the models action cache. A refresh after a mutation explicitly replaces an older reload.
+
+Analyse and Coach publish local busy state immediately, without first loading the panel.
+Analysis events during these actions publish the local result instead of reloading models.
+After analysis/chat completion, only the chat list and selected transcript are refreshed.
+The webview merges these partial updates and preserves live text while streaming. A partial
+refresh failure shows a message and keeps the existing reply. Typing updates the Analyse/Send
+buttons immediately; a background refresh is no longer needed to enable them.
+
+Controlled before/after comparison, five repetitions per case with each synthetic request
+delayed by 100 ms, against the previously installed instrumented build:
+
+| Case | Before median | After median |
+| --- | --- | --- |
+| Assistant, no selected chat | 527 ms | 213 ms |
+| Assistant, selected chat | 644 ms | 322 ms |
+| My Progress | 1066 ms | 418 ms |
+| Models | 532 ms | 215 ms |
+| Profile | 650 ms | 211 ms |
+| Panel work around analysis, excluding model time | 1079 ms | 106 ms |
+| Panel work after chat, no selected chat | 529 ms | 103 ms |
+
+Analysis starts in under 1 ms in this controlled test, instead of waiting about 534 ms for
+the panel. Three overlapping Assistant reloads make five requests instead of fifteen. These
+figures isolate client orchestration, not production latency or model inference. Real warm
+authenticated measurements and the developer's G2 acceptance are still required.
+
+Regression cases are in `test/dashboard-latency.test.js`: immediate analysis, bounded parallel
+reads, partial failures, shared reloads, obsolete tabs/models/session/backend responses,
+targeted chat refresh and errors, new actions overtaking an older conversation refresh, and
+forced refresh after a mutation. Existing consent and model-selection tests still apply.
+Run `pnpm test:page` after installing the existing `e2e` Playwright dependencies and Chromium
+to verify the generated webview script, input/busy state, draft preservation, uninterrupted
+streaming, final transcript replacement and ignored signed-out patches in a real browser.
+
+### Immediate tab navigation and a 15-second memory cache
+
+Selecting a tab replaces the previous screen immediately with the target's loading state.
+The host then supplies a cached snapshot without API calls if it is under 15 seconds old.
+An expired snapshot remains visible with “Updating…” while it is revalidated. The first visit
+still waits for its data, but the user sees the destination immediately. If revalidation fails,
+the old content remains with a visible error and Retry; its age is not renewed.
+
+Snapshots live only in the extension's memory, at most one per tab. They are cleared on session
+or backend changes, disposal, explicit refresh and backend mutations. The Assistant's selected
+conversation and chat model form part of the cache key. Analysis/chat completion invalidates
+dependent progress, profile and model snapshots. A 401/rejected token clears cached pages and
+shows sign-in. Token-management pages while unlocked bypass the cache. No migrations, prompts,
+provider settings or persistent cache files were added.
+
+Tab changes no longer request health/auth status or inspect relay configurations. The status
+bar updates only the connection header; its periodic check may revalidate the active tab if
+its snapshot has expired. Relay checks still run after session/model changes and on the existing
+timer, and their live state is merged into cached model pages. Shortcuts uses no backend calls.
+Out-of-order status checks and page responses cannot take over a newer account/tab.
+
+Controlled Chromium comparison against the previously installed build, five revisits per tab
+after visiting all tabs, 100 ms per synthetic backend request, with no browser errors:
+
+| Cached revisit | Before content | After content | Before API calls | After API calls |
+| --- | --- | --- | --- | --- |
+| Assistant | 226 ms | 14 ms | 5 | 0 |
+| My Progress | 438 ms | 13 ms | 10 | 0 |
+| Profile | 226 ms | 12 ms | 6 | 0 |
+| LLM config | 224 ms | 13 ms | 5 | 0 |
+| Shortcuts | 225 ms | 13 ms | 2 | 0 |
+
+The loading screen appeared in 0.1–0.3 ms in this test. With health/auth each delayed by
+1.2 seconds, Shortcuts previously took 2428 ms; now it took 11 ms and made no API calls.
+These numbers measure local client orchestration and browser rendering with synthetic data,
+not production latency, GPU paint time or model inference. Warm authenticated G2 remains manual.
+
+`test/dashboard-cache.test.js` covers reuse, expiry, background refresh/failure, loading state,
+mutation and scope invalidation, 401, selected conversations, uncached unlocked token management,
+zero-network Shortcuts, independent status updates, obsolete status responses and relay behaviour.
+`pnpm test:page` also checks immediate navigation, ignored old-tab messages, refresh/error feedback,
+preserved drafts, account-header-only updates and scope reset in Chromium.
+
+My Progress reads the Educator content from `coaching.saved.report`, matching the backend's
+saved-report envelope. `test/fixtures/progress-with-coaching.json` is synthetic populated data
+following this API shape. Browser regression checks cover saved summaries, patterns, suggestions,
+charts, outcomes and history, missing coaching, and recovery after an unexpected rendering failure.
+The host test also checks the same report envelope on fresh load and cached revisits. An unexpected
+rendering failure shows a generic error and Retry instead of leaving the page blank.
+
+### Preload at extension startup
+
+#### Approved implementation plan
+
+The scope below was approved incrementally by the responsible developer in the development
+conversation on 18 November 2026. It is limited to the extension, its tests and this guide;
+the backend API, database schema, model catalogue and AI prompts are unchanged.
+
+| Change | Cases and regression evidence |
+| --- | --- |
+| Opt-in local latency capture | Disabled/enabled/reset/stop, sanitised metadata, API/stream timing, cancellation and errors: `test/diagnostics.test.js` |
+| Faster analysis and panel reads | Immediate analysis, bounded parallelism, joined reloads, obsolete responses, partial chat refresh, failures: `test/dashboard-latency.test.js` |
+| Immediate navigation and 15-second memory snapshots | Fresh/expired snapshots, retry, mutations, session/backend/401 invalidation, local Shortcuts and relay/status handling: `test/dashboard-cache.test.js` |
+| Populated My Progress rendering | Synthetic saved Educator report, summary/patterns/suggestions, charts/history, missing data and rendering-error recovery: `test/fixtures/progress-with-coaching.json`, `test/page.browser.cjs` |
+| All-tab startup warm-up | Assistant first, no-view startup, priority/three-read limit, sharing, failures, authentication, cancellation and disposal: `test/dashboard-preload.test.js` |
+
+Manual acceptance of the final startup build and production latency measurements remain
+separate from the automated evidence. No board card was supplied in this conversation;
+linking the owning card is an open item for the responsible developer before merge.
+
+After the backend credentials have been loaded, activation starts an asynchronous warm-up
+without opening the AdaptAI view. The Assistant loads first; Progress, Profile, Models and
+Shortcuts then load in the background into the same 15-second memory cache. Startup is also
+triggered after sign-in, backend changes and when the view is recreated. Signed-out sessions,
+rejected credentials and invalid backend addresses do not issue warm-up requests.
+
+Opening a tab during warm-up joins its existing fetch. The initial webview `ready` message
+preserves preloaded data; explicit Retry still forces fresh data. All panel reads share the
+three-operation limit, and queued reads for the visible tab take priority over background
+reads. The Assistant can appear before the remaining tabs finish. Background tabs never
+navigate or redraw the active screen; cached Models restores its validated action data only
+when it is displayed.
+
+Failures are contained per tab; opening a tab whose warm-up failed retries it normally.
+Session/backend changes, rejected credentials, mutations and disposal abort obsolete warm-up
+jobs so late results cannot repopulate the cache. The existing consent and automatic Educator
+settings still apply to the same GET endpoints; warm-up does not submit user tasks or chat
+messages. No new stored data, migrations, AI prompts or provider settings are introduced.
+
+`test/dashboard-preload.test.js` covers all-tab startup without a view, Assistant-first ordering,
+the concurrency limit, immediate cached first visits, shared in-flight reads and `ready`,
+foreground priority, Assistant availability while another tab is pending, failure and retry,
+signed-out/invalid-address startup, 401, sign-out/backend-change cancellation, disposal and
+automatic warm-up after sign-in.
+
+`test/diagnostics.test.js` checks opt-in/reset/stop/bounds, metadata sanitisation, body consumption,
+HTTP failures, cancellation, first text versus SSE metadata, SSE failures, and panel-load errors.
+
 Windows notes: use `python -m uv run ...` for Python and `npx --yes pnpm@10.34.3 ...` for pnpm.
 Docker Desktop must be open for PostgreSQL.
 

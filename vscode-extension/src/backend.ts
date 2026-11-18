@@ -2,6 +2,7 @@ import * as os from 'node:os'
 import * as vscode from 'vscode'
 import { TOKEN_PREFIX, buildApiUrl, checkBackendUrl, describeFailure, looksLikeToken, safeRequest } from './core'
 import { SseParser, type SseEvent } from './sse'
+import { beginTiming } from './diagnostics'
 
 const SESSION_KEY = 'adaptai.session'
 const TOKEN_KEY = 'adaptai.token'
@@ -201,10 +202,24 @@ export class Backend {
 
   /** A JSON call for the commands. Throws ApiError with the backend's `detail` code. */
   async api<T>(path: string, method = 'GET', body?: unknown, signal: AbortSignal = AbortSignal.timeout(120_000), provider?: string): Promise<T> {
+    const end = beginTiming('api', path, method)
+    let status: number | undefined
+    try {
+      const data = await this.readApi<T>(path, method, body, signal, provider, value => { status = value })
+      end('ok', status)
+      return data
+    } catch (error) {
+      end(signal.aborted ? 'cancelled' : 'error', error instanceof ApiError ? error.status : status)
+      throw error
+    }
+  }
+
+  private async readApi<T>(path: string, method: string, body: unknown, signal: AbortSignal, provider: string | undefined, onStatus: (status: number) => void): Promise<T> {
     const response = await this.call(
       { path, method, headers: body === undefined ? {} : { 'content-type': 'application/json' }, body: body === undefined ? null : JSON.stringify(body) },
       signal,
     )
+    onStatus(response.status)
     if (response.status >= 300 && response.status < 400) throw new ApiError(0, 'The backend answered with a redirect, which is never followed. Check the backend address.')
     const text = await response.text()
     let data: unknown
@@ -225,7 +240,34 @@ export class Backend {
    * stream that sends nothing for `idleMs` fails with a TimeoutError instead of hanging.
    */
   async *events(path: string, method: string, body: unknown, signal: AbortSignal, provider?: string): AsyncGenerator<SseEvent> {
+    const end = beginTiming('stream', path, method)
+    const firstText = beginTiming('firstText', path, method)
+    let received = false
+    let outcome: 'ok' | 'error' | 'cancelled' = 'cancelled'
+    let status: number | undefined
+    try {
+      for await (const item of this.readEvents(path, method, body, signal, provider, value => { status = value })) {
+        const text = (item.data as { text?: unknown } | null)?.text
+        if (!received && item.event === 'delta' && typeof text === 'string' && text.length > 0) {
+          received = true
+          firstText('ok')
+        }
+        if (item.event === 'error') outcome = 'error'
+        yield item
+      }
+      if (outcome !== 'error') outcome = 'ok'
+    } catch (error) {
+      outcome = signal.aborted ? 'cancelled' : 'error'
+      status = error instanceof ApiError ? error.status : undefined
+      throw error
+    } finally {
+      end(outcome, status)
+    }
+  }
+
+  private async *readEvents(path: string, method: string, body: unknown, signal: AbortSignal, provider: string | undefined, onStatus: (status: number) => void): AsyncGenerator<SseEvent> {
     const response = await this.call({ path, method, headers: { 'content-type': 'application/json', accept: 'text/event-stream' }, body: JSON.stringify(body) }, signal)
+    onStatus(response.status)
     if (response.status >= 300 && response.status < 400) throw new ApiError(0, 'The backend answered with a redirect, which is never followed. Check the backend address.')
     if (!response.ok) {
       const data = (await response.json().catch(() => ({}))) as { detail?: unknown }

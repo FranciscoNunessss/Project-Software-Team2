@@ -54,9 +54,12 @@ const view = {
   onDidChangeVisibility: () => ({}),
   onDidDispose: () => ({}),
 }
+// Keep action fixtures independent from startup background reads.
+dash.preload = () => Promise.resolve()
 dash.resolveWebviewView(view)
 
 const reset = () => {
+  dash.invalidateTabs()
   answers.length = 0
   posted.length = 0
   dialogs.length = 0

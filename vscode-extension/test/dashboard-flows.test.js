@@ -59,7 +59,10 @@ const view = {
   onDidChangeVisibility: () => ({}),
   onDidDispose: () => ({}),
 }
+// These action tests control their own fixtures; startup warm-up is tested separately.
+dash.preload = () => Promise.resolve()
 dash.resolveWebviewView(view)
+test.beforeEach(() => dash.invalidateTabs())
 
 const session = {
   id: 's1',
@@ -105,6 +108,7 @@ test('deleting a session asks first, and cancelling deletes nothing', async () =
 })
 
 test('an OpenRouter catalogue model is chosen once and stays for the messages after it, until another model is picked', async () => {
+  analyser.results.clear()
   responses = {
     'GET /api/llm-options': { options: [{ id: 'g', provider: 'groq', label: 'Groq', model: 'x', external: true }, { id: 'or', provider: 'openrouter', label: 'OpenRouter', model: null, external: true }] },
     'GET /api/openrouter/models': { models: [{ id: 'vendor/free-model', free: true, selectable: true }, { id: 'vendor/audio', selectable: false, reason: 'no text' }] },
@@ -203,13 +207,13 @@ test('a failed analysis is told in the analysis panel with its reason, and a can
   analyser.results.clear()
   posted.length = 0
   await dash.handle({ type: 'analyse', text: 'Plan a database migration for a small team' })
-  assert.equal(posted.findLast(m => m.type === 'data' && m.tab === 'analyse').analysisError, 'The provider took too long to respond. Please try again.')
+  assert.equal(posted.findLast(m => m.type === 'assistantState').data.analysisError, 'The provider took too long to respond. Please try again.')
   chat.analyseForPage = async () => {
     analyser.lastError = undefined
     return undefined
   }
   await dash.handle({ type: 'analyse', text: 'Plan a database migration for a small team' })
-  assert.equal(posted.findLast(m => m.type === 'data' && m.tab === 'analyse').analysisError, undefined)
+  assert.equal(posted.findLast(m => m.type === 'assistantState').data.analysisError, undefined)
 })
 
 test('an answer cut off by the length limit is flagged in the page with its explanation, so it can be continued', async () => {

@@ -6,6 +6,7 @@ export class StatusBar implements vscode.Disposable {
   private readonly item: vscode.StatusBarItem
   private timer: NodeJS.Timeout | undefined
   last: Status | undefined
+  private revision = 0
 
   constructor(private readonly backend: Backend, private readonly onStatus: (status: Status) => void) {
     this.item = vscode.window.createStatusBarItem('adaptai.status', vscode.StatusBarAlignment.Right, 100)
@@ -17,9 +18,12 @@ export class StatusBar implements vscode.Disposable {
   }
 
   async refresh(): Promise<Status> {
+    const revision = ++this.revision
     const status = await this.backend.status()
-    this.render(status)
-    this.onStatus(status)
+    if (revision === this.revision) {
+      this.render(status)
+      this.onStatus(status)
+    }
     return status
   }
 
@@ -52,6 +56,7 @@ export class StatusBar implements vscode.Disposable {
   }
 
   dispose(): void {
+    this.revision++
     if (this.timer) clearInterval(this.timer)
     this.item.dispose()
   }

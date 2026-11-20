@@ -155,7 +155,7 @@ export async function runLong(parts: Parts): Promise<void> {
     const pd = await vscode.workspace.openTextDocument(vscode.Uri.file(prompt))
     const pe = await vscode.window.showTextDocument(pd, { preview: false })
     pe.selection = new vscode.Selection(0, 0, 0, 16)
-    void analyser.improveInEditor()
+    void analyser.improveInEditor('rewrite')
     const waiting = await until(() => Boolean((analyser as unknown as { improving?: unknown }).improving), 150_000)
     if (!waiting) return { ok: false, detail: 'no improvement was proposed in 150 s' }
     await sleep(500)
@@ -174,7 +174,7 @@ export async function runLong(parts: Parts): Promise<void> {
     const pd = await vscode.workspace.openTextDocument(vscode.Uri.file(prompt))
     const pe = await vscode.window.showTextDocument(pd, { preview: false })
     pe.selection = new vscode.Selection(0, 0, 0, 16)
-    void analyser.improveInEditor()
+    void analyser.improveInEditor('rewrite')
     const waiting = await until(() => Boolean((analyser as unknown as { improving?: unknown }).improving), 150_000)
     if (!waiting) return { ok: false, detail: 'no improvement was proposed in 150 s' }
     await vscode.commands.executeCommand('adaptai.dismissImprovement')

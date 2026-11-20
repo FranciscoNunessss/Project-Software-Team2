@@ -100,7 +100,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('adaptai.analyseClipboard', () => analyser.fromClipboard()),
     vscode.commands.registerCommand('adaptai.analyseInput', () => analyser.fromInput()),
     vscode.commands.registerCommand('adaptai.coachClipboard', () => analyser.coachClipboard()),
-    vscode.commands.registerCommand('adaptai.improvePrompt', () => analyser.improveInEditor()),
+    vscode.commands.registerCommand('adaptai.improvePrompt', (mode?: unknown) => analyser.improveInEditor(mode)),
     vscode.commands.registerCommand('adaptai.applyImprovement', () => analyser.applyImprovement()),
     vscode.commands.registerCommand('adaptai.dismissImprovement', () => analyser.dismissImprovement()),
     vscode.commands.registerCommand('adaptai.testConnection', () => analyser.testConnection()),

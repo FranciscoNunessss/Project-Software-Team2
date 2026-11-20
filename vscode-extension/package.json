@@ -115,7 +115,7 @@
       },
       {
         "command": "adaptai.improvePrompt",
-        "title": "Improve the prompt (autocorrect)",
+        "title": "Prompt Coach: improve the selection",
         "category": "AdaptAI",
         "icon": "$(wand)"
       },
@@ -357,7 +357,7 @@
             "Small edits applied to your text (copied to the clipboard).",
             "Tips only; nothing is copied."
           ],
-          "markdownDescription": "What **Coach the prompt on the clipboard** asks the Prompt Coach for."
+          "markdownDescription": "What **Coach the prompt on the clipboard** asks the Prompt Coach for, and the mode offered first when you start the Prompt Coach on a selection (`Ctrl+K Ctrl+E`)."
         },
         "adaptai.improveApply": {
           "type": "string",

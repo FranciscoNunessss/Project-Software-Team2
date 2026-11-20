@@ -89,7 +89,7 @@ and write PASS, FAIL (with what you saw instead) or SKIP (with why). Do not fix 
 | 23 | Stop the backend terminal (Ctrl+C), click any tab, then start the backend again and click **Retry** if shown | A clear message that the backend is not reachable; it works again when the backend is back |
 | 24 | Set `adaptai.backendUrl` to `http://example.com`, open the side bar | The extension refuses the address and says why; nothing is sent. Set it back to `http://127.0.0.1:8033` |
 | 25 | Select a few lines of text in any file and press Ctrl+Alt+A | A confirmation names the backend and the model; the analysis opens beside the editor |
-| 26 | Select a prompt in a file and press Ctrl+K Ctrl+E | A diff with the improved prompt opens; **Apply** replaces the text; Undo (Ctrl+Z) restores it |
+| 26 | Select a prompt in a file and press Ctrl+K Ctrl+E, then choose **Rewrite** in the list at the top | A diff with the improved prompt opens; **Apply** replaces the text; Undo (Ctrl+Z) restores it |
 
 ## The relay: a model on this computer through a backend that cannot reach it (checks 27 to 30)
 

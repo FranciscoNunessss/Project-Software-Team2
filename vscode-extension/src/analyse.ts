@@ -56,6 +56,8 @@ export type Result = {
   coachAvailable: boolean
   /** The project line that went with the analysis (PRJ-02), or an empty text. */
   project?: string
+  /** This analysis was made earlier for the same text and is used again, so the Coach request is the only one sent now (IMP-02). */
+  reused?: boolean
   coach?: Coach
   coachMode?: CoachMode
   improved?: string
@@ -223,12 +225,20 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
    * shows the diff and asks to apply it (default) or applies it at once (`adaptai.improveApply`).
    * Only on this command, never while typing; Undo restores the original.
    */
-  async improveInEditor(): Promise<Result | undefined> {
+  async improveInEditor(chosen?: unknown): Promise<Result | undefined> {
+    // A key binding or a script may name the mode (`"args": "rewrite"`); then nothing is asked.
+    const mode = chosen === 'rewrite' || chosen === 'edits' || chosen === 'tips' ? chosen : await this.pickCoachMode()
+    if (!mode) return undefined
     const result = await this.fromEditor({ thenCoach: true })
     if (!result) return undefined
     if (!result.coachAvailable) return void vscode.window.showWarningMessage('AdaptAI: Prompt Coach is not installed on this backend.')
-    const configured = vscode.workspace.getConfiguration('adaptai').get<string>('coachMode', 'rewrite')
-    await this.coach(result, configured === 'edits' ? 'edits' : 'rewrite', true)
+    // A reused analysis did not go through the confirmation of this request, so the Coach asks for its own.
+    await this.coach(result, mode, !result.reused)
+    if (mode === 'tips') {
+      // Tips never change the text: they are shown with the analysis.
+      if (result.coach && !result.error) await this.show(result, false)
+      return result
+    }
     if (!result.improved) {
       if (result.coach && !result.error) void vscode.window.showInformationMessage('AdaptAI: nothing to improve in this prompt.')
       return result
@@ -245,6 +255,23 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     const choice = await vscode.window.showInformationMessage('AdaptAI: apply the improved prompt?', 'Apply', 'Not now')
     if (choice === 'Apply') await this.applyImprovement(result)
     return result
+  }
+
+  private lastCoachMode: CoachMode | undefined
+
+  /** The question at the top: how the Prompt Coach should help. The last mode used, or else the setting, comes first. */
+  private async pickCoachMode(): Promise<CoachMode | undefined> {
+    const configured = vscode.workspace.getConfiguration('adaptai').get<string>('coachMode', 'rewrite')
+    const first: CoachMode = this.lastCoachMode ?? (configured === 'edits' || configured === 'tips' ? configured : 'rewrite')
+    const all: { label: string; description: string; mode: CoachMode }[] = [
+      { label: 'Rewrite', description: 'A new version of the prompt, shown as a diff', mode: 'rewrite' },
+      { label: 'Edits', description: 'Small changes to your own words, shown as a diff', mode: 'edits' },
+      { label: 'Tips', description: 'Advice only; your text is not changed', mode: 'tips' },
+    ]
+    const items = [...all.filter(item => item.mode === first), ...all.filter(item => item.mode !== first)]
+    const chosen = await vscode.window.showQuickPick(items, { title: 'AdaptAI: Prompt Coach', placeHolder: 'How should the Prompt Coach help with the selected text?' })
+    if (chosen) this.lastCoachMode = chosen.mode
+    return chosen?.mode
   }
 
   /** The improvement whose diff is open and waiting for Apply or Dismiss. */
@@ -382,6 +409,18 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     this.lastRequest = request
     const task = taskFrom(request.source === 'file' ? '' : request.raw, request.raw)
     if (!task.text) return void vscode.window.showInformationMessage('AdaptAI: there is no text to analyse.')
+    // The Coach works on an analysis. If this very text was analysed earlier, that analysis is used again: one request less (IMP-02).
+    if (request.thenCoach) {
+      const prior = [...this.results.values()].find(item => item.task === task.text && !item.truncated)
+      if (prior) {
+        prior.target = request.target && !task.truncated ? request.target : undefined
+        prior.improved = undefined
+        prior.coach = undefined
+        prior.error = undefined
+        prior.reused = true
+        return prior
+      }
+    }
     const secrets = secretsIn(task.text)
     if (secrets.length) {
       const go = await vscode.window.showWarningMessage(

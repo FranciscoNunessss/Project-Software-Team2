@@ -66,7 +66,7 @@ const WIDTHS = [300, 320, 340, 480, 760, 899, 900, 1200]
           msgsScroll: document.getElementById('msgs').scrollHeight > document.getElementById('msgs').clientHeight,
           pageSideways: (() => { const p = document.querySelector('.page'); return p.scrollWidth > p.clientWidth + 1 })(),
           navScrolls: (() => { const n = document.querySelector('.nav'); return n.scrollWidth > n.clientWidth + 1 || ['auto', 'scroll'].includes(getComputedStyle(n).overflowX) })(),
-          buttonsFit: ['#suggestbtn', '#improvebtn'].every(id => { const r = document.querySelector(id)?.getBoundingClientRect(); return r && r.width > 0 && r.left >= 0 && r.right <= window.innerWidth })
+          buttonsFit: ['#suggestbtn', '.coachbtn'].every(id => { const r = document.querySelector(id)?.getBoundingClientRect(); return r && r.width > 0 && r.left >= 0 && r.right <= window.innerWidth })
         }
       })
       assert.equal(errors.length, 0, errors.join('; '))
@@ -196,11 +196,13 @@ const WIDTHS = [300, 320, 340, 480, 760, 899, 900, 1200]
     await page.close()
   })
 
-  await check('btn_02 Improve prompt opens the Prompt Coach on the text in the box', async () => {
+  await check('btn_02 the Prompt Coach (the star by the box) opens on the text in the box with its three modes, and there is no second button for it', async () => {
     const { page } = await open(480)
     await page.locator('#task').fill('make it better')
-    await page.locator('#improvebtn').click()
+    assert.equal(await page.locator('#improvebtn').count(), 0, 'a separate Improve prompt button is still there')
+    await page.locator('.coachbtn').click()
     assert.ok(await page.locator('.coachbtn[aria-expanded=true]').count(), 'the Coach did not open')
+    assert.deepEqual(await page.locator('.pop.coach select option').allInnerTexts(), ['Rewrite', 'Edits', 'Tips'])
     await page.close()
   })
 
@@ -246,9 +248,9 @@ const WIDTHS = [300, 320, 340, 480, 760, 899, 900, 1200]
       assert.equal(await inside(), true, 'the model list is not in view')
       await page.locator('.trigger[aria-label^="Chat model"]').click()
       await page.locator('#task').fill('make it better')
-      await page.locator('#improvebtn').click()
+      await page.locator('.coachbtn').click()
       assert.equal(await inside(), true, 'the Coach is not in view')
-      await page.locator('#improvebtn').click()
+      await page.locator('.coachbtn').click()
       await page.getByRole('button', { name: /^Chats/ }).click()
       assert.equal(await inside(), true, 'the chats list is not in view')
       await page.close()

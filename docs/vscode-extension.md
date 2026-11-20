@@ -484,15 +484,16 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 | Id | Requirement |
 |---|---|
 | BTN-01 | **Suggest a change** uses what is written in the box as the instruction and the code selected in the editor. It is never greyed out: with an empty box or nothing selected, a click says what is missing next to the box. It sits with Analyse and Send as a button of the same weight. It does not need the Selection button. The proposal then opens in the diff as in APP-01. |
-| BTN-02 | **Improve prompt**, next to Analyse and Send, opens the Prompt Coach on the text in the box, the same as the ✦ button, which stays. |
+| BTN-02 | The Prompt Coach is the ✦ button by the box; there is no second button for it. It opens on the text in the box with its three modes (Rewrite, Edits, Tips) to choose from, and nothing is sent until you press **Improve with Prompt Coach**. |
 | BTN-03 | With Selection On, Send analyses the selected code (SEL-02). There is no separate Analyse-the-selection button in the chat. |
 | BTN-04 | Both buttons fit at every width of UI-03, wrapping onto a second line when they must. |
 | BTN-05 | The lists that open from the box (model, Prompt Coach, chats) open inside the window at every width, and the box never has a scroll bar of its own, also with a long model name. |
 
-**Improve the prompt in the editor (IMP).** `Ctrl+K Ctrl+E` on a selection or a file.
+**The Prompt Coach on the selection (IMP).** `Ctrl+K Ctrl+E` on a selection or a file starts the Prompt Coach, the same Coach as the ✦ button, on that text.
 
 | Id | Requirement |
 |---|---|
+| IMP-02 | It first asks how the Coach should help, in a list at the top: **Rewrite**, **Edits** or **Tips**, with the last mode used (or else `adaptai.coachMode`) on top. Escape sends nothing. Rewrite and Edits end in the diff of IMP-01; Tips changes nothing in the file and shows the tips with the analysis. The Coach works on an analysis of the text (the backend needs its id), so the analysis is made as part of the same step; if the very same text was analysed before in this window, that analysis is used again and only the Coach request is sent, with its own confirmation when the model is external. |
 | IMP-01 | When the improvement is shown as a diff (`adaptai.improveApply` = `diff`), the diff's tab bar has **Apply** and **Dismiss** buttons, and the same two commands are in the Command Palette while a diff waits. Apply replaces the text (Undo brings it back); Dismiss leaves it. Both hide the buttons. The notice "apply the improved prompt?" stays, but a missed or hidden notice does not lose the improvement. With nothing waiting, Apply says so and changes nothing. |
 
 **Project context (PRJ, release plan task E4).** The analysis also gets the language, framework and test runner of the project, so a recommendation fits the kind of work.

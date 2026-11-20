@@ -10,7 +10,7 @@ The extension has no model and no rules of its own. Every result is what the bac
 | --- | --- |
 | Analyse a task | **Analyse selection / file / clipboard / a typed task**. The result opens as a Markdown preview beside the editor: recommended model and price, coverage per need, alternatives, notes, tips, profile and completeness. |
 | "Use this model", "Task solved?" | Actions after each analysis (notification, or CodeLens above the source view): **Use this model in the chat**, **Task solved?**, **Copy summary**. |
-| Prompt Coach (also in the page) | **Improve the prompt** (diff with **Apply** and **Dismiss** buttons in its tab bar; Undo restores), **Coach the clipboard**, and **Prompt Coach: improve** on an analysis. Tips, Edits or Rewrite. |
+| Prompt Coach (also in the page) | **Prompt Coach: improve the selection** (asks Rewrite, Edits or Tips first; the diff has **Apply** and **Dismiss** in its tab bar; Undo restores), **Coach the clipboard**, and **Prompt Coach: improve** on an analysis. Tips, Edits or Rewrite. |
 | Chat and Assistant | The AdaptAI page: one screen with the conversation and a composer (model picker, Prompt Coach bubble, **Analyse**, **Send**), and the analysis panel beside it or as a sheet. The participant **`@adaptai`** in VS Code's chat view: streaming, Stop, `/retry`, `/new`, `/analyse <task>` (inside the chat's session). A **Chats** view lists, opens, renames and deletes your chats. |
 | Assistant history | **Recent analyses**. |
 | My progress | Charts (activity and recommendation match), numbers, solved tasks by model, whether you describe tasks better, patterns, the Educator's suggestions, choices to confirm, your sessions (open an analysis, **Continue**, delete) and **Export my data** (preferences, coaching, sessions and chats). |
@@ -25,7 +25,7 @@ Not in VS Code: creating or revoking API tokens (a token cannot manage tokens, s
 | Shortcut | Command |
 | --- | --- |
 | `Ctrl+Alt+A` (editor) | Analyse selection (or the whole file) |
-| `Ctrl+K Ctrl+E` (editor) | Improve the prompt |
+| `Ctrl+K Ctrl+E` (editor) | Prompt Coach on the selection |
 | `Ctrl+K Ctrl+A` | Coach the clipboard |
 | `Ctrl+K Ctrl+Y` | Analyse clipboard |
 
@@ -34,7 +34,7 @@ Mac: `Cmd` for the chords. The extension cannot add buttons inside another exten
 ### The code assistant
 
 * **Selection: Off / On** in the chat box sends the code you selected, with its file and lines, together with your message. The answer comes back in the chat.
-* **Suggest a change** and **Improve prompt** are buttons in the same box. Suggest a change uses the text in the box as the instruction and the code selected in the editor; the proposal opens in the VS Code diff with Accept and Reject. Improve prompt opens the Prompt Coach on the text in the box. The commands, the right click menu and the key bindings stay.
+* **Suggest a change** is a button in the same box; the Prompt Coach is the ✦ button by it, with its three modes. Suggest a change uses the text in the box as the instruction and the code selected in the editor; the proposal opens in the VS Code diff with Accept and Reject. The commands, the right click menu and the key bindings stay.
 * **Suggest a change to the selection** (right click on a selection, or the command palette) asks what to change in the box at the top. The proposal opens in the VS Code diff, with **Accept** and **Reject** in its tab bar. Nothing is written to the file until you press Accept, and one Ctrl+Z undoes it.
 * It uses the chat model you picked in AdaptAI, through the backend. There are no `/` commands and it does not use the VS Code chat.
 

@@ -1788,11 +1788,10 @@ function page(nonce: string, csp: string, tab: Tab): string {
       if (note) note.textContent = 'Asking for a change…'
       send('suggestChange', { text })
     } })
-    const improveBtn = el('button', { class: 'btn', id: 'improvebtn', type: 'button', text: 'Improve prompt', title: 'Open the Prompt Coach on the text in the box', onclick: () => { pop = pop === 'coach' ? null : 'coach'; renderTab() } })
     const composer = el('section', { class: 'composer2' },
       selPrevEl(),
       el('div', { class: 'wrapta' }, area, coachBtn), live2,
-      el('div', { class: 'cfoot2' }, el('div', { class: 'left' }, trigger, router, selBtn), el('div', { class: 'right' }, el('span', { class: 'muted', id: 'note' }), counter, chip, improveBtn, suggestBtn, analyseBtn, sendBtn, stopBtn)))
+      el('div', { class: 'cfoot2' }, el('div', { class: 'left' }, trigger, router, selBtn), el('div', { class: 'right' }, el('span', { class: 'muted', id: 'note' }), counter, chip, suggestBtn, analyseBtn, sendBtn, stopBtn)))
     if (pop === 'model') composer.append(modelPop(d, sel))
     if (pop === 'coach') composer.append(coachPop(d, area, found()))
     col.append(composer)

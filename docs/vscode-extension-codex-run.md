@@ -11,6 +11,7 @@ Total time: about 45 minutes. This is the new code assistant and a regression pa
 A check you did not do is SKIP, with the reason why.
 
 **What changed since run 3** (look at these with extra care):
+* **The Prompt Coach and Improve are one thing now.** There is no "Improve prompt" button in the chat box; the ✦ button is the Prompt Coach, with its modes. Ctrl+K Ctrl+E on a selection starts the same Coach and first asks Rewrite, Edits or Tips (R12, B2).
 * **R12 has a new Apply button.** The diff "AdaptAI: original ↔ improved" now has **Apply** (✓) and **Dismiss** (✗) icons in the top right of the diff's tab bar. The old notice at the bottom right stays too, but you do not need it.
 * **The change is now reviewed in the VS Code diff (N6 to N11 are rewritten).** The proposal is no longer written into the file in red and green: it opens in a diff, and **Accept** replaces the lines in one edit (one Ctrl+Z undoes it).
 * **R14:** a red message with **Open settings**, and the same reason in the AdaptAI view above Sign in.
@@ -51,9 +52,9 @@ not open for you (it needs the person's login), the same content is in the repos
 
 * **Selection in the chat.** A button **Selection: Off / On** in the chat box. With On, the code selected in the editor goes
   with the message, with its file and lines. Your message shows only what you typed, with a folded line `file · lines`.
-* **Buttons in the chat box.** **Suggest a change** and **Improve prompt** are buttons next to **Analyse** and **Send**. Suggest a change
+* **Buttons in the chat box.** **Suggest a change** is a button next to **Analyse** and **Send**. It
   uses the text in the box as the instruction and the code selected in the editor (it also works from the right click
-  menu). Improve prompt opens the Prompt Coach on the text in the box. The model is chosen with the **Model** button in the
+  menu). The Prompt Coach is the ✦ button by the box (there is no "Improve prompt" button any more). The model is chosen with the **Model** button in the
   box; LLM config only lists and manages models (it has no "Use for chat").
 * **Suggest a change.** Select code, right click > **AdaptAI: Suggest a change to the selection**, say what to change. The
   model proposes new code. It opens in the VS Code diff, with **Accept** and **Reject** in its tab bar.
@@ -169,9 +170,9 @@ For each: do the steps, compare with Expected, write PASS, FAIL (what you saw) o
 | U3 | Drag the side bar to about 300 px, then 600 px (900 px or more cannot be reached in a side bar: the automated page test covers it, write SKIP for that part) | At 300 and 600 px the menu is a bar of tabs on top, wrapped onto two or three rows (any number is fine, scrolling is not) with ALL five tabs visible (Assistant, My progress, Profile, LLM config, Shortcuts) and the box to write is at the bottom, not covering any message, no sideways scroll. At 900 px or more the menu is a column on the left |
 | U5 | Stop the backend (Ctrl+C), wait 70 seconds (the connection check runs every 60 s), click **My progress** and then **Assistant**; start the backend again | While it is off every tab shows "The backend is not reachable" or "Could not reach the backend" with **Try again** (My progress must not show an empty page without saying why); after it is on again the tab loads by itself |
 | B1 | (a) With the box empty press **Suggest a change**. (b) Write `Throw an Error if id is empty`, click once in the file so nothing is selected, press **Suggest a change**. (c) Select lines 7 to 10 and press it again | (a) and (b): the button is not grey; next to the box it says what is missing, and nothing is sent. (c) The box is cleared, within 60 seconds the diff of the change opens with Accept / Reject in its tab bar |
-| B2 | Write `make it better` in the box and press **Improve prompt** | The Prompt Coach opens above the box, on that text, like the ✦ button; press the button again to close it |
-| B4 | Click **Model**, then **Improve prompt**, then **Chats** (at about 340 px and at a wide size) | Each list opens fully inside the window; the model list lets you pick the LM Studio model and the button then shows it |
-| B3 | At about 300 px wide | **Suggest a change** and **Improve prompt** are visible, wrapped onto a second line if needed, nothing cut off |
+| B2 | Write `make it better` in the box and press the **✦** button by the box | The Prompt Coach opens above the box, on that text, with a list of modes (Rewrite, Edits, Tips) and **Improve with Prompt Coach**; press ✦ again to close it. There is no "Improve prompt" button in the box |
+| B4 | Click **Model**, then **✦**, then **Chats** (at about 340 px and at a wide size) | Each list opens fully inside the window; the model list lets you pick the LM Studio model and the button then shows it |
+| B3 | At about 300 px wide | **Suggest a change** and the ✦ button are visible, wrapped onto a second line if needed, nothing cut off |
 | U4 | Light theme (Ctrl+K Ctrl+T), then dark | Both readable; the Selection button and the buttons are visible in both, and the diff of a change is readable in both |
 
 ### C. The old features (regression: nothing may be broken)
@@ -189,7 +190,7 @@ For each: do the steps, compare with Expected, write PASS, FAIL (what you saw) o
 | R9 | **Profile**: switch on "Save task text and AI responses" | A consent dialog appears first; **Cancel** leaves it off |
 | R10 | **Shortcuts**: **Change** on any shortcut | The keyboard shortcuts editor opens filtered on it |
 | R11 | In `service.ts` select lines 7 to 10 and press Ctrl+Alt+A | The analysis opens beside the editor; the message after it names the backend address and the model. A question before sending appears only for an external model or a whole file |
-| R12 | In a new file type `write about dogs`, select it and press Ctrl+K Ctrl+E. Wait for the diff "AdaptAI: original ↔ improved" (up to 60 seconds). Look at the top right of the diff's tab bar: there are two icons, **Apply** (✓) and **Dismiss** (✗). Click **Apply** (the notice at the bottom right does the same) | A diff with the improved prompt opens; **Apply** replaces the text in the file; Ctrl+Z restores `write about dogs`. Then run it again and click **Dismiss**: the text stays as it was and the two icons disappear |
+| R12 | In a new file type `write about dogs`, select it and press Ctrl+K Ctrl+E. A list opens at the top (Rewrite, Edits, Tips): choose **Rewrite**. Wait for the diff "AdaptAI: original ↔ improved" (up to 60 seconds). Look at the top right of the diff's tab bar: there are two icons, **Apply** (✓) and **Dismiss** (✗). Click **Apply** (the notice at the bottom right does the same) | A diff with the improved prompt opens; **Apply** replaces the text in the file; Ctrl+Z restores `write about dogs`. Then run it again and click **Dismiss**: the text stays as it was and the two icons disappear |
 | R13 | Stop the backend (Ctrl+C in its terminal), click any tab, start it again, press **Retry** if shown | A clear "backend not reachable" message while it is off; it works again after |
 | R14 | Set `adaptai.backendUrl` to `http://example.com`, open the AdaptAI view | A red message appears with the reason (with **Open settings**) and the AdaptAI view shows the same reason above Sign in; nothing is sent. Set it back to `http://127.0.0.1:8033` |
 

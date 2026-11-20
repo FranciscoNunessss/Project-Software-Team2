@@ -506,3 +506,80 @@ test('an empty clipboard and an empty file say so', async () => {
     await server.close()
   }
 })
+
+test('imp_02 Improve asks for the Coach mode first, the configured one on top, and a cancel sends nothing', async () => {
+  reset()
+  const { server, analyser } = await backendStub()
+  try {
+    config.coachMode = 'edits'
+    ui.quickPick = () => undefined
+    await analyser.improveInEditor()
+    assert.equal(log.quickPicks.length, 1, 'no question about the mode')
+    assert.deepEqual(log.quickPicks[0].items.map(item => item.mode), ['edits', 'rewrite', 'tips'], 'the configured mode comes first')
+    assert.equal(bodies(server, '/api/analyze').length + bodies(server, '/api/prompt-coach').length, 0, 'a cancelled question still sent something')
+    ui.quickPick = items => items.find(item => item.mode === 'rewrite')
+    await analyser.improveInEditor()
+    assert.equal(bodies(server, '/api/prompt-coach').at(-1).mode, 'rewrite', 'the chosen mode is the one sent, not the setting')
+    assert.equal(editor.document.text, REWRITE)
+    log.quickPicks.length = 0
+    ui.quickPick = items => items[0]
+    editor.document.text = 'write something about dogs'
+    await analyser.improveInEditor()
+    assert.equal(log.quickPicks[0].items[0].mode, 'rewrite', 'the last mode used comes first next time')
+  } finally {
+    await server.close()
+  }
+})
+
+test('imp_03 Improve in Tips mode changes nothing in the file and shows the tips in the analysis', async () => {
+  reset()
+  const { server, analyser } = await backendStub()
+  try {
+    ui.quickPick = items => items.find(item => item.mode === 'tips')
+    const before = editor.document.text
+    const result = await analyser.improveInEditor()
+    assert.equal(bodies(server, '/api/prompt-coach').at(-1).mode, 'tips')
+    assert.equal(editor.document.text, before)
+    assert.ok(!log.executed.some(call => call[0] === 'vscode.diff'), 'a diff was opened for tips')
+    assert.ok(log.executed.some(call => call[0] === 'markdown.showPreviewToSide'), 'the tips were not shown')
+    assert.match(rendered(analyser, result), /Say who it is for/)
+  } finally {
+    await server.close()
+  }
+})
+
+test('imp_04 the same text is analysed once: a second Improve reuses it and asks the Coach again with its own consent', async () => {
+  reset()
+  const { server, analyser } = await backendStub()
+  try {
+    await analyser.improveInEditor()
+    const asked = log.warning.length
+    assert.equal(bodies(server, '/api/analyze').length, 1)
+    editor.document.text = 'write something about dogs'
+    await analyser.improveInEditor()
+    assert.equal(bodies(server, '/api/analyze').length, 1, 'the text was analysed again')
+    assert.equal(bodies(server, '/api/prompt-coach').length, 2)
+    assert.equal(bodies(server, '/api/prompt-coach')[1].analysis_id, bodies(server, '/api/prompt-coach')[0].analysis_id)
+    assert.equal(log.warning.length, asked + 1, 'the Coach request, now alone, was not confirmed')
+    assert.match(log.warning.at(-1).message, /outside your machine/)
+    editor.document.text = 'write something about cats'
+    await analyser.improveInEditor()
+    assert.equal(bodies(server, '/api/analyze').length, 2, 'a different text must be analysed')
+  } finally {
+    await server.close()
+  }
+})
+
+test('imp_02 a mode named by the caller (a key binding or a script) is used without asking', async () => {
+  reset()
+  const { server, analyser } = await backendStub()
+  try {
+    await analyser.improveInEditor('edits')
+    assert.equal(log.quickPicks.length, 0, 'it asked although the mode was given')
+    assert.equal(bodies(server, '/api/prompt-coach').at(-1).mode, 'edits')
+    await analyser.improveInEditor({ scheme: 'file' }) // a menu passes a Uri: not a mode, so it asks
+    assert.equal(log.quickPicks.length, 1)
+  } finally {
+    await server.close()
+  }
+})

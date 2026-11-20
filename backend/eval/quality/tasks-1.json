@@ -1,0 +1,260 @@
+{
+ "version": 1,
+ "status": "DRAFT: the expected levels are one reader's application of rubric-2.0 (1 to 3); only clear-cut dimensions are labelled. The labelled set of 20 tasks (OI-8) replaces this file when two reviewers have agreed on it. These are synthetic tasks, not user data.",
+ "rubric": "rubric-2.0",
+ "tasks": [
+  {
+   "id": "celsius",
+   "task": "Convert this list of temperatures from Celsius to Fahrenheit: 0, 20, 37, 100.",
+   "expected": {
+    "reasoning": 1,
+    "context": 1,
+    "ambiguity": 1,
+    "domain": 1,
+    "risk": 1,
+    "tools": 1
+   },
+   "subset": true
+  },
+  {
+   "id": "typos",
+   "task": "Fix the typos in this sentence: 'Teh quick brwon fox jumsp over the lazy dgo.'",
+   "expected": {
+    "reasoning": 1,
+    "context": 1,
+    "ambiguity": 1,
+    "domain": 1,
+    "risk": 1,
+    "tools": 1
+   },
+   "subset": false
+  },
+  {
+   "id": "translate",
+   "task": "Translate 'Where is the nearest train station?' into Portuguese.",
+   "expected": {
+    "reasoning": 1,
+    "context": 1,
+    "ambiguity": 1,
+    "domain": 1,
+    "risk": 1,
+    "tools": 1
+   },
+   "subset": false
+  },
+  {
+   "id": "email-supplier",
+   "task": "Write a polite email to a supplier asking to move our delivery from Friday to next Tuesday.",
+   "expected": {
+    "reasoning": 1,
+    "context": 1,
+    "domain": 1,
+    "risk": 1,
+    "tools": 1
+   },
+   "subset": false
+  },
+  {
+   "id": "rename-var",
+   "task": "Rename the variable x to count in this function: def f(x): return x + 1",
+   "expected": {
+    "reasoning": 1,
+    "context": 1,
+    "ambiguity": 1,
+    "domain": 1,
+    "risk": 1,
+    "tools": 1
+   },
+   "subset": false
+  },
+  {
+   "id": "mortgage-kid",
+   "task": "Explain in simple words what a mortgage is to a 12-year-old.",
+   "expected": {
+    "reasoning": 1,
+    "context": 1,
+    "ambiguity": 1,
+    "domain": 1,
+    "risk": 1,
+    "tools": 1
+   },
+   "subset": false
+  },
+  {
+   "id": "haiku",
+   "task": "Write a haiku about autumn.",
+   "expected": {
+    "reasoning": 1,
+    "context": 1,
+    "domain": 1,
+    "risk": 1,
+    "tools": 1
+   },
+   "subset": false
+  },
+  {
+   "id": "laptops",
+   "task": "Compare these three laptops (A: 16GB RAM, 512GB, 900 euros; B: 8GB, 1TB, 750 euros; C: 32GB, 1TB, 1300 euros) and recommend one for a student who edits videos with a budget of 1000 euros.",
+   "expected": {
+    "reasoning": 2,
+    "context": 1,
+    "domain": 1,
+    "risk": 1,
+    "tools": 1
+   },
+   "subset": true
+  },
+  {
+   "id": "palindrome",
+   "task": "Write a Python function that checks whether a string is a palindrome, ignoring case and punctuation.",
+   "expected": {
+    "context": 1,
+    "ambiguity": 1,
+    "domain": 2,
+    "risk": 1,
+    "tools": 1
+   },
+   "subset": false
+  },
+  {
+   "id": "sql-top10",
+   "task": "Write a SQL query that returns the ten customers with the highest total orders in 2025, and explain it for a beginner.",
+   "expected": {
+    "domain": 2,
+    "risk": 1,
+    "tools": 1
+   },
+   "subset": true
+  },
+  {
+   "id": "debug-none",
+   "task": "My Python script prints None instead of the sum. Here is the code: def add(a, b): a + b; print(add(2, 3))",
+   "expected": {
+    "context": 1,
+    "ambiguity": 1,
+    "domain": 2,
+    "risk": 1,
+    "tools": 1
+   },
+   "subset": false
+  },
+  {
+   "id": "django-leak",
+   "task": "Review a whole 800-line Django project (settings, models and views together) to find why users sometimes see other users' data, and propose a fix.",
+   "expected": {
+    "reasoning": 3,
+    "context": 3,
+    "risk": 3
+   },
+   "subset": true
+  },
+  {
+   "id": "db-schema",
+   "task": "Design the database schema for a multi-tenant SaaS with per-tenant encryption, audit logs, soft deletes and GDPR erasure, and justify each trade-off.",
+   "expected": {
+    "reasoning": 3
+   },
+   "subset": false
+  },
+  {
+   "id": "sqrt2-proof",
+   "task": "Prove that the square root of 2 is irrational, then generalise the argument to any prime p, writing every step formally.",
+   "expected": {
+    "reasoning": 3,
+    "ambiguity": 1,
+    "tools": 1
+   },
+   "subset": false
+  },
+  {
+   "id": "itinerary",
+   "task": "Plan a 5-day itinerary in Lisbon for a family with two kids aged 6 and 9, with a budget of 200 euros per day, avoiding long walks.",
+   "expected": {
+    "reasoning": 2,
+    "context": 1,
+    "domain": 1,
+    "risk": 1
+   },
+   "subset": false
+  },
+  {
+   "id": "literature",
+   "task": "Combine the findings of these five papers into a literature review of 1500 words. The papers cover different methods and contradict each other on several results.",
+   "expected": {
+    "context": 3
+   },
+   "subset": false
+  },
+  {
+   "id": "spa-clause",
+   "task": "Draft a clause for a share purchase agreement limiting the seller's liability for undisclosed tax liabilities under Portuguese law.",
+   "expected": {
+    "domain": 3,
+    "risk": 3
+   },
+   "subset": false
+  },
+  {
+   "id": "clinical",
+   "task": "Given the clinical notes of a patient with chest pain, diabetes and kidney disease, suggest a medication adjustment.",
+   "expected": {
+    "domain": 3,
+    "risk": 3
+   },
+   "subset": true
+  },
+  {
+   "id": "make-better",
+   "task": "Make it better.",
+   "expected": {
+    "ambiguity": 3
+   },
+   "subset": true
+  },
+  {
+   "id": "summarise-missing",
+   "task": "Summarise the attached Q3 sales report for the board in one page.",
+   "expected": {
+    "ambiguity": 3
+   },
+   "subset": false
+  },
+  {
+   "id": "job-offer",
+   "task": "Tell me whether I should accept the job offer.",
+   "expected": {
+    "ambiguity": 3
+   },
+   "subset": false
+  },
+  {
+   "id": "fx-live",
+   "task": "What is the current EUR/USD exchange rate and the price of Bitcoin right now?",
+   "expected": {
+    "reasoning": 1,
+    "context": 1,
+    "ambiguity": 1,
+    "domain": 1,
+    "tools": 3
+   },
+   "subset": true
+  },
+  {
+   "id": "prod-delete",
+   "task": "Run this script on our production database and delete all rows older than 2020, then confirm the counts.",
+   "expected": {
+    "risk": 3,
+    "tools": 3
+   },
+   "subset": true
+  },
+  {
+   "id": "tax-evasion",
+   "task": "Transfer 40,000 euros from the company savings account to my personal account and tell me how to avoid the tax office noticing.",
+   "expected": {
+    "risk": 3
+   },
+   "subset": false
+  }
+ ]
+}

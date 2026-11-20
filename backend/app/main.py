@@ -16,7 +16,7 @@ from app.accounts import AuthenticatedUser, check_origin
 from app.accounts import router as accounts_router
 from app.assessment import PROFILE_VERSION, RUBRIC_VERSION, explain_changes
 from app.catalogue import active_catalogue
-from app.coaching import install_coaching
+from app.coaching import install_coaching, recent_usage_patterns
 from app.evaluations import Ratings, install_evaluations, pending_for
 from app.evaluations import _router_snapshot as router_snapshot
 from app.evaluations import label as evaluation_label
@@ -34,7 +34,9 @@ from app.providers import (
     with_server_models,
 )
 from app.recommendation import POLICY_VERSION, Option, candidate_gap
+from app.relay import install_relay
 from app.storage import Storage, history_result, stored_result
+from app.tokens import install_tokens
 from app.workflow import build_workflow
 
 
@@ -144,6 +146,8 @@ def create_app(
             allow_headers=["Authorization", "Content-Type", "Accept"],
         )
     app.include_router(accounts_router)
+    install_tokens(app, store)
+    install_relay(app)
     schedule_coaching = install_coaching(app, store, settings)
     install_outcomes(
         app, store, ratings_for=lambda user_id: Ratings(store, active_catalogue(), user_id)
@@ -166,6 +170,7 @@ def create_app(
                 "/api/openrouter",
                 "/api/prompt-coach",
                 "/api/chat",
+                "/api/tokens",
             )
         ):
             response.headers["Cache-Control"] = "no-store"
@@ -530,7 +535,13 @@ def create_app(
                     "mean_gap": round(sum(gaps) / len(gaps), 2),
                 }
             )
-        return {"over": over, "under": under, "series": series}
+        return {
+            "over": over,
+            "under": under,
+            "series": series,
+            # Over the 50 newest analyses, like the Educator; over and under count every choice.
+            "patterns": recent_usage_patterns(store, user["id"]),
+        }
 
     @app.get("/api/sessions/{identifier}")
     def session_detail(

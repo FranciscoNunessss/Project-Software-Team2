@@ -248,6 +248,15 @@ export const OUTCOME_REASONS: Record<OutcomeReason, string> = {
 }
 
 // Optional chat (ADR-011). Mirrors backend/app/chat.py.
+export type ChatSettings = { auto_analyse: boolean }
+export function getChatSettings(signal?: AbortSignal): Promise<ChatSettings> {
+  return api<ChatSettings>('chat/settings', undefined, signal)
+}
+export async function setChatSettings(body: ChatSettings): Promise<ChatSettings> {
+  const settings = await api<ChatSettings>('chat/settings', body, undefined, 'PUT')
+  window.dispatchEvent(new CustomEvent<ChatSettings>('adaptai-chat-settings-updated', { detail: settings }))
+  return settings
+}
 export type ChatStatus = 'complete' | 'stopped' | 'failed'
 export type ChatMessage = {
   id: string; role: 'user' | 'assistant'; content: string; provider: string | null; model: string | null

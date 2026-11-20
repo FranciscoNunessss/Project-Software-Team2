@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from './api'
 import { usePageActive } from './PagePanel'
 
-export type PatternAdvice = { explanation: string; action: string }
+// action is null, and status is set, when the backend found no pattern: then no advice is shown.
+export type PatternAdvice = { explanation: string; action: string | null; status?: string }
 type Content = {
   schema_version?: 3
   summary: string

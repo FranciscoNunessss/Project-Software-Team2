@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     # can never be set by an API request.
     lmstudio_model: str = ""
     lmstudio_base_url: str = "http://127.0.0.1:1234/v1"
+    # Set per request for a configuration that runs on its owner's client (ADR-015).
+    lmstudio_relay_user: str = ""
     # Optional comma-separated lists of server models per provider (ADR-014), for example
     # ADAPTAI_GROQ_MODELS=openai/gpt-oss-20b,openai/gpt-oss-120b. The first one is the model
     # used by the analysis; the others can be chosen in the chat and recommended.
@@ -182,6 +184,14 @@ def provider_error_code(exc: BaseException) -> str:
 
     if isinstance(exc, ProviderFailure):
         return exc.code
+    # The relay (ADR-015) raises its own codes, and the OpenAI client wraps them.
+    from app.relay import RelayError
+
+    cause: BaseException | None = exc
+    for _ in range(6):
+        if isinstance(cause, RelayError):
+            return cause.code
+        cause = cause.__cause__ or cause.__context__ if cause else None
     if isinstance(exc, (TimeoutError, OpenAITimeoutError, AnthropicTimeoutError)):
         return "provider_timeout"
     if getattr(exc, "status_code", None) == 404 and "No endpoints found" in str(exc):
@@ -261,6 +271,16 @@ def _build_model(
     if provider == "lmstudio":
         from langchain_openai import ChatOpenAI
 
+        relayed = {}
+        if settings.lmstudio_relay_user:
+            # ADR-015: the model runs on the owner's machine; the request goes through their client.
+            from app.relay import relay_client
+
+            relayed = {
+                "http_async_client": relay_client(
+                    settings.lmstudio_relay_user, settings.timeout_seconds
+                )
+            }
         return ChatOpenAI(
             model=settings.lmstudio_model,
             api_key="lm-studio",  # LM Studio ignores the key but the client requires one
@@ -269,6 +289,7 @@ def _build_model(
             timeout=settings.timeout_seconds,
             max_tokens=max_tokens,
             use_responses_api=False,  # LM Studio serves Chat Completions
+            **relayed,
             **sampling,
         )
     from langchain_ollama import ChatOllama

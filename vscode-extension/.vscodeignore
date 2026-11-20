@@ -1,0 +1,10 @@
+src/**
+scripts/**
+node_modules/**
+tsconfig.json
+pnpm-lock.yaml
+**/*.map
+.vscode/**
+test/**
+.selftest/**
+selftest-report.jsonl

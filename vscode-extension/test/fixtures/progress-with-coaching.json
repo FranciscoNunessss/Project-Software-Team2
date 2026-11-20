@@ -1,0 +1,33 @@
+{
+  "type": "data",
+  "tab": "progress",
+  "activity": [{"session_id": "synthetic-session", "title": "Synthetic API comparison", "analyses": 2, "choices": 1}],
+  "progress": {"sessions": 1, "analyses": 2, "choices": 1, "matches": 1, "agreement": 100},
+  "dashboard": {"over": 0, "under": 0, "series": [{"session_id": "synthetic-session", "title": "Synthetic API comparison", "rate": 100, "score": 100, "choices": 1, "matches": 1}]},
+  "pending": [],
+  "sessions": [{"id": "synthetic-session", "title": "Synthetic API comparison", "count": 2, "at": "2026-11-18T12:00:00Z"}],
+  "outcomes": {"tasks": 1, "resolved": 1, "resolved_with_refinement": 0, "followed": 1, "solved_rate_following": 100, "solved_rate_not_following": null, "mean_turns": 1, "by_model": [{"model": "Synthetic model", "tasks": 1, "solved": 1}], "described_poorly": 0, "skipped": 0},
+  "learning": {"verdict": "insufficient_history", "min_sessions": 3, "points": [], "dimensions": []},
+  "coaching": {
+    "configured": true,
+    "automatic_enabled": true,
+    "generating": false,
+    "error": null,
+    "saved": {
+      "report": {
+        "schema_version": 3,
+        "summary": "Synthetic saved Educator summary.",
+        "patterns": {
+          "over_provisioning": {"explanation": "Synthetic over-provisioning explanation.", "action": "Compare model capacity with the task."},
+          "under_provisioning": {"explanation": "Synthetic under-provisioning explanation.", "action": "Check the required capabilities."},
+          "prompting": {"status": "not_assessed", "explanation": "Synthetic prompting explanation.", "action": "Specify the expected output."}
+        },
+        "suggestions": [{"title": "Synthetic saved suggestion", "explanation": "State the criteria for the comparison.", "action": "List the criteria in the next request."}]
+      },
+      "model": "synthetic-assessor",
+      "updated_at": "2026-11-18T12:00:00Z",
+      "stale": false,
+      "source": {"assessments": 2, "conversation_samples": 0}
+    }
+  }
+}

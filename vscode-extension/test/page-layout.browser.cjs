@@ -223,6 +223,18 @@ const WIDTHS = [300, 320, 340, 480, 760, 899, 900, 1200]
     })
   }
 
+  await check('cfg_01 LLM config lists the models and has no Use for chat button and no chat model label', async () => {
+    const { page, post } = await open(600)
+    await page.locator('#nav button[data-tab="models"]').click()
+    await post({ type: 'data', tab: 'models', project: [{ id: 'p', label: 'Demonstration', provider: 'demo' }], configs: [{ id: 'c', label: 'LM Studio', model: 'gemma', provider: 'lmstudio', execution: 'server', external: false, hasKey: false }], evaluations: [], relay: { state: 'off', text: '' }, chatModel: 'c' })
+    const text = await page.locator('#main').innerText()
+    assert.match(text, /LM Studio · gemma/)
+    assert.match(text, /Test/)
+    assert.doesNotMatch(text, /Use for chat/i)
+    assert.doesNotMatch(text, /chat model/i)
+    await page.close()
+  })
+
   await browser.close()
   if (failures.length) {
     console.log(`\n${failures.length} failed`)

@@ -113,7 +113,7 @@ In that window: Settings, `adaptai.backendUrl` = `http://127.0.0.1:8033`.
 
 **S5. Account and model.** Click the AdaptAI icon, **Create an account** with `codex-<date>@example.com` and a
 password you make up (write it only in the report). Then **LLM config > Add a model > LM Studio**, name
-`LM Studio`, the model from S1, **Where it runs: On the machine where the backend runs**. Then **Use for chat**.
+`LM Studio`, the model from S1, **Where it runs: On the machine where the backend runs**. Then go to **Assistant**, press **Model** in the box and choose it (LLM config only lists models; the choice is made in the box).
 
 ## Checks
 

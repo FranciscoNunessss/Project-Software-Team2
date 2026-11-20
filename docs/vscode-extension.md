@@ -473,6 +473,8 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 |---|---|
 | RES-01 | The message that follows an analysis names the backend (its address) and the model, so the user sees where the text went. A question before sending still appears only for an external model or a whole file. |
 
+**LLM config (CFG-01).** The page only lists, adds, tests, edits and deletes models. It has no "Use for chat" button and no "chat model" label; the model is chosen in the box of the chat (Model), and later a model suggested by the app can be offered there too.
+
 **Decisions.** The backend takes only text in `content`, so the code travels inside the message, written by the extension; the page and the loaded history hide it behind the caption. The change request is a message in the current chat, so it also appears in the chat list. The default backend address is unchanged. Left out on purpose: the VS Code chat, `/` commands, a side by side comparison, a key binding and a refusal of files by name.
 
 **Review in place after Accept or Reject (APP-06).** After Accept or Reject the marks and the Accept and Reject buttons are gone at once, and a moment later again if VS Code redraws them late.

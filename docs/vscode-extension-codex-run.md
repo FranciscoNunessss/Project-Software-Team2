@@ -6,6 +6,49 @@ Total time: about 40 minutes. This is the new code assistant and a regression pa
 
 Prepared with AI assistance (Claude, Anthropic); human review pending.
 
+## What you are testing, and where everything is
+
+**The extension** is the VS Code extension of AdaptAI, version 0.3.0. Everything is in the repository
+`C:/Users/josem/Desktop/AdaptAI-ide`, on the branch `feature/ide-code-assistant` (already checked out; do not change branch).
+
+| What | Where |
+|---|---|
+| The extension | `C:/Users/josem/Desktop/AdaptAI-ide/vscode-extension` (`src/` code, `test/` tests, `package.json`, `README.md`) |
+| The backend it talks to | `C:/Users/josem/Desktop/AdaptAI-ide/backend` (FastAPI; you only start it, as in S2) |
+| Developer guide, with the requirements of the new features | `docs/vscode-extension.md`, section "The code assistant" |
+| Requirement for the Product Owner | `docs/vscode-extension-requirement.md` (F-IDE-04, F-IDE-05) |
+| Older, longer acceptance guide (checks 1 to 36) | `docs/vscode-extension-acceptance-codex.md` (use this file instead; it is the short version) |
+| Backlog | `docs/vscode-extension-backlog.md` |
+
+**The documents in Google Drive** (folder PS2627). Open them to understand the features before testing. If Drive does
+not open for you (it needs the person's login), the same content is in the repository files above; do not ask for access.
+
+| Document | Link |
+|---|---|
+| The folder | https://drive.google.com/drive/folders/1Kkm0tn17KS1AEsWkZJT-Y-gM31b5H5Up |
+| EXT-09 Requirements and acceptance criteria of the code assistant | https://docs.google.com/document/d/1GIxcLAYVbp8vF7AGNvI1gjjwCEf8YfoMTsN5Goc68TU/edit |
+| EXT-10 Architecture and technical implementation | https://docs.google.com/document/d/1k5YRL75T-m-R8nQ69NHfiw-5aFAjpceGA5swWg7dRR4/edit |
+| EXT-11 Test plan and results | https://docs.google.com/document/d/1EPu9jNk5wC_DJx-DsNbQNfOG9etZwtyIIXC-b9IBI9Y/edit |
+| EXT-12 User manual | https://docs.google.com/document/d/1mSJzF8KC8sU7v72DV0GCgh3-Ftlmx7CV5T5VG61TU-k/edit |
+| EXT-01 Developer guide of the extension | https://docs.google.com/document/d/1Fr403QHxW0AkJtDZTtAXynqEdVW7dxeUkeCpDNkk_Ug/edit |
+| EXT-02 Backlog | https://docs.google.com/document/d/19NkoJ4EJWer1k0Xz73Hy-1F5h8Aznr7-afjZKN1em-I/edit |
+| EXT-06 Requirement for the Product Owner | https://docs.google.com/document/d/1gVpkMKt4tuO4jgHJ4dCfw6jYdG8xwz5q8Cii4GkFIe4/edit |
+
+**The new features in a few lines** (the details are in EXT-09 and EXT-12):
+
+* **Selection in the chat.** A button **Selection: Off / On** in the chat box. With On, the code selected in the editor goes
+  with the message, with its file and lines. Your message shows only what you typed, with a folded line `file · lines`.
+* **Suggest a change.** Select code, right click > **AdaptAI: Suggest a change to the selection**, say what to change. The
+  model proposes new code. It appears in the file under the old lines: old lines red, new lines green, with **Accept**
+  and **Reject** above. Nothing is saved until you choose; saving first rejects a pending proposal.
+* **The chat page.** It follows the newest message, the box to write stays at the bottom, and it fits from about 300 px
+  (a bar of tabs under 900 px).
+* **Not in this version, do not look for it:** the VS Code chat or Copilot, `/` commands, a side by side comparison,
+  a keyboard shortcut for Suggest a change.
+* **The old features** (analysis, Prompt Coach, chat, My progress, profile, shortcuts, LM Studio) must work as before.
+
+Read EXT-12 (the user manual) and the section "The code assistant" of `docs/vscode-extension.md` first. Then do S1 to S5 and the checks.
+
 ## Rules (break none)
 
 1. **Do not edit, delete or move anything in the repository or in any file of the person.** You may only create:

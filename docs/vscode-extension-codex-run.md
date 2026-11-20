@@ -1,8 +1,15 @@
-# VS Code extension: quick acceptance run for Codex
+# VS Code extension: quick acceptance run for Codex (run 3)
 
-20 November 2026. For Codex (or any agent that controls the computer: mouse, keyboard, screenshots). You will
+20 November 2026 (third run; the first two found bugs that are now fixed). For Codex (or any agent that controls the computer: mouse, keyboard, screenshots). You will
 click through the extension in a real VS Code window and write what you saw. Read the whole file first.
-Total time: about 40 minutes. This is the new code assistant and a regression pass over the old features.
+Total time: about 30 minutes. This is the new code assistant and a regression pass over the old features.
+
+## Which checks to do in this run
+
+**Do these first, in this order** (they failed or did not run before, or the code under them changed): **B4, B1, B2, B3, N6, N7, N8, N9, U2, U3, U5, R4, R5, R8, R11, R12, R14**.
+Then, if there is time, the quick pass of what passed before but whose layout changed: **N1, N2, N3, N4, N5, N10, N11, N12, U1, U4, R1, R2, R3, R6, R7, R9, R10**.
+**R13 is the same as U5**: do it once and write the same result for both.
+A check you did not do is SKIP with the reason "not in this run".
 
 Prepared with AI assistance (Claude, Anthropic); human review pending.
 
@@ -38,6 +45,10 @@ not open for you (it needs the person's login), the same content is in the repos
 
 * **Selection in the chat.** A button **Selection: Off / On** in the chat box. With On, the code selected in the editor goes
   with the message, with its file and lines. Your message shows only what you typed, with a folded line `file · lines`.
+* **Buttons in the chat box.** **Suggest a change** and **Improve prompt** are buttons next to **Analyse** and **Send**. Suggest a change
+  uses the text in the box as the instruction and the code selected in the editor (it also works from the right click
+  menu). Improve prompt opens the Prompt Coach on the text in the box. The model is chosen with the **Model** button in the
+  box; LLM config only lists and manages models (it has no "Use for chat").
 * **Suggest a change.** Select code, right click > **AdaptAI: Suggest a change to the selection**, say what to change. The
   model proposes new code. It appears in the file under the old lines: old lines red, new lines green, with **Accept**
   and **Reject** above. Nothing is saved until you choose; saving first rejects a pending proposal.
@@ -52,7 +63,7 @@ Read EXT-12 (the user manual) and the section "The code assistant" of `docs/vsco
 ## Rules (break none)
 
 1. **Do not edit, delete or move anything in the repository or in any file of the person.** You may only create:
-   the scratch folder in step S3, the report named at the end, and the throw-away account.
+   the scratch folder in step S3, the report and the screenshots folder named at the end, and the throw-away account.
    No `git` command that changes anything (no commit, no checkout, no reset, no push). Do not run the test suites.
 2. **The database is the team's test schema.** Start the backend exactly as in S2 (schema `ide_dev`). Never
    change the schema, never edit `.env.supabase`, never run SQL, never open the Supabase dashboard.
@@ -100,24 +111,29 @@ export function save(id, value) {
 export const answer = 42
 ```
 
-**S4. Install the extension in a clean profile and open the folder.**
+**S4. Install the extension in a clean profile and open the folder.** The file `adaptai-0.3.0.vsix` was built on 20 November 2026
+(latest build after the last code change); do not build it again. Install it over any older copy with `--force`.
 
 ```bash
 cd C:/Users/josem/Desktop/AdaptAI-ide/vscode-extension
-npx --yes pnpm@10.34.3 package
-code --user-data-dir "%TEMP%/adaptai-run-ud" --extensions-dir "%TEMP%/adaptai-run-ex" --install-extension adaptai-0.3.0.vsix
+code --user-data-dir "%TEMP%/adaptai-run-ud" --extensions-dir "%TEMP%/adaptai-run-ex" --install-extension adaptai-0.3.0.vsix --force
 code --user-data-dir "%TEMP%/adaptai-run-ud" --extensions-dir "%TEMP%/adaptai-run-ex" "%TEMP%/adaptai-run"
 ```
 
-In that window: Settings, `adaptai.backendUrl` = `http://127.0.0.1:8033`.
+In that window: Settings, `adaptai.backendUrl` = `http://127.0.0.1:8033`. Then **Help > Toggle Developer Tools > Console** and keep it
+open for the whole run: at the end, write down every red error that appeared (with the check you were doing).
 
 **S5. Account and model.** Click the AdaptAI icon, **Create an account** with `codex-<date>@example.com` and a
 password you make up (write it only in the report). Then **LLM config > Add a model > LM Studio**, name
 `LM Studio`, the model from S1, **Where it runs: On the machine where the backend runs**. Then go to **Assistant**, press **Model** in the box and choose it (LLM config only lists models; the choice is made in the box).
+**Check before going on:** the **Model** button in the box shows the LM Studio model. If it says Auto, choose it again: R5, R11 and R12 fail without a chosen model.
 
 ## Checks
 
-For each: do the steps, compare with Expected, write PASS, FAIL (what you saw) or SKIP (why). Do not save screenshots.
+For each: do the steps, compare with Expected, write PASS, FAIL (what you saw) or SKIP (why).
+
+**Screenshots: only for a FAIL.** When a check fails, take one screenshot of what you see and save it in the new folder
+`C:/Users/josem/Desktop/AdaptAI-ide/acceptance-run-3-screens/` as `<check id>.png` (for example `N7.png`). No screenshot for a PASS.
 
 ### A. The new code assistant (the point of this run)
 
@@ -129,7 +145,7 @@ For each: do the steps, compare with Expected, write PASS, FAIL (what you saw) o
 | N4 | Click once in the file so nothing is selected, keep Selection On, write `Explain this` and press **Send** | Nothing is sent. Under the box: "Select some code in the editor, or switch Selection off." |
 | N5 | Switch Selection Off, select lines 7 to 10 again, write `What is 2+2? Answer with just the number` and press **Send** | The message has no code line and the answer does not talk about the code |
 | N6 | Select lines 7 to 10. Right click > **AdaptAI: Suggest a change to the selection**. In the box at the top write `Throw an Error if id is empty` and press Enter | After a few seconds: the 4 old lines are shaded red, the new lines are shaded green right below them, and **AdaptAI: Accept** and **Reject** appear above. The tab shows unsaved changes |
-| N7 | Press **Accept** (a light bulb on a blank line is VS Code's own, not ours) | The red lines are gone, the green ones are normal code, the shading and buttons are gone. The blank lines above and below the function are still there. Ctrl+Z brings back both versions; a second Ctrl+Z gives the original file |
+| N7 | Press **Accept** (a light bulb on a blank line is VS Code's own, not ours). Then click once inside the file text so the cursor is in the editor, not in the chat, and press Ctrl+Z, look, and press Ctrl+Z again | After Accept: the red lines are gone, the green ones are normal code, the shading and buttons are gone, the blank lines above and below the function are still there. First Ctrl+Z: both versions are back (without red and green). Second Ctrl+Z: the original file as in S3. Write what you see after each Ctrl+Z |
 | N8 | Ask for a change again (`Rename value to data`) and press **Reject** | The green lines disappear, the file is exactly as in S3 |
 | N9 | Ask for a change again. Wait until the green lines and the buttons are on screen (not before), then press Ctrl+S | A message says the proposal was rejected before saving. Open the file on disk (`type %TEMP%\adaptai-run\src\service.ts`): only the original code |
 | N10 | Ask for a change, then type a letter inside the green lines | A message says the review ended; shading and buttons disappear; the text stays as it is. Press Ctrl+Z until the file is as in S3 |
@@ -144,9 +160,9 @@ For each: do the steps, compare with Expected, write PASS, FAIL (what you saw) o
 | U2 | While it writes (or after, with more messages), scroll up in the messages. Send another short message | While you read above, the page does not pull you down. After sending it goes to the newest message |
 | U3 | Drag the side bar to about 300 px, then 600 px (900 px or more cannot be reached in a side bar: the automated page test covers it, write SKIP for that part) | At 300 and 600 px the menu is a bar of tabs on top and the box to write is at the bottom, not covering any message, no sideways scroll. At 900 px or more the menu is a column on the left |
 | U5 | Stop the backend (Ctrl+C), wait 70 seconds (the connection check runs every 60 s), click **My progress** and then **Assistant**; start the backend again | While it is off every tab shows "The backend is not reachable" or "Could not reach the backend" with **Try again** (My progress must not show an empty page without saying why); after it is on again the tab loads by itself |
-| B1 | Select lines 7 to 10 in `service.ts`. In the chat box write `Throw an Error if id is empty` and press **Suggest a change** | With the box empty or nothing selected, a click writes what is missing next to the box (the button is never grey). After the click the red and green lines and Accept / Reject appear in the editor; the box is cleared |
-| B2 | Write `make it better` in the box and press **Improve prompt** | The Prompt Coach opens on that text, like the ✦ button |
-| B4 | Click **Model**, then **Improve prompt**, then **Chats** (at about 340 px and at a wide size) | Each list opens fully inside the window; the model list lets you pick a model |
+| B1 | (a) With the box empty press **Suggest a change**. (b) Write `Throw an Error if id is empty`, click once in the file so nothing is selected, press **Suggest a change**. (c) Select lines 7 to 10 and press it again | (a) and (b): the button is not grey; next to the box it says what is missing, and nothing is sent. (c) The box is cleared, within 60 seconds the red and green lines and Accept / Reject appear in the editor |
+| B2 | Write `make it better` in the box and press **Improve prompt** | The Prompt Coach opens above the box, on that text, like the ✦ button; press the button again to close it |
+| B4 | Click **Model**, then **Improve prompt**, then **Chats** (at about 340 px and at a wide size) | Each list opens fully inside the window; the model list lets you pick the LM Studio model and the button then shows it |
 | B3 | At about 300 px wide | **Suggest a change** and **Improve prompt** are visible, wrapped onto a second line if needed, nothing cut off |
 | U4 | Light theme (Ctrl+K Ctrl+T), then dark | Both readable; the Selection button, the red and green lines and the buttons are visible in both |
 
@@ -176,12 +192,13 @@ scratch folder stay.
 
 ## Report
 
-Write `C:/Users/josem/Desktop/AdaptAI-ide/acceptance-run-report.md` (not committed) with:
+Write `C:/Users/josem/Desktop/AdaptAI-ide/acceptance-run-report-3.md` (not committed) with:
 
 * the date, the VS Code version (Help > About), the LM Studio model, and the throw-away email;
-* a table `Id | PASS/FAIL/SKIP | what you saw` for every check above, in order;
+* a table `Id | PASS/FAIL/SKIP | what you saw` for every check above, in order (the screenshot file name next to every FAIL);
 * for every FAIL: the exact steps, what you expected, what you saw, and anything red in
-  Help > Toggle Developer Tools > Console;
+  the Console (you kept it open, see S4);
+* the list of red errors from the Console with the check you were on;
 * a separate list of anything that looked wrong even if the check passed: layout, words, slowness, flicker,
   a button too small, text cut, a delay longer than 10 seconds;
 * a last line: "Regression: all old features OK" or the list of old checks (R1 to R14) that failed.

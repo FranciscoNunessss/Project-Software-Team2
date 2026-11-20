@@ -106,3 +106,10 @@ test('chg_04 blank lines at the start and the end of the selection are kept', ()
 test('chg_04 the indentation of the proposal is left alone', () => {
   assert.equal(fitProposal('  a()', '  b()\n    c()'), '  b()\n    c()')
 })
+
+test('sel_04 the title of a chat never shows the request rules or the code', () => {
+  const { cleanTitle } = require('../dist/codemsg.js')
+  assert.equal(cleanTitle('Throw an Error if id is empty [Change request: reply with o...'), 'Throw an Error if id is empty')
+  assert.equal(cleanTitle('Explain this\n\nSelection (src/a.ts, typescript, lines 1-2):\n```ts'), 'Explain this')
+  assert.equal(cleanTitle('A normal title'), 'A normal title')
+})

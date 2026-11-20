@@ -125,7 +125,7 @@ export class InlineReview implements ReviewHost, vscode.CodeLensProvider {
         this.reviews.forget(keyOf(event.document))
         event.waitUntil(Promise.resolve([vscode.TextEdit.delete(new vscode.Range(range.startLine, range.startChar, range.endLine, range.endChar))]))
         void vscode.window.showInformationMessage('AdaptAI: the proposed change was rejected before saving, so the file is saved as it was.')
-        setTimeout(() => this.refresh(event.document), 0)
+        for (const delay of [0, 150, 700]) setTimeout(() => this.refresh(event.document), delay)
       }),
       vscode.workspace.onDidCloseTextDocument(document => this.reviews.forget(keyOf(document))),
       vscode.window.onDidChangeActiveTextEditor(() => this.context()),

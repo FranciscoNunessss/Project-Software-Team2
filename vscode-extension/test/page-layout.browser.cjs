@@ -235,6 +235,15 @@ const WIDTHS = [300, 320, 340, 480, 760, 899, 900, 1200]
     await page.close()
   })
 
+  await check('cfg_02 the signed-out view says why when the backend address is refused', async () => {
+    const { page, post } = await open(480)
+    await post({ type: 'data', tab: 'analyse', signedOut: true, urlProblem: 'Refusing plain http to example.com: a remote backend must use https.' })
+    assert.match(await page.locator('#main').innerText(), /Refusing plain http to example\.com/)
+    await post({ type: 'data', tab: 'analyse', signedOut: true })
+    assert.doesNotMatch(await page.locator('#main').innerText(), /Refusing plain http/)
+    await page.close()
+  })
+
   await browser.close()
   if (failures.length) {
     console.log(`\n${failures.length} failed`)

@@ -74,6 +74,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.workspace.onDidChangeConfiguration(event => {
       if (event.affectsConfiguration('adaptai.backendUrl')) {
+        if (backend.urlProblem) void vscode.window.showErrorMessage(`AdaptAI: ${backend.urlProblem}`, 'Open settings').then(choice => { if (choice) void vscode.commands.executeCommand('adaptai.openSettings') })
         void dashboard.reload()
         void dashboard.preload()
         void statusBar.refresh()

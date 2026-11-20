@@ -57,3 +57,22 @@ test('res_01 the message after an analysis names the backend address and the mod
   assert.ok(message, 'no message after the analysis')
   assert.match(message, /127\.0\.0\.1:8033/)
 })
+
+test('sel_04 the chat list shows clean titles', async () => {
+  const { ChatService } = require('../dist/chat.js')
+  const service = new ChatService({ api: async () => [{ id: 'c1', title: 'Fix it [Change request: reply with one short sentence', created_at: '', message_count: 2 }] }, {}, { get: () => undefined, update: async () => {} })
+  const list = await service.list()
+  assert.equal(list[0].title, 'Fix it')
+})
+
+test('cfg_02 a refused backend address is shown in the signed-out view with the reason', async () => {
+  const refused = { ...backend, auth: 'none', urlProblem: 'Refusing plain http to example.com: a remote backend must use https.' }
+  const posted = []
+  const dash = new Dashboard(refused, analyser, chat, { open: async () => {} })
+  dash.preload = () => Promise.resolve()
+  dash.resolveWebviewView({ visible: true, webview: { options: {}, html: '', cspSource: 'csp', postMessage: async m => void posted.push(m), onDidReceiveMessage: () => ({}) }, onDidChangeVisibility: () => ({}), onDidDispose: () => ({}) })
+  await dash.reload()
+  const signedOut = posted.findLast(m => m.signedOut)
+  assert.ok(signedOut, 'no signed-out message')
+  assert.match(signedOut.urlProblem, /Refusing plain http/)
+})

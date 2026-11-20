@@ -426,6 +426,7 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 | SEL-04 | The message of the user shows what they typed, with a caption `file · lines` and the code folded. The same after the chat is opened again from the backend. |
 | SEL-05 | A message is at most 8000 characters. A longer selection is cut at a line break and the message says how much was sent. The text the user typed is never cut. |
 | SEL-06 | The confirmation for an external model and the secret check that already exist apply to the code too. No new question is added. |
+| SEL-07 | The title of a chat that starts with a code question or a change request is only what the user typed, never the rule text or the code. |
 
 **Suggest a change (CHG).** The command **AdaptAI: Suggest a change** (palette and right click on a selection) and the button **Suggest a change** in the chat box (BTN-01) start it. The proposal always appears in the editor, not in the chat.
 
@@ -472,6 +473,8 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 | Id | Requirement |
 |---|---|
 | RES-01 | The message that follows an analysis names the backend (its address) and the model, so the user sees where the text went. A question before sending still appears only for an external model or a whole file. |
+
+**Refused backend address (CFG-02).** When `adaptai.backendUrl` is refused (plain http to another machine), an error message says why with **Open settings**, and the signed-out view of the page shows the same reason.
 
 **LLM config (CFG-01).** The page only lists, adds, tests, edits and deletes models. It has no "Use for chat" button and no "chat model" label; the model is chosen in the box of the chat (Model), and later a model suggested by the app can be offered there too.
 

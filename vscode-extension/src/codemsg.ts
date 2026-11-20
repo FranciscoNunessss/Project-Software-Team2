@@ -48,6 +48,12 @@ export function buildMessage(kind: 'ask' | 'change', text: string, ctx: CodeCont
   return { ok: true, content, cut: true, sent: kept.length, total }
 }
 
+/** A chat is titled with the start of its first message: cut the request rule and the code off it. */
+export function cleanTitle(title: string): string {
+  const cuts = [title.indexOf(' [Change request:'), title.indexOf('\n\nSelection (')].filter(index => index >= 0)
+  return (cuts.length ? title.slice(0, Math.min(...cuts)) : title).trim()
+}
+
 /** The inverse of `buildMessage`: what the user typed, and the selection if the message carries one. */
 export function splitMessage(content: string): Parsed {
   const at = content.lastIndexOf(MARK)

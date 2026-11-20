@@ -256,7 +256,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
     this.pendingReload?.abort.abort()
     this.pendingReload = undefined
     if (auth === 'none' || this.authRejected) {
-      this.post({ type: 'data', tab, signedOut: true })
+      this.post({ type: 'data', tab, signedOut: true, urlProblem: this.backend.urlProblem })
       return Promise.resolve()
     }
     const saved = this.tabData.get(tab)
@@ -299,7 +299,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
     try {
       if (!this.view) return
       if (this.backend.auth === 'none') {
-        if (current()) this.post({ type: 'data', tab, signedOut: true })
+        if (current()) this.post({ type: 'data', tab, signedOut: true, urlProblem: this.backend.urlProblem })
         return
       }
       signal.throwIfAborted()
@@ -1936,7 +1936,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
     keep = prevMsgs && prevMsgs.scrollHeight > prevMsgs.clientHeight && !nearEnd(prevMsgs) ? { top: prevMsgs.scrollTop, chat: prevMsgs.getAttribute('data-chat') || '' } : null
     main.replaceChildren()
     main.setAttribute('aria-busy', d.loading || d.refreshing ? 'true' : 'false')
-    if (d.signedOut) return main.append(el('div', { class: 'center' }, el('h1', { text: 'Sign in to use AdaptAI' }), el('p', { class: 'lead', style: 'margin:0 auto 20px', text: 'Use your email and password once. Only a token is kept on this machine.' }), el('div', { class: 'btns', style: 'justify-content:center' }, el('button', { class: 'btn primary', text: 'Sign in', onclick: () => send('signIn') }), el('button', { class: 'btn', text: 'Create an account', onclick: () => send('register') }))))
+    if (d.signedOut) return main.append(el('div', { class: 'center' }, el('h1', { text: 'Sign in to use AdaptAI' }), d.urlProblem ? el('div', { class: 'err', role: 'alert', style: 'margin:0 auto 16px;max-width:560px', text: d.urlProblem }) : null, el('p', { class: 'lead', style: 'margin:0 auto 20px', text: 'Use your email and password once. Only a token is kept on this machine.' }), el('div', { class: 'btns', style: 'justify-content:center' }, el('button', { class: 'btn primary', text: 'Sign in', onclick: () => send('signIn') }), el('button', { class: 'btn', text: 'Create an account', onclick: () => send('register') }))))
     if (d.loading) return main.append(...intro('AdaptAI', { analyse: 'Assistant', progress: 'My progress', profile: 'Profile', models: 'LLM config', shortcuts: 'Shortcuts' }[tab], 'Loading…'))
     if (d.failed) return main.append(el('div', { class: 'err', text: d.failed }), el('p'), el('button', { class: 'btn', text: 'Try again', onclick: () => send('ready', { force: true }) }))
     if (connection && connection.online === false) main.append(el('div', { class: 'err', role: 'alert', text: 'The backend is not reachable. Check that it is running; this page loads again by itself when it is.' }), el('button', { class: 'btn small', text: 'Try again', onclick: () => send('ready', { force: true }) }))

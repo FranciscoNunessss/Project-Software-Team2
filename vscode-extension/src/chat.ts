@@ -4,7 +4,7 @@ import type { CoachMode, LlmOption, LlmOptions } from './api'
 import { Analyser, explain, type Result } from './analyse'
 import { describeFailure, destination, secretsIn } from './core'
 import { renderAnalysis } from './format'
-import { MAX_MESSAGE } from './codemsg'
+import { MAX_MESSAGE, cleanTitle } from './codemsg'
 
 export type ChatSummary = { id: string; title: string; created_at: string; updated_at?: string; message_count: number }
 export type ChatMessage = { id: string; role: 'user' | 'assistant'; content: string; provider: string | null; model: string | null; analysis_id: string | null; status: string; error: string | null; created_at: string }
@@ -218,12 +218,13 @@ export class ChatService {
   // ---- the list of chats ------------------------------------------------------------------------
 
   async list(): Promise<ChatSummary[]> {
-    return this.backend.api<ChatSummary[]>('/api/chats', 'GET', undefined, AbortSignal.timeout(8000))
+    const chats = await this.backend.api<ChatSummary[]>('/api/chats', 'GET', undefined, AbortSignal.timeout(8000))
+    return chats.map(chat => ({ ...chat, title: cleanTitle(chat.title) }))
   }
 
   async transcript(id: string): Promise<string> {
     const chat = await this.backend.api<ChatDetail>(`/api/chats/${encodeURIComponent(id)}`)
-    const lines = [`# ${chat.title}`, '']
+    const lines = [`# ${cleanTitle(chat.title)}`, '']
     for (const message of chat.messages) {
       const who = message.role === 'user' ? 'You' : `AdaptAI${message.model ? ` · ${message.provider ?? ''} ${message.model}` : ''}`
       lines.push(`## ${who}`, '', message.content || '_(empty)_', '')

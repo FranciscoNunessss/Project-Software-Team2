@@ -254,18 +254,38 @@ streaming, final transcript replacement and ignored signed-out patches in a real
 
 ### Immediate tab navigation and a 15-second memory cache
 
-Selecting a tab replaces the previous screen immediately with the target's loading state.
-The host then supplies a cached snapshot without API calls if it is under 15 seconds old.
-An expired snapshot remains visible with “Updating…” while it is revalidated. The first visit
-still waits for its data, but the user sees the destination immediately. If revalidation fails,
-the old content remains with a visible error and Retry; its age is not renewed.
+Selecting a previously visited tab immediately restores its last content and scroll position.
+The webview keeps one in-memory snapshot per tab so navigation does not flash “Loading…” while
+waiting for the extension host. The host supplies its snapshot without API calls if it is under
+15 seconds old. An expired snapshot remains visible with “Updating…” while it is revalidated.
+A tab without any data still shows its loading state. If revalidation fails, the old content
+remains with a visible error and Retry; its age is not renewed.
 
-Snapshots live only in the extension's memory, at most one per tab. They are cleared on session
-or backend changes, disposal, explicit refresh and backend mutations. The Assistant's selected
-conversation and chat model form part of the cache key. Analysis/chat completion invalidates
-dependent progress, profile and model snapshots. A 401/rejected token clears cached pages and
-shows sign-in. Token-management pages while unlocked bypass the cache. No migrations, prompts,
-provider settings or persistent cache files were added.
+Snapshots live only in memory, at most one per tab in the host and the webview. They are cleared
+on session or backend changes, disposal, explicit refresh and backend mutations. The Assistant's
+selected conversation and chat model form part of the host cache key. Analysis/chat completion
+marks Progress and Profile stale without deleting their last data; Models keeps its normal TTL.
+Finishing a response on another tab refreshes that tab without changing the user's destination.
+A 401/rejected token clears cached pages and shows sign-in. Token-management pages while unlocked
+bypass both caches. No migrations, prompts, provider settings or persistent cache files were added.
+
+**New chat** is one local action: clear the selected conversation and draft, reuse the loaded
+model metadata, then display the empty composer. A fresh model snapshot needs no network requests.
+The first reply saves the new chat id with the Assistant snapshot, so returning to it does not
+reload the model catalogue. A response continues while visiting other tabs; its partial text and
+final transcript are retained. Starting or opening another chat while a task is running asks the
+user to stop it or wait first, preventing the live response from appearing in another conversation.
+Send resets the character counter and local prompt hints immediately. Completed evaluations
+read the backend's nested `level` and `below_level_1` fields instead of printing object strings.
+
+The navigation fixes were approved in the development conversation on 20 November 2026 after
+the developer reproduced them with the updated extension. Changes are limited to extension UI
+state, display types, command wiring, tests and these guides. `test/dashboard-navigation.test.js`
+covers post-message revalidation, first-chat snapshots, local New chat, running-task guards,
+obsolete reads and refresh failures. `test/navigation.browser.cjs` covers immediate revisits,
+scroll, counter/hints, background streaming, cache reset, uncached token management and a connected
+host/webview flow with a deliberately delayed refresh. `test/models.test.js` covers measured level
+summaries. No owning board card was supplied; card linking and G2 acceptance remain open before PR.
 
 Tab changes no longer request health/auth status or inspect relay configurations. The status
 bar updates only the connection header; its periodic check may revalidate the active tab if

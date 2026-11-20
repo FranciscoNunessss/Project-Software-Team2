@@ -460,7 +460,7 @@
     "build": "tsc -p ./",
     "package": "npx --yes @vscode/vsce@3 package --no-dependencies --allow-missing-repository --skip-license",
     "test": "tsc -p ./ && node --test test/*.test.js",
-    "test:page": "tsc -p ./ && node test/page.browser.cjs && node test/page-layout.browser.cjs"
+    "test:page": "tsc -p ./ && node test/page.browser.cjs && node test/page-layout.browser.cjs && node test/navigation.browser.cjs"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

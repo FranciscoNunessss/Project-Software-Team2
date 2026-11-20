@@ -161,12 +161,27 @@ export class Dashboard implements vscode.WebviewViewProvider {
   private scopeKey(): string { return JSON.stringify([this.backend.url, this.backend.auth, this.sessionEpoch]) }
 
   private invalidateTabs(): void {
+    if (this.scope !== undefined) this.post({ type: 'clearTabCache' })
     this.tabData.clear()
     this.pendingReload?.abort.abort()
     this.pendingReload = undefined
     this.preloadRun = undefined
     for (const task of this.loadingTabs.values()) task.abort.abort()
     this.loadingTabs.clear()
+  }
+
+  /** A changed conversation makes these figures stale, but the last figures remain useful while loading. */
+  private staleTabs(tabs: Tab[]): void {
+    for (const tab of tabs) {
+      const saved = this.tabData.get(tab)
+      if (saved) saved.at = 0
+      this.loadingTabs.get(tab)?.abort.abort()
+      this.loadingTabs.delete(tab)
+      if (this.pendingReload?.key === this.tabKey(tab)) {
+        this.pendingReload.abort.abort()
+        this.pendingReload = undefined
+      }
+    }
   }
 
   /** Warm the Assistant first, then the other tabs, without waiting for a webview. */
@@ -439,31 +454,60 @@ export class Dashboard implements vscode.WebviewViewProvider {
   private postAssistant(extra: Record<string, unknown> = {}): void {
     const saved = this.tabData.get('analyse')
     if (saved?.key === this.tabKey('analyse')) saved.data = { ...saved.data, ...extra }
-    if (this.tab === 'analyse' && this.backend.auth !== 'none' && !this.authRejected) this.post({ type: 'assistantState', data: { ...extra, ...this.assistantState() } })
+    if (this.backend.auth !== 'none' && !this.authRejected) this.post({ type: 'assistantState', data: { ...extra, ...this.assistantState() } })
   }
 
   /** After a message/analysis only the conversation changed, not the model catalogue. */
   private async refreshAssistant(): Promise<void> {
-    for (const tab of ['progress', 'profile', 'models'] as Tab[]) this.tabData.delete(tab)
+    this.staleTabs(['progress', 'profile'])
     this.postAssistant()
     if (!this.view || this.backend.auth === 'none') return
-    if (this.tab !== 'analyse') return this.reload(true)
+    const visible = this.tab !== 'analyse' ? this.reload() : Promise.resolve()
     const view = this.view
     const epoch = this.sessionEpoch
     const origin = this.backend.url
     const auth = this.backend.auth
     const selected = this.chat.current
     const version = this.assistantVersion
-    const current = () => this.view === view && this.tab === 'analyse' && this.sessionEpoch === epoch && this.backend.url === origin && this.backend.auth === auth && this.chat.current === selected && this.assistantVersion === version
+    const saved = this.tabData.get('analyse')
+    const chatModel = vscode.workspace.getConfiguration('adaptai').get('chatModel', '')
+    const current = () => this.view === view && !this.authRejected && this.sessionEpoch === epoch && this.backend.url === origin && this.backend.auth === auth && this.chat.current === selected && this.assistantVersion === version && vscode.workspace.getConfiguration('adaptai').get('chatModel', '') === chatModel
     const signal = AbortSignal.timeout(10_000)
     try {
       const chats = await this.read(() => this.chat.list(), signal)
       const id = selected && chats.some(item => item.id === selected) ? selected : undefined
       const detail = id ? await this.read(() => this.backend.api<{ messages: ChatMessage[] }>(`/api/chats/${encodeURIComponent(id)}`, 'GET', undefined, signal), signal) : undefined
-      if (current()) this.postAssistant({ ...this.conversation(chats, id, detail) })
+      if (current()) {
+        // The first message creates its chat id. Keep the already loaded model metadata under that new key.
+        if (saved && this.tabData.get('analyse') === saved) saved.key = this.tabKey('analyse')
+        this.postAssistant(this.conversation(chats, id, detail))
+      }
     } catch (error) {
       if (current()) this.toast('err', explain(error))
+    } finally {
+      await visible
     }
+  }
+
+  /** One local action: clear the conversation and reuse the model metadata, without fetching the old chat. */
+  async newChat(): Promise<void> {
+    this.syncScope()
+    if (this.streaming || this.busy || this.coachBusy) return this.toast('err', 'Stop the current response or let the task finish before starting a new chat.')
+    const saved = this.tabData.get('analyse')
+    const usable = saved?.key === this.tabKey('analyse') ? saved : undefined
+    this.assistantVersion++
+    this.pendingReload?.abort.abort()
+    this.pendingReload = undefined
+    this.loadingTabs.get('analyse')?.abort.abort()
+    this.loadingTabs.delete('analyse')
+    await this.chat.setCurrent(undefined)
+    if (usable) {
+      usable.key = this.tabKey('analyse')
+      usable.data = { ...usable.data, current: undefined, messages: [] }
+    }
+    this.tab = 'analyse'
+    this.post({ type: 'navigate', tab: 'analyse', resetChat: true })
+    await this.reload()
   }
 
   private conversation(chats: ChatSummary[], current: string | undefined, detail?: { messages: ChatMessage[] }): Record<string, unknown> {
@@ -1126,8 +1170,11 @@ export class Dashboard implements vscode.WebviewViewProvider {
         return
       }
       case 'chatSelect':
+        if ((this.streaming || this.busy || this.coachBusy) && str('id') !== this.chat.current) return this.toast('err', 'Stop the current response or let the task finish before opening another chat.')
         await this.chat.setCurrent(str('id') || undefined)
         return this.reload()
+      case 'chatNew':
+        return this.newChat()
       case 'chatRename':
         return this.renameChat(str('id'))
       case 'chatDelete':
@@ -1405,6 +1452,10 @@ function page(nonce: string, csp: string, tab: Tab): string {
   const send = (type, extra) => api.postMessage(Object.assign({ type }, extra))
   let tab = ${JSON.stringify(tab)}
   let draft = (api.getState() || {}).text || ''
+  // Memory only, scoped to this signed-in webview. Unlocked token management is never cached.
+  const tabViews = new Map()
+  const tabScroll = new Map()
+  const cacheView = d => { if (d && !d.loading && !d.failed && !d.signedOut && d.tokenMode !== 'open') tabViews.set(d.tab, d); else if (d && d.tokenMode === 'open') tabViews.delete(d.tab) }
   const main = document.getElementById('main')
   const el = (tag, props, ...kids) => { const e = document.createElement(tag); if (props) for (const k in props) { if (k === 'text') e.textContent = props[k]; else if (k === 'class') e.className = props[k]; else if (k === 'role' || k.indexOf('aria-') === 0 || k.indexOf('data-') === 0) e.setAttribute(k, props[k]); else e[k] = props[k] } for (const kid of kids.flat()) if (kid != null) e.append(kid); return e }
   const btn = (label, type, extra, cls) => el('button', { text: label, class: 'btn small ' + (cls || ''), onclick: () => send(type, extra) })
@@ -1412,10 +1463,16 @@ function page(nonce: string, csp: string, tab: Tab): string {
   const row = (title, sub, ...buttons) => el('div', { class: 'row' }, el('div', { class: 'w' }, el('div', { text: title }), sub ? el('p', { class: 'muted', text: sub }) : null), el('div', { class: 'btns' }, buttons))
   const card = (eyebrow, title, ...kids) => el('section', { class: 'card' }, el('p', { class: 'eyebrow', text: eyebrow }), title ? el('h2', { text: title, style: 'margin-bottom:12px' }) : null, kids)
   const mark = () => document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab))
-  function showTab(target) { tab = target; mark(); lastData = { tab, loading: true }; renderTab() }
+  function showTab(target) {
+    tabScroll.set(tab, { page: main.scrollTop, window: window.scrollY })
+    tab = target; mark(); lastData = tabViews.get(tab) || { tab, loading: true }; renderTab()
+    const position = tabScroll.get(tab)
+    main.scrollTop = position ? position.page : 0
+    window.scrollTo(0, position ? position.window : 0)
+  }
   document.getElementById('nav').addEventListener('click', e => { const t = e.target.closest('button'); if (t && t.dataset.tab !== tab) { showTab(t.dataset.tab); send('tab', { tab }) } })
   document.getElementById('gear').addEventListener('click', () => send('settings'))
-  document.getElementById('newchat').addEventListener('click', () => { showTab('analyse'); drawerOpen = false; pop = null; send('tab', { tab: 'analyse' }); send('chatSelect', { id: '' }) })
+  document.getElementById('newchat').addEventListener('click', () => send('chatNew'))
   document.getElementById('signout').addEventListener('click', () => send('signOut'))
 
   function drawerCards(r, d) {
@@ -1568,6 +1625,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
     return box
   }
   let live = null
+  let streamMessages = null
   let follow = true
   let keep = null
   let withSel = false
@@ -1667,6 +1725,8 @@ function page(nonce: string, csp: string, tab: Tab): string {
     const text = area.value
     if (!text.trim()) return
     area.value = ''; draft = ''; api.setState({ text: '' }); drawerOpen = false; pop = null
+    area.dispatchEvent(new Event('input'))
+    document.querySelectorAll('.hint').forEach(hint => hint.remove())
     send('chatSend', { text, withSelection: withSel })
   }
 
@@ -1678,11 +1738,12 @@ function page(nonce: string, csp: string, tab: Tab): string {
     if (pop === 'chats') col.append(chatsPop(d))
     const msgs = el('div', { class: 'msgs', id: 'msgs', 'aria-live': 'polite', 'data-chat': d.current || '' })
     if (!d.messages.length) msgs.append(el('div', { class: 'chat-empty' }, el('h2', { text: 'What do you need to do?' }), el('p', { class: 'muted' }, 'Write your prompt. ', el('strong', { text: 'Analyse' }), ' shows how complete it is and which model fits; ', el('strong', { text: 'Send' }), ' gets the answer.')))
-    for (const m of d.messages) msgs.append(bubble(m.role, m.who, m.text, m.error, m.selection))
+    const messages = d.streaming && streamMessages ? streamMessages : d.messages
+    for (const m of messages) msgs.append(bubble(m.role, m.who, m.text, m.error, m.selection))
     msgs.addEventListener('scroll', () => { follow = nearEnd(msgs) })
-    live = null
+    live = d.streaming && streamMessages ? { raw: streamMessages[streamMessages.length - 1].text, el: msgs.lastElementChild } : null
     col.append(msgs)
-    const lastMsg = d.messages[d.messages.length - 1]
+    const lastMsg = messages[messages.length - 1]
     if (lastMsg && lastMsg.role === 'assistant' && lastMsg.error) col.append(el('div', { class: 'banner' }, el('span', { text: lastMsg.error }), lastMsg.cut ? el('button', { class: 'btn small primary', text: 'Continue', onclick: () => send('chatSend', { text: 'Continue exactly where you stopped.' }) }) : el('button', { class: 'btn small', text: 'Retry', onclick: () => send('chatRetry') })))
     if (d.continuing) col.append(el('div', { class: 'banner' }, el('span', { text: 'The next analysis continues ' + d.continuing + ' and is compared with the last one.' }), btn('Stop continuing', 'continueClear')))
 
@@ -1934,19 +1995,56 @@ function page(nonce: string, csp: string, tab: Tab): string {
   }
   window.addEventListener('message', event => {
     const m = event.data
-    if (m && m.type === 'navigate') { showTab(m.tab); return }
-    if (m && m.type === 'resetTabs') { connection = null; live = null; document.getElementById('modal').replaceChildren(); lastData = { tab, signedOut: m.signedOut, loading: !m.signedOut }; renderAccount(lastData); renderTab(); return }
+    if (m && m.type === 'clearTabCache') { tabViews.clear(); tabScroll.clear(); return }
+    if (m && m.type === 'navigate') {
+      if (m.resetChat) {
+        draft = ''; api.setState({ text: '' }); live = null; streamMessages = null; drawerOpen = false; pop = null
+        const saved = tabViews.get('analyse')
+        if (saved) tabViews.set('analyse', Object.assign({}, saved, { current: null, messages: [], streaming: false, refreshing: false, refreshError: null }))
+        tabScroll.delete('analyse')
+      }
+      showTab(m.tab); return
+    }
+    if (m && m.type === 'resetTabs') { tabViews.clear(); tabScroll.clear(); connection = null; live = null; streamMessages = null; document.getElementById('modal').replaceChildren(); lastData = { tab, signedOut: m.signedOut, loading: !m.signedOut }; renderAccount(lastData); renderTab(); return }
     if (m && m.type === 'connection') { if (lastData && !lastData.signedOut) { const was = connection && connection.online; renderAccount(m); if (was !== m.online && !live && (was === false || m.online === false)) { renderTab(); if (was === false && m.online === true) send('ready', { force: true }) } } return }
     if (m && m.type === 'dialog') return showDialog(m)
     if (m && m.type === 'toast') return toast(m.kind, m.text)
-    if (m && m.type === 'chatStart') { const box = document.getElementById('msgs'); if (!box) return; const empty = box.querySelector('.empty, .chat-empty'); if (empty) empty.remove(); if (m.user) box.append(bubble('user', 'You', m.user, '', m.selection)); live = { raw: '', el: bubble('ai', 'AdaptAI', '') }; box.append(live.el); follow = true; toEnd(); const stop = document.getElementById('stop'); if (stop) stop.hidden = false; const sb = document.getElementById('sendbtn'); if (sb) sb.hidden = true; return }
-    if (m && m.type === 'delta') { if (!live) return; live.raw += m.text; const next = bubble('ai', 'AdaptAI', live.raw); live.el.replaceWith(next); live.el = next; if (follow) toEnd(); const note = document.getElementById('note'); if (note) note.textContent = ''; return }
+    if (m && m.type === 'chatStart') {
+      const saved = tab === 'analyse' ? lastData : tabViews.get('analyse')
+      if (!saved || saved.loading || saved.signedOut) return
+      streamMessages = (saved.messages || []).slice()
+      if (m.user) streamMessages.push({ role: 'user', who: 'You', text: m.user, selection: m.selection })
+      streamMessages.push({ role: 'assistant', who: 'AdaptAI', text: '' })
+      saved.messages = streamMessages; saved.streaming = true; cacheView(saved)
+      const box = tab === 'analyse' ? document.getElementById('msgs') : null
+      live = { raw: '', el: box ? bubble('ai', 'AdaptAI', '') : null }
+      if (!box) return
+      const empty = box.querySelector('.empty, .chat-empty'); if (empty) empty.remove()
+      if (m.user) box.append(bubble('user', 'You', m.user, '', m.selection))
+      box.append(live.el); follow = true; toEnd()
+      const stop = document.getElementById('stop'); if (stop) stop.hidden = false
+      const sb = document.getElementById('sendbtn'); if (sb) sb.hidden = true
+      return
+    }
+    if (m && m.type === 'delta') {
+      if (!streamMessages) return
+      const answer = streamMessages[streamMessages.length - 1]; answer.text += m.text
+      if (tab !== 'analyse' || !live || !live.el || !live.el.isConnected) return
+      live.raw = answer.text; const next = bubble('ai', 'AdaptAI', live.raw); live.el.replaceWith(next); live.el = next
+      if (follow) toEnd(); const note = document.getElementById('note'); if (note) note.textContent = ''
+      return
+    }
     if (m && m.type === 'selection') { selInfo = m.info || ''; const b = document.getElementById('selbtn'); if (b) b.textContent = selLabel(); drawSelPrev(); return }
     if (m && m.type === 'selectionPreview') { selPrev = m; drawSelPrev(); return }
     if (m && m.type === 'note') { const note = document.getElementById('note'); if (note) note.textContent = m.text; return }
     if (m && m.type === 'assistantState') {
-      if (tab === 'analyse' && lastData && !lastData.loading && !lastData.signedOut && !lastData.failed) {
-        lastData = Object.assign({}, lastData, m.data)
+      const saved = tab === 'analyse' ? lastData : tabViews.get('analyse')
+      if (saved && !saved.loading && !saved.signedOut && !saved.failed) {
+        const next = Object.assign({}, saved, m.data)
+        cacheView(next)
+        if (Object.prototype.hasOwnProperty.call(m.data, 'messages')) { streamMessages = null; live = null }
+        if (tab !== 'analyse') return
+        lastData = next
         if (live && !Object.prototype.hasOwnProperty.call(m.data, 'messages')) {
           const stop = document.getElementById('stop'); if (stop) stop.hidden = !m.data.streaming
           const sb = document.getElementById('sendbtn'); if (sb) sb.hidden = !!m.data.streaming
@@ -1956,15 +2054,18 @@ function page(nonce: string, csp: string, tab: Tab): string {
     }
     const d = event.data; if (!d || d.type !== 'data') return
     if (d.tab !== tab) return
+    if (d.tab === 'analyse' && d.streaming && streamMessages) d.messages = streamMessages
     tab = d.tab; mark(); lastData = d
-    if (d.signedOut) live = null
+    if (d.signedOut) { live = null; streamMessages = null }
     if (!d.loading) renderAccount(d)
-    if (tab === 'analyse' && d.streaming && live) return
+    cacheView(d)
+    if (tab === 'analyse' && d.streaming && live && live.el && live.el.isConnected) return
     renderTab()
   })
   function renderTab() {
     const d = lastData
     if (!d) return
+    const position = { page: main.scrollTop, window: window.scrollY }
     document.body.classList.toggle('chatmode', tab === 'analyse' && !d.signedOut && !d.loading && !d.failed)
     const prevMsgs = document.getElementById('msgs')
     keep = prevMsgs && prevMsgs.scrollHeight > prevMsgs.clientHeight && !nearEnd(prevMsgs) ? { top: prevMsgs.scrollTop, chat: prevMsgs.getAttribute('data-chat') || '' } : null
@@ -1981,6 +2082,8 @@ function page(nonce: string, csp: string, tab: Tab): string {
     } catch {
       main.replaceChildren(el('div', { class: 'err', role: 'alert', text: 'Could not display this page. Try again.' }), el('button', { class: 'btn', text: 'Try again', onclick: () => send('ready', { force: true }) }))
     }
+    main.scrollTop = position.page
+    window.scrollTo(0, position.window)
   }
   mark(); send('ready'); send('selectionAsk')
 </script></body></html>`

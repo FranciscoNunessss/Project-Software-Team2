@@ -111,6 +111,17 @@ export async function runLong(parts: Parts): Promise<void> {
     return { ok: titles.length >= 1 && titles.every(title => !/Selection \(|lines? \d/.test(title)), detail: JSON.stringify(titles) }
   })
 
+  await check('L05b', 'a chat can be renamed and deleted (R7)', async () => {
+    const before = await chat.list()
+    const target = before[0]
+    if (!target) return { ok: false, detail: 'no chat to rename' }
+    await chat.rename(target.id, 'Renamed by the self-test')
+    const renamed = (await chat.list()).some(item => item.id === target.id && item.title === 'Renamed by the self-test')
+    await chat.remove(target.id)
+    const gone = !(await chat.list()).some(item => item.id === target.id)
+    return { ok: renamed && gone, detail: `renamed=${renamed} deleted=${gone} (${before.length} chats before)` }
+  })
+
   // ---- analysis and project context -----------------------------------------------------------
   const analyse = (analyser as unknown as { run: (request: unknown) => Promise<{ analysis: { recommendation: { name: string } }; project?: string } | undefined> }).run.bind(analyser)
   const text = 'Compare two API designs and recommend one, with the trade-offs.'

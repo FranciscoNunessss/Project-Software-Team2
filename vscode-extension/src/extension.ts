@@ -9,6 +9,7 @@ import { Dashboard } from './dashboard'
 import { PROGRESS_SCHEME, ProgressReport } from './profile'
 import { RelayAgent, RelayStatus } from './relay'
 import { StatusBar } from './statusbar'
+import { runLong } from './selftest'
 import { diagnosticSamples, startDiagnostics, stopDiagnostics } from './diagnostics'
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -143,11 +144,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         report?.({ step: 'sign in with a pasted token', ok: backend.auth === 'token', detail: String(email) })
         const status = await backend.status()
         report?.({ step: 'status works with the token alone', ok: Boolean(status.email), detail: String(status.email) })
-        const result = await analyser.runForTest('Compare two API designs and recommend one, with the trade-offs.').catch(error => {
+        const result = process.env.ADAPTAI_SELFTEST_LONG ? undefined : await analyser.runForTest('Compare two API designs and recommend one, with the trade-offs.').catch(error => {
           report?.({ step: 'analyse threw', ok: false, detail: String(error) })
           return undefined
         })
-        report?.({ step: 'analyse: the API call', ok: Boolean(result?.analysis.recommendation), detail: result ? `${result.analysis.recommendation.name} (${result.analysis.mode})` : 'no result' })
+        if (!process.env.ADAPTAI_SELFTEST_LONG) report?.({ step: 'analyse: the API call', ok: Boolean(result?.analysis.recommendation), detail: result ? `${result.analysis.recommendation.name} (${result.analysis.mode})` : 'no result' })
         if (result) {
           await analyser.show(result, false)
           report?.({ step: 'the analysis opens as a document', ok: vscode.window.visibleTextEditors.length >= 0, detail: `${result.analysis.id}` })
@@ -207,6 +208,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       } catch (error) {
         report?.({ step: 'diff: threw', ok: false, detail: String(error) })
       }
+      if (token && process.env.ADAPTAI_SELFTEST_LONG && process.env.ADAPTAI_SELFTEST_FOLDER) await runLong({ backend, analyser, chat, assist, changes, report: report!, folder: process.env.ADAPTAI_SELFTEST_FOLDER }).catch(error => report?.({ step: 'long run threw', ok: false, detail: String(error) }))
       report?.({ step: 'done', ok: true, detail: 'self-test finished' })
     })()
   }

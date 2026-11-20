@@ -154,3 +154,33 @@ test('app_04 Accept and Reject with nothing waiting say so and change nothing', 
   await diff.reject()
   assert.equal(edits.length, 0)
 })
+
+test('app_03 a line added above while the diff is open: Accept replaces the same code, one line lower', async () => {
+  const document = fakeDocument(['one', 'two', 'three', 'four'])
+  const diff = new ChangeDiff()
+  await diff.show(1, 2, 'X\nY', { uri: document.uri, original: 'two\nthree' })
+  document.lines.unshift('zero')
+  await diff.accept()
+  assert.deepEqual(document.lines, ['zero', 'one', 'X', 'Y', 'four'])
+  assert.equal(edits.length, 1)
+})
+
+test('app_03 lines removed above while the diff is open: Accept replaces the same code, one line higher', async () => {
+  const document = fakeDocument(['zero', 'one', 'two', 'three', 'four'])
+  const diff = new ChangeDiff()
+  await diff.show(2, 3, 'X', { uri: document.uri, original: 'two\nthree' })
+  document.lines.shift()
+  await diff.accept()
+  assert.deepEqual(document.lines, ['one', 'X', 'four'])
+})
+
+test('app_07 the same code twice and the lines moved: it is not clear which one, so nothing is changed', async () => {
+  const document = fakeDocument(['a', 'dup', 'b', 'dup', 'c'])
+  ui.warning = () => undefined
+  const diff = new ChangeDiff()
+  await diff.show(1, 1, 'NEW', { uri: document.uri, original: 'dup' })
+  document.lines.unshift('top')
+  await diff.accept()
+  assert.equal(edits.length, 0)
+  assert.deepEqual(document.lines, ['top', 'a', 'dup', 'b', 'dup', 'c'])
+})

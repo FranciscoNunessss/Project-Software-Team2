@@ -82,16 +82,34 @@ export class ChangeDiff implements ReviewHost, vscode.TextDocumentContentProvide
     await vscode.commands.executeCommand('vscode.diff', document.uri, right, `AdaptAI: suggested change to ${name} (${where2})`, { preview: false })
   }
 
+  /**
+   * Where the selected code is now: where it was, or, when lines were added or removed above it while the diff was
+   * open, the one place where exactly that text is. Code that was edited, or that appears twice, is not found.
+   */
+  private locate(document: vscode.TextDocument, item: Pending): number | undefined {
+    const length = item.last - item.first + 1
+    if (item.last < document.lineCount && this.textOf(document, item.first, item.last) === item.original) return item.first
+    const wanted = item.original.split('\n')
+    let found: number | undefined
+    for (let start = 0; start + length <= document.lineCount; start++) {
+      if (!wanted.every((text, i) => document.lineAt(start + i).text === text)) continue
+      if (found !== undefined) return undefined
+      found = start
+    }
+    return found
+  }
+
   /** The command behind Accept: replaces the selected lines in one edit, unless they changed since the proposal. */
   async accept(): Promise<void> {
     const item = this.current()
     if (!item) return void vscode.window.showInformationMessage('AdaptAI: there is no proposed change waiting.')
     const document = vscode.workspace.textDocuments.find(candidate => candidate.uri.toString() === item.uri.toString()) ?? (await vscode.workspace.openTextDocument(item.uri))
-    const unchanged = item.last < document.lineCount && this.textOf(document, item.first, item.last) === item.original
+    const first = this.locate(document, item)
     await this.settle(item, true)
-    if (!unchanged) return this.warnStale('the code changed since the proposal, so nothing was done.')
+    if (first === undefined) return this.warnStale('the code changed since the proposal, so nothing was done.')
+    const last = first + (item.last - item.first)
     const edit = new vscode.WorkspaceEdit()
-    edit.replace(item.uri, new vscode.Range(item.first, 0, item.last, document.lineAt(item.last).text.length), item.proposed.replace(/\r\n/g, '\n').split('\n').join(this.eol(document)))
+    edit.replace(item.uri, new vscode.Range(first, 0, last, document.lineAt(last).text.length), item.proposed.replace(/\r\n/g, '\n').split('\n').join(this.eol(document)))
     if (!(await vscode.workspace.applyEdit(edit))) return this.warn('the change could not be written to the file.')
     await vscode.window.showTextDocument(document, { preview: false })
   }

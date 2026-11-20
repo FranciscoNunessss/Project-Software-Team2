@@ -116,4 +116,6 @@ ADAPTAI_SELFTEST=1 ADAPTAI_SELFTEST_REPORT=/tmp/report.jsonl ADAPTAI_SELFTEST_TO
   Code.exe --user-data-dir /tmp/ud --extensions-dir /tmp/ex --extensionDevelopmentPath <this folder>
 ```
 
+**The long self-test** (`src/selftest.ts`) runs 38 checks inside a real VS Code window against a real backend and a local model: chat, Stop and Retry, code in the message, analysis, project context, Improve prompt (Apply and Dismiss), ten ways to ask for, accept, reject or lose a change, and the backend address checks. Add `ADAPTAI_SELFTEST_LONG=1 ADAPTAI_SELFTEST_E2E=1 ADAPTAI_SELFTEST_FOLDER=<an empty folder to use as the workspace>` to the command above, open that folder as the workspace, and start the backend with `ADAPTAI_LMSTUDIO_MODEL=<the loaded model>`. It writes one JSON line per check to `ADAPTAI_SELFTEST_REPORT`. It does not click inside the AdaptAI page (see `test/page*.browser.cjs`).
+
 Run it: open this folder in VS Code and press F5. Package: `pnpm package` makes `adaptai-<version>.vsix`; install with `code --install-extension`.

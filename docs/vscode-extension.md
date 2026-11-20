@@ -445,7 +445,7 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 |---|---|
 | APP-01 | The proposal opens in a VS Code diff: the file as it is on the left, the same file with the proposed lines in place of the selected ones on the right. The file is not touched. The diff's title bar has **Accept** and **Reject**, and the commands are in the Command Palette while a proposal waits. |
 | APP-02 | Accept replaces the selected lines with the proposed ones in one single edit: one Ctrl+Z puts the file back as it was. It closes the diff and the file is not saved by it. Reject closes the diff and changes nothing. In both the buttons go away. |
-| APP-03 | Only the selected lines are replaced. Lines outside them may change while the diff is open without harm. If the selected lines themselves changed after the proposal was made, Accept does nothing and says so (APP-07). |
+| APP-03 | Only the selected lines are replaced. Lines outside them may change while the diff is open without harm: when lines are added or removed above, Accept finds the same code where it is now (the one place with exactly that text; if the text appears twice, it does nothing and says so). If the selected lines themselves changed after the proposal was made, Accept does nothing and says so (APP-07). |
 | APP-04 | A second proposal in the same file replaces the first one. A proposal whose file is closed is forgotten. Accept or Reject with nothing waiting say so and change nothing. |
 
 **The chat page (UI).**

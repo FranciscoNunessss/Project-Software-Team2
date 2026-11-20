@@ -175,3 +175,82 @@ def test_the_injection_and_pairs_sets_are_well_formed_and_hold_no_user_data():
     for pair in pairs["pairs"]:
         assert len(pair["vague"]) < len(pair["complete"])
     assert 0 < sum(pair["subset"] for pair in pairs["pairs"]) < 10
+
+
+def runner():
+    import importlib.util
+
+    path = Path(__file__).resolve().parents[2] / "scripts/run_quality_eval.py"
+    spec = importlib.util.spec_from_file_location("run_quality_eval", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_runner_can_assess_with_another_rubric_version_than_the_active_one():
+    from app.prompt_builder import build_assessment_prompt, load_rubric
+
+    module = runner()
+    older = module.RubricProvider("groq", module.Settings(_env_file=None), "rubric-2.0")
+    newer = module.RubricProvider("groq", module.Settings(_env_file=None), "rubric-2.1")
+    assert older.prompt == build_assessment_prompt(load_rubric("rubric-2.0"))
+    assert older.prompt != newer.prompt
+
+
+def test_diff_prints_the_two_reports_side_by_side(tmp_path, capsys):
+    module = runner()
+
+    def saved(name, rubric, agreement, reasoning):
+        data = report(agreement, rubric=rubric, suite="profile")
+        data["metrics"]["by_dimension"] = {"reasoning": {"agreement": reasoning}}
+        path = tmp_path / name
+        path.write_text(json.dumps(data), encoding="utf-8")
+        return str(path)
+
+    args = type("Args", (), {})()
+    args.first = saved("a.json", "rubric-2.0", 80.0, 70.0)
+    args.second = saved("b.json", "rubric-2.1", 86.0, 90.0)
+    assert module.diff(args) == 0
+    text = capsys.readouterr().out
+    assert "rubric-2.0" in text and "rubric-2.1" in text
+    assert "+6.0" in text and "+20.0" in text
+
+
+def test_diff_warns_when_the_two_reports_are_not_like_for_like(tmp_path, capsys):
+    module = runner()
+
+    def saved(name, model, task_set):
+        data = report(80.0, rubric="rubric-2.0", suite="profile")
+        data["model"], data["task_set"] = model, task_set
+        data["metrics"]["by_dimension"] = {}
+        path = tmp_path / name
+        path.write_text(json.dumps(data), encoding="utf-8")
+        return str(path)
+
+    args = type("Args", (), {})()
+    args.first = saved("a.json", "model-a", 1)
+    args.second = saved("b.json", "model-b", 2)
+    module.diff(args)
+    text = capsys.readouterr().out
+    assert "differ in model" in text and "differ in task_set" in text
+    args.second = saved("c.json", "model-a", 1)
+    module.diff(args)
+    assert "WARNING" not in capsys.readouterr().out
+
+
+def test_reports_of_two_rubric_versions_do_not_overwrite_each_other(monkeypatch, tmp_path):
+    module = runner()
+    monkeypatch.setattr(module, "REPORTS", tmp_path)
+    monkeypatch.setattr(module, "BASELINES", tmp_path / "baselines")
+    monkeypatch.setenv("ADAPTAI_GROQ_API_KEY", "")  # no key: no call is made, the run is NOT RUN
+
+    class Args:
+        provider, model, suite, subset, repeats, pause = "groq", "m", "pairs", True, 1, 0
+        update_baseline = False
+
+    for version in ("rubric-2.0", "rubric-2.1"):
+        Args.rubric = version
+        assert module.run(Args) == 3
+    names = sorted(path.name for path in tmp_path.glob("*.json"))
+    assert len(names) == 2
+    assert "rubric-2.0" in names[0] and "rubric-2.1" in names[1]

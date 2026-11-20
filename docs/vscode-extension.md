@@ -461,10 +461,11 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 
 | Id | Requirement |
 |---|---|
-| BTN-01 | **Suggest a change** uses what is written in the box as the instruction and the code selected in the editor. It is disabled, with the reason as its tooltip, while the box is empty or nothing is selected. It does not need the Selection button. The proposal then appears in the editor as in APP-01. |
-| BTN-02 | **Improve prompt** opens the Prompt Coach on the text in the box, the same as the ✦ button, which stays. |
+| BTN-01 | **Suggest a change** uses what is written in the box as the instruction and the code selected in the editor. It is never greyed out: with an empty box or nothing selected, a click says what is missing next to the box. It sits with Analyse and Send as a button of the same weight. It does not need the Selection button. The proposal then appears in the editor as in APP-01. |
+| BTN-02 | **Improve prompt**, next to Analyse and Send, opens the Prompt Coach on the text in the box, the same as the ✦ button, which stays. |
 | BTN-03 | With Selection On, Send analyses the selected code (SEL-02). There is no separate Analyse-the-selection button in the chat. |
 | BTN-04 | Both buttons fit at every width of UI-03, wrapping onto a second line when they must. |
+| BTN-05 | The lists that open from the box (model, Prompt Coach, chats) open inside the window at every width, and the box never has a scroll bar of its own, also with a long model name. |
 
 **Analysis result (RES).**
 

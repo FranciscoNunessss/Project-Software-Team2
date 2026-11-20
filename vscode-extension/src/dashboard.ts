@@ -1358,6 +1358,8 @@ function page(nonce: string, csp: string, tab: Tab): string {
   .spin { display: inline-block; width: 14px; height: 14px; margin-right: 8px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--blue); animation: turn .8s linear infinite; vertical-align: -2px; } @keyframes turn { to { transform: rotate(360deg) } }
   @media (max-width: 760px) { .drawer { top: auto; left: 0; width: 100%; max-height: 82vh; border-left: 0; border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -18px 50px rgba(0,0,0,.25); } .pop.down { left: 0; right: auto; } }
   @media (min-width: 1280px) { .assist.with-drawer { display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 18px; align-items: start; } .assist.with-drawer .drawer { position: sticky; top: 14px; width: auto; height: calc(100vh - 28px); border: 1px solid var(--line); border-radius: 16px; box-shadow: none; } .assist.with-drawer + .drawer-backdrop, .assist .drawer-backdrop { display: none; } }
+  .cfoot2 .left { min-width: 0; max-width: 100%; } .cfoot2 .left .trigger { min-width: 0; max-width: 100%; } .trigger span { min-width: 0; flex: 0 1 auto; } .trigger small, .trigger b { flex: none; }
+  @media (max-width: 520px) { .cfoot2 .left { flex: 1 1 100%; } .trigger span { max-width: 120px; } .cfoot2 .right { flex: 1 1 100%; justify-content: flex-end; } }
   .trigger.sel { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .trigger.sel[aria-pressed=true] { background: var(--dark); color: var(--bg); border-color: transparent; }
   .selcap { margin-top: 6px; font-size: 11.5px; opacity: .85; } .selcap summary { cursor: pointer; overflow-wrap: anywhere; } .selcap pre { margin: 6px 0 0; max-height: 220px; overflow: auto; text-align: left; }
   body.chatmode { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -1366,7 +1368,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
   body.chatmode .page > .assist { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   body.chatmode .assist-main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   body.chatmode .assist .msgs { flex: 1; min-height: 80px; max-height: none; overflow: auto; }
-  body.chatmode .composer2 { position: static; flex: none; margin-top: 8px; }
+  body.chatmode .composer2 { position: relative; bottom: auto; flex: none; margin-top: 8px; }
   body.chatmode .toolbar, body.chatmode .banner, body.chatmode .notice { flex: none; }
   @media (max-width: 899px) { body.chatmode .page { margin: 0; width: 100%; padding: 10px 12px; } }
   @media (max-width: 899px) { .side { padding: 8px 10px; gap: 4px 8px; } .brand { order: 0; } .newchat { order: 1; width: auto; margin: 0; min-height: 28px; padding: 0 10px; font-size: 12px; } .foot { order: 2; } .nav { order: 3; flex-wrap: wrap; overflow: visible; } .nav button { flex: none; white-space: nowrap; } }
@@ -1683,14 +1685,20 @@ function page(nonce: string, csp: string, tab: Tab): string {
     const stopBtn = el('button', { class: 'btn', id: 'stop', type: 'button', text: 'Stop', hidden: !d.streaming, onclick: () => send('chatStop') })
     const chip = d.last && d.last.task && d.last.task.trim() === draft.trim() && draft.trim() ? el('button', { class: 'recchip', type: 'button', title: 'Show analysis', onclick: () => { drawerOpen = true; renderTab() } }, 'Recommended: ', el('strong', { text: d.last.name }), d.last.usable && sel && d.last.modelId === sel.id ? ' · selected' : '') : null
     const selBtn = el('button', { class: 'trigger sel', id: 'selbtn', type: 'button', text: selLabel(), 'aria-pressed': String(withSel), title: 'When On, the code selected in the editor goes with your message', onclick: () => { withSel = !withSel; const b = document.getElementById('selbtn'); if (b) { b.textContent = selLabel(); b.setAttribute('aria-pressed', String(withSel)) } } })
-    const suggestWhy = () => !area.value.trim() ? 'Write what should change in the box first' : !selInfo ? 'Select the code to change in the editor first' : 'Ask for a change to the selected code; it appears in the editor'
-    const suggestBtn = el('button', { class: 'trigger', id: 'suggestbtn', type: 'button', text: 'Suggest a change', disabled: busy || !area.value.trim() || !selInfo, title: suggestWhy(), onclick: () => { const text = area.value.trim(); if (!text) return; area.value = ''; draft = ''; api.setState({ text: '' }); counter.textContent = '0/' + MAXC; send('suggestChange', { text }) } })
-    const improveBtn = el('button', { class: 'trigger', id: 'improvebtn', type: 'button', text: 'Improve prompt', title: 'Open the Prompt Coach on the text in the box', onclick: () => { pop = pop === 'coach' ? null : 'coach'; renderTab() } })
-    const syncSuggest = () => { suggestBtn.disabled = busy || !area.value.trim() || !selInfo; suggestBtn.title = suggestWhy() }
-    area.addEventListener('input', syncSuggest)
+    const suggestBtn = el('button', { class: 'btn', id: 'suggestbtn', type: 'button', text: 'Suggest a change', title: 'Ask for a change to the selected code; it appears in the editor', onclick: () => {
+      const text = area.value.trim()
+      const note = document.getElementById('note')
+      if (!text) { if (note) note.textContent = 'Write what should change in the box first.'; area.focus(); return }
+      if (!selInfo) { if (note) note.textContent = 'Select the code to change in the editor first.'; return }
+      if (busy) return
+      area.value = ''; draft = ''; api.setState({ text: '' }); counter.textContent = '0/' + MAXC
+      if (note) note.textContent = 'Asking for a change…'
+      send('suggestChange', { text })
+    } })
+    const improveBtn = el('button', { class: 'btn', id: 'improvebtn', type: 'button', text: 'Improve prompt', title: 'Open the Prompt Coach on the text in the box', onclick: () => { pop = pop === 'coach' ? null : 'coach'; renderTab() } })
     const composer = el('section', { class: 'composer2' },
       el('div', { class: 'wrapta' }, area, coachBtn), live2,
-      el('div', { class: 'cfoot2' }, el('div', { class: 'left' }, trigger, router, selBtn, suggestBtn, improveBtn), el('div', { class: 'right' }, el('span', { class: 'muted', id: 'note' }), counter, chip, analyseBtn, sendBtn, stopBtn)))
+      el('div', { class: 'cfoot2' }, el('div', { class: 'left' }, trigger, router, selBtn), el('div', { class: 'right' }, el('span', { class: 'muted', id: 'note' }), counter, chip, improveBtn, suggestBtn, analyseBtn, sendBtn, stopBtn)))
     if (pop === 'model') composer.append(modelPop(d, sel))
     if (pop === 'coach') composer.append(coachPop(d, area, found()))
     col.append(composer)
@@ -1900,7 +1908,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
     if (m && m.type === 'toast') return toast(m.kind, m.text)
     if (m && m.type === 'chatStart') { const box = document.getElementById('msgs'); if (!box) return; const empty = box.querySelector('.empty, .chat-empty'); if (empty) empty.remove(); if (m.user) box.append(bubble('user', 'You', m.user, '', m.selection)); live = { raw: '', el: bubble('ai', 'AdaptAI', '') }; box.append(live.el); follow = true; toEnd(); const stop = document.getElementById('stop'); if (stop) stop.hidden = false; const sb = document.getElementById('sendbtn'); if (sb) sb.hidden = true; return }
     if (m && m.type === 'delta') { if (!live) return; live.raw += m.text; const next = bubble('ai', 'AdaptAI', live.raw); live.el.replaceWith(next); live.el = next; if (follow) toEnd(); const note = document.getElementById('note'); if (note) note.textContent = ''; return }
-    if (m && m.type === 'selection') { selInfo = m.info || ''; const b = document.getElementById('selbtn'); if (b) b.textContent = selLabel(); const sg = document.getElementById('suggestbtn'); const ta = document.getElementById('task'); if (sg && ta) { sg.disabled = !ta.value.trim() || !selInfo; sg.title = !ta.value.trim() ? 'Write what should change in the box first' : !selInfo ? 'Select the code to change in the editor first' : 'Ask for a change to the selected code; it appears in the editor' } return }
+    if (m && m.type === 'selection') { selInfo = m.info || ''; const b = document.getElementById('selbtn'); if (b) b.textContent = selLabel(); return }
     if (m && m.type === 'note') { const note = document.getElementById('note'); if (note) note.textContent = m.text; return }
     if (m && m.type === 'assistantState') {
       if (tab === 'analyse' && lastData && !lastData.loading && !lastData.signedOut && !lastData.failed) {

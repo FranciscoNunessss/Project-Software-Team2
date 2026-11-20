@@ -15,8 +15,8 @@ const html = view.webview.html
 new vm.Script(html.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1])
 
 const many = Array.from({ length: 30 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', who: i % 2 ? 'AdaptAI' : 'You', text: `Message ${i} ` + 'word '.repeat(30) }))
-const data = { type: 'data', tab: 'analyse', options: [], chats: [], messages: many, chatModel: '', auto: null, assessment: null, streaming: false, analysing: false }
-const WIDTHS = [300, 320, 480, 760, 899, 900, 1200]
+const data = { type: 'data', tab: 'analyse', options: [{ id: 'a', provider: 'lmstudio', label: 'LM Studio', model: 'gemma4-12b-qat-uncensored-hauhaucs-balanced', external: false, status: { state: 'queued', text: 'Evaluating 0/40' } }], chats: [], messages: many, chatModel: 'a', auto: null, assessment: null, streaming: false, analysing: false }
+const WIDTHS = [300, 320, 340, 480, 760, 899, 900, 1200]
 
 ;(async () => {
   const browser = await chromium.launch({ headless: true })
@@ -64,6 +64,7 @@ const WIDTHS = [300, 320, 480, 760, 899, 900, 1200]
           pageScrolls: document.scrollingElement.scrollHeight > window.innerHeight + 1,
           overflowing,
           msgsScroll: document.getElementById('msgs').scrollHeight > document.getElementById('msgs').clientHeight,
+          pageSideways: (() => { const p = document.querySelector('.page'); return p.scrollWidth > p.clientWidth + 1 })(),
           navScrolls: (() => { const n = document.querySelector('.nav'); return n.scrollWidth > n.clientWidth + 1 || ['auto', 'scroll'].includes(getComputedStyle(n).overflowX) })(),
           buttonsFit: ['#suggestbtn', '#improvebtn'].every(id => { const r = document.querySelector(id)?.getBoundingClientRect(); return r && r.width > 0 && r.left >= 0 && r.right <= window.innerWidth })
         }
@@ -76,6 +77,7 @@ const WIDTHS = [300, 320, 480, 760, 899, 900, 1200]
       assert.equal(facts.pageScrolls, false, 'the whole page scrolls instead of the messages')
       assert.equal(facts.overflowing, 0, 'something in the box sticks out')
       assert.equal(facts.msgsScroll, true, 'the list of messages is not what scrolls')
+      assert.equal(facts.pageSideways, false, 'the page area scrolls sideways (something sticks out)')
       assert.equal(facts.navScrolls, false, 'ui_04 the bar of tabs has a scroll of its own')
       assert.equal(facts.buttonsFit, true, 'btn_04 the buttons are missing or cut off')
       await page.close()
@@ -144,21 +146,21 @@ const WIDTHS = [300, 320, 480, 760, 899, 900, 1200]
     await page.close()
   })
 
-  await check('btn_01 Suggest a change is off until there is text and a selection, then asks the extension', async () => {
+  await check('btn_01 Suggest a change says what is missing when it cannot run, and asks the extension when it can', async () => {
     const { page, post } = await open(480)
     const button = page.locator('#suggestbtn')
-    assert.equal(await button.isDisabled(), true)
+    assert.equal(await button.isDisabled(), false, 'a grey button that does nothing')
+    await button.click()
+    assert.match(await page.locator('#note').innerText(), /write what should change/i)
     await page.locator('#task').fill('Throw an error if id is empty')
-    assert.equal(await button.isDisabled(), true, 'enabled without a selection')
-    assert.ok((await button.getAttribute('title')).length > 5, 'no reason in the tooltip')
+    await button.click()
+    assert.match(await page.locator('#note').innerText(), /select the code/i)
+    assert.equal(await page.evaluate(() => window.__sent.some(m => m.type === 'suggestChange')), false, 'it asked without a selection')
     await post({ type: 'selection', info: 'service.ts · 7–9' })
-    assert.equal(await button.isDisabled(), false)
     await button.click()
     const sent = await page.evaluate(() => window.__sent.filter(m => m.type === 'suggestChange'))
     assert.deepEqual(sent.map(m => m.text), ['Throw an error if id is empty'])
     assert.equal(await page.evaluate(() => window.__sent.some(m => m.type === 'chatSend')), false, 'it also sent a chat message')
-    await post({ type: 'selection', info: '' })
-    assert.equal(await page.locator('#suggestbtn').isDisabled(), true)
     await page.close()
   })
 
@@ -202,6 +204,24 @@ const WIDTHS = [300, 320, 480, 760, 899, 900, 1200]
     assert.equal(await page.locator('.selcap').evaluate(el => el.open), false)
     await page.close()
   })
+
+  for (const width of [340, 480, 1000]) {
+    await check(`pop_01 at ${width}px the model list, the Coach and the chats list open inside the window`, async () => {
+      const { page, post } = await open(width, 700)
+      await post({ ...data, options: [{ id: 'a', provider: 'lmstudio', label: 'LM Studio', model: 'gemma', external: false }], chats: [{ id: 'c1', title: 'First chat' }], messages: [] })
+      const inside = async name => page.evaluate(() => { const r = document.querySelector('.pop')?.getBoundingClientRect(); return r ? r.top >= 0 && r.left >= -1 && r.right <= window.innerWidth + 1 && r.bottom <= window.innerHeight + 1 && r.width > 100 && r.height > 40 : false })
+      await page.locator('.trigger[aria-label^="Chat model"]').click()
+      assert.equal(await inside(), true, 'the model list is not in view')
+      await page.locator('.trigger[aria-label^="Chat model"]').click()
+      await page.locator('#task').fill('make it better')
+      await page.locator('#improvebtn').click()
+      assert.equal(await inside(), true, 'the Coach is not in view')
+      await page.locator('#improvebtn').click()
+      await page.getByRole('button', { name: /^Chats/ }).click()
+      assert.equal(await inside(), true, 'the chats list is not in view')
+      await page.close()
+    })
+  }
 
   await browser.close()
   if (failures.length) {

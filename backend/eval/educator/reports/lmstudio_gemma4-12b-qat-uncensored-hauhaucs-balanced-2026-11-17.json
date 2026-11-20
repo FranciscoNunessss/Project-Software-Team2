@@ -1,0 +1,864 @@
+{
+ "provider": "lmstudio",
+ "model": "gemma4-12b-qat-uncensored-hauhaucs-balanced",
+ "policy": "progress-5",
+ "date": "2026-11-17T13:42:25+00:00",
+ "histories": 10,
+ "repeats": 2,
+ "measured": 20,
+ "failed": 0,
+ "flagged": 4,
+ "rows": [
+  {
+   "history": "over_provisioning",
+   "repeat": 0,
+   "verdict": {
+    "over_provisioning": "detected",
+    "under_provisioning": "not_detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "Based on your first 10 assessments (with 9 confirmed choices), you have a clear tendency to select models that provide more capability than the task strictly requires. Because there are currently no conversation excerpts available, your prompting style has not yet been analyzed.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "In 78% of your confirmed choices (7 out of 9), you selected a model that was larger than the recommendation required for the task. This suggests a tendency to choose 'high-capability' models even when simpler ones might suffice.",
+      "action": "Review the specific task requirements and your level of uncertainty before your next choice to see if a more efficient model could still meet the goal."
+     },
+     "under_provisioning": {
+      "explanation": "There is no clear pattern of choosing models that were smaller than the recommendation in this sample.",
+      "action": "Continue confirming your choices as you complete more tasks to see if a trend of selecting 'leaner' models emerges."
+     },
+     "prompting": {
+      "explanation": "There is currently no prompt text available to analyze, so your prompting style (such as clarity or context provision) hasn't been evaluated yet.",
+      "action": "For your next task, try comparing a clear intended outcome against the necessary constraints before you submit your prompt.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Task Requirement Awareness",
+      "explanation": "Remember that scores describe what the task needs (e.g., high reasoning), not how well you performed it or your personal skill level.",
+      "action": "For your next assessment, identify one specific requirement that demands complex reasoning before selecting a model."
+     },
+     {
+      "title": "Evaluating Choice Gap",
+      "explanation": "Over-provisioning occurs when the chosen model's capability exceeds what is necessary for the task requirements.",
+      "action": "On your next task, try to select a model that feels like it 'just fits' the requirements rather than overshooting them."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "over_provisioning",
+   "repeat": 1,
+   "verdict": {
+    "over_provisioning": "detected",
+    "under_provisioning": "not_detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "You have completed 9 confirmed choices out of 10 assessments in this sample. Because there is not enough history yet to describe a completeness trend, focus on the current distribution of your model selections.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "In this sample, 78% (7 out of 9) of your confirmed choices were larger than the recommended models. This indicates that you frequently selected models with more capability than the task strictly required.",
+      "action": "Review your task requirements and uncertainty levels before your next choice to see if a slightly smaller model could still satisfy the goal."
+     },
+     "under_provisioning": {
+      "explanation": "No pattern of under-provisioning was detected in this sample, as none of your confirmed choices were smaller than the recommended models.",
+      "action": "Continue selecting models that comfortably cover your requirements as you gather more data."
+     },
+     "prompting": {
+      "explanation": "There are currently no conversation excerpts available to analyze the clarity or context of your prompts.",
+      "action": "For your next task, perform a one-off editing exercise: compare your intended outcome against necessary constraints before submitting.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Identifying Choice Gaps",
+      "explanation": "A positive choice gap means the model's capability exceeds the task requirements. Understanding this helps in balancing precision with efficiency.",
+      "action": "On your next assessment, identify one specific requirement that might be over-served by your chosen model."
+     },
+     {
+      "title": "Requirement Alignment",
+      "explanation": "Matching a recommendation indicates agreement between your choice and the suggested capability level for that task. It measures how well the choice fits the requirements.",
+      "action": "Before selecting a model, list the core requirements of your task to see if they align with the recommended tier."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "under_provisioning",
+   "repeat": 0,
+   "verdict": {
+    "over_provisioning": "not_detected",
+    "under_provisioning": "detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "You have completed 8 assessments in this sample. As these are currently demo assessments, the data provides a foundational look at your selection habits. A clear trend of under-provisioning has emerged, while prompting patterns are yet to be established due to a lack of conversation excerpts.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "No pattern of over-provisioning was detected in this sample; you haven't consistently chosen models that were more than what the task required.",
+      "action": "Continue making choices as you move beyond demo assessments to see if a trend of choosing larger-than-needed models emerges."
+     },
+     "under_provisioning": {
+      "explanation": "A clear pattern is detected: 75% of your confirmed choices (6 out of 8) were smaller than the recommendation, suggesting the chosen models may cover less than what the task requirements demanded.",
+      "action": "Review your task requirements and uncertainty levels before your next choice to see if a higher-capability model might better capture the necessary nuances."
+     },
+     "prompting": {
+      "explanation": "Prompting status is not assessed because no conversation excerpts have been provided yet. There is currently no evidence to evaluate clarity, repetition, or context provision.",
+      "action": "For your next prompt, perform a one-off exercise: compare your intended outcome against the necessary constraints before submitting.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Requirement Mapping",
+      "explanation": "Identifying why a model feels 'small' for a task helps in choosing more appropriate models next time.",
+      "action": "Pick one of your under-provisioned tasks and list three specific requirements that the chosen model might have struggled to capture fully."
+     },
+     {
+      "title": "Capability Calibration",
+      "explanation": "Matching a recommendation measures agreement with provisional capability levels rather than guaranteed performance.",
+      "action": "Before your next choice, identify one 'must-have' reasoning step for the task to determine if the recommended model covers it."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "under_provisioning",
+   "repeat": 1,
+   "verdict": {
+    "over_provisioning": "not_detected",
+    "under_provisioning": "detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "Based on your initial 8 assessments, there is a clear trend toward under-provisioning, while over-provisioning has not yet emerged as a distinct pattern. Because no conversation excerpts were provided, your prompting style is currently awaiting assessment.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "No clear pattern of over-provisioning was detected in this sample. This means that for the tasks completed so far, you haven't frequently chosen models that were significantly more capable than what the task requirements demanded.",
+      "action": "Continue confirming your choices to see if you begin selecting models with higher capability levels than necessary for simpler tasks."
+     },
+     "under_provisioning": {
+      "explanation": "A clear pattern of under-provisioning is detected, appearing in 75% (6 out of 8) of your confirmed choices. This indicates that the models you selected often covered less than what was recommended for the specific task requirements.",
+      "action": "Review the requirements of your next few tasks to determine if a slightly more capable model might better capture the nuances of the work."
+     },
+     "prompting": {
+      "explanation": "The prompting status is currently not assessed because there are no conversation excerpts available in this sample. Without text data, we cannot yet identify patterns in your instruction style.",
+      "action": "For your next task, try comparing a clear intended outcome against the necessary constraints before submitting your prompt.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Evaluating Task Requirements",
+      "explanation": "Since under-provisioning is frequent, it is important to distinguish between tasks that require high reasoning and those that are straightforward. Choosing a model that covers less than recommended can be efficient if the task is simple.",
+      "action": "Before your next choice, list two key requirements of the task and decide if a smaller model can handle both."
+     },
+     {
+      "title": "Establishing Prompt Clarity",
+      "explanation": "Without excerpts yet, establishing a baseline for clarity is key. Clearer prompts help models understand boundaries without needing excessive context.",
+      "action": "In your next assessment, try to describe the desired output format first before providing the input data."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "over_provisioning_just_above_half",
+   "repeat": 0,
+   "verdict": {
+    "over_provisioning": "detected",
+    "under_provisioning": "not_detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "In this sample of 5 assessments, you have a clear tendency toward over-provisioning, choosing models that are more capable than the specific task requirements suggested. Because there is not enough history yet to describe a completeness trend, these initial results provide a baseline for your selection style.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "Over-provisioning was detected in 60% of your confirmed choices (3 out of 5). This means you frequently selected models that provided more capability than the task strictly required.",
+      "action": "Review your task requirements and your level of uncertainty before your next choice to see if a smaller, more efficient model could still satisfy the goal."
+     },
+     "under_provisioning": {
+      "explanation": "No under-provisioning pattern was detected in this sample; you haven't yet chosen any models that were smaller than the recommendation.",
+      "action": "Identify a simple task where a 'lighter' model might be sufficient to see if it meets your needs without sacrificing clarity."
+     },
+     "prompting": {
+      "explanation": "Prompting status is not_assessed because there are no conversation excerpts available yet to analyze your specific phrasing or context.",
+      "action": "For your next task, try comparing a clear intended outcome with necessary constraints before submitting to establish a baseline for your prompting style.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Balancing Model Scale",
+      "explanation": "Choosing a model that is 'too big' for the task ensures high quality but highlights where you might be able to simplify your choices.",
+      "action": "Take a simple descriptive task (e.g., 'List 5 colors') and choose the smallest model that handles it clearly."
+     },
+     {
+      "title": "Establishing Constraints",
+      "explanation": "Clearer prompts often lead to more predictable outcomes by narrowing down what the model needs to focus on.",
+      "action": "In your next assessment, explicitly list one 'must-have' constraint (e.g., a specific format or tone) before you submit."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "over_provisioning_just_above_half",
+   "repeat": 1,
+   "verdict": {
+    "over_provisioning": "detected",
+    "under_provisioning": "not_detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "Based on your first 5 assessments, you have a clear tendency toward choosing models that are more capable than strictly required by the tasks. Because this is a small sample size, we are still gathering data to identify deeper behavioral patterns; there is not enough history yet to describe a completeness trend.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "This pattern is detected in 60% of your confirmed choices (3 out of 5). It indicates that you frequently select models whose capabilities exceed the minimum requirements of the tasks provided.",
+      "action": "Review the specific task requirements for your next assessment and consider if a smaller model would still satisfy all necessary constraints."
+     },
+     "under_provisioning": {
+      "explanation": "No pattern of under-provisioning was detected in this sample, as none of your choices were smaller than the recommended models.",
+      "action": "To gather more evidence, try selecting a model that covers less ground for a straightforward task to see if it still feels sufficient."
+     },
+     "prompting": {
+      "explanation": "Prompting status is not assessed because there are no conversation excerpts available yet to analyze your input style.",
+      "action": "For your next task, perform a one-off exercise: compare your clear intended outcome against the necessary constraints before submitting your prompt.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Understanding Choice Gaps",
+      "explanation": "A positive choice gap means the model selected is more capable than what was strictly needed. This doesn't necessarily mean waste, but it highlights where extra reasoning power was provided.",
+      "action": "For your next assessment, identify one specific requirement in the task description and determine if a less complex model could still handle it."
+     },
+     {
+      "title": "Requirement Alignment",
+      "explanation": "Matching a recommendation measures how well the chosen model's capabilities agree with the task requirements, rather than measuring your personal skill level or the quality of the result.",
+      "action": "Before making your next choice, list three 'must-have' constraints for the task to see if they align with the recommended model’s capability levels."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "control_follows_recommendation",
+   "repeat": 0,
+   "verdict": {
+    "over_provisioning": "not_detected",
+    "under_provisioning": "not_detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "You have completed 10 assessments where every choice perfectly matched the recommended model capability. Because this sample is small and consists of demo tasks, specific usage patterns are still emerging. There is not enough history yet to describe a completeness trend.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "No pattern was detected in this sample because every choice had a choice_gap of 0, meaning you selected models that aligned exactly with the recommendations.",
+      "action": "As you move into non-demo tasks, observe if you tend to pick 'safer' larger models for complex reasoning requirements."
+     },
+     "under_provisioning": {
+      "explanation": "No pattern was detected yet; your selections have consistently met the required capability levels without falling short of the recommendations.",
+      "action": "Identify tasks where a model might feel slightly too simple for the complexity of the requirements to see if an under-provisioning trend develops."
+     },
+     "prompting": {
+      "explanation": "The prompting status is not assessed because no conversation excerpts were provided in this sample.",
+      "action": "For your next assessment, try comparing a clear intended outcome against necessary constraints before submitting the prompt to establish a baseline for clarity.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Requirement Mapping",
+      "explanation": "Identifying the specific needs of a task helps in selecting the most efficient model without over-complicating the choice.",
+      "action": "Before choosing a model for your next task, write down one 'must-have' and one 'nice-to-have' feature for the output."
+     },
+     {
+      "title": "Constraint Definition",
+      "explanation": "Providing clear boundaries prevents the model from generating unnecessary context or wandering off-topic.",
+      "action": "In your next prompt, include a specific format requirement (e.g., 'bullet points', 'a table', or 'under 50 words')."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "control_follows_recommendation",
+   "repeat": 1,
+   "verdict": {
+    "over_provisioning": "not_detected",
+    "under_provisioning": "not_detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "Your current sample shows a perfect alignment between your choices and the recommendations, with no clear patterns of over-provisioning or under-provisioning detected yet. Because there are no conversation excerpts provided, your prompting style is currently awaiting assessment.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "With all 10 confirmed choices having a choice gap of 0, you haven't shown a consistent trend of selecting models that are more powerful than what the task requires.",
+      "action": "Continue confirming your choices as you move through different types of tasks to see if you naturally gravitate toward larger models when uncertainty is high."
+     },
+     "under_provisioning": {
+      "explanation": "Every choice in this sample matches the recommendation exactly, meaning you aren't currently selecting models that cover less than what is needed for the task.",
+      "action": "As you progress, identify tasks where a smaller model feels 'just enough' to see if you can maintain high efficiency without losing necessary detail."
+     },
+     "prompting": {
+      "explanation": "There are currently no conversation excerpts available to analyze your specific phrasing or context provision.",
+      "action": "For your next task, perform a one-off exercise: compare your intended outcome against 2-3 necessary constraints before you submit the prompt.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Requirement Analysis",
+      "explanation": "Understanding the core need of a task helps prevent choosing a model that is too large or too small for the job.",
+      "action": "Before selecting a model for your next assessment, write down one sentence describing the 'must-have' result."
+     },
+     {
+      "title": "Constraint Mapping",
+      "explanation": "Providing boundaries helps the model focus on what matters most to you by narrowing down the possibilities.",
+      "action": "In your next prompt, try adding a specific format constraint (e.g., 'use bullet points') and observe how it changes the output."
+     }
+    ]
+   },
+   "flags": [
+    {
+     "where": "suggestion 1",
+     "pattern": "over_provisioning",
+     "status": "not_detected",
+     "text": "Understanding the core need of a task helps prevent choosing a model that is too large or too small for the job."
+    },
+    {
+     "where": "suggestion 1",
+     "pattern": "under_provisioning",
+     "status": "not_detected",
+     "text": "Understanding the core need of a task helps prevent choosing a model that is too large or too small for the job."
+    }
+   ]
+  },
+  {
+   "history": "control_occasional_deviation",
+   "repeat": 0,
+   "verdict": {
+    "over_provisioning": "not_detected",
+    "under_provisioning": "not_detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "You have completed 10 assessments so far. As these are demo tasks and the sample size is currently small, we are establishing your baseline habits. While you have shown a mix of model choices, there isn't enough data yet to confirm dominant patterns in how you provision models or structure your prompts.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "The status is currently 'not_detected'. Although you chose a model larger than recommended in 2 instances (a 20% share), the sample size is too small to determine if you have a consistent habit of over-provisioning.",
+      "action": "Review the specific task requirements for your next choice to see if a slightly smaller model could still satisfy the goal."
+     },
+     "under_provisioning": {
+      "explanation": "The status is currently 'not_detected'. You chose a model smaller than recommended in 2 instances (a 20% share), but no clear trend has emerged yet.",
+      "action": "Identify one task where you felt the model was 'just enough' and consider if it could have handled more complexity."
+     },
+     "prompting": {
+      "explanation": "The status is 'not_assessed' because there are no conversation excerpts available in this sample. We need text data to evaluate your clarity, repetition, and context provision.",
+      "action": "For your next assessment, perform a one-off editing exercise: compare your clear intended outcome against the necessary constraints before submitting.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Requirement Alignment",
+      "explanation": "Matching the recommendation is about finding the right balance between model capability and task complexity. It doesn't guarantee a specific quality level, but it helps you align your choice with the task's needs.",
+      "action": "Pick one task you have already solved and list three specific requirements it had to meet."
+     },
+     {
+      "title": "Contextual Clarity",
+      "explanation": "Since we lack excerpts, focus on providing clear instructions for your next prompt. Good prompts provide enough context without unnecessary fluff.",
+      "action": "In your next transient task, try to describe the desired output format (e.g., bullet points vs. a paragraph) before you start."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "control_occasional_deviation",
+   "repeat": 1,
+   "verdict": {
+    "over_provisioning": "not_detected",
+    "under_provisioning": "not_detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "You have completed 10 assessments so far. As these are demo assessments and the sample size is small, specific trends for model sizing haven't fully emerged yet. There is not enough history to describe a completeness trend across sessions.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "No clear pattern of over-provisioning has been detected in this sample. While there were 2 instances (a share of 0.2) where the chosen model was larger than recommended, the data is currently too limited to establish a consistent trend.",
+      "action": "Review your next few tasks to see if you are choosing high-capability models for simple tasks; aim to identify when a task's requirements truly demand extra reasoning."
+     },
+     "under_provisioning": {
+      "explanation": "No clear pattern of under-provisioning has been detected in this sample. There were 2 instances (a share of 0.2) where the choice covered less than the recommendation, but these do not yet form a recurring behavior.",
+      "action": "When a result feels slightly incomplete or lacks depth, consider if the chosen model's capability was sufficient for the task requirements."
+     },
+     "prompting": {
+      "explanation": "Prompting status is currently 'not_assessed' because no conversation excerpts have been provided yet. Without text samples, we cannot evaluate your clarity or context provision.",
+      "action": "Perform a transient exercise: before submitting your next prompt, compare your intended outcome against three specific constraints to ensure the model has enough direction.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Balancing Model Power",
+      "explanation": "Over-provisioning occurs when a chosen model provides more capability than the task strictly requires. Identifying this helps in choosing models that are 'just right' for the job.",
+      "action": "For your next task, categorize it as either 'simple' (e.g., formatting) or 'complex' (e.g., synthesis) before selecting a model."
+     },
+     {
+      "title": "Identifying Capability Gaps",
+      "explanation": "Under-provisioning happens when the chosen model covers less than what the task requires, which can lead to missing nuances in the output.",
+      "action": "When a result feels slightly incomplete, try selecting one tier higher in capability to see if it captures the nuances better."
+     },
+     {
+      "title": "Defining Constraints",
+      "explanation": "Clear prompts rely on knowing exactly what you want and what rules to follow. Without excerpts yet, establishing these constraints is the first step to better prompting.",
+      "action": "Before your next submission, write down three specific constraints (e.g., 'under 50 words', 'no bullet points') to see how they shape the output."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "control_exactly_half",
+   "repeat": 0,
+   "verdict": {
+    "over_provisioning": "not_detected",
+    "under_provisioning": "not_detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "You have completed 6 assessments in demo mode. With all 6 choices confirmed and no pending tasks, we have a foundational set of data to begin identifying your habits.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "The status is currently 'not_detected'. While 3 out of your 6 confirmed choices (50%) were larger than recommended, the sample size is still small enough that a consistent trend has not yet solidified.",
+      "action": "For your next task, review the specific requirements to see if the extra capability of the larger model was necessary or if a more streamlined choice would suffice."
+     },
+     "under_provisioning": {
+      "explanation": "The status is 'not_detected' because there are no instances in this sample where the chosen model was smaller than recommended.",
+      "action": "On your next task, try selecting a slightly more capable model to see if it captures more nuance than your current choices."
+     },
+     "prompting": {
+      "explanation": "The status is 'not_assessed' because there are no conversation excerpts available yet. We need some text data to evaluate your clarity and context.",
+      "action": "Complete a few tasks with explicit prompt text provided so we can begin assessing your communication style.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Requirement Analysis",
+      "explanation": "Understanding what a task actually needs helps prevent choosing a model that is too large or too small.",
+      "action": "Before selecting a model for your next task, list one 'must-have' constraint to see if it aligns with the recommended capability."
+     },
+     {
+      "title": "Evidence Gathering",
+      "explanation": "With only 6 assessments, every choice matters for establishing patterns.",
+      "action": "Complete 3 more tasks with varying levels of complexity (simple, medium, and complex) to see how your choices shift across different requirements."
+     }
+    ]
+   },
+   "flags": [
+    {
+     "where": "suggestion 1",
+     "pattern": "over_provisioning",
+     "status": "not_detected",
+     "text": "Understanding what a task actually needs helps prevent choosing a model that is too large or too small."
+    },
+    {
+     "where": "suggestion 1",
+     "pattern": "under_provisioning",
+     "status": "not_detected",
+     "text": "Understanding what a task actually needs helps prevent choosing a model that is too large or too small."
+    }
+   ]
+  },
+  {
+   "history": "control_exactly_half",
+   "repeat": 1,
+   "verdict": {
+    "over_provisioning": "not_detected",
+    "under_provisioning": "not_detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "With a small sample of 6 assessments, your current choices show a balanced mix of matches and slight over-provisioning, though consistent patterns have not yet fully emerged.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "No clear pattern of over-provisioning has been detected yet. While half of your confirmed choices (3 out of 6) were larger than recommended, the sample size is currently small enough that it doesn't constitute a dominant trend.",
+      "action": "Review the requirements for your next three tasks to see if you can select a model that more closely aligns with the specific complexity needed."
+     },
+     "under_provisioning": {
+      "explanation": "No pattern of under-provisioning shows in this sample, as none of your confirmed choices were smaller than the recommended models.",
+      "action": "On your next task, try selecting a model that is slightly more capable than you think you need to see if it captures nuances better."
+     },
+     "prompting": {
+      "explanation": "Prompting status is not_assessed because there are no conversation excerpts available in this sample to analyze your specific phrasing or context.",
+      "action": "Complete a transient task by comparing a clear intended outcome with necessary constraints before submitting your next prompt.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Requirement Alignment",
+      "explanation": "Matching the right model to a task depends on understanding the complexity of the requirements rather than just picking a high-performing model.",
+      "action": "List three upcoming tasks and rank them by reasoning needs (Low, Medium, or High) before choosing your models."
+     },
+     {
+      "title": "Contextual Clarity",
+      "explanation": "Since no excerpts are available yet, providing clear constraints helps the model understand exactly what you need without unnecessary fluff.",
+      "action": "For your next prompt, write down one specific constraint (e.g., 'use a professional tone' or 'limit to 3 bullet points') before you begin."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "control_split_both_ways",
+   "repeat": 0,
+   "verdict": {
+    "over_provisioning": "not_detected",
+    "under_provisioning": "not_detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "With a sample size of 8 assessments, your data shows a perfectly balanced distribution between over-provisioning and under-provisioning (50% each). Because the history is currently insufficient to establish a dominant trend, these patterns are in the early stages of detection.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "The status is 'not_detected' because your choices are evenly split; you have 4 instances where the model was larger than recommended and 4 where it was smaller. This suggests a balanced approach rather than a consistent tendency to over-select.",
+      "action": "Review the 4 tasks where the choice gap was positive (+1) to determine if a slightly more efficient model could have met the requirements without losing necessary detail."
+     },
+     "under_provisioning": {
+      "explanation": "The status is 'not_detected' because there isn't a clear bias toward choosing models that are smaller than recommended across this sample.",
+      "action": "Examine the 4 tasks where the choice gap was negative (-1) to see if the chosen model captured all necessary reasoning steps required by the task."
+     },
+     "prompting": {
+      "explanation": "The status is 'not_assessed' because no conversation excerpts were provided in this sample. We currently lack the text data needed to analyze your specific phrasing, clarity, or context provision.",
+      "action": "For your next task, perform a one-off editing exercise: compare your intended outcome against three necessary constraints before submitting the prompt.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Requirement Alignment",
+      "explanation": "Remember that scores describe the reasoning requirements of the task itself, not your personal skill level. A high score means the task is complex, not necessarily that you struggled with it.",
+      "action": "Before selecting a model for your next task, list three specific requirements to see if they align with the recommended capability."
+     },
+     {
+      "title": "Evaluating Choice Gaps",
+      "explanation": "A positive choice gap indicates a 'heavier' model than suggested, while a negative gap indicates a 'lighter' one. Matching the recommendation is an agreement of scope, not a guarantee of perfect quality.",
+      "action": "For your next assessment, identify one specific reason why you chose your model over the recommendation (e.g., 'needed more nuance' or 'wanted faster results')."
+     }
+    ]
+   },
+   "flags": [
+    {
+     "where": "summary",
+     "pattern": "over_provisioning",
+     "status": "not_detected",
+     "text": "With a sample size of 8 assessments, your data shows a perfectly balanced distribution between over-provisioning and under-provisioning (50% each)."
+    },
+    {
+     "where": "summary",
+     "pattern": "under_provisioning",
+     "status": "not_detected",
+     "text": "With a sample size of 8 assessments, your data shows a perfectly balanced distribution between over-provisioning and under-provisioning (50% each)."
+    }
+   ]
+  },
+  {
+   "history": "control_split_both_ways",
+   "repeat": 1,
+   "verdict": {
+    "over_provisioning": "not_detected",
+    "under_provisioning": "not_detected"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "With a sample size of 8 assessments, your data shows a perfectly balanced distribution between over-provisioning and under-provisioning, though no single dominant pattern has emerged yet. Because there are no conversation excerpts provided, your prompting style is currently awaiting assessment.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "While 4 out of your 8 choices were larger than recommended (a 0.5 share), the sample size is small enough that a consistent trend of over-provisioning has not yet been detected.",
+      "action": "Review task requirements and your level of uncertainty before your next choice to see if you prefer 'safer' models or if you can lean toward more efficient ones."
+     },
+     "under_provisioning": {
+      "explanation": "Similarly, 4 out of your 8 choices were smaller than recommended. Because this is balanced with over-provisioning, the data suggests a variety of approaches rather than a consistent tendency to under-provision.",
+      "action": "Identify a specific task where the model felt slightly 'underpowered' and consider if the recommended model would have provided better clarity."
+     },
+     "prompting": {
+      "explanation": "There is currently no evidence for prompting because no conversation excerpts were opted-in. This means your phrasing, context, and clarity are not yet being analyzed.",
+      "action": "For your next task, compare a clear intended outcome and necessary constraints before submitting your prompt.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Requirement Mapping",
+      "explanation": "Understanding the specific requirements of a task helps you determine if a model is over-provisioned or under-provisioned.",
+      "action": "Before selecting your next model, write down two specific goals for the task to see if they align with the recommended capability."
+     },
+     {
+      "title": "Evidence Gathering",
+      "explanation": "Since there is not enough history yet to describe a completeness trend, every new choice provides vital data for future patterns.",
+      "action": "Deliberately choose the recommended model for your next 3 tasks to establish a baseline of agreement."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "control_too_few_choices",
+   "repeat": 0,
+   "verdict": {
+    "over_provisioning": "insufficient_history",
+    "under_provisioning": "insufficient_history"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "You have completed 4 assessments so far. Because this is a small sample size, specific usage patterns are still emerging as you gather more data.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "The status is currently 'insufficient_history' because there are fewer than 5 confirmed choices. However, in all 4 assessments provided, the chosen model was larger than recommended (choice_gap of 1).",
+      "action": "Complete at least one more assessment to see if your tendency to choose a larger-than-recommended model remains consistent."
+     },
+     "under_provisioning": {
+      "explanation": "The status is 'insufficient_history' as there are not enough confirmed choices to establish a trend. Currently, no tasks were smaller than the recommendation.",
+      "action": "Identify a task where you feel the current model might be slightly 'overkill' and try selecting a more compact recommendation for your next assessment."
+     },
+     "prompting": {
+      "explanation": "The status is 'not_assessed' because there are no conversation excerpts available to analyze your prompt structure or context provision.",
+      "action": "For your next task, perform a one-off editing exercise: compare your clear intended outcome against the necessary constraints before submitting.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Requirement vs. Ability",
+      "explanation": "Remember that scores describe what the task requires (e.g., reasoning) rather than your personal skill or performance level.",
+      "action": "For your next assessment, look at the reasoning score and identify one specific requirement that makes the task complex."
+     },
+     {
+      "title": "Evaluating Choice Gaps",
+      "explanation": "A choice gap of 1 indicates the model chosen was larger than recommended. This doesn't automatically mean waste; it means the model covers more ground than the baseline recommendation.",
+      "action": "On your next task, ask yourself if the extra 'size' of the model actually changed the outcome or if a smaller model would have sufficed."
+     }
+    ]
+   },
+   "flags": [
+    {
+     "where": "suggestion 2",
+     "pattern": "over_provisioning",
+     "status": "insufficient_history",
+     "text": "A choice gap of 1 indicates the model chosen was larger than recommended."
+    }
+   ]
+  },
+  {
+   "history": "control_too_few_choices",
+   "repeat": 1,
+   "verdict": {
+    "over_provisioning": "insufficient_history",
+    "under_provisioning": "insufficient_history"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "The current sample size of 4 assessments provides a foundational look at your initial model selections, though the data is currently too limited to establish definitive trends.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "There are too few confirmed choices (4) to tell if a consistent over-provisioning pattern has emerged. However, in all 4 assessments provided, the choice gap was 1, indicating that the models selected were slightly larger than what was recommended for those specific tasks.",
+      "action": "Complete at least one more assessment to move beyond the 'insufficient history' stage and begin identifying consistent trends."
+     },
+     "under_provisioning": {
+      "explanation": "Because there are fewer than 5 confirmed choices, it is difficult to determine if you have a consistent habit of under-provisioning. Currently, no tasks show a choice gap less than 0.",
+      "action": "Continue confirming model choices across various task types to see if any tasks result in selecting a model that covers less than the recommendation."
+     },
+     "prompting": {
+      "explanation": "This pattern is not assessed because there are no conversation excerpts available yet. Without text samples, your prompting clarity and context provision have not been analyzed.",
+      "action": "For your next task, compare a clear intended outcome against the necessary constraints before submitting to help establish a baseline for analysis.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Goal Definition",
+      "explanation": "Clearly defining what you want helps the model focus on the right requirements rather than guessing your intent.",
+      "action": "Before starting your next task, write down one primary goal (e.g., 'summarize this' or 'explain this') before selecting a model."
+     },
+     {
+      "title": "Constraint Mapping",
+      "explanation": "Constraints prevent the model from being too broad or too narrow by providing boundaries for the output.",
+      "action": "Identify two specific constraints (such as word count or tone) for your next prompt and see how they influence the result."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "control_only_pending",
+   "repeat": 0,
+   "verdict": {
+    "over_provisioning": "insufficient_history",
+    "under_provisioning": "insufficient_history"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "You have completed 8 analyses so far. Because all current assessments are in demo mode and no choices have been confirmed yet, the sample size is currently too small to establish definitive behavioral trends.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "There are too few confirmed choices (0 out of a minimum of 5) to determine if you are consistently selecting models that provide more capability than your tasks require.",
+      "action": "Confirm your model selections for at least 5 of your pending tasks to begin identifying where you might be using a model that is more powerful than necessary."
+     },
+     "under_provisioning": {
+      "explanation": "With no confirmed choices yet, we cannot see if you are choosing models that cover less than the recommended capability for your specific tasks.",
+      "action": "Complete your pending assessments by selecting a model for each task to reveal where the choice gap lies."
+     },
+     "prompting": {
+      "explanation": "No conversation excerpts have been provided yet, so there is currently no evidence to assess prompt clarity, repetition, or context provision.",
+      "action": "For your next task, try defining a clear intended outcome and specific constraints before submitting your prompt to provide data for this pattern.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Reasoning vs. Performance",
+      "explanation": "Remember that reasoning scores describe the complexity of the task requirements (how much 'thinking' the task needs), not your personal intelligence or skill level.",
+      "action": "Look at your next task's reasoning score and identify one specific step where a model needs to logically process information."
+     },
+     {
+      "title": "Understanding Choice Gaps",
+      "explanation": "Over-provisioning occurs when your chosen model is more than needed (choice_gap > 0), while under-provisioning means it covers less than the recommendation (choice_gap < 0).",
+      "action": "For your next task, compare the recommended model's capability to your chosen model and note if you feel the choice was 'just right,' too big, or too small."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "control_only_pending",
+   "repeat": 1,
+   "verdict": {
+    "over_provisioning": "insufficient_history",
+    "under_provisioning": "insufficient_history"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "You have completed 8 assessments, but since no choices have been confirmed yet, the sample size is currently too small to identify definitive trends. There is not enough history yet to describe a completeness trend across your sessions.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "Status: insufficient_history. Because there are 0 confirmed choices in this sample, we cannot yet determine if you are selecting models that provide more capability than the task strictly requires.",
+      "action": "Confirm your model choices for the 8 pending assessments to begin identifying whether you tend to pick 'larger' models than necessary."
+     },
+     "under_provisioning": {
+      "explanation": "Status: insufficient_history. With no confirmed choices yet, it is not yet clear if any tasks were handled by a model that covers less of the task requirements than recommended.",
+      "action": "As you finalize your pending choices, pay attention to whether the chosen model feels sufficient for the task's complexity."
+     },
+     "prompting": {
+      "explanation": "Status: not_assessed. There are no conversation excerpts available in this sample to analyze your specific phrasing or context.",
+      "action": "For your next assessment, try a one-off editing exercise: compare a clear intended outcome against the necessary constraints before submitting your prompt.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Requirement Analysis",
+      "explanation": "Remember that scores describe the task requirements (what the task needs), not your personal skill or performance level.",
+      "action": "Before selecting a model, list three specific requirements the task must satisfy to ensure the chosen capability matches the need."
+     },
+     {
+      "title": "Informed Selection",
+      "explanation": "Matching a recommendation indicates agreement with the suggested capability level; it does not automatically guarantee perfect reasoning or error-free results.",
+      "action": "For your next pending choice, review the task requirements and your own uncertainty before selecting a model to ensure an informed match."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "control_empty",
+   "repeat": 0,
+   "verdict": {
+    "over_provisioning": "insufficient_history",
+    "under_provisioning": "insufficient_history"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "The current sample size is zero, meaning we have just begun your journey. With no assessments completed yet, the data shows a clean slate for identifying patterns in model selection and prompting.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "There are currently too few confirmed choices to determine if you are selecting models that provide more capability than a task strictly requires.",
+      "action": "As you complete your first five assessments, note whether the chosen model feels like 'overkill' for the specific requirements of each task."
+     },
+     "under_provisioning": {
+      "explanation": "There are currently too few confirmed choices to determine if you are selecting models that might lack the necessary depth for your tasks.",
+      "action": "When making your next choice, consider if the model has enough 'room' to handle all the nuances of the task requirements."
+     },
+     "prompting": {
+      "explanation": "No conversation excerpts have been provided yet, so your prompting style and clarity are currently not assessed.",
+      "action": "For your next assessment, perform a transient exercise: compare a clear intended outcome against the necessary constraints before submitting your prompt.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Requirement vs. Ability",
+      "explanation": "Remember that scores in these assessments describe the task requirements (e.g., how much reasoning is needed), not your personal skill level or intelligence.",
+      "action": "On your next assessment, identify one specific requirement highlighted by the reasoning score."
+     },
+     {
+      "title": "Informed Model Choice",
+      "explanation": "Matching a recommendation indicates agreement with the task's needs; it does not automatically guarantee perfect quality or sufficient reasoning.",
+      "action": "Before selecting your next model, review the task requirements and your own level of uncertainty to ensure an informed choice."
+     }
+    ]
+   },
+   "flags": []
+  },
+  {
+   "history": "control_empty",
+   "repeat": 1,
+   "verdict": {
+    "over_provisioning": "insufficient_history",
+    "under_provisioning": "insufficient_history"
+   },
+   "report": {
+    "schema_version": 3,
+    "summary": "The current sample size is zero, meaning there is not enough data yet to establish definitive patterns or trends in your model selections and prompting style.",
+    "patterns": {
+     "over_provisioning": {
+      "explanation": "There are too few confirmed choices in this sample to determine if you have a tendency to select models that provide more capability than the task requires.",
+      "action": "Complete more assessments and confirm your model choices to help identify whether you frequently choose 'heavyweight' models for simpler tasks."
+     },
+     "under_provisioning": {
+      "explanation": "There are too few confirmed choices in this sample to tell if you often select models that cover less than the recommended capability level.",
+      "action": "Continue confirming your model choices across various tasks to see if you lean towards leaner models when complex reasoning is not necessary."
+     },
+     "prompting": {
+      "explanation": "No conversation excerpts have been provided yet, so there is currently no evidence to evaluate the clarity, repetition, or context of your prompts.",
+      "action": "For your next task, try comparing a clear intended outcome with 2-3 necessary constraints before submitting your prompt.",
+      "status": "not_assessed"
+     }
+    },
+    "suggestions": [
+     {
+      "title": "Reasoning vs. Capability",
+      "explanation": "A high reasoning score indicates that the task itself requires significant logic; it does not measure your personal intelligence or skill level.",
+      "action": "On your next task, identify if the requirement is 'reasoning-heavy' before selecting a model to see how well it aligns with your expectations."
+     },
+     {
+      "title": "Informed Choice over Automatic Matching",
+      "explanation": "Matching a recommended model measures agreement with the provisional capability level rather than guaranteeing perfect correctness.",
+      "action": "Review the task requirements and your own uncertainty levels before making a choice, rather than assuming the recommendation is always the 'perfect' fit."
+     }
+    ]
+   },
+   "flags": []
+  }
+ ]
+}

@@ -49,6 +49,19 @@ files ignored by Git.
    Do not turn confirmation off to work around email.
 5. Do not add `adaptai` to the schemas exposed by the Data API. The frontend only uses
    Supabase Auth; application data is reached by the backend through PostgreSQL.
+   As a second barrier, the backend turns on Row Level Security on every table in the schema at
+   start-up (`Storage._secure_tables`, after the migrations and each optional module), with no
+   policies: the backend connects as the tables' owner and still filters by user in every
+   query; any other role that reaches the schema (`anon`, `authenticated`) sees no rows. Do not
+   create policies or `FORCE ROW LEVEL SECURITY` without first reviewing the role the backend
+   connects as.
+   **Check after the first deploy (RLS fails silently):** in the Supabase SQL Editor, run
+   `SELECT c.relname, c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+   WHERE n.nspname='adaptai' AND c.relkind IN ('r','p') ORDER BY 1;` — every row must have
+   `relrowsecurity = true`. If the backend role does not own the tables, start-up logs an
+   error (`Row Level Security is OFF on ...`) and carries on. Once confirmed, set
+   `ADAPTAI_REQUIRE_RLS=true` on Render: the backend then refuses to start if any table is
+   left without RLS.
 
 The backend applies `backend/migrations/*.sql` at start-up. Do not copy SQL into the dashboard
 by hand. Local history is not transferred automatically: agree a controlled import before
@@ -67,8 +80,10 @@ manifests at the root. Auto-deploy: **Off**.
 | `ADAPTAI_AUTH_MODE` | `supabase` |
 | `ADAPTAI_DATABASE_URL` | Session pooler URL with password and SSL; secret |
 | `ADAPTAI_DATABASE_SCHEMA` | `adaptai` |
+| `ADAPTAI_REQUIRE_RLS` | `true` only after confirming RLS (see step 5); default `false` |
 | `ADAPTAI_SUPABASE_URL` | Project URL |
 | `ADAPTAI_SUPABASE_PUBLISHABLE_KEY` | Publishable key |
+| `ADAPTAI_SUPABASE_SERVICE_ROLE_KEY` | Optional; secret/service_role key; secret, backend only. Lets "Delete my account" also remove the user from Supabase Auth. Without it, the application data is erased and the user is told their sign-in remains |
 | `ADAPTAI_BROWSER_ORIGIN` | Exact HTTPS origin of the frontend, no trailing slash |
 | `ADAPTAI_CREDENTIALS_KEY` | Stable Fernet key; secret |
 | `ADAPTAI_GROQ_MODEL` | `openai/gpt-oss-20b`, to use the project model |

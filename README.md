@@ -324,7 +324,7 @@ the catalogue's capability cards. It does not execute the task or generate catal
 | --- | --- |
 | `GET /api/health` | Process health |
 | `GET /api/progress` | Current user session, analysis, choice and match counts |
-| `GET /api/progress/dashboard` | Last six sessions with choices and over/under counts |
+| `GET /api/progress/dashboard` | Last six sessions with choices, over/under counts and the over- and under-provisioning verdict over the 50 newest analyses (`patterns`: detected, not detected or too few confirmed choices) |
 | `GET /api/progress/outcomes` | Feedback totals: solved, after refining, not solved, followed the recommendation, per model |
 | `GET /api/context`, `PUT /api/context` | Read/save account preferences and memory settings |
 | `DELETE /api/context/memory` | Clear learned metadata memory without deleting progress |
@@ -335,6 +335,7 @@ the catalogue's capability cards. It does not execute the task or generate catal
 | `PUT /api/analyses/{id}/outcome`, `GET` | Feedback for the task: `resolved`, `resolved_with_refinement`, `not_resolved` (optional `reason`) or `skipped`, once |
 | `POST /api/auth/register`, `POST /api/auth/login` | Create account / sign in with email and password |
 | `GET /api/auth/me`, `POST /api/auth/logout` | Current user / revoke current login |
+| `DELETE /api/auth/account` | Delete the account and everything stored for it; body `{email, password}` (the password only with local accounts). With Supabase Auth the sign-in held by Supabase is removed too when `ADAPTAI_SUPABASE_SERVICE_ROLE_KEY` is set; otherwise the answer has `sign_in_kept: true` |
 | `GET /api/sessions`, `POST /api/sessions` | List / create the current user's sessions |
 | `GET /api/sessions/{id}` | Saved assessment metadata and choices |
 | `PATCH /api/sessions/{id}`, `DELETE /api/sessions/{id}` | Compatibility no-op / delete session and history |

@@ -1,7 +1,7 @@
 import * as crypto from 'node:crypto'
 import * as vscode from 'vscode'
 import { explain, type Analyser } from './analyse'
-import { ApiError, type Backend } from './backend'
+import { ApiError, type Backend, type Status } from './backend'
 import type { ChatMessage, ChatService, ChatSummary } from './chat'
 import type { Analysis, Candidate, CoachMode, LlmOptions } from './api'
 import { CAPABILITIES, PROVIDERS, consentText, describeEvaluation, type CatalogueModel, type Evaluation, type PersonalConfig } from './models'
@@ -10,6 +10,7 @@ import { describeFailure } from './core'
 import type { RelayAgent } from './relay'
 import { assessedBy, modelName, price, summaryLine } from './format'
 import type { Result } from './analyse'
+import { beginTiming } from './diagnostics'
 
 type Tab = 'analyse' | 'progress' | 'profile' | 'models' | 'shortcuts'
 const TABS: Tab[] = ['analyse', 'progress', 'profile', 'models', 'shortcuts']
@@ -18,6 +19,7 @@ const RUNNABLE = ['analyseSelection', 'analyseClipboard', 'analyseInput', 'impro
 const SWITCHES = ['save_enabled', 'use_enabled', 'conversation_memory_enabled', 'coaching_auto_enabled', 'coach', 'auto_analyse'] as const
 const DELETES = ['memory', 'conversations', 'history'] as const
 const RESULT_ACTIONS = new Set(['adaptai.copySummary', 'adaptai.taskOutcome', 'adaptai.useModel', 'adaptai.coachResult'])
+const TAB_TTL_MS = 15_000
 
 /** One short status per model for the picker: the rules of the web app's modelStatus.tsx. */
 function statusOf(entry: Evaluation | undefined): { state: string; text: string } {
@@ -33,6 +35,7 @@ function statusOf(entry: Evaluation | undefined): { state: string; text: string 
 }
 
 type Message = { type: string; [key: string]: unknown }
+type ModelCache = { configs: PersonalConfig[]; evaluations: Evaluation[] }
 
 type Field = { name: string; label: string; type?: 'text' | 'password' | 'textarea' | 'select' | 'checkbox' | 'cards'; value?: string | boolean; options?: { value: string; label: string; sub?: string }[]; hint?: string; placeholder?: string; required?: boolean }
 type Dialog = {
@@ -68,6 +71,17 @@ export class Dashboard implements vscode.WebviewViewProvider {
   private markReady: () => void = () => undefined
   private ready: Promise<void> = new Promise(resolve => (this.markReady = resolve))
   private cache: { configs: PersonalConfig[]; evaluations: Evaluation[] } = { configs: [], evaluations: [] }
+  private sessionEpoch = 0
+  private pendingReload: { key: string; promise: Promise<void>; abort: AbortController } | undefined
+  private reading = 0
+  private readonly readers: { resume: () => void; foreground: () => boolean }[] = []
+  private assistantVersion = 0
+  private readonly tabData = new Map<Tab, { key: string; at: number; data: Record<string, unknown>; models?: ModelCache }>()
+  private readonly loadingTabs = new Map<Tab, { key: string; abort: AbortController; promise: Promise<Record<string, unknown>> }>()
+  private preloadRun: { scope: string; promise: Promise<void> } | undefined
+  private scope: string | undefined
+  private lastStatus: Status | undefined
+  private authRejected = false
 
   constructor(
     private readonly backend: Backend,
@@ -76,13 +90,25 @@ export class Dashboard implements vscode.WebviewViewProvider {
     private readonly progress: ProgressReport,
     private readonly relay?: RelayAgent,
   ) {
-    analyser.onDidAnalyse(() => void this.reload())
-    backend.onDidChangeSession(() => void this.reload())
+    analyser.onDidAnalyse(() => {
+      if (this.busy || this.coachBusy || this.streaming) this.postAssistant()
+      else void this.refreshAssistant()
+    })
+    backend.onDidChangeSession(() => {
+      this.sessionEpoch++
+      this.syncScope()
+      void this.relay?.refresh()
+      void this.reload(true)
+      void this.preload()
+    })
   }
 
   /** Shows the AdaptAI side bar (the page lives there). */
   open(tab?: Tab): void {
-    if (tab) this.tab = tab
+    if (tab) {
+      this.tab = tab
+      this.post({ type: 'navigate', tab })
+    }
     void vscode.commands.executeCommand('workbench.view.extension.adaptai')
     if (this.view) void this.reload()
   }
@@ -96,43 +122,208 @@ export class Dashboard implements vscode.WebviewViewProvider {
     view.webview.onDidReceiveMessage((message: Message) => void this.handle(message))
     view.onDidChangeVisibility(() => view.visible && void this.reload())
     view.onDidDispose(() => {
-      this.view = undefined
-      for (const resolve of this.dialogs.values()) resolve(undefined)
-      this.dialogs.clear()
+      this.dispose()
     })
+    void this.preload()
+  }
+
+  dispose(): void {
+    this.invalidateTabs()
+    this.view = undefined
+    for (const resolve of this.dialogs.values()) resolve(undefined)
+    this.dialogs.clear()
   }
 
   private post(data: unknown): void {
     void this.view?.webview.postMessage(data)
   }
 
-  async reload(): Promise<void> {
-    void this.relay?.refresh()
-    if (!this.view) return
-    if (this.backend.auth === 'none') return this.post({ type: 'data', tab: this.tab, signedOut: true })
+  private scopeKey(): string { return JSON.stringify([this.backend.url, this.backend.auth, this.sessionEpoch]) }
+
+  private invalidateTabs(): void {
+    this.tabData.clear()
+    this.pendingReload?.abort.abort()
+    this.pendingReload = undefined
+    this.preloadRun = undefined
+    for (const task of this.loadingTabs.values()) task.abort.abort()
+    this.loadingTabs.clear()
+  }
+
+  /** Warm the Assistant first, then the other tabs, without waiting for a webview. */
+  preload(): Promise<void> {
+    this.syncScope()
+    if (this.backend.auth === 'none' || this.authRejected || this.backend.urlProblem) return Promise.resolve()
+    const scope = this.scopeKey()
+    if (this.preloadRun?.scope === scope) return this.preloadRun.promise
+    const run = { scope, promise: Promise.resolve() }
+    this.preloadRun = run
+    run.promise = (async () => {
+      await Promise.allSettled([this.tabContent('analyse')])
+      if (this.preloadRun !== run || this.scopeKey() !== scope || this.authRejected) return
+      await Promise.allSettled(TABS.filter(tab => tab !== 'analyse').map(tab => this.tabContent(tab)))
+    })()
+    return run.promise
+  }
+
+  /** Shared by navigation and warm-up: one fetch per tab/key and one global read limit. */
+  private tabContent(tab: Tab): Promise<Record<string, unknown>> {
+    const key = this.tabKey(tab)
+    const saved = this.tabData.get(tab)
+    if (saved?.key === key && Date.now() - saved.at < TAB_TTL_MS && !(tab === 'profile' && this.backend.managing)) return Promise.resolve(saved.data)
+    const previous = this.loadingTabs.get(tab)
+    if (previous?.key === key && !previous.abort.signal.aborted) return previous.promise
+    previous?.abort.abort()
+    const task = { key, abort: new AbortController(), promise: Promise.resolve({} as Record<string, unknown>) }
+    this.loadingTabs.set(tab, task)
+    const signal = AbortSignal.any([task.abort.signal, AbortSignal.timeout(10_000)])
+    const current = () => !signal.aborted && !this.authRejected && this.loadingTabs.get(tab) === task && this.tabKey(tab) === key
+    let models: ModelCache | undefined
+    task.promise = this.load(tab, signal, current, value => { models = value }).then(data => {
+      signal.throwIfAborted()
+      if (current() && !(tab === 'profile' && this.backend.managing)) this.tabData.set(tab, { key, at: Date.now(), data, models })
+      return data
+    }).finally(() => {
+      if (this.loadingTabs.get(tab) === task) this.loadingTabs.delete(tab)
+    })
+    return task.promise
+  }
+
+  private syncScope(): void {
+    const scope = this.scopeKey()
+    if (scope === this.scope) return
+    this.invalidateTabs()
+    this.cache = { configs: [], evaluations: [] }
+    this.lastStatus = undefined
+    this.authRejected = false
+    if (this.scope !== undefined) {
+      this.analyser.results.clear()
+      this.analyser.continueFrom = undefined
+      this.chatOverride = undefined
+      for (const resolve of this.dialogs.values()) resolve(undefined)
+      this.dialogs.clear()
+      this.post({ type: 'resetTabs', signedOut: this.backend.auth === 'none' })
+    }
+    this.scope = scope
+  }
+
+  /** Status arrives from the existing status-bar check; navigation never probes the network. */
+  updateStatus(status: Status): void {
+    this.syncScope()
+    if (status.url !== this.backend.url || status.auth !== this.backend.auth) return
+    this.lastStatus = status
+    if (status.rejected) return this.rejectSession()
+    if (status.email) this.authRejected = false
+    this.post({ type: 'connection', online: status.online, email: status.email })
+    const saved = this.tabData.get(this.tab)
+    if (status.online && this.view?.visible && saved && Date.now() - saved.at >= TAB_TTL_MS) void this.reload()
+  }
+
+  private rejectSession(): void {
+    this.invalidateTabs()
+    this.cache = { configs: [], evaluations: [] }
+    this.authRejected = true
+    this.post({ type: 'data', tab: this.tab, signedOut: true })
+  }
+
+  private tabKey(tab: Tab): string {
+    return JSON.stringify([this.scopeKey(), tab, tab === 'analyse' ? this.chat.current : undefined, tab === 'analyse' || tab === 'models' ? vscode.workspace.getConfiguration('adaptai').get('chatModel', '') : undefined])
+  }
+
+  private publishTab(tab: Tab, data: Record<string, unknown>, refreshing = false, refreshError?: string): void {
+    const snapshot = this.tabData.get(tab)
+    if (tab === 'models' && snapshot?.key === this.tabKey(tab) && snapshot.models) this.cache = snapshot.models
+    this.post({ type: 'data', tab, ...data, ...(tab === 'analyse' ? this.assistantState() : {}), ...(tab === 'models' && this.relay ? { relay: this.relay.state } : {}), email: this.lastStatus?.email ?? null, online: this.lastStatus?.online, refreshing, refreshError })
+  }
+
+  reload(force = false): Promise<void> {
+    this.syncScope()
+    if (force) this.invalidateTabs()
+    const tab = this.tab
+    const view = this.view
+    const origin = this.backend.url
+    const auth = this.backend.auth
+    const epoch = this.sessionEpoch
+    const key = this.tabKey(tab)
+    if (!force && this.pendingReload?.key === key) return this.pendingReload.promise
+    this.pendingReload?.abort.abort()
+    this.pendingReload = undefined
+    if (auth === 'none' || this.authRejected) {
+      this.post({ type: 'data', tab, signedOut: true })
+      return Promise.resolve()
+    }
+    const saved = this.tabData.get(tab)
+    const cached = saved?.key === key && !(tab === 'profile' && this.backend.managing) ? saved : undefined
+    if (cached) {
+      const fresh = Date.now() - cached.at < TAB_TTL_MS
+      this.publishTab(tab, cached.data, !fresh)
+      if (fresh) return Promise.resolve()
+    } else this.post({ type: 'data', tab, loading: true })
+    const pending = { key, promise: Promise.resolve(), abort: new AbortController() }
+    this.pendingReload = pending
+    const current = () => !pending.abort.signal.aborted && this.pendingReload === pending && this.view === view && this.tab === tab && this.backend.url === origin && this.backend.auth === auth && this.sessionEpoch === epoch
+    pending.promise = this.reloadData(tab, AbortSignal.any([pending.abort.signal, AbortSignal.timeout(10_000)]), current).finally(() => {
+      if (this.pendingReload === pending) this.pendingReload = undefined
+    })
+    return pending.promise
+  }
+
+  /** Bound panel reads across old and new tabs, including requests queued before a tab switch. */
+  private async read<T>(run: () => Promise<T>, signal: AbortSignal, foreground = () => true): Promise<T> {
+    const scope = this.scopeKey()
+    if (this.reading >= 3) await new Promise<void>(resume => this.readers.push({ resume, foreground }))
+    else this.reading++
     try {
-      const status = await this.backend.status()
-      this.post({ type: 'data', tab: this.tab, ...(await this.load(this.tab)), busy: this.busy, email: status.email })
+      signal.throwIfAborted()
+      return await run()
     } catch (error) {
-      this.post({ type: 'data', tab: this.tab, failed: explain(error) })
+      if (error instanceof ApiError && error.status === 401 && scope === this.scopeKey()) this.rejectSession()
+      throw error
+    } finally {
+      const preferred = this.readers.findIndex(item => item.foreground())
+      const next = this.readers.splice(preferred < 0 ? 0 : preferred, 1)[0]
+      if (next) next.resume()
+      else this.reading--
     }
   }
 
-  private async load(tab: Tab): Promise<Record<string, unknown>> {
-    const signal = AbortSignal.timeout(10_000)
-    const api = <T>(path: string) => this.backend.api<T>(path, 'GET', undefined, signal)
+  private async reloadData(tab: Tab, signal: AbortSignal, current: () => boolean): Promise<void> {
+    const end = beginTiming('reload', tab)
+    try {
+      if (!this.view) return
+      if (this.backend.auth === 'none') {
+        if (current()) this.post({ type: 'data', tab, signedOut: true })
+        return
+      }
+      signal.throwIfAborted()
+      const data = await this.tabContent(tab)
+      if (current()) {
+        this.publishTab(tab, data)
+      }
+    } catch (error) {
+      if (current()) {
+        const saved = this.tabData.get(tab)
+        if (saved?.key === this.tabKey(tab)) this.publishTab(tab, saved.data, false, explain(error))
+        else this.post({ type: 'data', tab, failed: explain(error) })
+      }
+      end(signal.aborted && signal.reason?.name !== 'TimeoutError' ? 'cancelled' : 'error')
+      return
+    } finally {
+      end(signal.aborted ? 'cancelled' : 'ok')
+    }
+  }
+
+  private async load(tab: Tab, signal = AbortSignal.timeout(10_000), current = () => true, modelsLoaded?: (models: ModelCache) => void): Promise<Record<string, unknown>> {
+    const foreground = () => this.tab === tab && Boolean(this.view?.visible)
+    const api = <T>(path: string) => this.read(() => this.backend.api<T>(path, 'GET', undefined, signal), signal, foreground)
+    const chats = () => this.read(() => this.chat.list(), signal, foreground).catch(() => [] as ChatSummary[])
     const chatModel = vscode.workspace.getConfiguration('adaptai').get<string>('chatModel', '')
     if (tab === 'analyse') {
-      const options = await api<LlmOptions>('/api/llm-options')
-      const last = [...this.analyser.results.values()].at(-1)
+      const optionsPromise = api<LlmOptions>('/api/llm-options')
+      const conversation = await this.chatData(api, chatModel, optionsPromise, chats)
+      const options = await optionsPromise
       return {
-        ...(await this.chatData(api, chatModel, options)),
+        ...conversation,
         assessment: options.assessment ? { label: options.assessment.label, model: options.assessment.model, provider: options.assessment.provider, external: options.assessment.external } : null,
-        last: last ? richResult(last) : undefined,
-        continuing: this.analyser.continueFrom?.title,
-        coachBusy: this.coachBusy,
-        analysing: this.busy,
-        analysisError: this.analysisError,
       }
     }
     if (tab === 'shortcuts') {
@@ -147,15 +338,23 @@ export class Dashboard implements vscode.WebviewViewProvider {
     }
     if (tab === 'progress') {
       const get = (path: string) => api<unknown>(path).catch(() => undefined)
-      const sessions = await api<{ id: string; title: string; created_at: string; analysis_count: number }[]>('/api/sessions?limit=20').catch(() => [])
-      const pending = await api<{ result: Analysis; session_title: string }[]>('/api/progress/pending?limit=10').catch(() => [])
-      return { activity: await get('/api/progress/activity'), pending: pending.map(item => ({ id: item.result.id, title: item.session_title, recommended: modelName(item.result.recommendation), options: [item.result.recommendation, ...item.result.alternatives].filter(candidate => candidate.id).map(candidate => ({ id: candidate.id, name: modelName(candidate) })) })), sessions: sessions.map(item => ({ id: item.id, title: item.title, count: item.analysis_count, at: item.created_at })), progress: await get('/api/progress'), dashboard: await get('/api/progress/dashboard'), outcomes: await get('/api/progress/outcomes'), learning: await get('/api/progress/learning'), coaching: await get('/api/progress/coaching') }
+      const [sessions, pending, activity, progress, dashboard, outcomes, learning, coaching] = await Promise.all([
+        api<{ id: string; title: string; created_at: string; analysis_count: number }[]>('/api/sessions?limit=20').catch(() => []),
+        api<{ result: Analysis; session_title: string }[]>('/api/progress/pending?limit=10').catch(() => []),
+        get('/api/progress/activity'), get('/api/progress'), get('/api/progress/dashboard'), get('/api/progress/outcomes'), get('/api/progress/learning'), get('/api/progress/coaching'),
+      ])
+      return { activity, pending: pending.map(item => ({ id: item.result.id, title: item.session_title, recommended: modelName(item.result.recommendation), options: [item.result.recommendation, ...item.result.alternatives].filter(candidate => candidate.id).map(candidate => ({ id: candidate.id, name: modelName(candidate) })) })), sessions: sessions.map(item => ({ id: item.id, title: item.title, count: item.analysis_count, at: item.created_at })), progress, dashboard, outcomes, learning, coaching }
     }
     if (tab === 'models') {
-      const options = await api<LlmOptions>('/api/llm-options')
-      const configs = await api<PersonalConfig[]>('/api/llm-configs')
-      const evaluations = (await api<{ models: Evaluation[] }>('/api/evaluations').catch(() => ({ models: [] as Evaluation[] }))).models
-      this.cache = { configs, evaluations }
+      const [options, configs, evaluated] = await Promise.all([
+        api<LlmOptions>('/api/llm-options'), api<PersonalConfig[]>('/api/llm-configs'),
+        api<{ models: Evaluation[] }>('/api/evaluations').catch(() => ({ models: [] as Evaluation[] })),
+      ])
+      const evaluations = evaluated.models
+      if (current()) {
+        if (modelsLoaded) modelsLoaded({ configs, evaluations })
+        else this.cache = { configs, evaluations }
+      }
       return {
         chatModel,
         project: options.options.filter(item => item.source === 'server').map(item => ({ id: item.id, label: item.label, provider: item.provider, model: item.model, assessor: options.assessment?.id === item.id })),
@@ -165,16 +364,20 @@ export class Dashboard implements vscode.WebviewViewProvider {
       }
     }
     if (tab === 'profile') {
-      const context = await api<Settings>('/api/context')
-      const coach = (await api<{ enabled: boolean }>('/api/prompt-coach/settings').catch(() => ({ enabled: true }))).enabled
-      const auto = (await api<{ auto_analyse: boolean }>('/api/chat/settings').catch(() => ({ auto_analyse: false }))).auto_analyse
+      const [context, coachSettings, chatSettings, conversations, tokens] = await Promise.all([
+        api<Settings>('/api/context'), api<{ enabled: boolean }>('/api/prompt-coach/settings').catch(() => ({ enabled: true })),
+        api<{ auto_analyse: boolean }>('/api/chat/settings').catch(() => ({ auto_analyse: false })), chats(),
+        this.backend.managing ? this.read(() => this.backend.tokenApi<unknown[]>('/api/tokens'), signal, foreground).catch(() => undefined) : Promise.resolve(undefined),
+      ])
+      const coach = coachSettings.enabled
+      const auto = chatSettings.auto_analyse
       return {
         values: { save_enabled: context.save_enabled, use_enabled: context.use_enabled, conversation_memory_enabled: context.conversation_memory_enabled, coaching_auto_enabled: context.coaching_auto_enabled, coach, auto_analyse: auto },
         preferences: context.content,
         memory: (context.memory as { recommended_model?: string; chosen_model?: string; profile?: Record<string, unknown> }[]).slice(0, 20).map((item, index) => ({ title: `Assessment ${index + 1} · ${item.recommended_model ? `recommended ${item.recommended_model}` : 'recommended'} · ${item.chosen_model ? `chosen ${item.chosen_model}` : 'choice pending'}`, profile: Object.entries(item.profile ?? {}).map(([name, value]) => [name, value === null ? 'Undetermined' : Array.isArray(value) ? value.join(', ') : String(value)]) })),
         counts: { memory: context.memory.length, conversations: context.saved_conversations },
-        chats: (await this.chat.list().catch(() => [] as ChatSummary[])).slice(0, 12).map(item => ({ id: item.id, title: item.title, count: item.message_count, at: item.updated_at ?? item.created_at })),
-        tokens: this.backend.managing ? await this.backend.tokenApi<unknown[]>('/api/tokens').catch(() => undefined) : undefined,
+        chats: conversations.slice(0, 12).map(item => ({ id: item.id, title: item.title, count: item.message_count, at: item.updated_at ?? item.created_at })),
+        tokens,
         tokenMode: this.backend.managing ? 'open' : 'locked',
         coachAuto: vscode.workspace.getConfiguration('adaptai').get<boolean>('coachAfterAnalysis', false),
       }
@@ -183,10 +386,12 @@ export class Dashboard implements vscode.WebviewViewProvider {
   }
 
   /** The conversation, the chats and the models of the picker: what the Assistant screen needs. */
-  private async chatData(api: <T>(path: string) => Promise<T>, chatModel: string, options: LlmOptions): Promise<Record<string, unknown>> {
-    const evaluations = (await api<{ models: Evaluation[] }>('/api/evaluations').catch(() => ({ models: [] as Evaluation[] }))).models
+  private async chatData(api: <T>(path: string) => Promise<T>, chatModel: string, optionsPromise: Promise<LlmOptions>, list: () => Promise<ChatSummary[]>): Promise<Record<string, unknown>> {
+    const [options, evaluated, chats] = await Promise.all([
+      optionsPromise, api<{ models: Evaluation[] }>('/api/evaluations').catch(() => ({ models: [] as Evaluation[] })), list(),
+    ])
+    const evaluations = evaluated.models
     const status = new Map(evaluations.map(entry => [`${entry.provider}|${entry.model}`, statusOf(entry)]))
-    const chats = await this.chat.list().catch(() => [] as ChatSummary[])
     const current = this.chat.current && chats.some(item => item.id === this.chat.current) ? this.chat.current : undefined
     const detail = current ? await api<{ messages: ChatMessage[] }>(`/api/chats/${encodeURIComponent(current)}`).catch(() => undefined) : undefined
     return {
@@ -195,20 +400,56 @@ export class Dashboard implements vscode.WebviewViewProvider {
       auto: options.options.find(item => item.id === options.auto_configuration_id) ? { label: options.options.find(item => item.id === options.auto_configuration_id)?.label ?? '', model: options.options.find(item => item.id === options.auto_configuration_id)?.model ?? null, provider: options.options.find(item => item.id === options.auto_configuration_id)?.provider ?? '' } : null,
       options: options.options.map(item => ({ id: item.id, label: item.label, provider: item.provider, model: item.model, external: item.external, source: item.source, status: status.get(`${item.provider}|${item.model ?? ''}`) ?? { state: 'none', text: 'Not evaluated' } })),
       override: this.chatOverride ? { id: this.chatOverride.optionId, label: this.chatOverride.label, openrouter: Boolean(this.chatOverride.model) } : undefined,
-      chats: chats.map(item => ({ id: item.id, title: item.title, count: item.message_count, at: item.updated_at ?? item.created_at })),
-      current,
       streaming: Boolean(this.streaming),
-      messages: (detail?.messages ?? []).map(item => ({
-        role: item.role,
-        text: item.content,
-        who: item.role === 'user' ? 'You' : `AdaptAI${item.model ? ` · ${item.provider ?? ''} ${item.model}` : ''}`,
-        cut: item.error === 'answer_truncated',
-        error: item.error ? describeFailure(502, item.error, item.provider ?? undefined) : item.status === 'failed' ? 'This answer failed.' : item.status === 'stopped' ? 'Stopped by you.' : '',
-      })),
+      ...this.conversation(chats, current, detail),
     }
   }
 
   // ---- dialogs inside the page ---------------------------------------------------------------------
+
+  private assistantState(): Record<string, unknown> {
+    const last = [...this.analyser.results.values()].at(-1)
+    return { last: last ? richResult(last) : undefined, continuing: this.analyser.continueFrom?.title, analysing: this.busy, busy: this.busy, coachBusy: this.coachBusy, streaming: Boolean(this.streaming), analysisError: this.analysisError, override: this.chatOverride ? { id: this.chatOverride.optionId, label: this.chatOverride.label, openrouter: Boolean(this.chatOverride.model) } : undefined }
+  }
+
+  /** Busy indicators and analysis results are already local; they need no API round trip. */
+  private postAssistant(extra: Record<string, unknown> = {}): void {
+    const saved = this.tabData.get('analyse')
+    if (saved?.key === this.tabKey('analyse')) saved.data = { ...saved.data, ...extra }
+    if (this.tab === 'analyse' && this.backend.auth !== 'none' && !this.authRejected) this.post({ type: 'assistantState', data: { ...extra, ...this.assistantState() } })
+  }
+
+  /** After a message/analysis only the conversation changed, not the model catalogue. */
+  private async refreshAssistant(): Promise<void> {
+    for (const tab of ['progress', 'profile', 'models'] as Tab[]) this.tabData.delete(tab)
+    this.postAssistant()
+    if (!this.view || this.backend.auth === 'none') return
+    if (this.tab !== 'analyse') return this.reload(true)
+    const view = this.view
+    const epoch = this.sessionEpoch
+    const origin = this.backend.url
+    const auth = this.backend.auth
+    const selected = this.chat.current
+    const version = this.assistantVersion
+    const current = () => this.view === view && this.tab === 'analyse' && this.sessionEpoch === epoch && this.backend.url === origin && this.backend.auth === auth && this.chat.current === selected && this.assistantVersion === version
+    const signal = AbortSignal.timeout(10_000)
+    try {
+      const chats = await this.read(() => this.chat.list(), signal)
+      const id = selected && chats.some(item => item.id === selected) ? selected : undefined
+      const detail = id ? await this.read(() => this.backend.api<{ messages: ChatMessage[] }>(`/api/chats/${encodeURIComponent(id)}`, 'GET', undefined, signal), signal) : undefined
+      if (current()) this.postAssistant({ ...this.conversation(chats, id, detail) })
+    } catch (error) {
+      if (current()) this.toast('err', explain(error))
+    }
+  }
+
+  private conversation(chats: ChatSummary[], current: string | undefined, detail?: { messages: ChatMessage[] }): Record<string, unknown> {
+    return {
+      chats: chats.map(item => ({ id: item.id, title: item.title, count: item.message_count, at: item.updated_at ?? item.created_at })),
+      current,
+      messages: (detail?.messages ?? []).map(item => ({ role: item.role, text: item.content, who: item.role === 'user' ? 'You' : `AdaptAI${item.model ? ` · ${item.provider ?? ''} ${item.model}` : ''}`, cut: item.error === 'answer_truncated', error: item.error ? describeFailure(502, item.error, item.provider ?? undefined) : item.status === 'failed' ? 'This answer failed.' : item.status === 'stopped' ? 'Stopped by you.' : '' })),
+    }
+  }
 
   /** Shows a dialog in the page and waits for the answer (undefined when it is cancelled or the page is closed). */
   private ask(spec: Dialog): Promise<Record<string, unknown> | undefined> {
@@ -230,6 +471,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
 
   /** Runs a backend action, shows a failure as a message in the page, and refreshes the data. */
   private async act(run: () => Promise<unknown>, done?: string): Promise<boolean> {
+    this.invalidateTabs()
     try {
       await run()
       if (done) this.toast('ok', done)
@@ -238,7 +480,8 @@ export class Dashboard implements vscode.WebviewViewProvider {
       this.toast('err', explain(error))
       return false
     } finally {
-      await this.reload()
+      void this.relay?.refresh()
+      await this.reload(true)
     }
   }
 
@@ -498,7 +741,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
     } catch (error) {
       this.toast('err', error instanceof ApiError && error.status === 404 ? 'This backend signs in with Supabase, so tokens are created in the cloud app.' : explain(error))
     }
-    await this.reload()
+    await this.reload(true)
   }
 
   private async tokenCreate(): Promise<void> {
@@ -518,7 +761,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
     } catch (error) {
       this.toast('err', explain(error))
     }
-    await this.reload()
+    await this.reload(true)
   }
 
   private async tokenRevoke(id: string): Promise<void> {
@@ -593,6 +836,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
       if (!last) return this.toast('err', 'This session has no analysis to continue from.')
       this.analyser.continueFrom = { sessionId: detail.id, previousId: last.result.id, title: detail.title || 'a past session' }
       this.tab = 'analyse'
+      this.post({ type: 'navigate', tab: 'analyse' })
       this.toast('ok', 'The next analysis continues this session.')
       return this.reload()
     }
@@ -640,14 +884,16 @@ export class Dashboard implements vscode.WebviewViewProvider {
   private async coachNow(text: string, mode: CoachMode): Promise<void> {
     if (!text.trim() || this.busy || this.coachBusy) return
     this.coachBusy = true
-    await this.reload()
+    this.assistantVersion++
+    this.pendingReload?.abort.abort()
+    this.analysisError = undefined
+    this.postAssistant()
     try {
-      this.analysisError = undefined
       const result = await this.chat.coachForPage(text, mode)
       if (!result) this.analysisError = this.analyser.lastError
     } finally {
       this.coachBusy = false
-      await this.reload()
+      await this.refreshAssistant()
     }
   }
 
@@ -682,7 +928,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
     switch (message.type) {
       case 'ready':
         this.markReady()
-        return this.reload()
+        return this.reload(message.force === true)
       case 'dialogResult': {
         const resolve = this.dialogs.get(str('id'))
         this.dialogs.delete(str('id'))
@@ -700,20 +946,22 @@ export class Dashboard implements vscode.WebviewViewProvider {
         const text = str('text').slice(0, 16_000)
         if (!text.trim() || this.busy) return
         this.busy = true
-        await this.reload()
+        this.assistantVersion++
+        this.pendingReload?.abort.abort()
+        this.analysisError = undefined
+        this.postAssistant()
         try {
-          this.analysisError = undefined
           const after = vscode.workspace.getConfiguration('adaptai').get<boolean>('coachAfterAnalysis', false)
           const result = await this.chat.analyseForPage(text, { thenCoach: after })
           if (!result) this.analysisError = this.analyser.lastError
           if (after && result?.coachAvailable) {
             const configured = vscode.workspace.getConfiguration('adaptai').get<string>('coachMode', 'rewrite')
             await this.analyser.coach(result, configured === 'tips' || configured === 'edits' ? configured : 'rewrite', true)
-            await this.reload()
+            this.postAssistant()
           }
         } finally {
           this.busy = false
-          await this.reload()
+          await this.refreshAssistant()
         }
         return
       }
@@ -742,7 +990,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
       case 'chatModel':
         await vscode.workspace.getConfiguration('adaptai').update('chatModel', str('id'), vscode.ConfigurationTarget.Global)
         this.chatOverride = undefined
-        return this.reload()
+        return this.reload(true)
       case 'modelAdd':
         return this.addModel()
       case 'modelEdit':
@@ -776,7 +1024,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
         }
         await vscode.workspace.getConfiguration('adaptai').update('coachAfterAnalysis', on, vscode.ConfigurationTarget.Global)
         this.toast('ok', on ? 'The Coach will run after every analysis.' : 'The Coach runs only when you ask.')
-        return this.reload()
+        return this.reload(true)
       }
       case 'preferences':
         return this.preferences(typeof message.current === 'string' ? message.current : '')
@@ -795,6 +1043,8 @@ export class Dashboard implements vscode.WebviewViewProvider {
         const analyse = /^\/analy[sz]e\s+/i.test(text)
         const abort = new AbortController()
         this.streaming = abort
+        this.assistantVersion++
+        this.pendingReload?.abort.abort()
         this.post({ type: 'chatStart', user: text })
         const sink = { markdown: (t: string) => this.post({ type: 'delta', text: t }), progress: (t: string) => this.post({ type: 'note', text: t }), button: () => undefined }
         try {
@@ -802,7 +1052,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
           else await this.chat.send(text, sink, abort.signal, this.chatOverride)
         } finally {
           this.streaming = undefined
-          await this.reload()
+          await this.refreshAssistant()
         }
         return
       }
@@ -813,13 +1063,15 @@ export class Dashboard implements vscode.WebviewViewProvider {
         if (this.streaming) return
         const abort = new AbortController()
         this.streaming = abort
+        this.assistantVersion++
+        this.pendingReload?.abort.abort()
         this.post({ type: 'chatStart', user: '' })
         const sink = { markdown: (t: string) => this.post({ type: 'delta', text: t }), progress: (t: string) => this.post({ type: 'note', text: t }), button: () => undefined }
         try {
           await this.chat.retry(sink, abort.signal)
         } finally {
           this.streaming = undefined
-          await this.reload()
+          await this.refreshAssistant()
         }
         return
       }
@@ -1093,9 +1345,10 @@ function page(nonce: string, csp: string, tab: Tab): string {
   const row = (title, sub, ...buttons) => el('div', { class: 'row' }, el('div', { class: 'w' }, el('div', { text: title }), sub ? el('p', { class: 'muted', text: sub }) : null), el('div', { class: 'btns' }, buttons))
   const card = (eyebrow, title, ...kids) => el('section', { class: 'card' }, el('p', { class: 'eyebrow', text: eyebrow }), title ? el('h2', { text: title, style: 'margin-bottom:12px' }) : null, kids)
   const mark = () => document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab))
-  document.getElementById('nav').addEventListener('click', e => { const t = e.target.closest('button'); if (t) { tab = t.dataset.tab; mark(); send('tab', { tab }) } })
+  function showTab(target) { tab = target; mark(); lastData = { tab, loading: true }; renderTab() }
+  document.getElementById('nav').addEventListener('click', e => { const t = e.target.closest('button'); if (t && t.dataset.tab !== tab) { showTab(t.dataset.tab); send('tab', { tab }) } })
   document.getElementById('gear').addEventListener('click', () => send('settings'))
-  document.getElementById('newchat').addEventListener('click', () => { tab = 'analyse'; mark(); drawerOpen = false; pop = null; send('tab', { tab: 'analyse' }); send('chatSelect', { id: '' }) })
+  document.getElementById('newchat').addEventListener('click', () => { showTab('analyse'); drawerOpen = false; pop = null; send('tab', { tab: 'analyse' }); send('chatSelect', { id: '' }) })
   document.getElementById('signout').addEventListener('click', () => send('signOut'))
 
   function drawerCards(r, d) {
@@ -1365,6 +1618,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
     const router = usesRouter ? el('button', { class: 'trigger', type: 'button', onclick: () => send('chatOverride', { value: '__openrouter' }) }, el('b', { text: 'OpenRouter' }), el('span', { text: d.override && d.override.openrouter ? d.override.label.replace('OpenRouter · ', '') : 'Choose a model' }), '▾') : null
     const analyseBtn = el('button', { class: 'btn', type: 'button', text: d.analysing ? 'Analysing…' : 'Analyse', disabled: busy || needText, onclick: () => { if (!area.value.trim()) return; drawerOpen = true; pop = null; send('analyse', { text: area.value }); renderTab() } })
     const sendBtn = el('button', { class: 'btn primary', id: 'sendbtn', type: 'button', text: 'Send', hidden: !!d.streaming, disabled: busy || needText || (usesRouter && !(d.override && d.override.openrouter)), title: usesRouter && !(d.override && d.override.openrouter) ? 'Choose an OpenRouter model first' : '', onclick: () => sendNow(area) })
+    area.addEventListener('input', () => { analyseBtn.disabled = busy || !area.value.trim(); sendBtn.disabled = busy || !area.value.trim() || (usesRouter && !(d.override && d.override.openrouter)) })
     const stopBtn = el('button', { class: 'btn', id: 'stop', type: 'button', text: 'Stop', hidden: !d.streaming, onclick: () => send('chatStop') })
     const chip = d.last && d.last.task && d.last.task.trim() === draft.trim() && draft.trim() ? el('button', { class: 'recchip', type: 'button', title: 'Show analysis', onclick: () => { drawerOpen = true; renderTab() } }, 'Recommended: ', el('strong', { text: d.last.name }), d.last.usable && sel && d.last.modelId === sel.id ? ' · selected' : '') : null
     const composer = el('section', { class: 'composer2' },
@@ -1482,7 +1736,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
 
     const E = card('Patterns', 'What your choices reveal'); E.style.marginTop = '14px'
     const grid = el('div', { class: 'grid3', style: 'margin-top:8px' })
-    const saved = c && c.saved
+    const saved = c && c.saved && c.saved.report
     const pat = (title, count, insight) => { const x = el('section', { class: 'card', style: 'min-height:0;margin:0' }, el('h3', { text: title }), el('p', { class: 'muted', text: count })); if (insight) x.append(el('p', { text: insight.explanation }), el('p', { class: 'muted', text: 'Next: ' + insight.action })); return x }
     const pats = saved ? saved.patterns || {} : {}
     grid.append(pat('Over-provisioning', d.dashboard ? d.dashboard.over + ' confirmed choices used more model than the task needed.' : 'Not available.', pats.over_provisioning), pat('Under-provisioning', d.dashboard ? d.dashboard.under + ' confirmed choices used a model that covers less than recommended.' : 'Not available.', pats.under_provisioning), pat('Inflated prompting', 'Needs saved text samples; see Profile.', pats.prompting))
@@ -1526,7 +1780,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
     out.push(mem)
     const chatsCard = card('Conversations', 'Active conversations')
     if (!d.chats.length) chatsCard.append(el('p', { class: 'muted', text: 'No chats yet.' }))
-    for (const x of d.chats) chatsCard.append(row(x.title, x.count + ' messages · ' + x.at, el('button', { class: 'btn small', text: 'Open', onclick: () => { tab = 'analyse'; mark(); send('chatSelect', { id: x.id }); send('tab', { tab: 'analyse' }) } }), btn('Delete', 'chatDelete', { id: x.id }, 'danger')))
+    for (const x of d.chats) chatsCard.append(row(x.title, x.count + ' messages · ' + x.at, el('button', { class: 'btn small', text: 'Open', onclick: () => { showTab('analyse'); send('chatSelect', { id: x.id }); send('tab', { tab: 'analyse' }) } }), btn('Delete', 'chatDelete', { id: x.id }, 'danger')))
     out.push(chatsCard)
     const tk = card('Access', 'API tokens')
     tk.append(el('p', { class: 'muted', text: 'Personal tokens let tools such as this extension sign in without your password. A token is shown once, expires, and can be revoked. Managing them needs your password (kept in memory for 10 minutes only).' }))
@@ -1557,26 +1811,58 @@ function page(nonce: string, csp: string, tab: Tab): string {
     out.push(p, y, v); return out
   }
 
+  let connection = null
+  function renderAccount(d) {
+    document.getElementById('signout').hidden = !!d.signedOut
+    const account = document.getElementById('acct')
+    if (d.signedOut) { connection = null; account.replaceChildren(el('b', { text: 'Not signed in' })); return }
+    if (d.online !== undefined || d.email) connection = { online: d.online, email: d.email }
+    const state = connection || {}
+    account.replaceChildren(el('b', { text: state.email || '' }), el('span', { class: 'dot' }), state.online === undefined ? 'Connecting…' : state.online ? 'Connected' : 'Offline')
+  }
   window.addEventListener('message', event => {
     const m = event.data
+    if (m && m.type === 'navigate') { showTab(m.tab); return }
+    if (m && m.type === 'resetTabs') { connection = null; live = null; document.getElementById('modal').replaceChildren(); lastData = { tab, signedOut: m.signedOut, loading: !m.signedOut }; renderAccount(lastData); renderTab(); return }
+    if (m && m.type === 'connection') { if (lastData && !lastData.signedOut) renderAccount(m); return }
     if (m && m.type === 'dialog') return showDialog(m)
     if (m && m.type === 'toast') return toast(m.kind, m.text)
     if (m && m.type === 'chatStart') { const box = document.getElementById('msgs'); if (!box) return; const empty = box.querySelector('.empty, .chat-empty'); if (empty) empty.remove(); if (m.user) box.append(bubble('user', 'You', m.user)); live = { raw: '', el: bubble('ai', 'AdaptAI', '') }; box.append(live.el); box.scrollTop = box.scrollHeight; const stop = document.getElementById('stop'); if (stop) stop.hidden = false; const sb = document.getElementById('sendbtn'); if (sb) sb.hidden = true; return }
     if (m && m.type === 'delta') { if (!live) return; live.raw += m.text; const next = bubble('ai', 'AdaptAI', live.raw); live.el.replaceWith(next); live.el = next; const box = document.getElementById('msgs'); if (box) box.scrollTop = box.scrollHeight; const note = document.getElementById('note'); if (note) note.textContent = ''; return }
     if (m && m.type === 'note') { const note = document.getElementById('note'); if (note) note.textContent = m.text; return }
+    if (m && m.type === 'assistantState') {
+      if (tab === 'analyse' && lastData && !lastData.loading && !lastData.signedOut && !lastData.failed) {
+        lastData = Object.assign({}, lastData, m.data)
+        if (live && !Object.prototype.hasOwnProperty.call(m.data, 'messages')) {
+          const stop = document.getElementById('stop'); if (stop) stop.hidden = !m.data.streaming
+          const sb = document.getElementById('sendbtn'); if (sb) sb.hidden = !!m.data.streaming
+        } else renderTab()
+      }
+      return
+    }
     const d = event.data; if (!d || d.type !== 'data') return
+    if (d.tab !== tab) return
     tab = d.tab; mark(); lastData = d
-    document.getElementById('signout').hidden = !!d.signedOut
-    document.getElementById('acct').replaceChildren(...(d.signedOut ? [el('b', { text: 'Not signed in' })] : [el('b', { text: d.email || '' }), el('span', { class: 'dot' }), 'Connected']))
+    if (d.signedOut) live = null
+    if (!d.loading) renderAccount(d)
+    if (tab === 'analyse' && d.streaming && live) return
     renderTab()
   })
   function renderTab() {
     const d = lastData
     if (!d) return
     main.replaceChildren()
+    main.setAttribute('aria-busy', d.loading || d.refreshing ? 'true' : 'false')
     if (d.signedOut) return main.append(el('div', { class: 'center' }, el('h1', { text: 'Sign in to use AdaptAI' }), el('p', { class: 'lead', style: 'margin:0 auto 20px', text: 'Use your email and password once. Only a token is kept on this machine.' }), el('div', { class: 'btns', style: 'justify-content:center' }, el('button', { class: 'btn primary', text: 'Sign in', onclick: () => send('signIn') }), el('button', { class: 'btn', text: 'Create an account', onclick: () => send('register') }))))
-    if (d.failed) return main.append(el('div', { class: 'err', text: d.failed }), el('p'), el('button', { class: 'btn', text: 'Try again', onclick: () => send('ready') }))
-    main.append(...{ analyse: assistantTab, progress: progressTab, profile: profileTab, models: modelsTab, shortcuts: shortcutsTab }[tab](d))
+    if (d.loading) return main.append(...intro('AdaptAI', { analyse: 'Assistant', progress: 'My progress', profile: 'Profile', models: 'LLM config', shortcuts: 'Shortcuts' }[tab], 'Loading…'))
+    if (d.failed) return main.append(el('div', { class: 'err', text: d.failed }), el('p'), el('button', { class: 'btn', text: 'Try again', onclick: () => send('ready', { force: true }) }))
+    if (d.refreshing) main.append(el('p', { class: 'muted', role: 'status', text: 'Updating…' }))
+    if (d.refreshError) main.append(el('div', { class: 'err', text: 'Could not update: ' + d.refreshError }), el('button', { class: 'btn small', text: 'Try again', onclick: () => send('ready', { force: true }) }))
+    try {
+      main.append(...{ analyse: assistantTab, progress: progressTab, profile: profileTab, models: modelsTab, shortcuts: shortcutsTab }[tab](d))
+    } catch {
+      main.replaceChildren(el('div', { class: 'err', role: 'alert', text: 'Could not display this page. Try again.' }), el('button', { class: 'btn', text: 'Try again', onclick: () => send('ready', { force: true }) }))
+    }
   }
   mark(); send('ready')
 </script></body></html>`

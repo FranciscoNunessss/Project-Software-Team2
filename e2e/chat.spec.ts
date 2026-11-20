@@ -196,3 +196,19 @@ test('"Always analyse before sending" is off by default; on, Send analyses first
   await goTo(page, 'Profile')
   await expect(page.getByRole('switch', { name: 'Always analyse before sending' })).toBeChecked()
 })
+
+test('a chat deleted elsewhere while open does not receive the next message', async ({ page }) => {
+  await openChat(page)
+  await send(page, 'Explain what an API is.')
+  const [first] = await (await page.request.get('/api/chats')).json()
+  // Deleted from another page or tab; this page learns of it when it next refreshes.
+  await goTo(page, 'My progress')
+  expect((await page.request.delete(`/api/chats/${first.id}`)).ok()).toBe(true)
+  await page.evaluate(() => window.dispatchEvent(new Event('adaptai-progress-updated')))
+  await goTo(page, 'Assistant')
+  await expect(page.locator('[data-chat-message]')).toHaveCount(0)
+  await send(page, 'Give one example.')
+  const chats = await (await page.request.get('/api/chats')).json()
+  expect(chats.map((chat: { id: string }) => chat.id)).not.toContain(first.id)
+  expect(chats).toHaveLength(1)
+})

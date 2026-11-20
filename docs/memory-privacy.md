@@ -229,6 +229,8 @@ is deleted with the account or the evaluation.
 
 
 
+16 November 2026: a user can delete the account in Profile (`DELETE /api/auth/account`, confirmed with the account's email and, for local accounts, the password). Every table that holds a user's data references `users` with `ON DELETE CASCADE`, so the one delete removes everything listed in this document for that account, and all its login sessions; `model_evaluations.requested_by` becomes null. In cloud mode the Supabase Auth user is removed as well when `ADAPTAI_SUPABASE_SERVICE_ROLE_KEY` is set, before the rows are committed; without the key the rows are erased and the user is told the sign-in was kept. Nothing about the deletion is logged. Backups are not erased. The Privacy Policy (draft v0.3) says the same in sections 7 and 9.
+
 11 November 2026: the user-facing Privacy Policy (draft v0.1) is `frontend/src/content/privacy-policy.md`, shown in the app from the footer, Profile and the sign-in screen. It describes the behaviour documented in this file; items marked TO CONFIRM need AO/PO decisions, and there is still no self-service account deletion.
 
 ## Models that run on the user's computer (ADR-015, proposed)

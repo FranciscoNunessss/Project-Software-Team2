@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, notifyProgressChange, type MemorySettings } from './api'
 import { ApiTokens } from './ApiTokens'
 import { PromptCoachToggle } from './PromptCoachToggle'
+import { DeleteAccount } from './DeleteAccount'
 import { AlwaysAnalyseToggle } from './AlwaysAnalyseToggle'
 import './Profile.css'
 
@@ -69,6 +70,7 @@ export function ProfileScreen({ onOpenPrivacy }: { onOpenPrivacy?: () => void })
       </section>
       <section className="card profile-card-settings"><p className="eyebrow">Privacy</p><h2>How we handle your data</h2><p>Read what AdaptAI collects, who receives it, how long it is kept and how to use your rights.</p>{onOpenPrivacy && <button type="button" className="button button-secondary" onClick={onOpenPrivacy}>Read the Privacy Policy</button>}</section>
       <ApiTokens />
+      <DeleteAccount email={email} />
       <p className="confidence-note">My progress contains your dashboard, saved suggestions, export and session deletion controls. Conversation text is retained only after explicit permission. Clearing learned metadata above does not delete saved conversation text.</p>
     </>}
   </main>

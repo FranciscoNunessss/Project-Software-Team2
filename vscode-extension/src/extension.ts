@@ -7,6 +7,7 @@ import { Dashboard } from './dashboard'
 import { PROGRESS_SCHEME, ProgressReport } from './profile'
 import { RelayAgent, RelayStatus } from './relay'
 import { StatusBar } from './statusbar'
+import { diagnosticSamples, startDiagnostics, stopDiagnostics } from './diagnostics'
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const backend = new Backend(context.secrets)
@@ -16,6 +17,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const progress = new ProgressReport(backend)
   const relay = new RelayAgent(backend)
   const dashboard = new Dashboard(backend, analyser, chat, progress, relay)
+  let diagnosticsOutput: vscode.LogOutputChannel | undefined
+  context.subscriptions.push(
+    { dispose: () => { stopDiagnostics(); diagnosticsOutput?.dispose() } },
+    vscode.commands.registerCommand('adaptai.startDiagnostics', () => {
+      diagnosticsOutput ??= vscode.window.createOutputChannel('AdaptAI Latency', { log: true })
+      startDiagnostics(sample => diagnosticsOutput?.info(JSON.stringify(sample)))
+      diagnosticsOutput.info('Local timing capture started; no credentials or message contents are recorded.')
+      void vscode.window.showInformationMessage('AdaptAI: local latency capture started. Repeat the same action five times, then run Show latency report. Stop latency capture when finished.')
+    }),
+    vscode.commands.registerCommand('adaptai.stopDiagnostics', () => {
+      stopDiagnostics()
+      void vscode.window.showInformationMessage('AdaptAI: local latency capture stopped.')
+    }),
+    vscode.commands.registerCommand('adaptai.showDiagnostics', async () => {
+      const document = await vscode.workspace.openTextDocument({ language: 'json', content: JSON.stringify({ samples: diagnosticSamples() }, null, 2) })
+      await vscode.window.showTextDocument(document)
+    }),
+  )
 
   // Development only: the self-test writes what it sees to a file and quits (see the README).
   const selftest = Boolean(process.env.ADAPTAI_SELFTEST)
@@ -27,12 +46,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
     : undefined
 
-  const statusBar = new StatusBar(backend, () => void dashboard.reload())
+  const statusBar = new StatusBar(backend, status => dashboard.updateStatus(status))
   const relayStatus = new RelayStatus(relay)
   relay.watch()
   void relay.refresh()
 
   context.subscriptions.push(
+    dashboard,
     statusBar,
     relay,
     relayStatus,
@@ -50,6 +70,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
     vscode.workspace.onDidChangeConfiguration(event => {
       if (event.affectsConfiguration('adaptai.backendUrl')) {
+        void dashboard.reload()
+        void dashboard.preload()
         void statusBar.refresh()
         }
     }),
@@ -90,6 +112,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   )
 
   void statusBar.refresh()
+  void dashboard.preload()
 
   if (selftest) {
     void (async () => {

@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**AdaptAI · Version 0.2 (draft for team review) · Last updated: 11 November 2026**
+**AdaptAI · Version 0.3 (draft for team review) · Last updated: 16 November 2026**
 
 > **Status: draft.** This policy describes how AdaptAI handles personal data in its current implementation. It has not yet been approved by the Architecture Owner and the Product Owner. Items marked **[TO CONFIRM]** require a team decision before the policy is published. This document is informational and does not constitute legal advice.
 
@@ -64,7 +64,7 @@ Some model providers are located outside the European Economic Area. Where you s
 ## 7. Retention
 
 - **Sign-in sessions** expire after 7 days by default.
-- **All other data** is kept until you delete it or your account is removed. There is currently no automatic expiry **[TO CONFIRM: retention period for inactive accounts]**.
+- **All other data** is kept until you delete it or you delete your account (Profile → **Delete my account**). There is currently no automatic expiry **[TO CONFIRM: retention period for inactive accounts]**.
 - **Backups and exports.** Deleting data removes it from the live database. Database or provider backups, and copies you have exported yourself, may still contain earlier data. We do not promise erasure from backups.
 
 ## 8. Cookies and browser storage
@@ -87,7 +87,7 @@ Under the GDPR you have the following rights. This table shows how to exercise e
 | Erasure of saved conversation text and generated coaching (Art. 17) | Profile → **Delete saved conversations**. |
 | Erasure of one session (Art. 17) | My progress → delete the session. |
 | Erasure of all usage history (Art. 17) | My progress → **Delete**. Your account, preferences and LLM configurations remain. |
-| Erasure of your account and all data (Art. 17) | Email the privacy contact. Self-service account deletion is not yet available **[TO CONFIRM: add before release]**. |
+| Erasure of your account and all data (Art. 17) | Profile → **Delete my account**. This deletes the account and everything stored for it in AdaptAI. All your sign-ins on every device stop working. Where you sign in through the hosted sign-in service, the sign-in itself (email and password) is held by that service: it is deleted as well when the installation is set up for it, and otherwise the app tells you right after the deletion that it was kept, and you can email the privacy contact to have it removed. Backups are not erased (section 7). |
 | Restriction, objection and other questions (Arts. 18 and 21) | Email the privacy contact. |
 
 We aim to respond to requests within one month. You also have the right to lodge a complaint with a supervisory authority. In Portugal this is the Comissão Nacional de Proteção de Dados (CNPD, cnpd.pt) **[TO CONFIRM: authority for the operating country]**.

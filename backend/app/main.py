@@ -1,4 +1,5 @@
 import json
+import logging
 from time import perf_counter
 from uuid import uuid4
 
@@ -16,7 +17,7 @@ from app.accounts import AuthenticatedUser, check_origin
 from app.accounts import router as accounts_router
 from app.assessment import PROFILE_VERSION, RUBRIC_VERSION, explain_changes
 from app.catalogue import active_catalogue
-from app.coaching import install_coaching
+from app.coaching import install_coaching, recent_usage_patterns
 from app.evaluations import Ratings, install_evaluations, pending_for
 from app.evaluations import _router_snapshot as router_snapshot
 from app.evaluations import label as evaluation_label
@@ -35,6 +36,7 @@ from app.providers import (
 )
 from app.recommendation import POLICY_VERSION, Option, candidate_gap
 from app.relay import install_relay
+from app.retention import install_retention
 from app.storage import Storage, history_result, stored_result
 from app.tokens import install_tokens
 from app.workflow import build_workflow
@@ -224,6 +226,7 @@ def create_app(
         router=router_models,
         **({"worker": settings.evaluations_worker} | (evaluation_options or {})),
     )
+    install_retention(app, store, settings.retention_days)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, _exc: RequestValidationError):
@@ -535,7 +538,13 @@ def create_app(
                     "mean_gap": round(sum(gaps) / len(gaps), 2),
                 }
             )
-        return {"over": over, "under": under, "series": series}
+        return {
+            "over": over,
+            "under": under,
+            "series": series,
+            # Over the 50 newest analyses, like the Educator; over and under count every choice.
+            "patterns": recent_usage_patterns(store, user["id"]),
+        }
 
     @app.get("/api/sessions/{identifier}")
     def session_detail(
@@ -927,6 +936,16 @@ def create_app(
             openrouter_catalogue=router_models,
             **(chat_options or {}),
         )
+
+    # RLS is a second barrier and a silent one: say whether it is on; optionally refuse to start.
+    unsecured = store.rls_off_tables()
+    if unsecured:
+        message = f"Row Level Security is OFF on {len(unsecured)} table(s): {unsecured}"
+        if settings.require_rls:
+            raise RuntimeError(message + " (ADAPTAI_REQUIRE_RLS is set)")
+        logging.getLogger(__name__).error(message)
+    else:
+        logging.getLogger(__name__).info("Row Level Security is on for every table of the schema")
 
     return app
 

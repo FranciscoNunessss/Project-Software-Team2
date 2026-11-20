@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     lmstudio_models: str = ""
     # Background evaluation of configured models (ADR-014); off in tests and scripts.
     evaluations_worker: bool = True
+    # Days without activity after which a session is deleted (app/retention.py); 0 = never.
+    retention_days: int = Field(default=0, ge=0)
     # The project's own OpenRouter key, only for evaluating models no public source rates
     # (ADR-014 A10, layer 3). Never used for chats or analyses. Empty: layer 3 is off.
     evaluation_openrouter_key: SecretStr = SecretStr("")
@@ -53,6 +55,8 @@ class Settings(BaseSettings):
     timeout_seconds: float = Field(default=30, gt=0, le=120)
     database_url: SecretStr = SecretStr("postgresql://adaptai:adaptai@127.0.0.1:55432/adaptai")
     database_schema: str = "adaptai"
+    # Refuse to start when Row Level Security is off on any table (see docs/cloud-setup.md).
+    require_rls: bool = False
     credentials_key_path: str = ""
     credentials_key: SecretStr = SecretStr("")
     session_days: int = Field(default=7, ge=1, le=30)
@@ -62,6 +66,10 @@ class Settings(BaseSettings):
     database_pool_size: int = Field(default=4, ge=0)
     supabase_url: str = ""
     supabase_publishable_key: SecretStr = SecretStr("")
+    # Optional, backend only, never sent to a browser: used for one call, removing a user's
+    # sign-in from Supabase Auth when that user deletes the account. Without it the
+    # application data is still erased and the user is told the sign-in was kept.
+    supabase_service_role_key: SecretStr = SecretStr("")
 
 
 SERVER_MODEL_PROVIDERS = ("openai", "claude", "groq", "ollama", "lmstudio")

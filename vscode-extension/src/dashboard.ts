@@ -345,12 +345,15 @@ export class Dashboard implements vscode.WebviewViewProvider {
       }
     }
     if (tab === 'progress') {
-      const get = (path: string) => api<unknown>(path).catch(() => undefined)
+      let firstError: unknown
+      const get = (path: string) => api<unknown>(path).catch(error => { firstError ??= error; return undefined })
       const [sessions, pending, activity, progress, dashboard, outcomes, learning, coaching] = await Promise.all([
         api<{ id: string; title: string; created_at: string; analysis_count: number }[]>('/api/sessions?limit=20').catch(() => []),
         api<{ result: Analysis; session_title: string }[]>('/api/progress/pending?limit=10').catch(() => []),
         get('/api/progress/activity'), get('/api/progress'), get('/api/progress/dashboard'), get('/api/progress/outcomes'), get('/api/progress/learning'), get('/api/progress/coaching'),
       ])
+      // Every figure failed: that is a backend problem, not an empty page.
+      if (firstError && activity === undefined && progress === undefined && dashboard === undefined) throw firstError
       return { activity, pending: pending.map(item => ({ id: item.result.id, title: item.session_title, recommended: modelName(item.result.recommendation), options: [item.result.recommendation, ...item.result.alternatives].filter(candidate => candidate.id).map(candidate => ({ id: candidate.id, name: modelName(candidate) })) })), sessions: sessions.map(item => ({ id: item.id, title: item.title, count: item.analysis_count, at: item.created_at })), progress, dashboard, outcomes, learning, coaching }
     }
     if (tab === 'models') {
@@ -1551,6 +1554,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
   }
   let live = null
   let follow = true
+  let keep = null
   let withSel = false
   let selInfo = ''
   const selLabel = () => 'Selection: ' + (withSel ? 'On' : 'Off') + (withSel && selInfo ? ' · ' + selInfo : '')
@@ -1638,7 +1642,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
     const current = d.chats.find(c => c.id === d.current)
     col.append(el('div', { class: 'toolbar' }, el('span', { class: 'muted', text: current ? current.title : '' }), el('div', { class: 'btns' }, el('button', { class: 'btn small', text: 'Chats' + (d.chats.length ? ' (' + d.chats.length + ')' : ''), 'aria-expanded': pop === 'chats', onclick: () => { pop = pop === 'chats' ? null : 'chats'; renderTab() } }))))
     if (pop === 'chats') col.append(chatsPop(d))
-    const msgs = el('div', { class: 'msgs', id: 'msgs', 'aria-live': 'polite' })
+    const msgs = el('div', { class: 'msgs', id: 'msgs', 'aria-live': 'polite', 'data-chat': d.current || '' })
     if (!d.messages.length) msgs.append(el('div', { class: 'chat-empty' }, el('h2', { text: 'What do you need to do?' }), el('p', { class: 'muted' }, 'Write your prompt. ', el('strong', { text: 'Analyse' }), ' shows how complete it is and which model fits; ', el('strong', { text: 'Send' }), ' gets the answer.')))
     for (const m of d.messages) msgs.append(bubble(m.role, m.who, m.text, m.error, m.selection))
     msgs.addEventListener('scroll', () => { follow = nearEnd(msgs) })
@@ -1696,8 +1700,11 @@ function page(nonce: string, csp: string, tab: Tab): string {
     wrap.append(col)
     if (drawerOpen) { wrap.append(el('div', { class: 'drawer-backdrop', onclick: () => { drawerOpen = false; renderTab() } }), drawerEl(d, area)) }
     setTimeout(hints, 0)
-    follow = true
-    setTimeout(toEnd, 0)
+    // Redrawn while the user was reading above: stay where they were, as UI-01 says. Otherwise go to the newest message.
+    const stay = keep && keep.chat === (d.current || '') ? keep : null
+    keep = null
+    follow = !stay
+    setTimeout(() => { if (stay) { const box = document.getElementById('msgs'); if (box) box.scrollTop = stay.top } else toEnd() }, 0)
     return [wrap]
   }
 
@@ -1917,6 +1924,8 @@ function page(nonce: string, csp: string, tab: Tab): string {
     const d = lastData
     if (!d) return
     document.body.classList.toggle('chatmode', tab === 'analyse' && !d.signedOut && !d.loading && !d.failed)
+    const prevMsgs = document.getElementById('msgs')
+    keep = prevMsgs && prevMsgs.scrollHeight > prevMsgs.clientHeight && !nearEnd(prevMsgs) ? { top: prevMsgs.scrollTop, chat: prevMsgs.getAttribute('data-chat') || '' } : null
     main.replaceChildren()
     main.setAttribute('aria-busy', d.loading || d.refreshing ? 'true' : 'false')
     if (d.signedOut) return main.append(el('div', { class: 'center' }, el('h1', { text: 'Sign in to use AdaptAI' }), el('p', { class: 'lead', style: 'margin:0 auto 20px', text: 'Use your email and password once. Only a token is kept on this machine.' }), el('div', { class: 'btns', style: 'justify-content:center' }, el('button', { class: 'btn primary', text: 'Sign in', onclick: () => send('signIn') }), el('button', { class: 'btn', text: 'Create an account', onclick: () => send('register') }))))

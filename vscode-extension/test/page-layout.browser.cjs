@@ -182,6 +182,27 @@ const WIDTHS = [300, 320, 480, 760, 899, 900, 1200]
     await page.close()
   })
 
+  await check('ui_01 a redraw while you read above does not pull you down', async () => {
+    const { page, post } = await open(480)
+    await page.evaluate(() => { const m = document.getElementById('msgs'); m.scrollTop = 0; m.dispatchEvent(new Event('scroll')) })
+    await post({ type: 'assistantState', data: { messages: many, streaming: false } })
+    await page.waitForTimeout(80)
+    assert.ok((await page.evaluate(() => document.getElementById('msgs').scrollTop)) < 40, 'it jumped to the end')
+    await page.close()
+  })
+
+  await check('sel_04 clicking the caption opens the code and clicking again closes it', async () => {
+    const { page, post } = await open(480)
+    const withCode = [{ role: 'user', who: 'You', text: 'Explain this', selection: { path: 'src/service.ts', languageId: 'typescript', startLine: 7, endLine: 9, code: 'export function save() {}', kind: 'ask' } }]
+    await post({ ...data, messages: withCode })
+    await page.locator('.selcap summary').click()
+    assert.equal(await page.locator('.selcap').evaluate(el => el.open), true)
+    assert.match(await page.locator('#msgs').innerText(), /export function save/)
+    await page.locator('.selcap summary').click()
+    assert.equal(await page.locator('.selcap').evaluate(el => el.open), false)
+    await page.close()
+  })
+
   await browser.close()
   if (failures.length) {
     console.log(`\n${failures.length} failed`)

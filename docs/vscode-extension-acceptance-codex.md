@@ -124,6 +124,20 @@ Same set-up as above (backend on port 8033, LM Studio model, throw-away account,
 | 35 | Ask for a change again and click **Reject** | The green lines disappear and the file is exactly as before |
 | 36 | Ask for a change again and press Ctrl+S before choosing | A message says the proposal was rejected before saving; the file on disk has only the original code |
 
+## Navigation and background updates (checks 37 to 42)
+
+Use the same disposable account and local model as above. A first visit with no loaded data may
+show Loading; an already visited page should retain its content while it updates.
+
+| # | Steps | Expected |
+|---|---|---|
+| 37 | Visit My progress, Profile and LLM config. Return to Assistant, send a short message, then revisit My progress | The previous figures appear immediately. Updating may appear; fresh figures replace them without a blank loading page |
+| 38 | Scroll down in My progress, visit Assistant, then return. Repeat while a refresh finishes | The page retains its scroll position and saved report. A failed refresh leaves the figures visible with an error and Retry |
+| 39 | In Assistant click New chat, including from the command palette, and repeat after another response | The empty composer appears using the already loaded models. The old messages and draft are cleared. Other pages remain available |
+| 40 | Send a response long enough to stream, visit My progress, and return before it finishes; then repeat and stay in My progress until it finishes | Partial text continues when returning to Assistant. Finishing on My progress updates the figures in place and keeps that tab selected. New chat/opening another conversation during a task explains that it must finish or be stopped first |
+| 41 | Type a short prompt and press Send | The counter resets to 0/8000 and the local prompt hints disappear immediately |
+| 42 | If a model already has a completed evaluation, inspect its existing result in LLM config; do not start a paid evaluation | Its numeric levels, below-level-1 marker or unknown marker appear without `[object Object]` |
+
 ## Clean up
 
 1. Close the test VS Code window. Stop the backend (Ctrl+C in its terminal).

@@ -1,6 +1,7 @@
 import { destination } from './core'
 
 export type Estimate = { calls_max: number; input_tokens_max: number; output_tokens_max: number; price_known: boolean; free: boolean; estimated_usd: number | null; max_usd: number | null }
+type MeasuredLevel = { level: number | null; below_level_1?: boolean; pass_rates?: Record<string, number> }
 export type Evaluation = {
   provider: string
   model: string
@@ -10,7 +11,7 @@ export type Evaluation = {
   picked?: boolean
   levels_source: string | null
   levels: Record<string, number> | null
-  evaluation: null | { id: string; status: string; progress: number; total: number; errors: number; failure: string | null; estimate: Estimate | null; spent_usd: number | null; finished_at: string | null; levels: Record<string, number> | null }
+  evaluation: null | { id: string; status: string; progress: number; total: number; errors: number; failure: string | null; estimate: Estimate | null; spent_usd: number | null; finished_at: string | null; levels: Record<string, number | MeasuredLevel | null> | null }
 }
 export type PersonalConfig = { id: string; label: string; provider: string; model: string; has_key: boolean; enabled: boolean; is_default: boolean; external: boolean; responses_api: boolean; execution?: 'server' | 'client' }
 export type CatalogueModel = { id: string; name: string; organisation: string; context_length?: number | null; price_input_per_million?: number | null; price_output_per_million?: number | null; free?: boolean; selectable?: boolean; reason?: string | null }
@@ -30,7 +31,10 @@ export const CAPABILITIES = ['reasoning', 'context', 'domain', 'reliability', 't
 export function describeEvaluation(entry: Evaluation): { text: string; icon: string; consent: boolean } {
   const e = entry.evaluation
   if (!e) return entry.levels ? { text: `Not measured · ${entry.levels_source ?? 'provisional levels'}`, icon: 'circle-outline', consent: false } : { text: 'Not evaluated', icon: 'circle-slash', consent: false }
-  const levels = (e.levels ?? entry.levels) ? ' · ' + Object.entries((e.levels ?? entry.levels) as Record<string, number>).map(([name, value]) => `${name[0].toUpperCase()}${value}`).join(' ') : ''
+  const levels = (e.levels ?? entry.levels) ? ' · ' + Object.entries(e.levels ?? entry.levels ?? {}).map(([name, value]) => {
+    const level = typeof value === 'number' ? value : value?.below_level_1 ? '<1' : value?.level ?? '?'
+    return `${name[0].toUpperCase()}${level}`
+  }).join(' ') : ''
   switch (e.status) {
     case 'awaiting_consent':
       return { text: 'Waiting for your consent', icon: 'bell', consent: true }

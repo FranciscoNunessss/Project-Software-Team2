@@ -118,10 +118,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('adaptai.chatOpenView', () => vscode.commands.executeCommand('workbench.action.chat.open', { query: '@adaptai ', isPartialQuery: true })),
     vscode.commands.registerCommand('adaptai.chatSendText', (text: string) => vscode.commands.executeCommand('workbench.action.chat.open', { query: `@adaptai ${text}` })),
     vscode.commands.registerCommand('adaptai.chatRetry', () => vscode.commands.executeCommand('workbench.action.chat.open', { query: '@adaptai /retry' })),
-    vscode.commands.registerCommand('adaptai.chatNew', async () => {
-      await chat.newChat()
-      void vscode.window.showInformationMessage('AdaptAI: your next message in the chat opens a new chat.')
-    }),
+    vscode.commands.registerCommand('adaptai.chatNew', () => dashboard.newChat()),
   )
 
   void statusBar.refresh()

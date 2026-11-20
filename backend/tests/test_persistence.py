@@ -318,10 +318,21 @@ def test_personal_context_is_private_persistent_and_opt_in():
     assert alice.get("/api/context").status_code == 401
 
 
+def empty_dashboard(client):
+    dashboard = client.get("/api/progress/dashboard").json()
+    patterns = dashboard.pop("patterns")
+    return (
+        dashboard == {"over": 0, "under": 0, "series": []}
+        and patterns["confirmed_choices"] == 0
+        and patterns["over_provisioning"]["status"] == "insufficient_history"
+        and patterns["under_provisioning"]["status"] == "insufficient_history"
+    )
+
+
 def test_dashboard_chart_and_capacity_counts_are_real():
     client = TestClient(create_app(Settings(_env_file=None)))
     account(client)
-    assert client.get("/api/progress/dashboard").json() == {"over": 0, "under": 0, "series": []}
+    assert empty_dashboard(client)
     for index in range(7):
         result = client.post("/api/analyze", json={"task": f"Task {index}"}).json()
         candidates = [result["recommendation"], *result["alternatives"]]
@@ -339,7 +350,7 @@ def test_dashboard_chart_and_capacity_counts_are_real():
     assert dashboard["series"][-1]["rate"] == 100
     client.post("/api/auth/logout")
     account(client, "other@example.com")
-    assert client.get("/api/progress/dashboard").json() == {"over": 0, "under": 0, "series": []}
+    assert empty_dashboard(client)
 
 
 def test_schema_v1_migrates_without_losing_sessions(tmp_path):

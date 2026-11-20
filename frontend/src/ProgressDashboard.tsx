@@ -15,7 +15,15 @@ function gapText(gap: number | null | undefined) {
 }
 type Activity = {session_id:string;title:string;analyses:number;choices:number;created_at:string}
 
-type Dashboard = { over: number; under: number; series: Point[] }
+type Verdict = { status: 'detected' | 'not_detected' | 'insufficient_history'; count: number; share: number | null }
+type UsagePatterns = { confirmed_choices: number; min_choices: number; over_provisioning: Verdict; under_provisioning: Verdict }
+type Dashboard = { over: number; under: number; series: Point[]; patterns?: UsagePatterns }
+const verdictLabel = { detected: 'Pattern detected', not_detected: 'No pattern', insufficient_history: 'Too few choices' }
+// The backend decides the verdict (more than half of the confirmed choices); the page only words it.
+function verdictText(verdict: Verdict, all: UsagePatterns, text: string) {
+  const counted = `${verdict.count} of ${all.confirmed_choices} ${text}`
+  return verdict.status === 'insufficient_history' ? `${counted} At least ${all.min_choices} confirmed choices are needed to tell whether this is a pattern.` : counted
+}
 
 export function ProgressDashboard({ summary, onHistory, onExport, onDeleteAll, busy, onReviewPending, pendingContent }: { summary?: Summary; onHistory: () => void; onExport: () => void; onDeleteAll:()=>void; busy: boolean; onReviewPending:()=>void; pendingContent:ReactNode }) {
   const [data, setData] = useState<Dashboard>()
@@ -42,9 +50,9 @@ export function ProgressDashboard({ summary, onHistory, onExport, onDeleteAll, b
   const coordinates = points.map((point, i) => [points.length === 1 ? 450 : 20 + i * 860 / (points.length - 1), 200 - scoreOf(point) * 1.8])
   const line = coordinates.map(([x,y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(' ')
   const patterns = [
-    {title:'Over-provisioning', count:data?.over, text:'confirmed choices used a model that is more than the task needs.', insight:aiPatterns?.over_provisioning},
-    {title:'Under-provisioning', count:data?.under, text:'confirmed choices used a model that covers less than the recommendation.', insight:aiPatterns?.under_provisioning},
-    {title:'Inflated prompting', count:undefined, text:promptSamples?`Provisional review of ${promptSamples} opted-in conversation excerpts.`:'No opted-in text samples were available for this report.', insight:aiPatterns?.prompting},
+    {title:'Over-provisioning', count:data?.over, verdict:data?.patterns?.over_provisioning, text:'confirmed choices used a model that is more than the task needs.', insight:aiPatterns?.over_provisioning},
+    {title:'Under-provisioning', count:data?.under, verdict:data?.patterns?.under_provisioning, text:'confirmed choices used a model that covers less than the recommendation.', insight:aiPatterns?.under_provisioning},
+    {title:'Inflated prompting', count:undefined, verdict:undefined, text:promptSamples?`Provisional review of ${promptSamples} opted-in conversation excerpts.`:'No opted-in text samples were available for this report.', insight:aiPatterns?.prompting},
   ]
   return <>
     <div className="intro progress-intro"><div><p className="eyebrow">My progress</p><h1>Your judgement over time</h1><p>Understand your model choices and keep the context that helps personalise your experience.</p></div><div className="metric"><strong>{agreement}</strong><span>agreement score</span><em>{summary ? `${rate} exact matches · ${summary.matches}/${summary.choices} confirmed choices` : 'Loading your choices…'}</em><em>{summary ? gapText(summary.mean_gap) : ''}</em></div></div>
@@ -58,7 +66,7 @@ export function ProgressDashboard({ summary, onHistory, onExport, onDeleteAll, b
     {pending>0&&pendingContent}
     <div className="section-heading"><div><p className="eyebrow">Patterns</p><h2>What your choices reveal</h2></div><p>Based on {summary?.choices ?? 0} confirmed choices</p></div>
     <p className="insight-source" role="status">{coaching.saved ? `Groq-generated advice · up to 50 recent assessments · ${coaching.saved.stale ? 'Earlier guidance, update available' : new Date(coaching.saved.updated_at).toLocaleString()}` : coaching.waiting}</p>
-    <div className="pattern-grid">{patterns.map(pattern => <section className={`card pattern-card${coaching.saved?.stale ? ' insight-stale' : ''}`} key={pattern.title}><div className="pattern-top"><span className="pattern-icon" aria-hidden="true">✦</span><span className="pattern-status neutral">{pattern.title === 'Inflated prompting' ? promptStatus : pattern.count === undefined ? 'Loading…' : summary?.choices ? `${pattern.count} choices` : 'Not enough data'}</span></div><h3>{pattern.title}</h3><p>{pattern.title === 'Inflated prompting' ? pattern.text : pattern.count === undefined ? 'Loading saved choices…' : `${pattern.count} ${pattern.text}`}</p>{pattern.insight ? <><p className="pattern-ai-explanation"><span className="ai-caption">Groq insight</span>{pattern.insight.explanation}</p><div className="next-time"><strong>Next time try…</strong><span>{pattern.insight.action}</span></div></> : <p className="insight-placeholder">{coaching.waiting}</p>}</section>)}</div>
+    <div className="pattern-grid">{patterns.map(pattern => <section className={`card pattern-card${coaching.saved?.stale ? ' insight-stale' : ''}`} key={pattern.title}><div className="pattern-top"><span className="pattern-icon" aria-hidden="true">✦</span><span className={`pattern-status ${pattern.verdict?.status === 'detected' ? 'detected' : 'neutral'}`}>{pattern.title === 'Inflated prompting' ? promptStatus : pattern.count === undefined ? 'Loading…' : pattern.verdict ? verdictLabel[pattern.verdict.status] : summary?.choices ? `${pattern.count} choices` : 'Not enough data'}</span></div><h3>{pattern.title}</h3><p>{pattern.title === 'Inflated prompting' ? pattern.text : pattern.count === undefined ? 'Loading saved choices…' : pattern.verdict && data?.patterns ? verdictText(pattern.verdict, data.patterns, pattern.text) : `${pattern.count} ${pattern.text}`}</p>{!pattern.insight ? <p className="insight-placeholder">{coaching.waiting}</p> : pattern.insight.action ? <><p className="pattern-ai-explanation"><span className="ai-caption">Groq insight</span>{pattern.insight.explanation}</p><div className="next-time"><strong>Next time try…</strong><span>{pattern.insight.action}</span></div></> : <p className="insight-placeholder" data-no-suggestion="">No suggestion: this pattern does not show in your choices.</p>}</section>)}</div>
     <CoachingPanel coaching={coaching} analyses={summary?.analyses??0} />
     <div className="lower-grid">
       <section className="lessons"><div className="section-heading compact"><div><p className="eyebrow">Learning suggestions</p><h2>Build your model judgement</h2></div></div>

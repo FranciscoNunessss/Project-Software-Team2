@@ -16,7 +16,7 @@ from app.outcomes import outcome_summary
 from app.providers import ProviderFailure, structured_call
 from app.recommendation import candidate_gap
 
-COACHING_POLICY_VERSION = "progress-3"
+COACHING_POLICY_VERSION = "progress-5"
 
 
 class PatternAdvice(BaseModel):
@@ -67,6 +67,14 @@ TREND_SENTENCE = (
     "completeness_trend.verdict is computed by the backend: use it as the trend, never "
     "contradict it, and use completeness_trend.dimensions to say which dimensions the user "
     "now describes more or less often. "
+)
+PATTERN_SENTENCE = (
+    "usage_patterns is computed by the backend from confirmed choices only: for "
+    "over_provisioning and under_provisioning, status is detected (more than half of the "
+    "confirmed choices), not_detected, or insufficient_history (fewer than min_choices "
+    "confirmed choices). Use that status and never contradict it: describe a pattern only "
+    "when it is detected; when it is not_detected say no pattern shows in this sample; "
+    "when it is insufficient_history say there are too few confirmed choices to tell. "
 )
 # ADR-009 (decision S3): numeric size metrics from optional modules never unlock
 # prompting.status; only opted-in conversation_excerpts do (PR #12 rule, enforced below).
@@ -139,8 +147,41 @@ EDUCATOR_PROMPT_END = (
     "limitations briefly. Suggest concrete next actions grounded in counts, "
     "dimensions and choice patterns; never execute tasks. Respond in English."
 )
-EDUCATOR_PROMPT = EDUCATOR_PROMPT_START + TREND_SENTENCE + EDUCATOR_PROMPT_END
+EDUCATOR_PROMPT = EDUCATOR_PROMPT_START + TREND_SENTENCE + PATTERN_SENTENCE + EDUCATOR_PROMPT_END
 MIN_TREND_SESSIONS = 5
+MIN_PATTERN_CHOICES = 5
+
+
+def usage_patterns(gaps):
+    """Is the user over- or under-provisioning? Decided here, never by the language model.
+
+    ``gaps`` holds one choice gap per confirmed choice (above 0: more than the task needs,
+    below 0: covers less than the recommendation, 0: the recommendation). Pending choices
+    are not passed in. A pattern is detected when more than half of the confirmed choices
+    go that way; with fewer than MIN_PATTERN_CHOICES confirmed choices the sample is too
+    small to say either way. Numeric only, no task text.
+    """
+    total = len(gaps)
+
+    def verdict(count):
+        if total < MIN_PATTERN_CHOICES:
+            status = "insufficient_history"
+        else:
+            status = "detected" if count * 2 > total else "not_detected"
+        return {
+            "status": status,
+            "count": count,
+            "share": round(count / total, 2) if total else None,
+        }
+
+    return {
+        "confirmed_choices": total,
+        "min_choices": MIN_PATTERN_CHOICES,
+        "over_provisioning": verdict(sum(gap > 0 for gap in gaps)),
+        "under_provisioning": verdict(sum(gap < 0 for gap in gaps)),
+    }
+
+
 SERIES_LIMIT = 50
 
 # Optional modules register here; the core never imports them.
@@ -220,6 +261,7 @@ def educator_prompt(names=None):
     prompt = (
         EDUCATOR_PROMPT_START
         + TREND_SENTENCE
+        + PATTERN_SENTENCE
         + (SIZE_METRICS_SENTENCE if sizes else "")
         + EDUCATOR_PROMPT_END
     )
@@ -334,15 +376,66 @@ def learning_progress(store, user_id):
     }
 
 
-def snapshot(store, user_id):
+_PATTERN_WORDING = {
+    "over_provisioning": "used a model that is more than the task needs",
+    "under_provisioning": "used a model that covers less than the recommendation",
+}
+
+
+def apply_verdicts(report: dict, patterns: dict) -> dict:
+    """Keep the model's advice for a pattern only when that pattern is detected (AA-013).
+
+    The coaching model always writes an explanation and an action for over- and
+    under-provisioning, because its answer has a fixed shape. For a pattern the rule did not
+    detect, that text is advice about a habit the user does not have, so it is replaced here
+    by a plain statement of the counts with no action. Each of the two patterns also carries
+    the rule's ``status``. Prompting and the lessons are left as the model wrote them.
+    """
+    total = patterns["confirmed_choices"]
+    for name, wording in _PATTERN_WORDING.items():
+        verdict = patterns[name]
+        advice = report["patterns"][name]
+        advice["status"] = verdict["status"]
+        if verdict["status"] == "detected":
+            continue
+        if verdict["status"] == "insufficient_history":
+            advice["explanation"] = (
+                f"Too few confirmed choices to tell: {total} so far, "
+                f"at least {patterns['min_choices']} are needed."
+            )
+        else:
+            advice["explanation"] = (
+                f"No pattern: {verdict['count']} of {total} confirmed choices {wording}."
+            )
+        advice["action"] = None
+    return report
+
+
+def _recent_analyses(store, user_id):
+    """The sample every Educator figure is computed from: the 50 newest analyses."""
     with store.connect() as db:
-        rows = db.execute(
+        return db.execute(
             """SELECT a.id,a.result_json,d.candidate_id FROM analyses a
                JOIN sessions s ON s.id=a.session_id
                LEFT JOIN decisions d ON d.analysis_id=a.id WHERE s.user_id=%s
                ORDER BY a.created_at DESC,a.sequence_id DESC LIMIT 50""",
             (user_id,),
         ).fetchall()
+
+
+def recent_usage_patterns(store, user_id):
+    """The verdict My progress shows: same sample and rule as the coaching snapshot."""
+    gaps = []
+    for row in _recent_analyses(store, user_id):
+        result = json.loads(row["result_json"])
+        eligible = [result["recommendation"], *result["alternatives"]]
+        if any(item["id"] == row["candidate_id"] for item in eligible):
+            gaps.append(candidate_gap(result, row["candidate_id"]))
+    return usage_patterns(gaps)
+
+
+def snapshot(store, user_id):
+    rows = _recent_analyses(store, user_id)
     records = []
     for row in rows:
         result = json.loads(row["result_json"])
@@ -397,6 +490,8 @@ def snapshot(store, user_id):
         "sample_size": len(metadata),
         "sample_limit": 50,
         "metrics": metrics,
+        # Decided in Python so the model explains a verdict instead of inventing one.
+        "usage_patterns": usage_patterns([row["choice_gap"] for row in confirmed]),
         # The user's own feedback per task (ADR-014): counts only, never text.
         "task_outcomes": outcome_summary(store, user_id),
         "assessments": metadata,
@@ -525,7 +620,7 @@ def install_coaching(app, store, settings):
                     user_id,
                     fingerprint,
                     settings.groq_model,
-                    report.model_dump_json(),
+                    json.dumps(apply_verdicts(report.model_dump(), metadata["usage_patterns"])),
                     json.dumps(
                         {
                             "assessments": metadata["sample_size"],

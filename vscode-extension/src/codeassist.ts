@@ -33,6 +33,9 @@ export class CodeAssist {
     private readonly read: () => Picked = readSelection,
   ) {}
 
+  /** The last instruction, offered again when the question is reopened (APP-07). */
+  private last = ''
+
   private warn(text: string): void {
     void vscode.window.showWarningMessage(`AdaptAI: ${text}`)
   }
@@ -55,6 +58,7 @@ export class CodeAssist {
   }
 
   private async run(picked: Extract<Picked, { ok: true }>, instruction: string, signal: AbortSignal): Promise<SuggestResult> {
+    this.last = instruction
     const built = buildMessage('change', instruction, picked.ctx)
     if (!built.ok) {
       this.warn('that selection does not fit in one message. Select less code, then try again.')
@@ -81,7 +85,7 @@ export class CodeAssist {
   async suggestFromEditor(): Promise<void> {
     const picked = this.pick()
     if (!picked) return
-    const instruction = await vscode.window.showInputBox({ title: 'AdaptAI: suggest a change', prompt: 'What should change in the selected code?', placeHolder: 'Throw an error if id is empty', ignoreFocusOut: true })
+    const instruction = await vscode.window.showInputBox({ title: 'AdaptAI: suggest a change', prompt: 'What should change in the selected code?', placeHolder: 'Throw an error if id is empty', value: this.last || undefined, ignoreFocusOut: true })
     if (!instruction?.trim()) return
     await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'AdaptAI: asking for a change', cancellable: true }, (_progress, token) => {
       const abort = new AbortController()

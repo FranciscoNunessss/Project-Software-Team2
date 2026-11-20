@@ -43,12 +43,19 @@ export class InlineReview implements ReviewHost, vscode.CodeLensProvider {
     void vscode.window.showWarningMessage(`AdaptAI: ${text}`)
   }
 
+  /** A warning that nothing was changed because the code changed, with a button that opens the question again. */
+  private warnStale(text: string): void {
+    void Promise.resolve(vscode.window.showWarningMessage(`AdaptAI: ${text}`, 'Ask again')).then(choice => {
+      if (choice === 'Ask again') void vscode.commands.executeCommand('adaptai.suggestChange')
+    })
+  }
+
   /** Writes the proposal below the lines and marks both. `where` names the file and the text the lines had when the question was asked. */
   async show(first: number, last: number, proposed: string, where?: { uri?: vscode.Uri; original: string }): Promise<void> {
     const document = where?.uri ? vscode.workspace.textDocuments.find(item => item.uri.toString() === where.uri?.toString()) : vscode.window.activeTextEditor?.document
     if (!document) return this.warn('the file is not open any more, so nothing was changed.')
     const now = Array.from({ length: last - first + 1 }, (_, i) => (first + i < document.lineCount ? document.lineAt(first + i).text : '')).join('\n')
-    if (where && now !== where.original.replace(/\r\n/g, '\n')) return this.warn('the selected code changed while the model was answering, so nothing was changed. Ask again.')
+    if (where && now !== where.original.replace(/\r\n/g, '\n')) return this.warnStale('the selected code changed while the model was answering, so nothing was changed.')
     const review = await this.reviews.show(keyOf(document), this.adapt(document), first, last, proposed)
     if (!review) return this.warn('the change could not be written to the file.')
     this.refresh(document)
@@ -75,7 +82,7 @@ export class InlineReview implements ReviewHost, vscode.CodeLensProvider {
     this.refresh(document)
     // VS Code can draw the buttons late: ask once more a moment later so none is left behind.
     setTimeout(() => this.refresh(document), 150)
-    if (!done) this.warn('the code changed since the proposal, so nothing was done.')
+    if (!done) this.warnStale('the code changed since the proposal, so nothing was done.')
   }
 
   /** The marks, the buttons and the context key follow the state of the file. */

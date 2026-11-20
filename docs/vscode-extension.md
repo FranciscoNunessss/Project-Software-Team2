@@ -489,6 +489,8 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 
 **Review in place after Accept or Reject (APP-06).** After Accept or Reject the marks and the Accept and Reject buttons are gone at once, and a moment later again if VS Code redraws them late.
 
+**Code that changed (APP-07, release plan task E1).** A proposal is never applied to code that changed after it was asked for: if the selected lines changed while the model was answering, nothing is written; if they changed after the proposal was shown, Accept does nothing. Both say so with an **Ask again** button that opens the question again with the same instruction filled in. Lines outside the selection may change freely: only the selected lines are ever replaced.
+
 **Known limits.** The proposal is written into the file until it is accepted or rejected (APP-04 keeps it out of a save); with automatic saving after a delay it can be rejected while you read it. The tests use a stand-in for VS Code; checks 31 to 36 of the [acceptance run](vscode-extension-acceptance-codex.md) are the only proof in a real window. The change prompt has not been measured with a real model.
 
 ## Known limits today

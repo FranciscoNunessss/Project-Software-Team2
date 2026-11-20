@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-20T21:28:07.081Z",
+  "generatedAt": "2026-11-20T21:28:46.223Z",
   "date": "2026-11-20",
   "repo": "FranciscoNunessss/Project-Software-Team2",
   "branch": "develop",
@@ -72,8 +72,8 @@
       "supports": [
         "O1"
       ],
-      "progress": 0,
-      "status": "behind",
+      "progress": 100,
+      "status": "done",
       "keyResultIds": [
         "KR2.1",
         "KR2.2",
@@ -88,8 +88,8 @@
         "O2",
         "O3"
       ],
-      "progress": null,
-      "status": "no-data",
+      "progress": 63,
+      "status": "at-risk",
       "keyResultIds": [
         "KR3.1",
         "KR3.2",
@@ -103,7 +103,7 @@
       "objectiveId": "T1",
       "title": "At least 16 of 20 recommendations judged correct in a blind review by people outside the team",
       "type": "manual",
-      "owner": "PO",
+      "owner": "Ricardo Rodrigues",
       "proposed": false,
       "unit": "/20",
       "direction": "higher",
@@ -127,8 +127,8 @@
       "progress": null,
       "expected": 71.4,
       "status": "no-data",
-      "note": "Not measured. Labelled task set v1 (OI-8) closed on ClickUp on 1 Nov; evaluation protocol and the 2–3 outside reviewers not chosen yet.",
-      "updated": "2026-11-04",
+      "note": "Not measured: the 20-task set has no human labels and no outside reviewers yet. A team study gave 83% of levels right on 24 tasks (288 analyses, 15 Nov); it is not an outside review.",
+      "updated": "2026-11-18",
       "evidence": [
         {
           "kind": "link",
@@ -142,8 +142,8 @@
       "objectiveId": "T1",
       "title": "Following the recommendations costs at most half of always using the top tier",
       "type": "manual",
-      "owner": "AO",
-      "proposed": true,
+      "owner": "José Moura",
+      "proposed": false,
       "unit": "% of top-tier cost",
       "direction": "lower",
       "baseline": 100,
@@ -161,8 +161,8 @@
       "progress": null,
       "expected": 71.4,
       "status": "no-data",
-      "note": "Not measurable — the catalogue tiers are illustrative, with no real prices (AA-004).",
-      "updated": "2026-11-04",
+      "note": "Not measured. Measurable since ADR-014 (real, dated OpenRouter prices); ClickUp card \"KR1.2 · First measurement\".",
+      "updated": "2026-11-18",
       "evidence": []
     },
     {
@@ -170,7 +170,7 @@
       "objectiveId": "T1",
       "title": "A non-developer gets a first explained recommendation unaided, with no setup step",
       "type": "manual",
-      "owner": "PO",
+      "owner": "Ricardo Rodrigues",
       "proposed": false,
       "unit": "people",
       "direction": "higher",
@@ -194,8 +194,8 @@
       "progress": null,
       "expected": 71.4,
       "status": "no-data",
-      "note": "No usability session yet (AA-015, planned for week 10).",
-      "updated": "2026-11-04",
+      "note": "0 sessions. One session with a non-developer before the MVP review (card AA-015).",
+      "updated": "2026-11-18",
       "evidence": [
         {
           "kind": "link",
@@ -209,12 +209,12 @@
       "objectiveId": "T2",
       "title": "The three patterns are detected in simulated histories, with no detection in control histories",
       "type": "manual",
-      "owner": "AO",
+      "owner": "Francisco Velhinho",
       "proposed": false,
       "unit": "of 3 patterns",
       "direction": "higher",
       "baseline": 0,
-      "current": 0,
+      "current": 2,
       "target": 1,
       "dueMilestone": "MVP",
       "dueWeek": 11,
@@ -230,19 +230,25 @@
           "target": 3
         }
       ],
-      "progress": 0,
+      "progress": 100,
       "expected": 71.4,
-      "status": "behind",
-      "note": "0 of 3. AA-012 (over-provisioning) and the synthetic usage histories are in Backlog, unassigned.",
-      "updated": "2026-11-04",
-      "evidence": []
+      "status": "done",
+      "note": "2 of 3 in code (over- and under-provisioning), 0 of 7 control histories flagged (PR #60, in review, not on main); evaluation of the prompt sentence in PR #80. Inflated prompting has no rule.",
+      "updated": "2026-11-18",
+      "evidence": [
+        {
+          "kind": "link",
+          "title": "PR #60 — Educator pattern rule with synthetic histories",
+          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/60"
+        }
+      ]
     },
     {
       "id": "KR2.2",
       "objectiveId": "T2",
       "title": "For at least two simulated profiles, the user's own choice matches the recommended tier more often over time",
       "type": "manual",
-      "owner": "PO",
+      "owner": "Francisco Velhinho",
       "proposed": false,
       "unit": "profiles",
       "direction": "higher",
@@ -261,8 +267,8 @@
       "progress": null,
       "expected": 39.7,
       "status": "no-data",
-      "note": "Not measured on simulated profiles. My progress shows agreement on saved sessions (PR #12).",
-      "updated": "2026-11-04",
+      "note": "Not measured on simulated profiles. My progress computes agreement on saved sessions (PR #12, #25); run 2 profiles after #60 is released.",
+      "updated": "2026-11-18",
       "evidence": [
         {
           "kind": "link",
@@ -276,7 +282,7 @@
       "objectiveId": "T2",
       "title": "Every detected pattern produces a specific suggestion that the client judges specific rather than generic",
       "type": "manual",
-      "owner": "To assign",
+      "owner": "Ricardo Rodrigues",
       "proposed": false,
       "unit": "% of patterns built",
       "direction": "higher",
@@ -300,8 +306,8 @@
       "progress": null,
       "expected": 71.4,
       "status": "no-data",
-      "note": "Not started. AA-013 in Backlog, unassigned; KR owner still to assign (OI-9).",
-      "updated": "2026-11-04",
+      "note": "Not judged by the client. On 17 Nov the client asked for much better personal guidance (card \"Educator · Personalised guidance\").",
+      "updated": "2026-11-18",
       "evidence": []
     },
     {
@@ -309,12 +315,12 @@
       "objectiveId": "T3",
       "title": "Every significant AI-assisted contribution is disclosed where the Learning Agreement requires it",
       "type": "manual",
-      "owner": "AO",
+      "owner": "José Moura",
       "proposed": false,
       "unit": "% disclosed",
       "direction": "higher",
       "baseline": 0,
-      "current": null,
+      "current": 89,
       "target": 100,
       "dueMilestone": "Final Delivery",
       "dueWeek": 15,
@@ -325,24 +331,24 @@
           "target": 100
         }
       ],
-      "progress": null,
+      "progress": 89,
       "expected": 100,
-      "status": "no-data",
-      "note": "Weekly spot check not recorded yet. 47 of the 51 commits since 26 Oct carry an AI co-author trailer.",
-      "updated": "2026-11-04",
+      "status": "at-risk",
+      "note": "49 of 55 merged pull requests carry an AI co-author trailer in their commits (18 Nov); the other 6 not checked one by one.",
+      "updated": "2026-11-18",
       "evidence": []
     },
     {
       "id": "KR3.2",
       "objectiveId": "T3",
-      "title": "Every week ends with a recorded improvement-review outcome; every experiment reaches adopt/adapt/abandon within two weeks",
+      "title": "Each process change is tried and closed (adopted or dropped) within two weeks",
       "type": "manual",
-      "owner": "TL",
-      "proposed": true,
-      "unit": "% of weeks",
+      "owner": "Francisco Velhinho",
+      "proposed": false,
+      "unit": "% of changes",
       "direction": "higher",
       "baseline": 0,
-      "current": null,
+      "current": 100,
       "target": 100,
       "dueMilestone": "Final Delivery",
       "dueWeek": 15,
@@ -353,148 +359,40 @@
           "target": 100
         }
       ],
-      "progress": null,
+      "progress": 100,
       "expected": 100,
-      "status": "no-data",
-      "note": "Not recorded. No improvement-review outcome or PDSA entry found for weeks 7 and 8.",
-      "updated": "2026-11-04",
+      "status": "done",
+      "note": "Revised on 18 Nov (the one mid-semester revision). Original: \"Every week ends with a recorded improvement-review outcome; every experiment reaches adopt/adapt/abandon within two weeks\"; 0 of 4 weeks were recorded. Now: 1 of 1 change closed (PD-43); PD-44, PD-45, PD-47, PD-48 open since 18 Nov.",
+      "updated": "2026-11-18",
       "evidence": []
     },
     {
       "id": "KR3.3",
       "objectiveId": "T3",
-      "title": "Review changes requested per AI-assisted pull request fall by at least a third (weeks 7–8 → weeks 10–11)",
-      "type": "pr_reviews",
-      "owner": "CI/CD owner",
-      "proposed": true,
-      "unit": "% fewer changes requested",
+      "title": "At least 1 written review finding per AI-assisted pull request",
+      "type": "manual",
+      "owner": "José Moura",
+      "proposed": false,
+      "unit": "findings per pull request",
       "direction": "higher",
       "baseline": 0,
-      "current": null,
-      "target": 33.3,
-      "dueMilestone": "MVP",
-      "dueWeek": 11,
+      "current": 0,
+      "target": 1,
+      "dueMilestone": "Final Delivery",
+      "dueWeek": 15,
       "checkpoints": [
         {
-          "milestone": "MVP",
-          "week": 11,
-          "target": 33.3
+          "milestone": "Final Delivery",
+          "week": 15,
+          "target": 1
         }
       ],
-      "progress": null,
-      "expected": 52.4,
-      "status": "no-data",
-      "note": "Baseline 0 per PR (18 PRs). The baseline has 0 changes requested per pull request, so a reduction cannot be measured.",
-      "evidence": [
-        {
-          "kind": "pr",
-          "title": "#47 ADR-014 A7 to A12: model evaluation, public levels, assessor and chat roles, OpenRouter catalogue",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/47",
-          "meta": "baseline · week 8 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#43 ADR-014 feedback 1.1: Use this model, and the model actually used",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/43",
-          "meta": "baseline · week 8 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#42 Feature/chat dropdown responsive",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/42",
-          "meta": "baseline · week 8 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#37 ADR-014 phase 1: feedback per task and recommending a concrete model",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/37",
-          "meta": "baseline · week 8 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#36 Chat stack to develop: E2 streaming + E3/E4 chat screen (already reviewed in #32, #33)",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/36",
-          "meta": "baseline · week 8 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#35 OpenRouter and LM Studio providers, wired into the chat (ADR-012)",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/35",
-          "meta": "baseline · week 8 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#31 E1 · Optional chat module: chats, messages, settings, model tiers",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/31",
-          "meta": "baseline · week 8 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#30 E0 · ADR-011 Chat with in-line analysis (Proposed)",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/30",
-          "meta": "baseline · week 8 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#29 Prompt Coach: fix the five review findings from #18",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/29",
-          "meta": "baseline · week 8 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#28 Add OKR Pulse: OKR progress dashboard on GitHub Pages",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/28",
-          "meta": "baseline · week 8 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#26 Retry once when Groq rejects the model's JSON (json_validate_failed)",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/26",
-          "meta": "baseline · week 8 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#25 Learning progress: is the user describing tasks better over time?",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/25",
-          "meta": "baseline · week 8 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#24 Docs: README names the Prompt Coach; remove the stale readiness review",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/24",
-          "meta": "baseline · week 8 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#23 Fix check_llm.py: 401 since accounts were added",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/23",
-          "meta": "baseline · week 7 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#22 Agent/cu 869fnb1me graded recommendation",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/22",
-          "meta": "baseline · week 7 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#21 Graded recommendation + partial-credit agreement (CU-869fnb1me, CU-869fnb1mf, CU-869fnb1mg)",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/21",
-          "meta": "baseline · week 7 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#18 Shared analysis core and optional Prompt Coach (ADR-009)",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/18",
-          "meta": "baseline · week 7 · 0 changes requested"
-        },
-        {
-          "kind": "pr",
-          "title": "#7 Feature/user session persistence",
-          "url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/7",
-          "meta": "baseline · week 7 · 0 changes requested"
-        }
-      ]
+      "progress": 0,
+      "expected": 0,
+      "status": "on-track",
+      "note": "Revised on 18 Nov (the one mid-semester revision). Original: \"Review changes requested per AI-assisted pull request fall by at least a third (weeks 7–8 → weeks 10–11)\", measured with type pr_reviews; with 2 change requests in 81 pull requests there was nothing to fall. Now: 0 findings written by a person in 81 pull requests (18 Nov); PD-44 requires one per approval.",
+      "updated": "2026-11-18",
+      "evidence": []
     }
   ],
   "docs": [
@@ -507,7 +405,7 @@
         "checked": 0
       },
       "completion": 100,
-      "lastModified": "2026-11-20T21:24:32Z",
+      "lastModified": "2026-11-20T21:28:24Z",
       "stale": false
     },
     {
@@ -519,7 +417,7 @@
         "checked": 0
       },
       "completion": 100,
-      "lastModified": "2026-11-11T21:47:34Z",
+      "lastModified": "2026-11-20T21:28:24Z",
       "stale": false
     },
     {

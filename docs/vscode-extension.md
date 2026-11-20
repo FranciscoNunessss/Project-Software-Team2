@@ -439,15 +439,14 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 | CHG-04 | Blank lines at the start and the end of the selection are kept in the proposal. Nothing outside the selected lines changes. |
 | CHG-05 | A request that does not fit in 8000 characters is refused, never cut. |
 
-**Accept or reject in place (APP).** Like the inline suggestion of other editors, with our own model.
+**Review the change in the VS Code diff (APP).** The proposal opens in the editor's own diff view and nothing is written to the file until it is accepted (release plan task E1).
 
 | Id | Requirement |
 |---|---|
-| APP-01 | The proposal appears where the selection is: the original lines marked as removed, the proposed lines right below marked as added, and **Accept** and **Reject** above them. |
-| APP-02 | Accept keeps the proposed lines and removes the original ones. Reject removes the proposed lines. In both the marks and the buttons go away. |
-| APP-03 | Only the selected lines are replaced. A change above the proposal moves it along; a change inside it ends the review, keeps the text as it is and says so. |
-| APP-04 | Saving the file with a proposal pending rejects it first, so a file is never saved with both versions. A second proposal in the same file rejects the first. |
-| APP-05 | Ctrl+Z after Accept undoes the Accept; another Ctrl+Z removes the proposal. |
+| APP-01 | The proposal opens in a VS Code diff: the file as it is on the left, the same file with the proposed lines in place of the selected ones on the right. The file is not touched. The diff's title bar has **Accept** and **Reject**, and the commands are in the Command Palette while a proposal waits. |
+| APP-02 | Accept replaces the selected lines with the proposed ones in one single edit: one Ctrl+Z puts the file back as it was. It closes the diff and the file is not saved by it. Reject closes the diff and changes nothing. In both the buttons go away. |
+| APP-03 | Only the selected lines are replaced. Lines outside them may change while the diff is open without harm. If the selected lines themselves changed after the proposal was made, Accept does nothing and says so (APP-07). |
+| APP-04 | A second proposal in the same file replaces the first one. A proposal whose file is closed is forgotten. Accept or Reject with nothing waiting say so and change nothing. |
 
 **The chat page (UI).**
 
@@ -463,7 +462,7 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 
 | Id | Requirement |
 |---|---|
-| BTN-01 | **Suggest a change** uses what is written in the box as the instruction and the code selected in the editor. It is never greyed out: with an empty box or nothing selected, a click says what is missing next to the box. It sits with Analyse and Send as a button of the same weight. It does not need the Selection button. The proposal then appears in the editor as in APP-01. |
+| BTN-01 | **Suggest a change** uses what is written in the box as the instruction and the code selected in the editor. It is never greyed out: with an empty box or nothing selected, a click says what is missing next to the box. It sits with Analyse and Send as a button of the same weight. It does not need the Selection button. The proposal then opens in the diff as in APP-01. |
 | BTN-02 | **Improve prompt**, next to Analyse and Send, opens the Prompt Coach on the text in the box, the same as the ✦ button, which stays. |
 | BTN-03 | With Selection On, Send analyses the selected code (SEL-02). There is no separate Analyse-the-selection button in the chat. |
 | BTN-04 | Both buttons fit at every width of UI-03, wrapping onto a second line when they must. |
@@ -495,7 +494,6 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 
 **Decisions.** The backend takes only text in `content`, so the code travels inside the message, written by the extension; the page and the loaded history hide it behind the caption. The change request is a message in the current chat, so it also appears in the chat list. The default backend address is unchanged. Left out on purpose: the VS Code chat, `/` commands, a side by side comparison, a key binding and a refusal of files by name.
 
-**Review in place after Accept or Reject (APP-06).** After Accept or Reject the marks and the Accept and Reject buttons are gone at once, and a moment later again if VS Code redraws them late.
 
 **Code that changed (APP-07, release plan task E1).** A proposal is never applied to code that changed after it was asked for: if the selected lines changed while the model was answering, nothing is written; if they changed after the proposal was shown, Accept does nothing. Both say so with an **Ask again** button that opens the question again with the same instruction filled in. Lines outside the selection may change freely: only the selected lines are ever replaced.
 
@@ -507,7 +505,7 @@ ADAPTAI_URL=http://127.0.0.1:8033 ADAPTAI_TOKEN=adaptai_pat_... ADAPTAI_MODELS=<
 
 `ADAPTAI_MODELS` are ids from `/api/llm-options`. The offline test `edit-samples.test.js` checks that every sample's reference answer is usable and passes its check, and that the original does not.
 
-**Known limits.** The proposal is written into the file until it is accepted or rejected (APP-04 keeps it out of a save); with automatic saving after a delay it can be rejected while you read it. The tests use a stand-in for VS Code; checks 31 to 36 of the [acceptance run](vscode-extension-acceptance-codex.md) are the only proof in a real window. The change prompt has not been measured with a real model.
+**Known limits.** The diff shows only the file as it was when the proposal was made; if lines outside the selection change meanwhile, Accept still replaces only the selected lines. The tests use a stand-in for VS Code; checks 31 to 36 of the [acceptance run](vscode-extension-acceptance-codex.md) are the only proof in a real window. The change prompt has not been measured with a real model.
 
 ## Known limits today
 

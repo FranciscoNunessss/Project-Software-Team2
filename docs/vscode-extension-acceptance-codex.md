@@ -119,10 +119,10 @@ Same set-up as above (backend on port 8033, LM Studio model, throw-away account,
 |---|---|---|
 | 31 | Select three lines of code. In the chat press **Selection: Off** once, write `Explain this` and press **Send** | The button reads `Selection: On · file · lines`. Your message shows only `Explain this` with a line `path · lines` that opens to show the code. The answer is about that code |
 | 32 | Click in the file so nothing is selected, keep **Selection: On**, write `Explain this` and press **Send** | Nothing is sent; under the box it says to select some code or switch Selection off |
-| 33 | Select a whole function. Right click > **AdaptAI: Suggest a change to the selection**. In the box at the top write `Throw an error if the first argument is empty` | After a few seconds the function lines are shaded red, the new lines are shaded green right below them, and **AdaptAI: Accept** and **Reject** appear above. The tab shows the file as changed but not saved |
-| 34 | Click **Accept** | The red lines are gone, the green ones stay as normal code, the shading and the buttons are gone. Ctrl+Z brings back both versions, a second Ctrl+Z the original |
-| 35 | Ask for a change again and click **Reject** | The green lines disappear and the file is exactly as before |
-| 36 | Ask for a change again and press Ctrl+S before choosing | A message says the proposal was rejected before saving; the file on disk has only the original code |
+| 33 | Select a whole function. Right click > **AdaptAI: Suggest a change to the selection**. In the box at the top write `Throw an error if the first argument is empty` | After a few seconds a VS Code diff opens (the file on the left, the file with the change on the right) with **Accept** and **Reject** in its tab bar. The file tab shows no unsaved changes |
+| 34 | Click **Accept** | The diff closes and the function lines are replaced; the tab shows unsaved changes. One Ctrl+Z brings back the original |
+| 35 | Ask for a change again and click **Reject** | The diff closes and the file is exactly as before |
+| 36 | Ask for a change again and press Ctrl+S in the real file before choosing | The file is saved as it was (only the original code on disk); the diff is still open |
 
 ## Clean up
 

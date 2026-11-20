@@ -245,6 +245,16 @@
           "command": "adaptai.dismissImprovement",
           "when": "adaptai.improving && isInDiffEditor",
           "group": "navigation@2"
+        },
+        {
+          "command": "adaptai.acceptChange",
+          "when": "adaptai.reviewing && isInDiffEditor && resourceScheme == adaptai-change",
+          "group": "navigation@1"
+        },
+        {
+          "command": "adaptai.rejectChange",
+          "when": "adaptai.reviewing && isInDiffEditor && resourceScheme == adaptai-change",
+          "group": "navigation@2"
         }
       ],
       "editor/context": [

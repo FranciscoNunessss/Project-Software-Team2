@@ -3,9 +3,9 @@ import * as vscode from 'vscode'
 import { ANALYSIS_SCHEME, Analyser, DIFF_SCHEME, explain } from './analyse'
 import { ApiError, Backend } from './backend'
 import { ChatService, registerParticipant } from './chat'
+import { ChangeDiff, CHANGE_SCHEME } from './changediff'
 import { CodeAssist } from './codeassist'
 import { Dashboard } from './dashboard'
-import { InlineReview } from './inline'
 import { PROGRESS_SCHEME, ProgressReport } from './profile'
 import { RelayAgent, RelayStatus } from './relay'
 import { StatusBar } from './statusbar'
@@ -18,8 +18,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const chat = new ChatService(backend, analyser, context.workspaceState)
   const progress = new ProgressReport(backend)
   const relay = new RelayAgent(backend)
-  const inline = new InlineReview()
-  const assist = new CodeAssist(chat, inline)
+  const changes = new ChangeDiff()
+  const assist = new CodeAssist(chat, changes)
   const dashboard = new Dashboard(backend, analyser, chat, progress, relay, assist)
   let diagnosticsOutput: vscode.LogOutputChannel | undefined
   context.subscriptions.push(
@@ -108,12 +108,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('adaptai.taskOutcome', (id?: string) => analyser.taskOutcome(id)),
     vscode.commands.registerCommand('adaptai.useModel', (id?: string) => analyser.useModel(id)),
     vscode.commands.registerCommand('adaptai.coachResult', (id?: string) => analyser.coachResult(id)),
-    ...inline.register(),
+    ...changes.register(),
+    vscode.workspace.registerTextDocumentContentProvider(CHANGE_SCHEME, changes),
     vscode.window.onDidChangeTextEditorSelection(() => dashboard.postSelection()),
     vscode.window.onDidChangeActiveTextEditor(() => dashboard.postSelection()),
     vscode.commands.registerCommand('adaptai.suggestChange', () => assist.suggestFromEditor()),
-    vscode.commands.registerCommand('adaptai.acceptChange', () => inline.accept()),
-    vscode.commands.registerCommand('adaptai.rejectChange', () => inline.reject()),
+    vscode.commands.registerCommand('adaptai.acceptChange', () => changes.accept()),
+    vscode.commands.registerCommand('adaptai.rejectChange', () => changes.reject()),
     vscode.commands.registerCommand('adaptai.openProgress', () => progress.open()),
     vscode.commands.registerCommand('adaptai.chatOpenView', () => vscode.commands.executeCommand('workbench.action.chat.open', { query: '@adaptai ', isPartialQuery: true })),
     vscode.commands.registerCommand('adaptai.chatSendText', (text: string) => vscode.commands.executeCommand('workbench.action.chat.open', { query: `@adaptai ${text}` })),

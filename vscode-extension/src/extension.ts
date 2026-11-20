@@ -178,6 +178,32 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         await vscode.commands.executeCommand('adaptai.rejectChange')
         await new Promise(resolve => setTimeout(resolve, 400))
         report?.({ step: 'diff: Reject changes nothing and closes the diff', ok: document.getText() === original && !vscode.window.tabGroups.all.some(group => group.tabs.some(item => (item.input as { modified?: vscode.Uri })?.modified?.scheme === CHANGE_SCHEME)), detail: JSON.stringify(document.getText()) })
+        if (token && process.env.ADAPTAI_SELFTEST_E2E) {
+          // The whole path: selected code and an instruction go through the backend to the chat model, then the diff.
+          const options = await backend.api<{ options: { id: string; provider: string }[] }>('/api/llm-options')
+          const wanted = options.options.find(option => option.provider === 'lmstudio')
+          await vscode.workspace.getConfiguration('adaptai').update('chatModel', wanted?.id ?? '', vscode.ConfigurationTarget.Global)
+          const source = ['export function load(id) {', '  return db.find(id)', '}']
+          const target = `${process.env.TEMP ?? process.env.TMPDIR ?? '.'}/adaptai-selftest-e2e.ts`
+          fs.writeFileSync(target, source.join('\n') + '\n')
+          const e2e = await vscode.workspace.openTextDocument(vscode.Uri.file(target))
+          const shown = await vscode.window.showTextDocument(e2e)
+          shown.selection = new vscode.Selection(0, 0, 2, 1)
+          const started = Date.now()
+          const outcome = await assist.suggest('Throw an error if id is empty')
+          report?.({ step: 'e2e: the model answered and a proposal was made', ok: outcome.ok, detail: `${JSON.stringify(outcome)} in ${Math.round((Date.now() - started) / 1000)}s, model ${wanted?.id}` })
+          if (outcome.ok) {
+            await new Promise(resolve => setTimeout(resolve, 600))
+            const modified = (vscode.window.tabGroups.activeTabGroup.activeTab?.input as { modified?: vscode.Uri } | undefined)?.modified
+            report?.({ step: 'e2e: the diff is open and the file untouched', ok: modified?.scheme === CHANGE_SCHEME && e2e.getText() === source.join('\n') + '\n', detail: String(modified) })
+            await vscode.commands.executeCommand('adaptai.acceptChange')
+            await new Promise(resolve => setTimeout(resolve, 600))
+            report?.({ step: 'e2e: Accept applied the model change', ok: e2e.isDirty && /throw/i.test(e2e.getText()), detail: JSON.stringify(e2e.getText()) })
+            await vscode.window.showTextDocument(e2e)
+            await vscode.commands.executeCommand('undo')
+            report?.({ step: 'e2e: one undo restores', ok: e2e.getText() === source.join('\n') + '\n', detail: JSON.stringify(e2e.getText()) })
+          }
+        }
       } catch (error) {
         report?.({ step: 'diff: threw', ok: false, detail: String(error) })
       }

@@ -97,3 +97,14 @@ pull request that makes it, so the team reviews the number it will be held to.
 5. The recommendation is Python and deterministic; this eval measures the profile (the assessor).
    A second eval of the recommendation against labelled "right model" answers needs the same
    labelled set and is not built here.
+
+## The three suites
+
+| Suite | `--suite` | What it measures | What it does NOT cover |
+|---|---|---|---|
+| profile | `profile` (default) | Agreement of the profile levels with one reader's expected levels (`tasks-1.json`) | Whether the recommendation is right (KR1.1) |
+| injection | `injection` | Whether an instruction hidden in the task changes the levels (compared with the levels the task gets without it) | Whether the **analysis text** repeats or obeys the instruction: only the levels are checked |
+| pairs | `pairs` | Assessor sensitivity: the complete version of an intent should score as more complete than the vague one | **M7.** 05 section 7.7 defines M7 as the **Prompt Coach** measure (apply its suggestions, analyse again). This suite does not close that card |
+
+All three sets are one reader's draft labels (status DRAFT). The CI workflow runs the profile suite on
+a pull request; injection and pairs run by hand, or from the manual workflow input `suite`.

@@ -2,6 +2,8 @@
 
     # A relevant subset (what CI runs on a pull request that touches prompts or the catalogue):
     python scripts/run_quality_eval.py run --provider P --model M --subset
+    # Other suites: --suite injection (orders aimed at the assessor), --suite pairs (the
+    # assessor's sensitivity to completeness; NOT M7).
     # The full set, 3 repeats (before a milestone), and make this run the new baseline:
     python scripts/run_quality_eval.py run --provider P --model M --repeats 3 --update-baseline
     # Compare a saved report with the baseline again:
@@ -27,12 +29,20 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 from app import quality_eval as qe  # noqa: E402
-from app.assessment import PROFILE_VERSION, RUBRIC_VERSION  # noqa: E402
+from app.assessment import PROFILE_VERSION, RUBRIC_VERSION, completeness  # noqa: E402
 from app.providers import LangChainProvider, ProviderFailure, Settings  # noqa: E402
 from app.recommendation import POLICY_VERSION  # noqa: E402
 
 QUALITY = ROOT / "backend/eval/quality"
-TASKS = QUALITY / "tasks-1.json"
+# The suites: the profile of ordinary tasks, tasks that carry an instruction aimed at the assessor
+# (injection), and pairs of a vague and a complete version of one intent. The pairs suite measures
+# the ASSESSOR (the complete version should score higher), not the Prompt Coach: 05 section 7.7
+# defines M7 as the Coach measure.
+SUITES = {
+    "profile": QUALITY / "tasks-1.json",
+    "injection": QUALITY / "injection-1.json",
+    "pairs": QUALITY / "pairs-1.json",
+}
 BASELINES = QUALITY / "baselines"
 REPORTS = QUALITY / "reports"
 ACCEPTED = QUALITY / "accepted.json"
@@ -77,6 +87,7 @@ async def analyse(provider: LangChainProvider, text: str) -> tuple[dict, float]:
         return {"error": str(failure)}, time.monotonic() - started
     profile = assessment.profile
     row = {
+        "completeness": completeness(profile, False),
         "levels": {name: getattr(profile, name).score for name in qe.DIMENSIONS},
         "confidence": {name: getattr(profile, name).confidence for name in qe.DIMENSIONS},
     }
@@ -87,14 +98,19 @@ async def analyse(provider: LangChainProvider, text: str) -> tuple[dict, float]:
 
 def summary(report: dict, result: dict) -> str:
     metrics = report["metrics"]["overall"]
+    suite = report.get("suite", "profile")
+    what, unit = {
+        "profile": ("Agreement with the expected levels", "cells"),
+        "injection": ("Levels the task would get without the injected instruction", "cells"),
+        "pairs": ("Pairs in which the complete version scored higher", "pairs"),
+    }[suite]
     lines = [
-        f"## Quality evaluation: {result['verdict'].upper().replace('_', ' ')}",
+        f"## Quality evaluation ({suite}): {result['verdict'].upper().replace('_', ' ')}",
         "",
         f"Model `{report['model']}`, rubric `{report['rubric']}`, "
         f"task set {report['task_set']} ({report['mode']}), commit `{report['commit'][:8]}`.",
         "",
-        f"Agreement with the expected levels: **{metrics['agreement']}%** "
-        f"over {metrics['n']} cells; "
+        f"{what}: **{metrics['agreement']}%** over {metrics['n']} {unit}; "
         f"{report['metrics']['failed']} of {report['metrics']['analyses']} analyses failed.",
     ]
     if "before" in result:
@@ -133,16 +149,35 @@ def finish(report: dict, result: dict) -> int:
     return 1 if result["verdict"] == qe.REGRESSION else 0
 
 
+def baseline_file(provider: str, model: str, suite: str) -> Path:
+    """The profile suite keeps its original file name; the others carry the suite in it."""
+    suffix = "" if suite == "profile" else f".{suite}"
+    return BASELINES / f"{slug(provider, model)}{suffix}.json"
+
+
+def jobs_of(document: dict, suite: str, subset: bool) -> list[tuple[str, str, str | None]]:
+    """What to analyse: (id, text, variant). Pairs make two analyses each."""
+    if suite == "pairs":
+        pairs = [pair for pair in document["pairs"] if pair["subset"] or not subset]
+        return [(p["id"], p[v], v) for p in pairs for v in ("vague", "complete")]
+    return [(t["id"], t["task"], None) for t in document["tasks"] if t["subset"] or not subset]
+
+
 def run(args) -> int:
-    document = json.loads(TASKS.read_text(encoding="utf-8"))
-    tasks = [task for task in document["tasks"] if task["subset"] or not args.subset]
-    expected = {task["id"]: task["expected"] for task in tasks}
+    document = json.loads(SUITES[args.suite].read_text(encoding="utf-8"))
+    jobs = jobs_of(document, args.suite, args.subset)
+    expected = (
+        {}
+        if args.suite == "pairs"
+        else {t["id"]: t["expected"] for t in document["tasks"] if t["subset"] or not args.subset}
+    )
     settings = Settings().model_copy(update={f"{args.provider}_model": args.model})
     base = {
         "date": datetime.now(UTC).isoformat(timespec="seconds"),
         "commit": git("rev-parse", "HEAD"),
         "provider": args.provider,
         "model": args.model,
+        "suite": args.suite,
         "task_set": document["version"],
         "mode": "subset" if args.subset else "full",
         "repeats": args.repeats,
@@ -157,27 +192,33 @@ def run(args) -> int:
 
         async def everything():
             for repeat in range(args.repeats):
-                for task in tasks:
-                    row, seconds = await analyse(provider, task["task"])
+                for name, text, variant in jobs:
+                    row, seconds = await analyse(provider, text)
+                    extra = {"variant": variant} if variant else {}
                     rows.append(
-                        {"task": task["id"], "repeat": repeat, "seconds": round(seconds, 1), **row}
+                        {
+                            "task": name,
+                            "repeat": repeat,
+                            "seconds": round(seconds, 1),
+                            **extra,
+                            **row,
+                        }
                     )
-                    print(
-                        f"{task['id']} #{repeat}: {row.get('error', 'ok')} {seconds:.1f}s",
-                        flush=True,
-                    )
+                    label = f"{name} {variant or ''} #{repeat}".replace("  ", " ")
+                    print(f"{label}: {row.get('error', 'ok')} {seconds:.1f}s", flush=True)
                     await asyncio.sleep(args.pause)
 
         asyncio.run(everything())
     else:
         print(f"No key for {args.provider}: the evaluation cannot run.")
-    metrics = qe.score(rows, expected)
+    metrics = qe.score_pairs(rows) if args.suite == "pairs" else qe.score(rows, expected)
     report = {**base, "metrics": metrics, "status": qe.run_status(metrics), "rows": rows}
     REPORTS.mkdir(parents=True, exist_ok=True)
-    out = REPORTS / f"{slug(args.provider, args.model)}-{base['mode']}-{base['date'][:10]}.json"
+    stem = f"{slug(args.provider, args.model)}-{args.suite}-{base['mode']}-{base['date'][:10]}"
+    out = REPORTS / f"{stem}.json"
     out.write_text(json.dumps(report, indent=1), encoding="utf-8")
     print(f"wrote {out.relative_to(ROOT)}")
-    baseline_path = BASELINES / f"{slug(args.provider, args.model)}.json"
+    baseline_path = baseline_file(args.provider, args.model, args.suite)
     result = decide(report, baseline_path, ACCEPTED)
     if args.update_baseline and report["status"] == qe.PASS and base["mode"] == "full":
         BASELINES.mkdir(parents=True, exist_ok=True)
@@ -192,7 +233,9 @@ def run(args) -> int:
 
 def compare(args) -> int:
     report = json.loads(Path(args.report).read_text(encoding="utf-8"))
-    baseline_path = BASELINES / f"{slug(report['provider'], report['model'])}.json"
+    baseline_path = baseline_file(
+        report["provider"], report["model"], report.get("suite", "profile")
+    )
     return finish(report, decide(report, baseline_path, ACCEPTED))
 
 
@@ -202,6 +245,7 @@ def main() -> int:
     runner = sub.add_parser("run")
     runner.add_argument("--provider", required=True)
     runner.add_argument("--model", required=True)
+    runner.add_argument("--suite", choices=sorted(SUITES), default="profile")
     runner.add_argument("--subset", action="store_true")
     runner.add_argument("--repeats", type=int, default=1)
     runner.add_argument(

@@ -7,7 +7,7 @@ import { AnalysisChanges } from './AnalysisChanges'
 import { ProgressScreen } from './Progress'
 import { ProfileScreen } from './Profile'
 import { LLMConfigScreen } from './LLMConfig'
-import { PrivacyPolicy } from './PrivacyPolicy'
+import { PrivacyPolicy, PublicPrivacyPage, isPrivacyAddress } from './PrivacyPolicy'
 import { ModelPicker } from './ModelPicker'
 import { OpenRouterModelPicker } from './OpenRouterModelPicker'
 import { TipsCard } from './TipsCard'
@@ -294,6 +294,7 @@ export default function App() {
       return next
     })
   }
+  if (isPrivacyAddress()) return <div className={dark ? 'app theme-dark' : 'app'}><PublicPrivacyPage dark={dark} onToggleTheme={toggleTheme} /></div>
   return (
     <div className={dark ? 'app theme-dark' : 'app'}>
       <Account dark={dark} onToggleTheme={toggleTheme}>

@@ -1,0 +1,8 @@
+/* Acceptance screen shown before the app opens (new account or new policy version) */
+.consent-shell { max-width: 820px; margin: 0 auto; padding: 32px 20px 56px; }
+.consent-card { padding: 28px 32px; display: grid; gap: 14px; }
+.consent-card h1 { margin: 0; }
+.consent-scroll { max-height: 320px; overflow: auto; border: 1px solid var(--color-border, currentColor); border-radius: var(--radius-md, 8px); padding: 4px 16px; }
+.consent-check { display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; }
+.consent-check input { margin-top: 4px; }
+@media (max-width: 640px) { .consent-card { padding: 18px 16px; } }

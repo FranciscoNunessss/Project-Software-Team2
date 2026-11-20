@@ -7,3 +7,4 @@
 .privacy-policy .chat-markdown h2 { font-size: 18px; margin: 26px 0 8px; }
 .auth-policy-link { border: 0; background: none; padding: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
 @media (max-width: 640px) { .privacy-policy { padding: 18px 16px; } }
+.privacy-embedded { padding: 0; line-height: 1.6; } .privacy-embedded .chat-markdown h1 { display: none; }

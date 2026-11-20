@@ -1,20 +1,18 @@
 # Privacy Policy
 
-**AdaptAI · Version 0.2 (draft for team review) · Last updated: 11 November 2026**
-
-> **Status: draft.** This policy describes how AdaptAI handles personal data in its current implementation. It has not yet been approved by the Architecture Owner and the Product Owner. Items marked **[TO CONFIRM]** require a team decision before the policy is published. This document is informational and does not constitute legal advice.
+**AdaptAI · Version 1.0 · Last updated: 17 November 2026**
 
 ## 1. Introduction
 
-AdaptAI is a student software project (Software Project 2026/27, Team 2) that recommends a suitable AI model for a given task, lets you run that task in a chat, and helps you build better prompting and model-selection habits over time.
+AdaptAI is a student software project (Software Project 2026/27, Team 2, ISEC, Portugal) that recommends a suitable AI model for a given task, lets you run that task in a chat, and helps you build better prompting and model-selection habits over time.
 
 This policy explains what personal data AdaptAI processes, why, who receives it, how long it is kept, and how you can exercise your rights under the General Data Protection Regulation (EU) 2016/679 ("GDPR"). We have written it to be read by users, not only by lawyers.
 
 ## 2. Data controller and contact
 
-- **Controller:** the AdaptAI Team 2 project team **[TO CONFIRM: legal entity or institution responsible for the service]**.
-- **Privacy contact:** **[TO CONFIRM: team email address for privacy requests]**.
-- **Data protection officer:** none appointed **[TO CONFIRM]**.
+- **Controller:** the AdaptAI Team 2 project team, ISEC, Portugal.
+- **Privacy contact:** [maximcapinus@gmail.com](mailto:maximcapinus@gmail.com). Please write to this address for any request or question about your personal data.
+- **Data protection officer:** none has been appointed, because AdaptAI does not carry out the large-scale or systematic monitoring that requires one. The privacy contact answers data protection questions.
 
 ## 3. Summary
 
@@ -23,7 +21,7 @@ This policy explains what personal data AdaptAI processes, why, who receives it,
 - **Data leaves the service only on request.** Your task or chat text is sent to a model provider only when you press **Analyse** or **Send**, and only to the provider you selected.
 - **No selling, no advertising, no tracking.** We do not sell personal data, display advertising, or use analytics or advertising trackers.
 - **No model training.** We do not use your data to train any AI model.
-- **Your rights are available in the app.** You can export your data and delete most of it yourself (see section 9).
+- **Your rights are available in the app.** You can export your data, delete most of it, or delete your whole account yourself (see section 9).
 
 ## 4. Personal data we process
 
@@ -31,6 +29,7 @@ This policy explains what personal data AdaptAI processes, why, who receives it,
 | --- | --- | --- |
 | Email address and password | You create an account | To authenticate you. Passwords are stored only as a salted hash (local accounts) or are managed by Supabase Auth (cloud accounts). |
 | Sign-in session | You sign in | To keep you signed in (see section 8). |
+| Policy acceptance: the version you accepted and the time | You accept this policy | To be able to show that you were informed and, where consent is needed, that you gave it. |
 | Complexity scores, recommended model, chosen model, completeness, timestamps and opaque session labels | Each analysis | To show your progress and compare your choices with the recommendations. |
 | Task feedback: verdict (resolved, resolved with refinement, not resolved, skipped), optional reason from a fixed list, model identifiers, and numeric levels and counts of answers, retries and stops | You give feedback on a task | To improve recommendations and your learning dashboard. This record contains no free text. |
 | Learned memory: derived profile values and tier choices | Only if **Save memory** is on | To personalise later recommendations. |
@@ -38,6 +37,7 @@ This policy explains what personal data AdaptAI processes, why, who receives it,
 | Task text, extra context and the AI's full assessment response | Only if **Save task text and AI responses** is on | To let you review them and, if **Use memory** is also on, to reuse up to five short excerpts. |
 | Chat messages and model answers | While the chat exists | A chat cannot display its history otherwise. Deleting the chat deletes these messages. |
 | Model configurations and provider API keys | You add them in LLM config | To call the provider you chose. Keys are stored encrypted. |
+| Personal API tokens (stored only as a hash) | You create one in Profile | To let tools such as the VS Code extension sign in as you. You can revoke a token at any time. |
 | Prompt Coach setting | One on/off value | To remember whether you want the Prompt Coach. |
 
 Please do not enter passwords, API keys, health data, financial data or other sensitive personal data in tasks, chats or preferences.
@@ -51,9 +51,17 @@ Your task or chat text is sent to a model provider only when you press **Analyse
 - **Local models (Ollama, LM Studio).** Processing takes place on the machine that runs the backend. Nothing is sent to a third-party service.
 - **Prompt Coach.** If you switch it on and request tips, the task text you are editing is sent to the same provider as your analysis. Nothing the Prompt Coach receives or returns is stored or logged.
 
-**Infrastructure providers (processors)** that host or process data on our behalf **[TO CONFIRM: final hosting choices]**: Supabase (authentication and PostgreSQL database), Render (backend) and Netlify (frontend). We prefer EU regions. In a local installation, everything runs on the machine operated by you or by the team.
+**Infrastructure providers (processors)** that host or process data on our behalf in the hosted service:
 
-Some model providers are located outside the European Economic Area. Where you send data to such a provider, the transfer is made at your request and is subject to that provider's safeguards. We do not control how model providers retain or use data, so please choose your provider accordingly.
+| Provider | Role | Location |
+| --- | --- | --- |
+| Supabase | Sign-in and the PostgreSQL database | European Union (West Europe, Ireland) |
+| Render | Backend | European Union (Frankfurt, Germany) |
+| Netlify | Frontend (static files only; it does not receive your account data) | Global content delivery network |
+
+In a local installation, everything runs on the machine operated by you or by the team.
+
+Some model providers are located outside the European Economic Area, most commonly in the United States. Where you send data to such a provider, the transfer is made at your request and is subject to that provider's own safeguards, such as the European Commission's Standard Contractual Clauses or the EU–US Data Privacy Framework. We do not control how model providers retain or use data, so please choose your provider accordingly.
 
 ## 6. Legal bases (GDPR Article 6)
 
@@ -64,8 +72,9 @@ Some model providers are located outside the European Economic Area. Where you s
 ## 7. Retention
 
 - **Sign-in sessions** expire after 7 days by default.
-- **All other data** is kept until you delete it or your account is removed. There is currently no automatic expiry **[TO CONFIRM: retention period for inactive accounts]**.
-- **Backups and exports.** Deleting data removes it from the live database. Database or provider backups, and copies you have exported yourself, may still contain earlier data. We do not promise erasure from backups.
+- **Account and usage data** is kept until you delete it or delete your account. Inactive accounts are not deleted automatically at present. If we introduce automatic deletion of inactive accounts (we expect 24 months without use), we will email you before deleting anything and update this policy first.
+- **Account deletion** removes your account and all data linked to it from the live database straight away.
+- **Backups and exports.** Database or provider backups, and copies you have exported yourself, may still contain earlier data until they expire under the provider's schedule. We do not promise erasure from backups.
 
 ## 8. Cookies and browser storage
 
@@ -87,10 +96,10 @@ Under the GDPR you have the following rights. This table shows how to exercise e
 | Erasure of saved conversation text and generated coaching (Art. 17) | Profile → **Delete saved conversations**. |
 | Erasure of one session (Art. 17) | My progress → delete the session. |
 | Erasure of all usage history (Art. 17) | My progress → **Delete**. Your account, preferences and LLM configurations remain. |
-| Erasure of your account and all data (Art. 17) | Email the privacy contact. Self-service account deletion is not yet available **[TO CONFIRM: add before release]**. |
+| Erasure of your account and all data (Art. 17) | Profile → **Delete my account**. You confirm by typing your email address (and your password, for local accounts). Deletion is immediate and cannot be undone. |
 | Restriction, objection and other questions (Arts. 18 and 21) | Email the privacy contact. |
 
-We aim to respond to requests within one month. You also have the right to lodge a complaint with a supervisory authority. In Portugal this is the Comissão Nacional de Proteção de Dados (CNPD, cnpd.pt) **[TO CONFIRM: authority for the operating country]**.
+We aim to respond to requests within one month. You also have the right to lodge a complaint with a supervisory authority: in Portugal, the Comissão Nacional de Proteção de Dados (CNPD, [cnpd.pt](https://www.cnpd.pt)), or the authority of the country where you live or work.
 
 ## 10. Automated processing
 
@@ -98,12 +107,14 @@ AdaptAI uses AI models to produce recommendations and suggestions. These are adv
 
 ## 11. Security
 
-We protect personal data with technical and organisational measures, including salted password hashing, encryption of provider keys, per-account access checks on every request, and HTTPS in deployed environments. No system is completely secure, so please use a strong and unique password. If a personal data breach is likely to put your rights at risk, we will notify the competent authority and affected users as required by law **[TO CONFIRM: breach-handling owner]**.
+We protect personal data with technical and organisational measures, including salted password hashing, encryption of provider keys, per-account access checks on every request, and HTTPS in deployed environments. No system is completely secure, so please use a strong and unique password.
+
+If a personal data breach is likely to put your rights at risk, the privacy contact will notify the CNPD within 72 hours of becoming aware of it (GDPR Art. 33) and will tell affected users without undue delay when the risk to them is high (Art. 34).
 
 ## 12. Children
 
-AdaptAI is not intended for anyone under the age of 16 **[TO CONFIRM: minimum age]**. If you believe a child has provided personal data, contact the privacy contact and we will delete it.
+AdaptAI is not intended for anyone under the age of 16, and you confirm that you are at least 16 when you accept this policy. If you believe a child has provided personal data, contact the privacy contact and we will delete it.
 
 ## 13. Changes to this policy
 
-We will update this page whenever the product or its data handling changes, and we will revise the version and date at the top. Where a change requires your consent, we will ask for it in the app before the change applies.
+We will update this page whenever the product or its data handling changes, and we will revise the version and date at the top. When a change is material, the app will ask you to read and accept the new version before you continue, and we will keep a record of the version you accepted and when.

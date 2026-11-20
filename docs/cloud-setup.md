@@ -85,6 +85,7 @@ Dockerfile também precisa dos manifests na raiz. Auto-deploy: **Off**.
 | `ADAPTAI_DATABASE_SCHEMA` | `adaptai` |
 | `ADAPTAI_SUPABASE_URL` | Project URL |
 | `ADAPTAI_SUPABASE_PUBLISHABLE_KEY` | Publishable key |
+| `ADAPTAI_SUPABASE_SERVICE_ROLE_KEY` | Opcional; segredo só no servidor. Permite que "Delete my account" apague também o registo de login no Supabase |
 | `ADAPTAI_BROWSER_ORIGIN` | Origem HTTPS exata do frontend, sem barra final |
 | `ADAPTAI_CREDENTIALS_KEY` | Fernet key estável; segredo |
 | `ADAPTAI_GROQ_MODEL` | `openai/gpt-oss-20b`, se for usar o modelo do projeto |

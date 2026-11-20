@@ -362,6 +362,11 @@
           ],
           "markdownDescription": "What **Improve the prompt** does with the improved text."
         },
+        "adaptai.projectContext": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Send the **language, framework and test runner** of the project with an analysis, as one short line such as `Project: TypeScript, React, Vitest`. They are read from `package.json`, `tsconfig.json`, `requirements.txt`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `pom.xml` and `build.gradle` at the top of the workspace folder. Only names from a fixed list are sent: never file text, package names or paths. The message after an analysis shows what was sent."
+        },
         "adaptai.lmStudioUrl": {
           "type": "string",
           "default": "http://127.0.0.1:1234",

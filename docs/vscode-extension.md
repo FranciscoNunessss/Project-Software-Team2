@@ -475,6 +475,14 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 |---|---|
 | IMP-01 | When the improvement is shown as a diff (`adaptai.improveApply` = `diff`), the diff's tab bar has **Apply** and **Dismiss** buttons, and the same two commands are in the Command Palette while a diff waits. Apply replaces the text (Undo brings it back); Dismiss leaves it. Both hide the buttons. The notice "apply the improved prompt?" stays, but a missed or hidden notice does not lose the improvement. With nothing waiting, Apply says so and changes nothing. |
 
+**Project context (PRJ, release plan task E4).** The analysis also gets the language, framework and test runner of the project, so a recommendation fits the kind of work.
+
+| Id | Requirement |
+|---|---|
+| PRJ-01 | Language, framework and test runner are detected from the manifest files at the top of the workspace folder (`package.json`, `tsconfig.json`, `requirements.txt`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `pom.xml`, `build.gradle`). Only names from a fixed list can come out. Package names, file text and paths never do, however the files are written. |
+| PRJ-02 | The values go with an analysis as one short line in its task context (`Project: TypeScript, React, Vitest`), never in a chat message. The message after the analysis says what was sent. Nothing is added when nothing is detected. No file content leaves the machine for this. |
+| PRJ-03 | The setting `adaptai.projectContext` (on by default) turns it off; when off nothing is added and the message says nothing. The setting's text lists what is sent. |
+
 **Analysis result (RES).**
 
 | Id | Requirement |

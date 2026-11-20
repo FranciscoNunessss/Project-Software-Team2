@@ -322,6 +322,35 @@ test('imp_01: the diff has its own Apply and Dismiss buttons, so a missed notice
   }
 })
 
+test('prj_02 an analysis carries the project context as one short line, the message says so, and the setting turns it off', async () => {
+  reset()
+  const files = { '/work/package.json': JSON.stringify({ dependencies: { react: '18' }, devDependencies: { vitest: '1', typescript: '5' } }), '/work/tsconfig.json': '{}' }
+  vscode.workspace.workspaceFolders = [{ uri: { path: '/work' } }]
+  vscode.Uri = { ...(vscode.Uri ?? {}), joinPath: (base, name) => ({ path: `${base.path}/${name}` }) }
+  vscode.workspace.fs = { readFile: async uri => { if (!(uri.path in files)) throw new Error('not found'); return new TextEncoder().encode(files[uri.path]) } }
+  const { server, analyser } = await backendStub()
+  try {
+    vscode.env.clipboard.text = 'Compare two API designs and recommend one.'
+    log.info.length = 0
+    await analyser.fromClipboard()
+    const [on] = bodies(server, '/api/analyze')
+    assert.equal(on.task_context, 'Project: TypeScript, React, Vitest')
+    assert.ok(log.info.some(message => /Project: TypeScript, React, Vitest/.test(message)), 'the message after the analysis does not say what was sent')
+    config.projectContext = false
+    await analyser.fromClipboard()
+    const second = bodies(server, '/api/analyze')[1]
+    assert.equal(second.task_context, '', 'the setting is off and something was sent')
+    config.projectContext = true
+    vscode.workspace.workspaceFolders = undefined
+    await analyser.fromClipboard()
+    assert.equal(bodies(server, '/api/analyze')[2].task_context, '', 'no folder open and something was sent')
+  } finally {
+    delete config.projectContext
+    vscode.workspace.workspaceFolders = undefined
+    await server.close()
+  }
+})
+
 test('Apply does not overwrite text that changed after the analysis; it opens a new file instead', async () => {
   reset()
   const { server, analyser } = await backendStub()

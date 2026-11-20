@@ -17,6 +17,8 @@ import {
   type Connection,
 } from './core'
 import { assessedBy, renderAnalysis, summaryLine, textSummary } from './format'
+import { describeProject, detectProject } from './projectcontext'
+import { readProjectFiles } from './projectfiles'
 
 export const DIFF_SCHEME = 'adaptai-coach'
 export const ANALYSIS_SCHEME = 'adaptai-analysis'
@@ -52,6 +54,8 @@ export type Result = {
   at: string
   source: string
   coachAvailable: boolean
+  /** The project line that went with the analysis (PRJ-02), or an empty text. */
+  project?: string
   coach?: Coach
   coachMode?: CoachMode
   improved?: string
@@ -273,6 +277,16 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     return this.run(this.lastRequest)
   }
 
+  /** Language, framework and test runner of the project as one short line, or an empty text when the setting is off or nothing is detected. */
+  private async projectLine(): Promise<string> {
+    if (!vscode.workspace.getConfiguration('adaptai').get<boolean>('projectContext', true)) return ''
+    try {
+      return describeProject(detectProject(await readProjectFiles()))
+    } catch {
+      return ''
+    }
+  }
+
   // ---- model choice and confirmation -----------------------------------------------------------
 
   private async signedIn(): Promise<boolean> {
@@ -379,7 +393,8 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     }
     const options = await this.options()
     if (!options) return undefined
-    const plan = analysisPlan(task.text, options, { chat: this.chatModel(options), sessionId: this.continueFrom?.sessionId, previousId: this.continueFrom?.previousId })
+    const project = await this.projectLine()
+    const plan = analysisPlan(task.text, options, { chat: this.chatModel(options), sessionId: this.continueFrom?.sessionId, previousId: this.continueFrom?.previousId, context: project })
     if ('error' in plan) return void vscode.window.showWarningMessage(`AdaptAI: ${plan.error}`)
     if (!(await this.confirmSend({ source: request.source, name: request.name, characters: task.text.length, noSelection: request.noSelection, thenCoach: request.thenCoach }, plan.via))) return undefined
     const started = Date.now()
@@ -399,6 +414,7 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
         at: new Date().toLocaleTimeString(),
         source: request.source === 'file' ? `file ${request.name ?? ''}`.trim() : request.source === 'selection' ? 'selection' : request.source === 'clipboard' ? 'clipboard' : 'typed text',
         coachAvailable: Boolean(features.prompt_coach),
+        project,
       }
       if (this.continueFrom) this.continueFrom = { ...this.continueFrom, previousId: analysis.id }
       if (request.quiet) {
@@ -427,7 +443,8 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     }
     const options = await this.options()
     if (!options) return undefined
-    const plan = analysisPlan(task.text, options, { chat: this.chatModel(options), sessionId: extra.sessionId, previousId: extra.previousId })
+    const project = await this.projectLine()
+    const plan = analysisPlan(task.text, options, { chat: this.chatModel(options), sessionId: extra.sessionId, previousId: extra.previousId, context: project })
     if ('error' in plan) return void vscode.window.showWarningMessage(`AdaptAI: ${plan.error}`)
     if (!(await this.confirmSend({ source: 'text', characters: task.text.length, thenCoach: extra.thenCoach }, plan.via))) return undefined
     try {
@@ -436,7 +453,7 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
       const mismatch = plan.manual ? servedBy(analysis, plan.via) : undefined
       if (mismatch) throw new ApiError(0, `${mismatch} The result was discarded.`)
       const features = await this.backend.api<{ prompt_coach?: boolean }>('/api/features').catch(() => ({ prompt_coach: false }))
-      const result: Result = { task: task.text, analysis, via: plan.via, truncated: task.truncated, at: new Date().toLocaleTimeString(), source: 'the chat', coachAvailable: Boolean(features.prompt_coach) }
+      const result: Result = { task: task.text, analysis, via: plan.via, truncated: task.truncated, at: new Date().toLocaleTimeString(), source: 'the chat', coachAvailable: Boolean(features.prompt_coach), project }
       this.results.set(analysis.id, result)
       this.refreshed.fire()
       return result
@@ -473,7 +490,7 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     }
     if (!offer) return
     const buttons = ['Copy summary', 'Task solved?', ...(result.coachAvailable ? ['Improve with the Coach'] : [])]
-    const choice = await vscode.window.showInformationMessage(`AdaptAI: ${summaryLine(result.analysis)} · assessed by ${assessedBy(result.analysis)} · through ${new URL(this.backend.url).host}`, ...buttons)
+    const choice = await vscode.window.showInformationMessage(`AdaptAI: ${summaryLine(result.analysis)} · assessed by ${assessedBy(result.analysis)} · through ${new URL(this.backend.url).host}${result.project ? ` · ${result.project}` : ''}`, ...buttons)
     if (choice === 'Copy summary') await vscode.commands.executeCommand('adaptai.copySummary', id)
     else if (choice === 'Task solved?') await vscode.commands.executeCommand('adaptai.taskOutcome', id)
     else if (choice === 'Improve with the Coach') await vscode.commands.executeCommand('adaptai.coachResult', id)

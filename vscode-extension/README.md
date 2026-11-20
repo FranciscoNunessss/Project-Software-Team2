@@ -10,7 +10,7 @@ The extension has no model and no rules of its own. Every result is what the bac
 | --- | --- |
 | Analyse a task | **Analyse selection / file / clipboard / a typed task**. The result opens as a Markdown preview beside the editor: recommended model and price, coverage per need, alternatives, notes, tips, profile and completeness. |
 | "Use this model", "Task solved?" | Actions after each analysis (notification, or CodeLens above the source view): **Use this model in the chat**, **Task solved?**, **Copy summary**. |
-| Prompt Coach (also in the page) | **Improve the prompt** (diff, then Apply; Undo restores), **Coach the clipboard**, and **Prompt Coach: improve** on an analysis. Tips, Edits or Rewrite. |
+| Prompt Coach (also in the page) | **Improve the prompt** (diff with **Apply** and **Dismiss** buttons in its tab bar; Undo restores), **Coach the clipboard**, and **Prompt Coach: improve** on an analysis. Tips, Edits or Rewrite. |
 | Chat and Assistant | The AdaptAI page: one screen with the conversation and a composer (model picker, Prompt Coach bubble, **Analyse**, **Send**), and the analysis panel beside it or as a sheet. The participant **`@adaptai`** in VS Code's chat view: streaming, Stop, `/retry`, `/new`, `/analyse <task>` (inside the chat's session). A **Chats** view lists, opens, renames and deletes your chats. |
 | Assistant history | **Recent analyses**. |
 | My progress | Charts (activity and recommendation match), numbers, solved tasks by model, whether you describe tasks better, patterns, the Educator's suggestions, choices to confirm, your sessions (open an analysis, **Continue**, delete) and **Export my data** (preferences, coaching, sessions and chats). |

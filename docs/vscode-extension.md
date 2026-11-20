@@ -468,6 +468,12 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 | BTN-04 | Both buttons fit at every width of UI-03, wrapping onto a second line when they must. |
 | BTN-05 | The lists that open from the box (model, Prompt Coach, chats) open inside the window at every width, and the box never has a scroll bar of its own, also with a long model name. |
 
+**Improve the prompt in the editor (IMP).** `Ctrl+K Ctrl+E` on a selection or a file.
+
+| Id | Requirement |
+|---|---|
+| IMP-01 | When the improvement is shown as a diff (`adaptai.improveApply` = `diff`), the diff's tab bar has **Apply** and **Dismiss** buttons, and the same two commands are in the Command Palette while a diff waits. Apply replaces the text (Undo brings it back); Dismiss leaves it. Both hide the buttons. The notice "apply the improved prompt?" stays, but a missed or hidden notice does not lose the improvement. With nothing waiting, Apply says so and changes nothing. |
+
 **Analysis result (RES).**
 
 | Id | Requirement |

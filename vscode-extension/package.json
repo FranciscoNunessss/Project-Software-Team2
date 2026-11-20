@@ -120,6 +120,18 @@
         "icon": "$(wand)"
       },
       {
+        "command": "adaptai.applyImprovement",
+        "title": "Apply the improved prompt",
+        "category": "AdaptAI",
+        "icon": "$(check)"
+      },
+      {
+        "command": "adaptai.dismissImprovement",
+        "title": "Dismiss the improved prompt",
+        "category": "AdaptAI",
+        "icon": "$(x)"
+      },
+      {
         "command": "adaptai.suggestChange",
         "title": "Suggest a change to the selection",
         "category": "AdaptAI",
@@ -223,6 +235,18 @@
           "group": "navigation@2"
         }
       ],
+      "editor/title": [
+        {
+          "command": "adaptai.applyImprovement",
+          "when": "adaptai.improving && isInDiffEditor",
+          "group": "navigation@1"
+        },
+        {
+          "command": "adaptai.dismissImprovement",
+          "when": "adaptai.improving && isInDiffEditor",
+          "group": "navigation@2"
+        }
+      ],
       "editor/context": [
         {
           "command": "adaptai.analyseSelection",
@@ -263,6 +287,14 @@
         {
           "command": "adaptai.suggestChange",
           "when": "editorHasSelection"
+        },
+        {
+          "command": "adaptai.applyImprovement",
+          "when": "adaptai.improving"
+        },
+        {
+          "command": "adaptai.dismissImprovement",
+          "when": "adaptai.improving"
         },
         {
           "command": "adaptai.acceptChange",

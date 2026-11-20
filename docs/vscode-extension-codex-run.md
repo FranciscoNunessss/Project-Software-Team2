@@ -1,15 +1,21 @@
-# VS Code extension: quick acceptance run for Codex (run 3)
+# VS Code extension: acceptance run for Codex (run 4, the full pass before the pull request)
 
-20 November 2026 (third run; the first two found bugs that are now fixed). For Codex (or any agent that controls the computer: mouse, keyboard, screenshots). You will
+20 November 2026 (fourth run; the first three found bugs that are now fixed). For Codex (or any agent that controls the computer: mouse, keyboard, screenshots). You will
 click through the extension in a real VS Code window and write what you saw. Read the whole file first.
-Total time: about 30 minutes. This is the new code assistant and a regression pass over the old features.
+Total time: about 45 minutes. This is the new code assistant and a regression pass over the old features.
 
 ## Which checks to do in this run
 
-**Do these first, in this order** (they failed or did not run before, or the code under them changed): **B4, B1, B2, B3, N6, N7, N8, N9, U2, U3, U5, R4, R5, R8, R11, R12, R14**.
-Then, if there is time, the quick pass of what passed before but whose layout changed: **N1, N2, N3, N4, N5, N10, N11, N12, U1, U4, R1, R2, R3, R6, R7, R9, R10**.
+**Do every check in the tables below, none skipped.** If you run out of time, do these first, in this order (they failed or did not run in run 3, or the code under them changed): **R12, N9, R14, U3, N10, N11, N12, U1, U4, R1**. Then the rest, in table order.
 **R13 is the same as U5**: do it once and write the same result for both.
-A check you did not do is SKIP with the reason "not in this run".
+A check you did not do is SKIP, with the reason why.
+
+**What changed since run 3** (look at these with extra care):
+* **R12 has a new Apply button.** The diff "AdaptAI: original ↔ improved" now has **Apply** (✓) and **Dismiss** (✗) icons in the top right of the diff's tab bar. The old notice at the bottom right stays too, but you do not need it.
+* **N9:** after Ctrl+S rejects a proposal, the Accept/Reject marks must be gone; look for the notice for at least 10 seconds and take the screenshot straight away if it is missing.
+* **R14:** a red message with **Open settings**, and the same reason in the AdaptAI view above Sign in.
+* **Chat list titles** show only what you typed (for example `Throw an Error if id is empty`), never `[Change request: …]`.
+* **My progress** shows a clear error, not an empty page, when it cannot load.
 
 Prepared with AI assistance (Claude, Anthropic); human review pending.
 
@@ -133,7 +139,7 @@ password you make up (write it only in the report). Then **LLM config > Add a mo
 For each: do the steps, compare with Expected, write PASS, FAIL (what you saw) or SKIP (why).
 
 **Screenshots: only for a FAIL.** When a check fails, take one screenshot of what you see and save it in the new folder
-`C:/Users/josem/Desktop/AdaptAI-ide/acceptance-run-3-screens/` as `<check id>.png` (for example `N7.png`). No screenshot for a PASS.
+`C:/Users/josem/Desktop/AdaptAI-ide/acceptance-run-4-screens/` as `<check id>.png` (for example `N7.png`). No screenshot for a PASS.
 
 ### A. The new code assistant (the point of this run)
 
@@ -181,7 +187,7 @@ For each: do the steps, compare with Expected, write PASS, FAIL (what you saw) o
 | R9 | **Profile**: switch on "Save task text and AI responses" | A consent dialog appears first; **Cancel** leaves it off |
 | R10 | **Shortcuts**: **Change** on any shortcut | The keyboard shortcuts editor opens filtered on it |
 | R11 | In `service.ts` select lines 7 to 10 and press Ctrl+Alt+A | The analysis opens beside the editor; the message after it names the backend address and the model. A question before sending appears only for an external model or a whole file |
-| R12 | In a new file type `write about dogs`, select it and press Ctrl+K Ctrl+E | A diff with the improved prompt opens; **Apply** replaces the text; Ctrl+Z restores it |
+| R12 | In a new file type `write about dogs`, select it and press Ctrl+K Ctrl+E. Wait for the diff "AdaptAI: original ↔ improved" (up to 60 seconds). Look at the top right of the diff's tab bar: there are two icons, **Apply** (✓) and **Dismiss** (✗). Click **Apply** (the notice at the bottom right does the same) | A diff with the improved prompt opens; **Apply** replaces the text in the file; Ctrl+Z restores `write about dogs`. Then run it again and click **Dismiss**: the text stays as it was and the two icons disappear |
 | R13 | Stop the backend (Ctrl+C in its terminal), click any tab, start it again, press **Retry** if shown | A clear "backend not reachable" message while it is off; it works again after |
 | R14 | Set `adaptai.backendUrl` to `http://example.com`, open the AdaptAI view | A red message appears with the reason (with **Open settings**) and the AdaptAI view shows the same reason above Sign in; nothing is sent. Set it back to `http://127.0.0.1:8033` |
 
@@ -192,7 +198,7 @@ scratch folder stay.
 
 ## Report
 
-Write `C:/Users/josem/Desktop/AdaptAI-ide/acceptance-run-report-3.md` (not committed) with:
+Write `C:/Users/josem/Desktop/AdaptAI-ide/acceptance-run-report-4.md` (not committed) with:
 
 * the date, the VS Code version (Help > About), the LM Studio model, and the throw-away email;
 * a table `Id | PASS/FAIL/SKIP | what you saw` for every check above, in order (the screenshot file name next to every FAIL);

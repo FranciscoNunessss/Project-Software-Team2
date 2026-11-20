@@ -234,10 +234,37 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
       await this.apply(result)
       return result
     }
+    this.improving = result
     await this.diff(result)
+    await vscode.commands.executeCommand('setContext', 'adaptai.improving', true)
+    // The notice can be missed or hidden; the diff's title bar carries the same two buttons.
     const choice = await vscode.window.showInformationMessage('AdaptAI: apply the improved prompt?', 'Apply', 'Not now')
-    if (choice === 'Apply') await this.apply(result)
+    if (choice === 'Apply') await this.applyImprovement(result)
     return result
+  }
+
+  /** The improvement whose diff is open and waiting for Apply or Dismiss. */
+  private improving: Result | undefined
+
+  /** Apply from the diff's title bar (or the notice). Nothing happens if there is no improvement waiting. */
+  async applyImprovement(only?: Result): Promise<void> {
+    const result = this.improving
+    if (!result || (only && only !== result)) {
+      if (!only) void vscode.window.showInformationMessage('AdaptAI: there is nothing to apply. Run "Improve the prompt" first.')
+      return
+    }
+    await this.settleImprovement()
+    await this.apply(result)
+  }
+
+  /** Dismiss from the diff's title bar: the text stays as it is and the buttons go away. */
+  async dismissImprovement(): Promise<void> {
+    await this.settleImprovement()
+  }
+
+  private async settleImprovement(): Promise<void> {
+    this.improving = undefined
+    await vscode.commands.executeCommand('setContext', 'adaptai.improving', false)
   }
 
   /** Repeats the latest request exactly (same text), after a failure or to refresh a result. */

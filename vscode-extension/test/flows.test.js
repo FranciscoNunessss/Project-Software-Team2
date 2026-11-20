@@ -292,6 +292,36 @@ test('Improve with "replace" puts the rewrite in the editor; with "diff" it show
   }
 })
 
+test('imp_01: the diff has its own Apply and Dismiss buttons, so a missed notice does not lose the improvement', async () => {
+  reset()
+  const { server, analyser } = await backendStub()
+  try {
+    config.improveApply = 'diff'
+    editor.document.text = 'write something about dogs'
+    log.executed.length = 0
+    await analyser.improveInEditor() // the notice is ignored (ui.info answers nothing)
+    const context = log.executed.filter(call => call[0] === 'setContext' && call[1] === 'adaptai.improving')
+    assert.equal(context.at(-1)[2], true, 'the buttons show while the diff waits')
+    assert.equal(editor.document.text, 'write something about dogs', 'nothing is replaced yet')
+    await analyser.applyImprovement()
+    assert.equal(editor.document.text, REWRITE)
+    assert.equal(log.executed.filter(call => call[0] === 'setContext' && call[1] === 'adaptai.improving').at(-1)[2], false, 'the buttons go away after Apply')
+    await analyser.applyImprovement()
+    assert.equal(editor.document.text, REWRITE, 'a second Apply has nothing to apply')
+    assert.match(log.info.at(-1), /nothing to apply/i)
+    // Dismiss leaves the text alone and hides the buttons
+    editor.document.text = 'write something about cats'
+    await analyser.improveInEditor()
+    await analyser.dismissImprovement()
+    assert.equal(editor.document.text, 'write something about cats')
+    assert.equal(log.executed.filter(call => call[0] === 'setContext' && call[1] === 'adaptai.improving').at(-1)[2], false)
+    await analyser.applyImprovement()
+    assert.equal(editor.document.text, 'write something about cats', 'a dismissed improvement is not applied')
+  } finally {
+    await server.close()
+  }
+})
+
 test('Apply does not overwrite text that changed after the analysis; it opens a new file instead', async () => {
   reset()
   const { server, analyser } = await backendStub()

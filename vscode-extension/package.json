@@ -120,6 +120,24 @@
         "icon": "$(wand)"
       },
       {
+        "command": "adaptai.suggestChange",
+        "title": "Suggest a change to the selection",
+        "category": "AdaptAI",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "adaptai.acceptChange",
+        "title": "Accept the proposed change",
+        "category": "AdaptAI",
+        "icon": "$(check)"
+      },
+      {
+        "command": "adaptai.rejectChange",
+        "title": "Reject the proposed change",
+        "category": "AdaptAI",
+        "icon": "$(x)"
+      },
+      {
         "command": "adaptai.testConnection",
         "title": "Test a model connection",
         "category": "AdaptAI",
@@ -215,6 +233,11 @@
           "command": "adaptai.improvePrompt",
           "when": "editorHasSelection",
           "group": "adaptai@2"
+        },
+        {
+          "command": "adaptai.suggestChange",
+          "when": "editorHasSelection",
+          "group": "adaptai@3"
         }
       ],
       "explorer/context": [
@@ -236,6 +259,18 @@
         {
           "command": "adaptai.improvePrompt",
           "when": "editorIsOpen"
+        },
+        {
+          "command": "adaptai.suggestChange",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "adaptai.acceptChange",
+          "when": "adaptai.reviewing"
+        },
+        {
+          "command": "adaptai.rejectChange",
+          "when": "adaptai.reviewing"
         },
         {
           "command": "adaptai.chatSendText",
@@ -378,7 +413,7 @@
     "build": "tsc -p ./",
     "package": "npx --yes @vscode/vsce@3 package --no-dependencies --allow-missing-repository --skip-license",
     "test": "tsc -p ./ && node --test test/*.test.js",
-    "test:page": "tsc -p ./ && node test/page.browser.cjs"
+    "test:page": "tsc -p ./ && node test/page.browser.cjs && node test/page-layout.browser.cjs"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

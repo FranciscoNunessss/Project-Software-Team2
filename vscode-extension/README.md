@@ -31,6 +31,12 @@ Not in VS Code: creating or revoking API tokens (a token cannot manage tokens, s
 
 Mac: `Cmd` for the chords. The extension cannot add buttons inside another extension's panel (the Claude Code box), so for those prompts copy the text and use the clipboard commands. Rebind anything in *Keyboard Shortcuts*; every command is in the Command Palette.
 
+### The code assistant
+
+* **Selection: Off / On** in the chat box sends the code you selected, with its file and lines, together with your message. The answer comes back in the chat.
+* **Suggest a change to the selection** (right click on a selection, or the command palette) asks what to change in the box at the top. The proposal appears in the file, red for the old lines and green for the new ones, with **Accept** and **Reject** above. Nothing is saved until you choose, and saving first rejects a pending proposal.
+* It uses the chat model you picked in AdaptAI, through the backend. There are no `/` commands and it does not use the VS Code chat.
+
 ## Signing in
 
 * **Sign in** asks for your email and password once, signs in, asks the backend for a personal API token for this machine and keeps **only the token** in SecretStorage. The password is not stored.

@@ -412,6 +412,53 @@ every command and keybinding is registered, signs in with a token and runs one a
 * The text is the app's text where the app has one.
 * Tests as in "How to add a feature", and the manual check in the [backlog](vscode-extension-backlog.md#manual-acceptance-checklist) done in a real VS Code window.
 
+## The code assistant
+
+Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.md)). It uses the AdaptAI chat model through the backend, never the VS Code chat or Copilot, and has no `/` commands. Each id below is the start of a test name (`sel_`, `chg_`, `app_`, `ui_`); the tests were written before the code.
+
+**Selection in the chat (SEL).** A button in the chat box, **Selection: Off / On**, decides whether the selected code goes with the message.
+
+| Id | Requirement |
+|---|---|
+| SEL-01 | The button is Off at first. While it is On and code is selected, it shows what will be sent (`service.ts · 7–9`). |
+| SEL-02 | With the button On and code selected, Send adds to the message the file path, the language, the line range and the code. The answer streams in the chat as usual. |
+| SEL-03 | With the button On and nothing selected, nothing is sent and the box says to select code or switch the button off. |
+| SEL-04 | The message of the user shows what they typed, with a caption `file · lines` and the code folded. The same after the chat is opened again from the backend. |
+| SEL-05 | A message is at most 8000 characters. A longer selection is cut at a line break and the message says how much was sent. The text the user typed is never cut. |
+| SEL-06 | The confirmation for an external model and the secret check that already exist apply to the code too. No new question is added. |
+
+**Suggest a change (CHG).** The command **AdaptAI: Suggest a change** (palette and right click on a selection) works in the editor, not in the chat.
+
+| Id | Requirement |
+|---|---|
+| CHG-01 | The command asks one thing in the box at the top: what should change. With nothing selected it says so and stops. |
+| CHG-02 | The selection is widened to whole lines. The model gets the instruction, the lines and the rule: one short sentence and exactly one code block that replaces them. |
+| CHG-03 | An answer is usable only with exactly one closed, non-empty code block. Otherwise the file is not touched and the message says which of the three it was (none, several, empty). |
+| CHG-04 | Blank lines at the start and the end of the selection are kept in the proposal. Nothing outside the selected lines changes. |
+| CHG-05 | A request that does not fit in 8000 characters is refused, never cut. |
+
+**Accept or reject in place (APP).** Like the inline suggestion of other editors, with our own model.
+
+| Id | Requirement |
+|---|---|
+| APP-01 | The proposal appears where the selection is: the original lines marked as removed, the proposed lines right below marked as added, and **Accept** and **Reject** above them. |
+| APP-02 | Accept keeps the proposed lines and removes the original ones. Reject removes the proposed lines. In both the marks and the buttons go away. |
+| APP-03 | Only the selected lines are replaced. A change above the proposal moves it along; a change inside it ends the review, keeps the text as it is and says so. |
+| APP-04 | Saving the file with a proposal pending rejects it first, so a file is never saved with both versions. A second proposal in the same file rejects the first. |
+| APP-05 | Ctrl+Z after Accept undoes the Accept; another Ctrl+Z removes the proposal. |
+
+**The chat page (UI).**
+
+| Id | Requirement |
+|---|---|
+| UI-01 | The chat follows the newest message: when you send, for every part of the answer, and when a chat opens. If you scrolled up to read, it does not pull you down until you send again or go back to the end. |
+| UI-02 | The list of messages is what scrolls. The box to write stays at the bottom and never covers a message. |
+| UI-03 | From 300 to 1200 px wide nothing is cut off and the page never scrolls sideways. Under 900 px the menu is a bar of tabs at the top instead of a column. |
+
+**Decisions.** The backend takes only text in `content`, so the code travels inside the message, written by the extension; the page and the loaded history hide it behind the caption. The change request is a message in the current chat, so it also appears in the chat list. The default backend address is unchanged. Left out on purpose: the VS Code chat, `/` commands, a side by side comparison, a key binding and a refusal of files by name.
+
+**Known limits.** The proposal is written into the file until it is accepted or rejected (APP-04 keeps it out of a save); with automatic saving after a delay it can be rejected while you read it. The tests use a stand-in for VS Code; checks 31 to 36 of the [acceptance run](vscode-extension-acceptance-codex.md) are the only proof in a real window. The change prompt has not been measured with a real model.
+
 ## Known limits today
 
 * No part of the page has been clicked through by a person in a real window yet (see the manual checklist).

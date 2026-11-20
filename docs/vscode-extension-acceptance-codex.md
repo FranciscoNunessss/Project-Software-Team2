@@ -84,7 +84,7 @@ and write PASS, FAIL (with what you saw instead) or SKIP (with why). Do not fix 
 | 18 | **Profile** > API tokens: create a token (it asks for your password, once for 10 minutes), copy it, then **Revoke** | The token is shown once; after Revoke it is no longer listed |
 | 19 | **Shortcuts**: **Change** on any shortcut | The keyboard shortcuts editor opens filtered on that command |
 | 20 | Supabase-mode login | **ASK THE PERSON** to do it: in the web app, sign in with their own account, create a token in Profile, and in the extension use **Sign in** > **Use a token**. You only write down what they say |
-| 21 | Drag the side bar to about 300 px wide, then to about 800 px, and run 9 again at each width | At 300 px the tabs fit and the analysis opens as a bottom sheet; at 800 px the panel sits beside the chat; nothing is cut off |
+| 21 | Drag the side bar to about 300 px wide, then to about 800 px, and run 9 again at each width | At 300 px the menu is a bar of tabs on top and the analysis opens as a bottom sheet; at 800 px the panel sits beside the chat; nothing is cut off; the chat shows the newest message and the box to write stays at the bottom |
 | 22 | Switch VS Code to a light theme, then back to dark (Ctrl+K Ctrl+T) | Text and buttons readable in both |
 | 23 | Stop the backend terminal (Ctrl+C), click any tab, then start the backend again and click **Retry** if shown | A clear message that the backend is not reachable; it works again when the backend is back |
 | 24 | Set `adaptai.backendUrl` to `http://example.com`, open the side bar | The extension refuses the address and says why; nothing is sent. Set it back to `http://127.0.0.1:8033` |
@@ -110,6 +110,19 @@ python -m uv run --env-file .env.supabase python -m uvicorn app.main:create_app 
 | 28 | Add a second model the same way, name "LM Studio my computer", **Where it runs: On this computer, through this extension**. Look at the status bar and at LLM config | The status bar shows **LM Studio relay**; LLM config says "Connected: your LM Studio answers requests from the backend" |
 | 29 | Make "LM Studio my computer" the chat model, send `Reply with just the word PONG.`, then run **Analyse** on a task | The answer streams in like any other (it comes from your LM Studio through the extension); the analysis opens with a full profile; the status bar shows it working while it runs |
 | 30 | Close LM Studio's server (or run the command **Developer: Reload Window**), wait 10 seconds, and send a message to "LM Studio my computer" | A clear message ("The extension could not reach LM Studio…" or "Your model on this computer is not available…"), and a message to any other model still works |
+
+## The code assistant (checks 31 to 36)
+
+Same set-up as above (backend on port 8033, LM Studio model, throw-away account, a clean profile). Open a folder with a small code file of 10 or more lines. Use **only LM Studio**; do not use the hosted backend. These six checks take about ten minutes.
+
+| # | Steps | Expected |
+|---|---|---|
+| 31 | Select three lines of code. In the chat press **Selection: Off** once, write `Explain this` and press **Send** | The button reads `Selection: On · file · lines`. Your message shows only `Explain this` with a line `path · lines` that opens to show the code. The answer is about that code |
+| 32 | Click in the file so nothing is selected, keep **Selection: On**, write `Explain this` and press **Send** | Nothing is sent; under the box it says to select some code or switch Selection off |
+| 33 | Select a whole function. Right click > **AdaptAI: Suggest a change to the selection**. In the box at the top write `Throw an error if the first argument is empty` | After a few seconds the function lines are shaded red, the new lines are shaded green right below them, and **AdaptAI: Accept** and **Reject** appear above. The tab shows the file as changed but not saved |
+| 34 | Click **Accept** | The red lines are gone, the green ones stay as normal code, the shading and the buttons are gone. Ctrl+Z brings back both versions, a second Ctrl+Z the original |
+| 35 | Ask for a change again and click **Reject** | The green lines disappear and the file is exactly as before |
+| 36 | Ask for a change again and press Ctrl+S before choosing | A message says the proposal was rejected before saving; the file on disk has only the original code |
 
 ## Clean up
 

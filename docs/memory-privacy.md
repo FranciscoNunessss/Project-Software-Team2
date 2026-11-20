@@ -243,3 +243,7 @@ time. The token itself is shown once and never stored. Rows are deleted with the
 is created and revoked only from a browser session, never by another token. It is used by the
 VS Code extension (`vscode-extension/`), which keeps it in the editor's SecretStorage, bound to the
 backend that issued it. No task text is stored because of a token.
+
+## Code sent from the extension
+
+When the **Selection** button of the extension's chat is On, or when the command **Suggest a change to the selection** is used, the selected lines go to the chat model through the backend, with the file path, the language and the line numbers, inside the message. A message is saved in the chat like any other until the user deletes the chat, so the code is saved with it. Before it leaves the machine the code is checked for keys and passwords (the user can cancel), and a model outside the machine asks its usual confirmation. Nothing is sent unless the button is On or the command is used, and a proposed change is written to the file only after the answer arrives and can be rejected before it is saved.

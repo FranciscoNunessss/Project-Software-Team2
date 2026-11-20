@@ -2,10 +2,9 @@ import * as vscode from 'vscode'
 import { ApiError, Backend } from './backend'
 import type { CoachMode, LlmOption, LlmOptions } from './api'
 import { Analyser, explain, type Result } from './analyse'
-import { describeFailure, destination } from './core'
+import { describeFailure, destination, secretsIn } from './core'
 import { renderAnalysis } from './format'
-
-const MAX_MESSAGE = 8000
+import { MAX_MESSAGE } from './codemsg'
 
 export type ChatSummary = { id: string; title: string; created_at: string; updated_at?: string; message_count: number }
 export type ChatMessage = { id: string; role: 'user' | 'assistant'; content: string; provider: string | null; model: string | null; analysis_id: string | null; status: string; error: string | null; created_at: string }
@@ -30,6 +29,8 @@ export class ChatService {
   private analysed: { text: string; id: string } | undefined
   private readonly changed = new vscode.EventEmitter<void>()
   readonly onDidChange = this.changed.event
+  /** How the last `send` ended: an answer, stopped by the user, failed, or not sent at all. */
+  outcome: 'ok' | 'stopped' | 'failed' | 'refused' = 'ok'
 
   constructor(
     private readonly backend: Backend,
@@ -98,6 +99,7 @@ export class ChatService {
 
   private async stream(sink: Sink, path: string, body: Record<string, unknown>, signal: AbortSignal, provider?: string): Promise<void> {
     let failure: string | undefined
+    this.outcome = 'ok'
     try {
       for await (const { event, data } of this.backend.events(path, 'POST', body, signal, provider)) {
         const payload = (data ?? {}) as Record<string, unknown>
@@ -108,10 +110,12 @@ export class ChatService {
       }
     } catch (error) {
       if (signal.aborted && !(error instanceof Error && error.name === 'TimeoutError')) {
+        this.outcome = 'stopped'
         sink.markdown('\n\n_Stopped. The part already written is kept in the chat._')
         this.changed.fire()
         return
       }
+      this.outcome = 'failed'
       failure = error instanceof ApiError ? undefined : error instanceof Error && error.name === 'TimeoutError' ? 'idle' : 'unreachable'
       if (error instanceof ApiError) sink.markdown(`\n\n**${error.friendly}**`)
       else if (failure === 'idle') sink.markdown('\n\n**The backend sent nothing for a while, so the answer was stopped.** The part already written is kept; use `/retry`.')
@@ -121,14 +125,19 @@ export class ChatService {
       return
     }
     if (failure) {
+      this.outcome = 'failed'
       sink.markdown(`\n\n**${describeFailure(502, failure, provider)}**`)
       sink.button({ command: 'adaptai.chatRetry', title: 'Retry' })
       this.changed.fire()
     }
   }
 
-  /** A normal message: sent to the chat model, the answer streams back. */
-  async send(prompt: string, sink: Sink, signal: AbortSignal, override?: { optionId: string; model?: string }): Promise<void> {
+  /**
+   * A normal message: sent to the chat model, the answer streams back. With `code` the message carries
+   * selected code, so it is checked for secrets before it leaves.
+   */
+  async send(prompt: string, sink: Sink, signal: AbortSignal, override?: { optionId: string; model?: string }, sendOptions: { code?: boolean } = {}): Promise<void> {
+    this.outcome = 'refused'
     if (this.backend.auth === 'none' || this.backend.urlProblem) return sink.markdown(this.backend.urlProblem ? `**${this.backend.urlProblem}**` : '**Sign in first** (the AdaptAI view, or the command *AdaptAI: Sign in*).')
     if (prompt.length > MAX_MESSAGE) return sink.markdown(`**That message is ${prompt.length} characters; the chat takes up to ${MAX_MESSAGE}.**`)
     const options = await this.backend.api<LlmOptions>('/api/llm-options').catch(error => {
@@ -139,6 +148,11 @@ export class ChatService {
     const picked = override ? options.options.find(item => item.id === override.optionId) : undefined
     const option = picked ? { ...picked, model: override?.model ?? picked.model } : this.model(options)
     if (!option) return sink.markdown('**No model is available for the chat.** Add one in the app (LLM config), or configure one on the backend.')
+    const secrets = sendOptions.code ? secretsIn(prompt) : []
+    if (secrets.length) {
+      const go = await vscode.window.showWarningMessage(`The text looks like it contains ${secrets.join(', ')}. Nothing has been sent yet. If you continue, it goes to the model you chose. Send anyway?`, { modal: true }, 'Send anyway')
+      if (!go) return sink.markdown('_Cancelled. Nothing was sent._')
+    }
     if (!(await this.confirm(option, prompt.length))) return sink.markdown('_Cancelled. Nothing was sent._')
     sink.progress(`Asking ${destination(option)}…`)
     const id = await this.ensureChat()

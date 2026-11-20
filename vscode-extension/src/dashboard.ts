@@ -7,6 +7,8 @@ import type { Analysis, Candidate, CoachMode, LlmOptions } from './api'
 import { CAPABILITIES, PROVIDERS, consentText, describeEvaluation, type CatalogueModel, type Evaluation, type PersonalConfig } from './models'
 import { CONSENT, type ProgressReport, type Settings } from './profile'
 import { describeFailure } from './core'
+import { buildMessage, splitMessage, type SelectionView } from './codemsg'
+import { describeSelection, readSelection } from './selection'
 import type { RelayAgent } from './relay'
 import { assessedBy, modelName, price, summaryLine } from './format'
 import type { Result } from './analyse'
@@ -136,6 +138,11 @@ export class Dashboard implements vscode.WebviewViewProvider {
 
   private post(data: unknown): void {
     void this.view?.webview.postMessage(data)
+  }
+
+  /** Tells the page what the Selection button would send: the file and the lines, or nothing. */
+  postSelection(): void {
+    this.post({ type: 'selection', info: describeSelection() })
   }
 
   private scopeKey(): string { return JSON.stringify([this.backend.url, this.backend.auth, this.sessionEpoch]) }
@@ -447,7 +454,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
     return {
       chats: chats.map(item => ({ id: item.id, title: item.title, count: item.message_count, at: item.updated_at ?? item.created_at })),
       current,
-      messages: (detail?.messages ?? []).map(item => ({ role: item.role, text: item.content, who: item.role === 'user' ? 'You' : `AdaptAI${item.model ? ` · ${item.provider ?? ''} ${item.model}` : ''}`, cut: item.error === 'answer_truncated', error: item.error ? describeFailure(502, item.error, item.provider ?? undefined) : item.status === 'failed' ? 'This answer failed.' : item.status === 'stopped' ? 'Stopped by you.' : '' })),
+      messages: (detail?.messages ?? []).map(item => ({ role: item.role, ...(item.role === 'user' ? splitMessage(item.content) : { text: item.content }), who: item.role === 'user' ? 'You' : `AdaptAI${item.model ? ` · ${item.provider ?? ''} ${item.model}` : ''}`, cut: item.error === 'answer_truncated', error: item.error ? describeFailure(502, item.error, item.provider ?? undefined) : item.status === 'failed' ? 'This answer failed.' : item.status === 'stopped' ? 'Stopped by you.' : '' })),
     }
   }
 
@@ -929,6 +936,8 @@ export class Dashboard implements vscode.WebviewViewProvider {
       case 'ready':
         this.markReady()
         return this.reload(message.force === true)
+      case 'selectionAsk':
+        return this.postSelection()
       case 'dialogResult': {
         const resolve = this.dialogs.get(str('id'))
         this.dialogs.delete(str('id'))
@@ -1038,18 +1047,28 @@ export class Dashboard implements vscode.WebviewViewProvider {
       case 'choose':
         return this.choose(str('analysis'), str('candidate'))
       case 'chatSend': {
-        const text = str('text').slice(0, 8000)
-        if (!text.trim() || this.streaming) return
-        const analyse = /^\/analy[sz]e\s+/i.test(text)
+        const typed = str('text').slice(0, 8000)
+        if (!typed.trim() || this.streaming) return
+        let text = typed
+        let selection: SelectionView | undefined
+        if (message.withSelection === true) {
+          const picked = readSelection()
+          if (!picked.ok) return this.post({ type: 'note', text: 'Select some code in the editor, or switch Selection off.' })
+          const built = buildMessage('ask', typed, picked.ctx)
+          if (!built.ok) return this.post({ type: 'note', text: 'The message and the selection are too long for one message. Select less code or write less.' })
+          text = built.content
+          selection = { ...picked.ctx, kind: 'ask', cut: built.cut ? { sent: built.sent, total: built.total } : undefined }
+        }
+        const analyse = /^\/analy[sz]e\s+/i.test(typed)
         const abort = new AbortController()
         this.streaming = abort
         this.assistantVersion++
         this.pendingReload?.abort.abort()
-        this.post({ type: 'chatStart', user: text })
+        this.post({ type: 'chatStart', user: typed, selection })
         const sink = { markdown: (t: string) => this.post({ type: 'delta', text: t }), progress: (t: string) => this.post({ type: 'note', text: t }), button: () => undefined }
         try {
-          if (analyse) await this.chat.analyse(text.replace(/^\/analy[sz]e\s+/i, ''), sink, abort.signal)
-          else await this.chat.send(text, sink, abort.signal, this.chatOverride)
+          if (analyse) await this.chat.analyse(typed.replace(/^\/analy[sz]e\s+/i, ''), sink, abort.signal)
+          else await this.chat.send(text, sink, abort.signal, this.chatOverride, selection ? { code: true } : undefined)
         } finally {
           this.streaming = undefined
           await this.refreshAssistant()
@@ -1207,7 +1226,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
   .foot b { display: block; color: var(--ink); font-weight: 600; word-break: break-all; margin-bottom: 6px; }
   .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #2f9e44; margin-right: 6px; box-shadow: 0 0 0 3px rgba(47,158,68,.18); }
   .page { max-width: 1180px; margin: 0 auto 0 240px; padding: 30px 30px 70px; }
-  @media (max-width: 760px) {
+  @media (max-width: 899px) {
     .side { position: static; width: auto; margin: 8px 8px 0; padding: 10px; border-radius: 14px; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 10px; box-shadow: none; }
     .brand { padding: 0 4px; font-size: 15px; } .mark { width: 24px; height: 24px; font-size: 13px; border-radius: 7px; }
     .nav { flex-direction: row; flex-wrap: wrap; gap: 3px; width: 100%; order: 3; } .nav button { min-height: 30px; padding: 0 10px; font-size: 12px; border-radius: 8px; }
@@ -1320,6 +1339,20 @@ function page(nonce: string, csp: string, tab: Tab): string {
   .spin { display: inline-block; width: 14px; height: 14px; margin-right: 8px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--blue); animation: turn .8s linear infinite; vertical-align: -2px; } @keyframes turn { to { transform: rotate(360deg) } }
   @media (max-width: 760px) { .drawer { top: auto; left: 0; width: 100%; max-height: 82vh; border-left: 0; border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -18px 50px rgba(0,0,0,.25); } .pop.down { left: 0; right: auto; } }
   @media (min-width: 1280px) { .assist.with-drawer { display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 18px; align-items: start; } .assist.with-drawer .drawer { position: sticky; top: 14px; width: auto; height: calc(100vh - 28px); border: 1px solid var(--line); border-radius: 16px; box-shadow: none; } .assist.with-drawer + .drawer-backdrop, .assist .drawer-backdrop { display: none; } }
+  .trigger.sel { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .trigger.sel[aria-pressed=true] { background: var(--dark); color: var(--bg); border-color: transparent; }
+  .selcap { margin-top: 6px; font-size: 11.5px; opacity: .85; } .selcap summary { cursor: pointer; overflow-wrap: anywhere; } .selcap pre { margin: 6px 0 0; max-height: 220px; overflow: auto; text-align: left; }
+  body.chatmode { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  body.chatmode .side { flex: none; }
+  body.chatmode .page { flex: 1; min-height: 0; margin: 0 0 0 240px; width: min(1180px, calc(100% - 240px)); max-width: none; padding: 14px 18px; display: flex; flex-direction: column; overflow: auto; }
+  body.chatmode .page > .assist { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  body.chatmode .assist-main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  body.chatmode .assist .msgs { flex: 1; min-height: 80px; max-height: none; overflow: auto; }
+  body.chatmode .composer2 { position: static; flex: none; margin-top: 8px; }
+  body.chatmode .toolbar, body.chatmode .banner, body.chatmode .notice { flex: none; }
+  @media (max-width: 899px) { body.chatmode .page { margin: 0; width: 100%; padding: 10px 12px; } }
+  @media (max-width: 899px) { .side { padding: 8px 10px; gap: 4px 8px; } .brand { order: 0; } .newchat { order: 1; width: auto; margin: 0; min-height: 28px; padding: 0 10px; font-size: 12px; } .foot { order: 2; } .nav { order: 3; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .nav::-webkit-scrollbar { display: none; } .nav button { flex: none; white-space: nowrap; } }
+  @media (max-width: 520px) { .foot #acct { font-size: 0; } .foot #acct .dot { margin: 0; } .foot .btn { white-space: nowrap; } }
+  @media (min-width: 1280px) { body.chatmode .assist.with-drawer { display: grid; grid-template-rows: minmax(0, 1fr); } body.chatmode .assist.with-drawer .drawer { position: static; height: auto; overflow: auto; } }
   [hidden] { display: none !important; }
 </style></head>
 <body>
@@ -1501,7 +1534,14 @@ function page(nonce: string, csp: string, tab: Tab): string {
     return box
   }
   let live = null
-  const bubble = (role, who, text, error) => { const b = el('div', { class: 'bubble ' + (role === 'user' ? 'user' : 'ai') }, el('div', { class: 'who', text: who }), role === 'user' ? el('div', { text, style: 'white-space:pre-wrap' }) : md(text || '')); if (error) b.append(el('div', { class: 'bad', text: error })); return b }
+  let follow = true
+  let withSel = false
+  let selInfo = ''
+  const selLabel = () => 'Selection: ' + (withSel ? 'On' : 'Off') + (withSel && selInfo ? ' · ' + selInfo : '')
+  const nearEnd = box => box.scrollHeight - box.scrollTop - box.clientHeight < 80
+  const toEnd = () => { const box = document.getElementById('msgs'); if (box) box.scrollTop = box.scrollHeight }
+  const lines = s => s.startLine === s.endLine ? String(s.startLine) : s.startLine + '–' + s.endLine
+  const bubble = (role, who, text, error, selection) => { const b = el('div', { class: 'bubble ' + (role === 'user' ? 'user' : 'ai') }, el('div', { class: 'who', text: who }), role === 'user' ? el('div', { text, style: 'white-space:pre-wrap' }) : md(text || '')); if (selection) b.append(el('details', { class: 'selcap' }, el('summary', { text: selection.path + ' · ' + lines(selection) + (selection.cut ? ' (cut)' : '') }), el('pre', { text: selection.code }))); if (error) b.append(el('div', { class: 'bad', text: error })); return b }
 
   let drawerOpen = false
   let pop = null
@@ -1573,7 +1613,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
     const text = area.value
     if (!text.trim()) return
     area.value = ''; draft = ''; api.setState({ text: '' }); drawerOpen = false; pop = null
-    send('chatSend', { text })
+    send('chatSend', { text, withSelection: withSel })
   }
 
   function assistantTab(d) {
@@ -1584,7 +1624,8 @@ function page(nonce: string, csp: string, tab: Tab): string {
     if (pop === 'chats') col.append(chatsPop(d))
     const msgs = el('div', { class: 'msgs', id: 'msgs', 'aria-live': 'polite' })
     if (!d.messages.length) msgs.append(el('div', { class: 'chat-empty' }, el('h2', { text: 'What do you need to do?' }), el('p', { class: 'muted' }, 'Write your prompt. ', el('strong', { text: 'Analyse' }), ' shows how complete it is and which model fits; ', el('strong', { text: 'Send' }), ' gets the answer.')))
-    for (const m of d.messages) msgs.append(bubble(m.role, m.who, m.text, m.error))
+    for (const m of d.messages) msgs.append(bubble(m.role, m.who, m.text, m.error, m.selection))
+    msgs.addEventListener('scroll', () => { follow = nearEnd(msgs) })
     live = null
     col.append(msgs)
     const lastMsg = d.messages[d.messages.length - 1]
@@ -1621,9 +1662,10 @@ function page(nonce: string, csp: string, tab: Tab): string {
     area.addEventListener('input', () => { analyseBtn.disabled = busy || !area.value.trim(); sendBtn.disabled = busy || !area.value.trim() || (usesRouter && !(d.override && d.override.openrouter)) })
     const stopBtn = el('button', { class: 'btn', id: 'stop', type: 'button', text: 'Stop', hidden: !d.streaming, onclick: () => send('chatStop') })
     const chip = d.last && d.last.task && d.last.task.trim() === draft.trim() && draft.trim() ? el('button', { class: 'recchip', type: 'button', title: 'Show analysis', onclick: () => { drawerOpen = true; renderTab() } }, 'Recommended: ', el('strong', { text: d.last.name }), d.last.usable && sel && d.last.modelId === sel.id ? ' · selected' : '') : null
+    const selBtn = el('button', { class: 'trigger sel', id: 'selbtn', type: 'button', text: selLabel(), 'aria-pressed': String(withSel), title: 'When On, the code selected in the editor goes with your message', onclick: () => { withSel = !withSel; const b = document.getElementById('selbtn'); if (b) { b.textContent = selLabel(); b.setAttribute('aria-pressed', String(withSel)) } } })
     const composer = el('section', { class: 'composer2' },
       el('div', { class: 'wrapta' }, area, coachBtn), live2,
-      el('div', { class: 'cfoot2' }, el('div', { class: 'left' }, trigger, router), el('div', { class: 'right' }, el('span', { class: 'muted', id: 'note' }), counter, chip, analyseBtn, sendBtn, stopBtn)))
+      el('div', { class: 'cfoot2' }, el('div', { class: 'left' }, trigger, router, selBtn), el('div', { class: 'right' }, el('span', { class: 'muted', id: 'note' }), counter, chip, analyseBtn, sendBtn, stopBtn)))
     if (pop === 'model') composer.append(modelPop(d, sel))
     if (pop === 'coach') composer.append(coachPop(d, area, found()))
     col.append(composer)
@@ -1633,7 +1675,8 @@ function page(nonce: string, csp: string, tab: Tab): string {
     wrap.append(col)
     if (drawerOpen) { wrap.append(el('div', { class: 'drawer-backdrop', onclick: () => { drawerOpen = false; renderTab() } }), drawerEl(d, area)) }
     setTimeout(hints, 0)
-    setTimeout(() => { const m = document.getElementById('msgs'); if (m && m.lastElementChild) m.lastElementChild.scrollIntoView({ block: 'nearest' }) }, 0)
+    follow = true
+    setTimeout(toEnd, 0)
     return [wrap]
   }
 
@@ -1827,8 +1870,9 @@ function page(nonce: string, csp: string, tab: Tab): string {
     if (m && m.type === 'connection') { if (lastData && !lastData.signedOut) renderAccount(m); return }
     if (m && m.type === 'dialog') return showDialog(m)
     if (m && m.type === 'toast') return toast(m.kind, m.text)
-    if (m && m.type === 'chatStart') { const box = document.getElementById('msgs'); if (!box) return; const empty = box.querySelector('.empty, .chat-empty'); if (empty) empty.remove(); if (m.user) box.append(bubble('user', 'You', m.user)); live = { raw: '', el: bubble('ai', 'AdaptAI', '') }; box.append(live.el); box.scrollTop = box.scrollHeight; const stop = document.getElementById('stop'); if (stop) stop.hidden = false; const sb = document.getElementById('sendbtn'); if (sb) sb.hidden = true; return }
-    if (m && m.type === 'delta') { if (!live) return; live.raw += m.text; const next = bubble('ai', 'AdaptAI', live.raw); live.el.replaceWith(next); live.el = next; const box = document.getElementById('msgs'); if (box) box.scrollTop = box.scrollHeight; const note = document.getElementById('note'); if (note) note.textContent = ''; return }
+    if (m && m.type === 'chatStart') { const box = document.getElementById('msgs'); if (!box) return; const empty = box.querySelector('.empty, .chat-empty'); if (empty) empty.remove(); if (m.user) box.append(bubble('user', 'You', m.user, '', m.selection)); live = { raw: '', el: bubble('ai', 'AdaptAI', '') }; box.append(live.el); follow = true; toEnd(); const stop = document.getElementById('stop'); if (stop) stop.hidden = false; const sb = document.getElementById('sendbtn'); if (sb) sb.hidden = true; return }
+    if (m && m.type === 'delta') { if (!live) return; live.raw += m.text; const next = bubble('ai', 'AdaptAI', live.raw); live.el.replaceWith(next); live.el = next; if (follow) toEnd(); const note = document.getElementById('note'); if (note) note.textContent = ''; return }
+    if (m && m.type === 'selection') { selInfo = m.info || ''; const b = document.getElementById('selbtn'); if (b) b.textContent = selLabel(); return }
     if (m && m.type === 'note') { const note = document.getElementById('note'); if (note) note.textContent = m.text; return }
     if (m && m.type === 'assistantState') {
       if (tab === 'analyse' && lastData && !lastData.loading && !lastData.signedOut && !lastData.failed) {
@@ -1851,6 +1895,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
   function renderTab() {
     const d = lastData
     if (!d) return
+    document.body.classList.toggle('chatmode', tab === 'analyse' && !d.signedOut && !d.loading && !d.failed)
     main.replaceChildren()
     main.setAttribute('aria-busy', d.loading || d.refreshing ? 'true' : 'false')
     if (d.signedOut) return main.append(el('div', { class: 'center' }, el('h1', { text: 'Sign in to use AdaptAI' }), el('p', { class: 'lead', style: 'margin:0 auto 20px', text: 'Use your email and password once. Only a token is kept on this machine.' }), el('div', { class: 'btns', style: 'justify-content:center' }, el('button', { class: 'btn primary', text: 'Sign in', onclick: () => send('signIn') }), el('button', { class: 'btn', text: 'Create an account', onclick: () => send('register') }))))
@@ -1864,6 +1909,6 @@ function page(nonce: string, csp: string, tab: Tab): string {
       main.replaceChildren(el('div', { class: 'err', role: 'alert', text: 'Could not display this page. Try again.' }), el('button', { class: 'btn', text: 'Try again', onclick: () => send('ready', { force: true }) }))
     }
   }
-  mark(); send('ready')
+  mark(); send('ready'); send('selectionAsk')
 </script></body></html>`
 }

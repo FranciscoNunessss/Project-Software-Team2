@@ -499,6 +499,14 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 
 **Code that changed (APP-07, release plan task E1).** A proposal is never applied to code that changed after it was asked for: if the selected lines changed while the model was answering, nothing is written; if they changed after the proposal was shown, Accept does nothing. Both say so with an **Ask again** button that opens the question again with the same instruction filled in. Lines outside the selection may change freely: only the selected lines are ever replaced.
 
+**Measuring a model (release plan task E1).** `test/edit-samples.cjs` holds 10 sample edits (rename, type hints, async/await, JSDoc, early return and others), each with a check that the code does the change. `test/measure-edits.cjs` sends them through the extension's own chat code to a real backend and model and prints, per model, how many answers were usable (exactly one closed, non-empty code block: the rule of CHG-03) and how many also do the change. Use a throw-away account, because every sample starts a chat:
+
+```bash
+ADAPTAI_URL=http://127.0.0.1:8033 ADAPTAI_TOKEN=adaptai_pat_... ADAPTAI_MODELS=<id>,<id> node test/measure-edits.cjs report.json
+```
+
+`ADAPTAI_MODELS` are ids from `/api/llm-options`. The offline test `edit-samples.test.js` checks that every sample's reference answer is usable and passes its check, and that the original does not.
+
 **Known limits.** The proposal is written into the file until it is accepted or rejected (APP-04 keeps it out of a save); with automatic saving after a delay it can be rejected while you read it. The tests use a stand-in for VS Code; checks 31 to 36 of the [acceptance run](vscode-extension-acceptance-codex.md) are the only proof in a real window. The change prompt has not been measured with a real model.
 
 ## Known limits today

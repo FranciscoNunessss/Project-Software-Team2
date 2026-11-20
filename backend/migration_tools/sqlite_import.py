@@ -4,7 +4,7 @@ import json
 import shutil
 import sqlite3
 import tempfile
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from pathlib import Path
 
 from app.llm_config import ModelConfigurations
@@ -44,7 +44,7 @@ def sqlite_snapshot(source_path):
         wal = Path(str(source_path) + "-wal")
         if wal.is_file():
             shutil.copyfile(wal, Path(str(snapshot) + "-wal"))
-        with sqlite3.connect(snapshot.as_uri() + "?mode=ro", uri=True) as source:
+        with closing(sqlite3.connect(snapshot.as_uri() + "?mode=ro", uri=True)) as source, source:
             yield source
 
 

@@ -1,5 +1,11 @@
 # Cloud hosting plan
 
+**Measurement update, 20 November 2026:** an authenticated browser session was
+verified at the deployed Netlify site. Its exact deployed commit remains unverified.
+Current functional checks and measurement limitations are recorded in the
+[WS1 partial baseline](ws1/I1-baseline-report.md); historical provider prices and
+limits below must be checked again before selecting a hosting change.
+
 **Update, 11 November 2026:** the CI `deploy` job has since deployed `main` (`e207fd9`) to
 Render and Netlify on 7 November 2026, with the `/api/health` check passing in CI. `main` does
 not yet contain the ADR-014 work (PRs #37, #43, #47). The plan below is kept as written.

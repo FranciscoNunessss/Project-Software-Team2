@@ -180,6 +180,12 @@ These are tested in `test/security.test.js` and `test/dashboard.test.js`.
 
 ### Local latency capture
 
+WS1 I1: reuse this opt-in capture under the [measurement protocol](ws1/I1-implementation-plan.md).
+Its extension-host API/stream/reload timings are not GPU paint or visible webview-load
+measurements. Do not label them as production inference or browser first-text timings.
+The WS1 importer accepts only its documented enum/numeric record shape; the native
+extension export requires a reviewed conversion and must not be passed through as raw data.
+
 Run **AdaptAI: Start local latency capture** in the Command Palette. Capture is off by default
 and resets on every start. It keeps the most recent 1,000 completed timings in memory and
 writes timing metadata to the local **AdaptAI Latency** log output channel. Nothing is uploaded.

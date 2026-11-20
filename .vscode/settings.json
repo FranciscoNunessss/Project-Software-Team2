@@ -1,0 +1,4 @@
+{
+    "python.terminal.useEnvFile": true,
+    "adaptai.backendUrl": "https://adaptai-team2-api.onrender.com"
+}

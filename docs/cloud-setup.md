@@ -175,6 +175,14 @@ de teste e repete cada pedido cinco vezes. Para **Analyse** e o chat, usa o
 mesmo texto sintético e o mesmo modelo em cada tentativa. Regista também o
 tempo até aparecer o primeiro texto do chat.
 
+## WS1 measurement protocol (20 November 2026)
+
+Use the [I1 protocol](ws1/I1-implementation-plan.md) and
+[partial baseline](ws1/I1-baseline-report.md) for repeatable measurements. Cold-start
+observations stay separate from warm timings. A successful public health check
+does not prove page usability, LLM throughput or first rendered chat text.
+No hosting or quota configuration was changed during these checks.
+
 ## Referências oficiais
 
 - [Supabase PostgreSQL connections](https://supabase.com/docs/guides/database/connecting-to-postgres)

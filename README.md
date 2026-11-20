@@ -334,6 +334,7 @@ the catalogue's capability cards. It does not execute the task or generate catal
 | `PUT /api/analyses/{id}/outcome`, `GET` | Feedback for the task: `resolved`, `resolved_with_refinement`, `not_resolved` (optional `reason`) or `skipped`, once |
 | `POST /api/auth/register`, `POST /api/auth/login` | Create account / sign in with email and password |
 | `GET /api/auth/me`, `POST /api/auth/logout` | Current user / revoke current login |
+| `DELETE /api/auth/account` | Delete the account and everything stored for it; body `{email, password}` (the password only with local accounts). With Supabase Auth the sign-in held by Supabase is removed too when `ADAPTAI_SUPABASE_SERVICE_ROLE_KEY` is set; otherwise the answer has `sign_in_kept: true` |
 | `GET /api/sessions`, `POST /api/sessions` | List / create the current user's sessions |
 | `GET /api/sessions/{id}` | Saved assessment metadata and choices |
 | `PATCH /api/sessions/{id}`, `DELETE /api/sessions/{id}` | Compatibility no-op / delete session and history |

@@ -62,6 +62,10 @@ class Settings(BaseSettings):
     database_pool_size: int = Field(default=4, ge=0)
     supabase_url: str = ""
     supabase_publishable_key: SecretStr = SecretStr("")
+    # Optional, backend only, never sent to a browser: used for one call, removing a user's
+    # sign-in from Supabase Auth when that user deletes the account. Without it the
+    # application data is still erased and the user is told the sign-in was kept.
+    supabase_service_role_key: SecretStr = SecretStr("")
 
 
 SERVER_MODEL_PROVIDERS = ("openai", "claude", "groq", "ollama", "lmstudio")

@@ -151,6 +151,7 @@ const errorMessages: Record<string, string> = {
   credentials_key_unavailable: 'The backend encryption key cannot be read. Check the server configuration.',
   credentials_unavailable: 'The saved credential could not be decrypted. Restore the matching backend key or replace this API key.',
   invalid_credentials: 'The email or password is incorrect. Please try again.',
+  account_email_mismatch: 'That is not the email of this account.',
   email_already_registered: 'This email already has an account. Sign in to continue.',
   authentication_required: 'Your session has expired. Please sign in again.',
   authentication_unavailable: 'The sign-in service is temporarily unavailable. Please try again.',

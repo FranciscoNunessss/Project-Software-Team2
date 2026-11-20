@@ -157,6 +157,7 @@ For each: do the steps, compare with Expected, write PASS, FAIL (what you saw) o
 | N10 | Ask for a change, then type a letter inside the green lines | A message says the review ended; shading and buttons disappear; the text stays as it is. Press Ctrl+Z until the file is as in S3 |
 | N11 | Ask for a change, then add a new line at the top of the file (line 1) | The red and green blocks and the buttons move down with the code. **Accept** still works on the right lines |
 | N12 | With nothing selected: right click in the file | The entry **Suggest a change** is not in the menu (or the command says to select code first) |
+| N13 | Select lines 7 to 10, switch Selection On. Look above the box. Click the line | Above the box: `Will be sent: service.ts · 7–10 · 4 lines · N characters`. Clicking it opens the exact text that goes with the message (`Selection (src/service.ts, typescript, lines 7-10):` and the code). With Selection Off or nothing selected the line is not there. Then select the whole file if it has more than 8000 characters (or paste a long file): a yellow line says only the first N of M characters will be sent |
 
 ### B. The chat page: scrolling and size
 

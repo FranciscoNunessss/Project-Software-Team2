@@ -99,6 +99,40 @@ test('sel_05 a long selection is cut so the message fits, and the message says s
   assert.match(sent[0].text, /Selection cut: the first \d+ of \d+ characters are shown/)
 })
 
+test('sel_08 the page is told, before sending, the exact text that will go with the message', async () => {
+  select([6, 2], [8, 5])
+  dash.postSelection()
+  const preview = posted.findLast(m => m.type === 'selectionPreview')
+  assert.equal(preview.lines, 3)
+  assert.equal(preview.cut, null)
+  assert.match(preview.text, /^Selection \(src\/service\.ts, typescript, lines 7-9\):\n```typescript\nexport function save/)
+  await dash.handle({ type: 'chatSend', text: 'Explain this', withSelection: true })
+  assert.ok(sent[0].text.endsWith(preview.text), 'the message carries exactly the previewed text')
+  assert.equal(preview.characters, preview.text.length)
+})
+
+test('sel_08 nothing selected: no preview; a long selection says how much will be sent before sending', () => {
+  select([6, 3], [6, 3])
+  dash.postSelection()
+  assert.equal(posted.findLast(m => m.type === 'selectionPreview').text, null)
+  const big = Array.from({ length: 600 }, (_, i) => `const value${i} = compute(${i}, "some long argument text")`)
+  vscode.window.activeTextEditor = {
+    selection: { isEmpty: false, start: { line: 0, character: 0 }, end: { line: 599, character: 5 } },
+    document: { languageId: 'typescript', uri: { scheme: 'file', path: '/work/big.ts' }, lineCount: big.length, lineAt: index => ({ text: big[index] }) },
+  }
+  dash.postSelection()
+  const cut = posted.findLast(m => m.type === 'selectionPreview')
+  assert.ok(cut.cut.sent > 0 && cut.cut.sent < cut.cut.total, 'the first N of M characters')
+  assert.ok(cut.text.length <= 8000)
+  const huge = Array.from({ length: 1 }, () => 'x'.repeat(9000))
+  vscode.window.activeTextEditor = {
+    selection: { isEmpty: false, start: { line: 0, character: 0 }, end: { line: 0, character: 9000 } },
+    document: { languageId: 'typescript', uri: { scheme: 'file', path: '/work/huge.ts' }, lineCount: 1, lineAt: () => ({ text: huge[0] }) },
+  }
+  dash.postSelection()
+  assert.equal(posted.findLast(m => m.type === 'selectionPreview').tooLarge, true, 'one line longer than the limit cannot be cut at a line break')
+})
+
 test('sel_04 a chat opened again from the backend shows the typed text and the caption', () => {
   const content = buildMessage('ask', 'Explain this', { path: 'src/service.ts', languageId: 'typescript', startLine: 7, endLine: 9, code: 'export function save() {}' }).content
   const view = dash.conversation([], 'c1', { messages: [{ role: 'user', content, provider: null, model: null, error: null, status: 'done' }, { role: 'assistant', content: 'It saves.', provider: 'groq', model: 'x', error: null, status: 'done' }] })

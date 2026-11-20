@@ -144,6 +144,18 @@ export class Dashboard implements vscode.WebviewViewProvider {
   /** Tells the page what the Selection button would send: the file and the lines, or nothing. */
   postSelection(): void {
     this.post({ type: 'selection', info: describeSelection() })
+    this.post(this.selectionPreview())
+  }
+
+  /** The exact text the Selection button would add to a message, so the page can show it before sending (SEL-08). */
+  private selectionPreview(): { type: 'selectionPreview'; text: string | null; lines?: number; characters?: number; cut?: { sent: number; total: number } | null; tooLarge?: boolean } {
+    const picked = readSelection()
+    if (!picked.ok) return { type: 'selectionPreview', text: null }
+    const lines = picked.last - picked.first + 1
+    const built = buildMessage('ask', '', picked.ctx)
+    if (!built.ok) return { type: 'selectionPreview', text: null, lines, characters: picked.ctx.code.length, cut: null, tooLarge: true }
+    const text = built.content.replace(/^\n\n/, '')
+    return { type: 'selectionPreview', text, lines, characters: text.length, cut: built.cut ? { sent: built.sent, total: built.total } : null, tooLarge: false }
   }
 
   private scopeKey(): string { return JSON.stringify([this.backend.url, this.backend.auth, this.sessionEpoch]) }
@@ -1361,6 +1373,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
   .cfoot2 .left { min-width: 0; max-width: 100%; } .cfoot2 .left .trigger { min-width: 0; max-width: 100%; } .trigger span { min-width: 0; flex: 0 1 auto; } .trigger small, .trigger b { flex: none; }
   @media (max-width: 520px) { .cfoot2 .left { flex: 1 1 100%; } .trigger span { max-width: 120px; } .cfoot2 .right { flex: 1 1 100%; justify-content: flex-end; } }
   .trigger.sel { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .trigger.sel[aria-pressed=true] { background: var(--dark); color: var(--bg); border-color: transparent; }
+  .selprev { margin: 0 0 6px; font-size: 11.5px; opacity: .9; min-width: 0; } .selprev summary { cursor: pointer; overflow-wrap: anywhere; } .selprev[open] { max-height: 20vh; overflow: auto; } .selprev pre { margin: 6px 0 0; text-align: left; max-width: 100%; overflow-x: auto; } .selprev .selwarn { margin: 4px 0 0; color: var(--vscode-editorWarning-foreground, #cca700); overflow-wrap: anywhere; }
   .selcap { margin-top: 6px; font-size: 11.5px; opacity: .85; } .selcap summary { cursor: pointer; overflow-wrap: anywhere; } .selcap pre { margin: 6px 0 0; max-height: 220px; overflow: auto; text-align: left; }
   body.chatmode { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
   body.chatmode .side { flex: none; }
@@ -1559,6 +1572,25 @@ function page(nonce: string, csp: string, tab: Tab): string {
   let keep = null
   let withSel = false
   let selInfo = ''
+  let selPrev = null
+  let selPrevOpen = false
+  function selPrevEl() {
+    if (!withSel || !selPrev || (!selPrev.text && !selPrev.tooLarge)) return null
+    const n = selPrev.lines
+    const box = el('details', { class: 'selprev', id: 'selpreview', open: selPrevOpen }, el('summary', { text: 'Will be sent: ' + (selInfo || 'the selection') + ' · ' + n + (n === 1 ? ' line' : ' lines') + ' · ' + selPrev.characters + ' characters' }))
+    box.addEventListener('toggle', () => { selPrevOpen = box.open })
+    if (selPrev.text) box.append(el('pre', { text: selPrev.text }))
+    if (selPrev.tooLarge) box.append(el('p', { class: 'selwarn', role: 'status', text: 'This selection is too long for one message, so it cannot be sent. Select less code.' }))
+    else if (selPrev.cut) box.append(el('p', { class: 'selwarn', role: 'status', text: 'Too long for one message: only the first ' + selPrev.cut.sent + ' of ' + selPrev.cut.total + ' characters will be sent (fewer if your message is long).' }))
+    return box
+  }
+  function drawSelPrev() {
+    const old = document.getElementById('selpreview')
+    const next = selPrevEl()
+    if (old && next) old.replaceWith(next)
+    else if (old) old.remove()
+    else if (next) { const top = document.querySelector('.composer2 .wrapta'); if (top) top.before(next) }
+  }
   const selLabel = () => 'Selection: ' + (withSel ? 'On' : 'Off') + (withSel && selInfo ? ' · ' + selInfo : '')
   const nearEnd = box => box.scrollHeight - box.scrollTop - box.clientHeight < 80
   const toEnd = () => { const box = document.getElementById('msgs'); if (box) box.scrollTop = box.scrollHeight }
@@ -1684,7 +1716,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
     area.addEventListener('input', () => { analyseBtn.disabled = busy || !area.value.trim(); sendBtn.disabled = busy || !area.value.trim() || (usesRouter && !(d.override && d.override.openrouter)) })
     const stopBtn = el('button', { class: 'btn', id: 'stop', type: 'button', text: 'Stop', hidden: !d.streaming, onclick: () => send('chatStop') })
     const chip = d.last && d.last.task && d.last.task.trim() === draft.trim() && draft.trim() ? el('button', { class: 'recchip', type: 'button', title: 'Show analysis', onclick: () => { drawerOpen = true; renderTab() } }, 'Recommended: ', el('strong', { text: d.last.name }), d.last.usable && sel && d.last.modelId === sel.id ? ' · selected' : '') : null
-    const selBtn = el('button', { class: 'trigger sel', id: 'selbtn', type: 'button', text: selLabel(), 'aria-pressed': String(withSel), title: 'When On, the code selected in the editor goes with your message', onclick: () => { withSel = !withSel; const b = document.getElementById('selbtn'); if (b) { b.textContent = selLabel(); b.setAttribute('aria-pressed', String(withSel)) } } })
+    const selBtn = el('button', { class: 'trigger sel', id: 'selbtn', type: 'button', text: selLabel(), 'aria-pressed': String(withSel), title: 'When On, the code selected in the editor goes with your message', onclick: () => { withSel = !withSel; const b = document.getElementById('selbtn'); if (b) { b.textContent = selLabel(); b.setAttribute('aria-pressed', String(withSel)) } drawSelPrev() } })
     const suggestBtn = el('button', { class: 'btn', id: 'suggestbtn', type: 'button', text: 'Suggest a change', title: 'Ask for a change to the selected code; it appears in the editor', onclick: () => {
       const text = area.value.trim()
       const note = document.getElementById('note')
@@ -1697,6 +1729,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
     } })
     const improveBtn = el('button', { class: 'btn', id: 'improvebtn', type: 'button', text: 'Improve prompt', title: 'Open the Prompt Coach on the text in the box', onclick: () => { pop = pop === 'coach' ? null : 'coach'; renderTab() } })
     const composer = el('section', { class: 'composer2' },
+      selPrevEl(),
       el('div', { class: 'wrapta' }, area, coachBtn), live2,
       el('div', { class: 'cfoot2' }, el('div', { class: 'left' }, trigger, router, selBtn), el('div', { class: 'right' }, el('span', { class: 'muted', id: 'note' }), counter, chip, improveBtn, suggestBtn, analyseBtn, sendBtn, stopBtn)))
     if (pop === 'model') composer.append(modelPop(d, sel))
@@ -1908,7 +1941,8 @@ function page(nonce: string, csp: string, tab: Tab): string {
     if (m && m.type === 'toast') return toast(m.kind, m.text)
     if (m && m.type === 'chatStart') { const box = document.getElementById('msgs'); if (!box) return; const empty = box.querySelector('.empty, .chat-empty'); if (empty) empty.remove(); if (m.user) box.append(bubble('user', 'You', m.user, '', m.selection)); live = { raw: '', el: bubble('ai', 'AdaptAI', '') }; box.append(live.el); follow = true; toEnd(); const stop = document.getElementById('stop'); if (stop) stop.hidden = false; const sb = document.getElementById('sendbtn'); if (sb) sb.hidden = true; return }
     if (m && m.type === 'delta') { if (!live) return; live.raw += m.text; const next = bubble('ai', 'AdaptAI', live.raw); live.el.replaceWith(next); live.el = next; if (follow) toEnd(); const note = document.getElementById('note'); if (note) note.textContent = ''; return }
-    if (m && m.type === 'selection') { selInfo = m.info || ''; const b = document.getElementById('selbtn'); if (b) b.textContent = selLabel(); return }
+    if (m && m.type === 'selection') { selInfo = m.info || ''; const b = document.getElementById('selbtn'); if (b) b.textContent = selLabel(); drawSelPrev(); return }
+    if (m && m.type === 'selectionPreview') { selPrev = m; drawSelPrev(); return }
     if (m && m.type === 'note') { const note = document.getElementById('note'); if (note) note.textContent = m.text; return }
     if (m && m.type === 'assistantState') {
       if (tab === 'analyse' && lastData && !lastData.loading && !lastData.signedOut && !lastData.failed) {

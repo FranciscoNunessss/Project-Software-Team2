@@ -123,6 +123,38 @@ const WIDTHS = [300, 320, 340, 480, 760, 899, 900, 1200]
     await page.close()
   })
 
+  await check('sel_08 with Selection On a line shows what will be sent, opens to the exact text, and warns before sending when it is cut', async () => {
+    for (const width of [340, 480, 1000]) {
+      const { page, post } = await open(width)
+      const text = 'Selection (src/service.ts, typescript, lines 7-9):\n```typescript\nexport function save(id, value) {\n  db.set(id, value)\n}\n```'
+      const preview = { type: 'selectionPreview', text, lines: 3, characters: text.length, cut: null, tooLarge: false }
+      await post({ type: 'selection', info: 'service.ts · 7–9' })
+      await post(preview)
+      assert.equal(await page.locator('#selpreview').count(), 0, 'shown with Selection Off')
+      await page.locator('#selbtn').click()
+      assert.equal(await page.locator('#selpreview').count(), 1, 'not shown with Selection On')
+      assert.match(await page.locator('#selpreview summary').innerText(), /service\.ts · 7–9/)
+      assert.match(await page.locator('#selpreview summary').innerText(), /3 lines/)
+      assert.equal(await page.locator('#selpreview pre').isVisible(), false, 'open before it was asked for')
+      await page.locator('#selpreview summary').click()
+      assert.equal(await page.locator('#selpreview pre').isVisible(), true)
+      assert.equal(await page.locator('#selpreview pre').innerText(), text, 'the preview is not the text that is sent')
+      assert.equal(await page.locator('#selpreview .selwarn').count(), 0)
+      await post({ ...preview, cut: { sent: 6200, total: 9100 } })
+      assert.match(await page.locator('#selpreview .selwarn').innerText(), /first 6200 of 9100 characters/i)
+      assert.equal(await page.locator('#selpreview pre').isVisible(), true, 'a new preview closed what was open')
+      await post({ ...preview, tooLarge: true })
+      assert.match(await page.locator('#selpreview .selwarn').innerText(), /too long/i)
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, 'the page scrolls sideways at ' + width)
+      const grown = await page.evaluate(() => { const strip = document.getElementById('selpreview').getBoundingClientRect(); return { strip: Math.round(strip.height), limit: Math.round(window.innerHeight * 0.2 + 70) } })
+      assert.ok(grown.strip <= grown.limit, 'the preview takes too much of the window at ' + width + ': ' + JSON.stringify(grown))
+      await post({ type: 'selection', info: '' })
+      await post({ type: 'selectionPreview', text: null })
+      assert.equal(await page.locator('#selpreview').count(), 0, 'shown with nothing selected')
+      await page.close()
+    }
+  })
+
   await check('sel_02 Send tells the extension whether the selection goes with the message', async () => {
     const { page } = await open(480)
     await page.locator('#task').fill('Explain this')

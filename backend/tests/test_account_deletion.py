@@ -143,6 +143,18 @@ def test_one_user_cannot_delete_another_account():
     assert victim.get("/api/auth/me").json()["id"] == victim_user["id"]
 
 
+def test_a_personal_api_token_cannot_delete_the_account():
+    app = create_app(Settings(_env_file=None))
+    client, user = account(app)
+    created = client.post("/api/tokens", json={"name": "VS Code"})
+    assert created.status_code == 201, created.text
+    with_token = TestClient(app, headers={"Authorization": f"Bearer {created.json()['token']}"})
+    assert with_token.get("/api/auth/me").status_code == 200  # The token itself works.
+    refused = delete(with_token, email="erase@example.com", password=PASSWORD)
+    assert refused.status_code == 401
+    assert client.get("/api/auth/me").json()["id"] == user["id"]
+
+
 def test_with_supabase_auth_the_data_is_erased_and_the_sign_in_is_reported_as_kept(monkeypatch):
     origin, project = "https://adaptai-test.netlify.app", "https://test-project.supabase.co"
     identity = {

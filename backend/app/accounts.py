@@ -204,9 +204,8 @@ def logout(request: Request, response: Response):
 
 
 @router.delete("/account")
-def delete_account(
-    body: AccountDeletion, request: Request, response: Response, user: AuthenticatedUser
-):
+def delete_account(body: AccountDeletion, request: Request, response: Response, user: SessionUser):
+    # The browser session only: a personal API token must never be able to erase the account.
     """Erase the account and everything stored for it (self-service erasure).
 
     Every table that holds a user's data references ``users`` with ON DELETE CASCADE, so one

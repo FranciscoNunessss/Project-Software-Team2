@@ -455,7 +455,7 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 | UI-01 | The chat follows the newest message: when you send, for every part of the answer, and when a chat opens. If you scrolled up to read, it does not pull you down until you send again or go back to the end. |
 | UI-02 | The list of messages is what scrolls. The box to write stays at the bottom and never covers a message. |
 | UI-03 | From 300 to 1200 px wide nothing is cut off and the page never scrolls sideways. Under 900 px the menu is a bar of tabs at the top instead of a column. |
-| UI-04 | At 300 px the bar of tabs has no scroll bar of its own: its tabs wrap onto a second line instead. |
+| UI-04 | At 300 px the bar of tabs has no scroll bar of its own: its tabs wrap onto more lines instead (two or three, depending on the width). |
 | UI-05 | When the backend is not reachable, every tab shows a clear message, "The backend is not reachable", with **Try again**, on top of what it already shows. When it is reachable again the tab loads by itself. |
 
 **Buttons in the chat box (BTN).** The same actions as the commands and key bindings, one click away. The commands, the right click menu and the key bindings stay.

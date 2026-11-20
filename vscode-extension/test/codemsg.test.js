@@ -112,4 +112,8 @@ test('sel_04 the title of a chat never shows the request rules or the code', () 
   assert.equal(cleanTitle('Throw an Error if id is empty [Change request: reply with o...'), 'Throw an Error if id is empty')
   assert.equal(cleanTitle('Explain this\n\nSelection (src/a.ts, typescript, lines 1-2):\n```ts'), 'Explain this')
   assert.equal(cleanTitle('A normal title'), 'A normal title')
+  // the backend makes the title from the start of the message with the line breaks turned into spaces
+  assert.equal(cleanTitle('Explain this in one sentence Selection (src/service.ts, typescript, lines 7-9):'), 'Explain this in one sentence')
+  assert.equal(cleanTitle('Explain this in one sentence Selection (src/serv'), 'Explain this in one sentence')
+  assert.equal(cleanTitle('Why is Selection (the button) off?'), 'Why is Selection (the button) off?', 'a title that only mentions the word is kept')
 })

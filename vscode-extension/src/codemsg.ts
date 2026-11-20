@@ -50,7 +50,10 @@ export function buildMessage(kind: 'ask' | 'change', text: string, ctx: CodeCont
 
 /** A chat is titled with the start of its first message: cut the request rule and the code off it. */
 export function cleanTitle(title: string): string {
-  const cuts = [title.indexOf(' [Change request:'), title.indexOf('\n\nSelection (')].filter(index => index >= 0)
+  // The backend turns the line breaks of the first message into spaces, so the header is also found after a space:
+  // a whole header, or a title cut short inside it (no closing bracket).
+  const header = /\s+Selection \((?:[^)]*, [^,)]*, lines? \d|[^)]*$)/.exec(title)?.index ?? -1
+  const cuts = [title.indexOf(' [Change request:'), title.indexOf('\n\nSelection ('), header].filter(index => index >= 0)
   return (cuts.length ? title.slice(0, Math.min(...cuts)) : title).trim()
 }
 

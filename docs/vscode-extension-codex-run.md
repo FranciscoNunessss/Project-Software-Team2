@@ -9,7 +9,7 @@ Prepared with AI assistance (Claude, Anthropic); human review pending.
 ## Rules (break none)
 
 1. **Do not edit, delete or move anything in the repository or in any file of the person.** You may only create:
-   the scratch folder in step S3, the report and the screenshots named at the end, and the throw-away account.
+   the scratch folder in step S3, the report named at the end, and the throw-away account.
    No `git` command that changes anything (no commit, no checkout, no reset, no push). Do not run the test suites.
 2. **The database is the team's test schema.** Start the backend exactly as in S2 (schema `ide_dev`). Never
    change the schema, never edit `.env.supabase`, never run SQL, never open the Supabase dashboard.
@@ -66,7 +66,7 @@ code --user-data-dir "%TEMP%/adaptai-run-ud" --extensions-dir "%TEMP%/adaptai-ru
 code --user-data-dir "%TEMP%/adaptai-run-ud" --extensions-dir "%TEMP%/adaptai-run-ex" "%TEMP%/adaptai-run"
 ```
 
-In that window: Settings, `adaptai.backendUrl` = `http://127.0.0.1:8033`. Screenshot `00-setup.png`.
+In that window: Settings, `adaptai.backendUrl` = `http://127.0.0.1:8033`.
 
 **S5. Account and model.** Click the AdaptAI icon, **Create an account** with `codex-<date>@example.com` and a
 password you make up (write it only in the report). Then **LLM config > Add a model > LM Studio**, name
@@ -74,7 +74,7 @@ password you make up (write it only in the report). Then **LLM config > Add a mo
 
 ## Checks
 
-For each: do the steps, compare with Expected, take a screenshot `<id>.png`, write PASS, FAIL (what you saw) or SKIP (why).
+For each: do the steps, compare with Expected, write PASS, FAIL (what you saw) or SKIP (why). Do not save screenshots.
 
 ### A. The new code assistant (the point of this run)
 
@@ -131,11 +131,10 @@ scratch folder stay.
 Write `C:/Users/josem/Desktop/AdaptAI-ide/acceptance-run-report.md` (not committed) with:
 
 * the date, the VS Code version (Help > About), the LM Studio model, and the throw-away email;
-* a table `Id | PASS/FAIL/SKIP | what you saw | screenshot` for every check above, in order;
+* a table `Id | PASS/FAIL/SKIP | what you saw` for every check above, in order;
 * for every FAIL: the exact steps, what you expected, what you saw, and anything red in
   Help > Toggle Developer Tools > Console;
 * a separate list of anything that looked wrong even if the check passed: layout, words, slowness, flicker,
   a button too small, text cut, a delay longer than 10 seconds;
 * a last line: "Regression: all old features OK" or the list of old checks (R1 to R14) that failed.
 
-Put the screenshots in `C:/Users/josem/Desktop/AdaptAI-ide/acceptance-run-screens/` (not committed).

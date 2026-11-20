@@ -98,3 +98,12 @@ test('chg_05 a selection that does not fit in one message is refused before anyt
   assert.equal(sent.length + shown.length, 0)
   assert.match(log.warning[0].message, /does not fit/)
 })
+
+test('sel_09 Suggest a change on a file that holds secrets asks nothing and says why', async () => {
+  const { CodeAssist } = require('../dist/codeassist.js')
+  let asked = 0
+  const assist = new CodeAssist({ outcome: 'ok', send: async () => void (asked += 1) }, { show: async () => undefined }, () => ({ ok: false, reason: 'secret_file', name: '.env' }))
+  const result = await assist.suggest('Rename it')
+  assert.deepEqual(result, { ok: false, reason: 'secret_file' })
+  assert.equal(asked, 0)
+})

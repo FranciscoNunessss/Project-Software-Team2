@@ -448,6 +448,7 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 | SEL-06 | The confirmation for an external model and the secret check that already exist apply to the code too. No new question is added. |
 | SEL-07 | The title of a chat that starts with a code question or a change request is only what the user typed, never the rule text or the code. |
 | SEL-08 | Before sending (release plan task E2). With Selection On and code selected, a line above the box says what will be sent (file and lines, number of lines and characters) with **Show** to open the exact text that goes with the message, the same text the message will carry. If the selection is too long for one message, the line says before sending how much will be sent (the first N of M characters), or that it is too long and to select less. With Selection Off, or nothing selected, there is no line. |
+| SEL-09 | Code in a file that holds secrets by convention (`.env`, `.env.*`, `*.pem`, `*.key`, `id_rsa`, `.npmrc` and similar) is never offered, previewed or sent: the Selection button shows nothing, Send says why, and Suggest a change says why and asks nothing. The same rule as Analyse (release plan E2). |
 
 **Suggest a change (CHG).** The command **AdaptAI: Suggest a change** (palette and right click on a selection) and the button **Suggest a change** in the chat box (BTN-01) start it. The proposal always appears in the editor, not in the chat.
 

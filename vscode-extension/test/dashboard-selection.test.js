@@ -142,3 +142,29 @@ test('sel_04 a chat opened again from the backend shows the typed text and the c
   assert.equal(view.messages[1].text, 'It saves.')
   assert.equal(view.messages[1].selection, undefined)
 })
+
+/** The same editor, but the file is called `name`. */
+function selectIn(name) {
+  select([6, 2], [8, 5])
+  vscode.window.activeTextEditor.document.uri = { scheme: 'file', path: `/work/${name}` }
+}
+
+test('sel_09 code in a file that holds secrets is never offered or sent (.env, keys)', async () => {
+  for (const name of ['.env', '.env.local', 'server.pem', 'id_rsa', 'deploy.key']) {
+    selectIn(name)
+    dash.postSelection()
+    assert.equal(posted.findLast(m => m.type === 'selection').info, '', `${name} was offered`)
+    assert.equal(posted.findLast(m => m.type === 'selectionPreview').text, null, `${name} has a preview`)
+    posted.length = 0
+    sent.length = 0
+    await dash.handle({ type: 'chatSend', text: 'Explain this', withSelection: true })
+    assert.equal(sent.length, 0, `${name} was sent`)
+    assert.match(posted.findLast(m => m.type === 'note').text, /secrets|never sent/i, `${name} gave no reason`)
+  }
+})
+
+test('sel_09 an ordinary file is not affected by the rule', () => {
+  selectIn('environment.ts')
+  dash.postSelection()
+  assert.match(posted.findLast(m => m.type === 'selection').info, /7–9/)
+})

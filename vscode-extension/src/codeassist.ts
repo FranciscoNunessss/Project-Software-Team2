@@ -13,7 +13,7 @@ export interface Asker {
   readonly outcome: 'ok' | 'stopped' | 'failed' | 'refused'
   send(prompt: string, sink: Sink, signal: AbortSignal, override?: undefined, options?: { code?: boolean }): Promise<void>
 }
-export type SuggestResult = { ok: true } | { ok: false; reason: 'no_editor' | 'no_selection' | 'too_large' | 'cancelled' | 'failed' | 'none' | 'several' | 'empty' }
+export type SuggestResult = { ok: true } | { ok: false; reason: 'no_editor' | 'no_selection' | 'secret_file' | 'too_large' | 'cancelled' | 'failed' | 'none' | 'several' | 'empty' }
 
 const WHY = {
   none: 'the answer has no code block',
@@ -43,7 +43,7 @@ export class CodeAssist {
   private pick(): Extract<Picked, { ok: true }> | undefined {
     const picked = this.read()
     if (picked.ok) return picked
-    this.warn(picked.reason === 'no_editor' ? 'open a file and select the code to change first.' : 'select the code to change first.')
+    this.warn(picked.reason === 'no_editor' ? 'open a file and select the code to change first.' : picked.reason === 'secret_file' ? `${picked.name ?? 'this file'} holds secrets by convention and is never sent.` : 'select the code to change first.')
     return undefined
   }
 

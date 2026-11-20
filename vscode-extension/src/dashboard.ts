@@ -1113,7 +1113,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
         let selection: SelectionView | undefined
         if (message.withSelection === true) {
           const picked = readSelection()
-          if (!picked.ok) return this.post({ type: 'note', text: 'Select some code in the editor, or switch Selection off.' })
+          if (!picked.ok) return this.post({ type: 'note', text: picked.reason === 'secret_file' ? `${picked.name ?? 'This file'} holds secrets by convention and is never sent. Switch Selection off, or select code in another file.` : 'Select some code in the editor, or switch Selection off.' })
           const built = buildMessage('ask', typed, picked.ctx)
           if (!built.ok) return this.post({ type: 'note', text: 'The message and the selection are too long for one message. Select less code or write less.' })
           text = built.content

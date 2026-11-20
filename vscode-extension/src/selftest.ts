@@ -269,6 +269,17 @@ export async function runLong(parts: Parts): Promise<void> {
     return { ok: !result.ok && result.reason === 'no_selection' && !diffOpen(), detail: JSON.stringify(result) }
   })
 
+  await check('C11', 'code in a .env file is never sent (E2, SEL-09)', async () => {
+    const secret = path.join(parts.folder, '.env')
+    fs.writeFileSync(secret, 'API_URL=http://example.test\nMODE=dev\n')
+    const sd = await vscode.workspace.openTextDocument(vscode.Uri.file(secret))
+    const se = await vscode.window.showTextDocument(sd, { preview: false })
+    se.selection = new vscode.Selection(0, 0, 1, 8)
+    const picked = readSelection()
+    const result = await assist.suggest('Rename MODE to ENV')
+    return { ok: !picked.ok && picked.reason === 'secret_file' && !result.ok && result.reason === 'secret_file' && !diffOpen(), detail: `selection=${JSON.stringify(picked.ok ? 'offered' : picked.reason)}; suggest=${JSON.stringify(result)}` }
+  })
+
   // ---- backend address (R14) ---------------------------------------------------------------------------
   await check('L12', 'a remote http address is refused with a reason (R14)', async () => {
     const old = config.get<string>('backendUrl')

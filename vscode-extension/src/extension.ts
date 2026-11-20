@@ -153,6 +153,34 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           report?.({ step: 'the analysis opens as a document', ok: vscode.window.visibleTextEditors.length >= 0, detail: `${result.analysis.id}` })
         }
       }
+      try {
+        const file = `${process.env.TEMP ?? process.env.TMPDIR ?? '.'}/adaptai-selftest-diff.ts`
+        fs.writeFileSync(file, 'export function a(x) {\r\n  return x\r\n}\r\nexport const b = 1\r\n')
+        const document = await vscode.workspace.openTextDocument(vscode.Uri.file(file))
+        const editor = await vscode.window.showTextDocument(document)
+        const original = document.getText()
+        await changes.show(0, 2, 'export function a(x) {\n  if (!x) throw new Error("empty")\n  return x\n}', { uri: document.uri, original: 'export function a(x) {\n  return x\n}' })
+        await new Promise(resolve => setTimeout(resolve, 600))
+        const tab = vscode.window.tabGroups.activeTabGroup.activeTab
+        const input = tab?.input as { original?: vscode.Uri; modified?: vscode.Uri } | undefined
+        report?.({ step: 'diff: opens in the VS Code diff editor', ok: input?.modified?.scheme === CHANGE_SCHEME && input.original?.fsPath === document.uri.fsPath, detail: String(tab?.label) })
+        report?.({ step: 'diff: the file is untouched and clean before Accept', ok: document.getText() === original && !document.isDirty, detail: `dirty=${document.isDirty}` })
+        if (process.env.ADAPTAI_SELFTEST_HOLD) return void report?.({ step: 'diff left open for a screenshot', ok: true, detail: 'hold' })
+        await vscode.commands.executeCommand('adaptai.acceptChange')
+        await new Promise(resolve => setTimeout(resolve, 600))
+        const accepted = document.getText()
+        report?.({ step: 'diff: Accept writes the change, keeps CRLF, closes the diff', ok: accepted.includes('throw new Error("empty")') && accepted.split('\n').every((line, i, all) => i === all.length - 1 || line.endsWith('\r')) && !vscode.window.tabGroups.all.some(group => group.tabs.some(item => (item.input as { modified?: vscode.Uri })?.modified?.scheme === CHANGE_SCHEME)), detail: JSON.stringify(accepted) })
+        await vscode.window.showTextDocument(document, editor.viewColumn)
+        await vscode.commands.executeCommand('undo')
+        report?.({ step: 'diff: ONE undo restores the original', ok: document.getText() === original, detail: JSON.stringify(document.getText()) })
+        await changes.show(0, 2, 'X', { uri: document.uri, original: 'export function a(x) {\n  return x\n}' })
+        await new Promise(resolve => setTimeout(resolve, 600))
+        await vscode.commands.executeCommand('adaptai.rejectChange')
+        await new Promise(resolve => setTimeout(resolve, 400))
+        report?.({ step: 'diff: Reject changes nothing and closes the diff', ok: document.getText() === original && !vscode.window.tabGroups.all.some(group => group.tabs.some(item => (item.input as { modified?: vscode.Uri })?.modified?.scheme === CHANGE_SCHEME)), detail: JSON.stringify(document.getText()) })
+      } catch (error) {
+        report?.({ step: 'diff: threw', ok: false, detail: String(error) })
+      }
       report?.({ step: 'done', ok: true, detail: 'self-test finished' })
     })()
   }

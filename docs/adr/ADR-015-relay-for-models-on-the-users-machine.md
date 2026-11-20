@@ -5,8 +5,8 @@ Status: Proposed (16 November 2026). A working prototype exists on the local bra
 backend core (a migration, the provider layer and two small routes), so it needs the Architecture
 Owner's decision, like the token module of ADR-013, and it depends on that module for the client's
 sign-in.
-Owner: José Moura (author). Deciders: Architecture Owner (Francisco Velhinho) for the
-architecture. Baseline: ADR-005 (privacy), ADR-008 (providers), ADR-012 (OpenRouter and LM
+Owner: José Moura (author; Architecture Owner since 18 Nov 2026). Deciders: the Architecture
+Owner, with the Team Lead (Francisco Velhinho) as second reviewer because the Architecture Owner wrote it. Baseline: ADR-005 (privacy), ADR-008 (providers), ADR-012 (OpenRouter and LM
 Studio), ADR-013 (the extension and personal tokens), ADR-014 (recommendation by task needs).
 Prepared with AI assistance (Claude, Anthropic); human review pending.
 

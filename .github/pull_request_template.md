@@ -54,5 +54,7 @@ Before asking a colleague: post an LLM review (AI Working Guide, template T-11) 
 comment, with findings rated blocker / major / minor / nit.
 Merge (G3) when CI is green, this report is complete, the LLM review has no open
 blocker, majors are fixed or justified, and a colleague other than the author has
-approved. The approver merges. The LLM never approves.
+approved with at least one written finding or a "checked: ..." line (PD-44).
+The approver merges. The LLM never approves. An author keeps at most 5 pull
+requests open at a time (PD-47).
 -->

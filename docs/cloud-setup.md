@@ -63,6 +63,17 @@ nos painéis ou em ficheiros locais ignorados pelo Git.
    contornar a configuração de email.
 5. Não adicionar `adaptai` aos schemas expostos na Data API. O frontend só usa
    Supabase Auth; os dados da aplicação são acedidos pelo backend via PostgreSQL.
+   Como segunda barreira, o backend liga o Row Level Security em todas as tabelas do schema no
+   arranque (`Storage._secure_tables`, depois das migrations e de cada módulo opcional), sem
+   políticas: o backend liga-se como dono das tabelas e continua a filtrar por utilizador em cada
+   consulta; qualquer outro papel que chegue ao schema (`anon`, `authenticated`) não vê linhas. Não
+   criar políticas nem `FORCE ROW LEVEL SECURITY` sem rever primeiro o papel com que o backend se liga.
+   **Confirmar depois do primeiro deploy (o RLS é silencioso):** no SQL Editor do Supabase,
+   `SELECT c.relname, c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+   WHERE n.nspname='adaptai' AND c.relkind IN ('r','p') ORDER BY 1;` — todas as linhas devem ter
+   `relrowsecurity = true`. Se o papel do backend não for dono das tabelas, o arranque regista um
+   erro (`Row Level Security is OFF on ...`) e continua. Depois de confirmar, definir
+   `ADAPTAI_REQUIRE_RLS=true` no Render: o backend passa a recusar arrancar se alguma tabela ficar sem RLS.
 
 As migrations `backend/migrations/*.sql` são aplicadas pelo backend no arranque.
 Não copiar o SQL para o painel manualmente. O histórico local não é transferido
@@ -83,6 +94,7 @@ Dockerfile também precisa dos manifests na raiz. Auto-deploy: **Off**.
 | `ADAPTAI_AUTH_MODE` | `supabase` |
 | `ADAPTAI_DATABASE_URL` | URL Session pooler com password e SSL; segredo |
 | `ADAPTAI_DATABASE_SCHEMA` | `adaptai` |
+| `ADAPTAI_REQUIRE_RLS` | `true` só depois de confirmar o RLS (ver passo 5); por omissão `false` |
 | `ADAPTAI_SUPABASE_URL` | Project URL |
 | `ADAPTAI_SUPABASE_PUBLISHABLE_KEY` | Publishable key |
 | `ADAPTAI_SUPABASE_SERVICE_ROLE_KEY` | Opcional; secret/service_role key; segredo, só no backend. Permite que "Delete my account" apague também o utilizador no Supabase Auth. Sem ela, os dados da aplicação são apagados e o utilizador é avisado de que o login se mantém |

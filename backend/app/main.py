@@ -1,4 +1,5 @@
 import json
+import logging
 from time import perf_counter
 from uuid import uuid4
 
@@ -933,6 +934,16 @@ def create_app(
             openrouter_catalogue=router_models,
             **(chat_options or {}),
         )
+
+    # RLS is a second barrier and a silent one: say whether it is on; optionally refuse to start.
+    unsecured = store.rls_off_tables()
+    if unsecured:
+        message = f"Row Level Security is OFF on {len(unsecured)} table(s): {unsecured}"
+        if settings.require_rls:
+            raise RuntimeError(message + " (ADAPTAI_REQUIRE_RLS is set)")
+        logging.getLogger(__name__).error(message)
+    else:
+        logging.getLogger(__name__).info("Row Level Security is on for every table of the schema")
 
     return app
 

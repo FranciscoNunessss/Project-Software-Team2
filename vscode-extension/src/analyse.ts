@@ -446,7 +446,7 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     }
     if (!offer) return
     const buttons = ['Copy summary', 'Task solved?', ...(result.coachAvailable ? ['Improve with the Coach'] : [])]
-    const choice = await vscode.window.showInformationMessage(`AdaptAI: ${summaryLine(result.analysis)} · assessed by ${assessedBy(result.analysis)}`, ...buttons)
+    const choice = await vscode.window.showInformationMessage(`AdaptAI: ${summaryLine(result.analysis)} · assessed by ${assessedBy(result.analysis)} · through ${new URL(this.backend.url).host}`, ...buttons)
     if (choice === 'Copy summary') await vscode.commands.executeCommand('adaptai.copySummary', id)
     else if (choice === 'Task solved?') await vscode.commands.executeCommand('adaptai.taskOutcome', id)
     else if (choice === 'Improve with the Coach') await vscode.commands.executeCommand('adaptai.coachResult', id)

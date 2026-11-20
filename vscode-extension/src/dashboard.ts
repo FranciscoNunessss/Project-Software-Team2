@@ -91,6 +91,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
     private readonly chat: ChatService,
     private readonly progress: ProgressReport,
     private readonly relay?: RelayAgent,
+    private readonly assist?: { suggest(instruction: string, signal: AbortSignal): Promise<unknown> },
   ) {
     analyser.onDidAnalyse(() => {
       if (this.busy || this.coachBusy || this.streaming) this.postAssistant()
@@ -1075,6 +1076,21 @@ export class Dashboard implements vscode.WebviewViewProvider {
         }
         return
       }
+      case 'suggestChange': {
+        const instruction = str('text').trim().slice(0, 2000)
+        if (!instruction || this.streaming || !this.assist) return
+        const abort = new AbortController()
+        this.streaming = abort
+        this.assistantVersion++
+        this.post({ type: 'note', text: 'Asking for a change…' })
+        try {
+          await this.assist.suggest(instruction, abort.signal)
+        } finally {
+          this.streaming = undefined
+          await this.refreshAssistant()
+        }
+        return
+      }
       case 'chatStop':
         this.streaming?.abort()
         return
@@ -1350,7 +1366,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
   body.chatmode .composer2 { position: static; flex: none; margin-top: 8px; }
   body.chatmode .toolbar, body.chatmode .banner, body.chatmode .notice { flex: none; }
   @media (max-width: 899px) { body.chatmode .page { margin: 0; width: 100%; padding: 10px 12px; } }
-  @media (max-width: 899px) { .side { padding: 8px 10px; gap: 4px 8px; } .brand { order: 0; } .newchat { order: 1; width: auto; margin: 0; min-height: 28px; padding: 0 10px; font-size: 12px; } .foot { order: 2; } .nav { order: 3; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .nav::-webkit-scrollbar { display: none; } .nav button { flex: none; white-space: nowrap; } }
+  @media (max-width: 899px) { .side { padding: 8px 10px; gap: 4px 8px; } .brand { order: 0; } .newchat { order: 1; width: auto; margin: 0; min-height: 28px; padding: 0 10px; font-size: 12px; } .foot { order: 2; } .nav { order: 3; flex-wrap: wrap; overflow: visible; } .nav button { flex: none; white-space: nowrap; } }
   @media (max-width: 520px) { .foot #acct { font-size: 0; } .foot #acct .dot { margin: 0; } .foot .btn { white-space: nowrap; } }
   @media (min-width: 1280px) { body.chatmode .assist.with-drawer { display: grid; grid-template-rows: minmax(0, 1fr); } body.chatmode .assist.with-drawer .drawer { position: static; height: auto; overflow: auto; } }
   [hidden] { display: none !important; }
@@ -1663,9 +1679,14 @@ function page(nonce: string, csp: string, tab: Tab): string {
     const stopBtn = el('button', { class: 'btn', id: 'stop', type: 'button', text: 'Stop', hidden: !d.streaming, onclick: () => send('chatStop') })
     const chip = d.last && d.last.task && d.last.task.trim() === draft.trim() && draft.trim() ? el('button', { class: 'recchip', type: 'button', title: 'Show analysis', onclick: () => { drawerOpen = true; renderTab() } }, 'Recommended: ', el('strong', { text: d.last.name }), d.last.usable && sel && d.last.modelId === sel.id ? ' · selected' : '') : null
     const selBtn = el('button', { class: 'trigger sel', id: 'selbtn', type: 'button', text: selLabel(), 'aria-pressed': String(withSel), title: 'When On, the code selected in the editor goes with your message', onclick: () => { withSel = !withSel; const b = document.getElementById('selbtn'); if (b) { b.textContent = selLabel(); b.setAttribute('aria-pressed', String(withSel)) } } })
+    const suggestWhy = () => !area.value.trim() ? 'Write what should change in the box first' : !selInfo ? 'Select the code to change in the editor first' : 'Ask for a change to the selected code; it appears in the editor'
+    const suggestBtn = el('button', { class: 'trigger', id: 'suggestbtn', type: 'button', text: 'Suggest a change', disabled: busy || !area.value.trim() || !selInfo, title: suggestWhy(), onclick: () => { const text = area.value.trim(); if (!text) return; area.value = ''; draft = ''; api.setState({ text: '' }); counter.textContent = '0/' + MAXC; send('suggestChange', { text }) } })
+    const improveBtn = el('button', { class: 'trigger', id: 'improvebtn', type: 'button', text: 'Improve prompt', title: 'Open the Prompt Coach on the text in the box', onclick: () => { pop = pop === 'coach' ? null : 'coach'; renderTab() } })
+    const syncSuggest = () => { suggestBtn.disabled = busy || !area.value.trim() || !selInfo; suggestBtn.title = suggestWhy() }
+    area.addEventListener('input', syncSuggest)
     const composer = el('section', { class: 'composer2' },
       el('div', { class: 'wrapta' }, area, coachBtn), live2,
-      el('div', { class: 'cfoot2' }, el('div', { class: 'left' }, trigger, router, selBtn), el('div', { class: 'right' }, el('span', { class: 'muted', id: 'note' }), counter, chip, analyseBtn, sendBtn, stopBtn)))
+      el('div', { class: 'cfoot2' }, el('div', { class: 'left' }, trigger, router, selBtn, suggestBtn, improveBtn), el('div', { class: 'right' }, el('span', { class: 'muted', id: 'note' }), counter, chip, analyseBtn, sendBtn, stopBtn)))
     if (pop === 'model') composer.append(modelPop(d, sel))
     if (pop === 'coach') composer.append(coachPop(d, area, found()))
     col.append(composer)
@@ -1867,12 +1888,12 @@ function page(nonce: string, csp: string, tab: Tab): string {
     const m = event.data
     if (m && m.type === 'navigate') { showTab(m.tab); return }
     if (m && m.type === 'resetTabs') { connection = null; live = null; document.getElementById('modal').replaceChildren(); lastData = { tab, signedOut: m.signedOut, loading: !m.signedOut }; renderAccount(lastData); renderTab(); return }
-    if (m && m.type === 'connection') { if (lastData && !lastData.signedOut) renderAccount(m); return }
+    if (m && m.type === 'connection') { if (lastData && !lastData.signedOut) { const was = connection && connection.online; renderAccount(m); if (was !== m.online && !live && (was === false || m.online === false)) { renderTab(); if (was === false && m.online === true) send('ready', { force: true }) } } return }
     if (m && m.type === 'dialog') return showDialog(m)
     if (m && m.type === 'toast') return toast(m.kind, m.text)
     if (m && m.type === 'chatStart') { const box = document.getElementById('msgs'); if (!box) return; const empty = box.querySelector('.empty, .chat-empty'); if (empty) empty.remove(); if (m.user) box.append(bubble('user', 'You', m.user, '', m.selection)); live = { raw: '', el: bubble('ai', 'AdaptAI', '') }; box.append(live.el); follow = true; toEnd(); const stop = document.getElementById('stop'); if (stop) stop.hidden = false; const sb = document.getElementById('sendbtn'); if (sb) sb.hidden = true; return }
     if (m && m.type === 'delta') { if (!live) return; live.raw += m.text; const next = bubble('ai', 'AdaptAI', live.raw); live.el.replaceWith(next); live.el = next; if (follow) toEnd(); const note = document.getElementById('note'); if (note) note.textContent = ''; return }
-    if (m && m.type === 'selection') { selInfo = m.info || ''; const b = document.getElementById('selbtn'); if (b) b.textContent = selLabel(); return }
+    if (m && m.type === 'selection') { selInfo = m.info || ''; const b = document.getElementById('selbtn'); if (b) b.textContent = selLabel(); const sg = document.getElementById('suggestbtn'); const ta = document.getElementById('task'); if (sg && ta) { sg.disabled = !ta.value.trim() || !selInfo; sg.title = !ta.value.trim() ? 'Write what should change in the box first' : !selInfo ? 'Select the code to change in the editor first' : 'Ask for a change to the selected code; it appears in the editor' } return }
     if (m && m.type === 'note') { const note = document.getElementById('note'); if (note) note.textContent = m.text; return }
     if (m && m.type === 'assistantState') {
       if (tab === 'analyse' && lastData && !lastData.loading && !lastData.signedOut && !lastData.failed) {
@@ -1901,6 +1922,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
     if (d.signedOut) return main.append(el('div', { class: 'center' }, el('h1', { text: 'Sign in to use AdaptAI' }), el('p', { class: 'lead', style: 'margin:0 auto 20px', text: 'Use your email and password once. Only a token is kept on this machine.' }), el('div', { class: 'btns', style: 'justify-content:center' }, el('button', { class: 'btn primary', text: 'Sign in', onclick: () => send('signIn') }), el('button', { class: 'btn', text: 'Create an account', onclick: () => send('register') }))))
     if (d.loading) return main.append(...intro('AdaptAI', { analyse: 'Assistant', progress: 'My progress', profile: 'Profile', models: 'LLM config', shortcuts: 'Shortcuts' }[tab], 'Loading…'))
     if (d.failed) return main.append(el('div', { class: 'err', text: d.failed }), el('p'), el('button', { class: 'btn', text: 'Try again', onclick: () => send('ready', { force: true }) }))
+    if (connection && connection.online === false) main.append(el('div', { class: 'err', role: 'alert', text: 'The backend is not reachable. Check that it is running; this page loads again by itself when it is.' }), el('button', { class: 'btn small', text: 'Try again', onclick: () => send('ready', { force: true }) }))
     if (d.refreshing) main.append(el('p', { class: 'muted', role: 'status', text: 'Updating…' }))
     if (d.refreshError) main.append(el('div', { class: 'err', text: 'Could not update: ' + d.refreshError }), el('button', { class: 'btn small', text: 'Try again', onclick: () => send('ready', { force: true }) }))
     try {

@@ -73,6 +73,8 @@ export class InlineReview implements ReviewHost, vscode.CodeLensProvider {
     const done = how === 'accept' ? await review.accept() : await review.reject()
     this.reviews.forget(keyOf(document))
     this.refresh(document)
+    // VS Code can draw the buttons late: ask once more a moment later so none is left behind.
+    setTimeout(() => this.refresh(document), 150)
     if (!done) this.warn('the code changed since the proposal, so nothing was done.')
   }
 

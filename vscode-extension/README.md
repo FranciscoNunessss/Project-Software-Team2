@@ -34,6 +34,7 @@ Mac: `Cmd` for the chords. The extension cannot add buttons inside another exten
 ### The code assistant
 
 * **Selection: Off / On** in the chat box sends the code you selected, with its file and lines, together with your message. The answer comes back in the chat.
+* **Suggest a change** and **Improve prompt** are buttons in the same box. Suggest a change uses the text in the box as the instruction and the code selected in the editor; the proposal appears in the editor with Accept and Reject. Improve prompt opens the Prompt Coach on the text in the box. The commands, the right click menu and the key bindings stay.
 * **Suggest a change to the selection** (right click on a selection, or the command palette) asks what to change in the box at the top. The proposal appears in the file, red for the old lines and green for the new ones, with **Accept** and **Reject** above. Nothing is saved until you choose, and saving first rejects a pending proposal.
 * It uses the chat model you picked in AdaptAI, through the backend. There are no `/` commands and it does not use the VS Code chat.
 

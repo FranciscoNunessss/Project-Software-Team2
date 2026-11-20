@@ -18,9 +18,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const chat = new ChatService(backend, analyser, context.workspaceState)
   const progress = new ProgressReport(backend)
   const relay = new RelayAgent(backend)
-  const dashboard = new Dashboard(backend, analyser, chat, progress, relay)
   const inline = new InlineReview()
   const assist = new CodeAssist(chat, inline)
+  const dashboard = new Dashboard(backend, analyser, chat, progress, relay, assist)
   let diagnosticsOutput: vscode.LogOutputChannel | undefined
   context.subscriptions.push(
     { dispose: () => { stopDiagnostics(); diagnosticsOutput?.dispose() } },

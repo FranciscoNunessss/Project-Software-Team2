@@ -129,7 +129,7 @@ For each: do the steps, compare with Expected, write PASS, FAIL (what you saw) o
 | N4 | Click once in the file so nothing is selected, keep Selection On, write `Explain this` and press **Send** | Nothing is sent. Under the box: "Select some code in the editor, or switch Selection off." |
 | N5 | Switch Selection Off, select lines 7 to 10 again, write `What is 2+2? Answer with just the number` and press **Send** | The message has no code line and the answer does not talk about the code |
 | N6 | Select lines 7 to 10. Right click > **AdaptAI: Suggest a change to the selection**. In the box at the top write `Throw an Error if id is empty` and press Enter | After a few seconds: the 4 old lines are shaded red, the new lines are shaded green right below them, and **AdaptAI: Accept** and **Reject** appear above. The tab shows unsaved changes |
-| N7 | Press **Accept** | The red lines are gone, the green ones are normal code, the shading and buttons are gone. The blank lines above and below the function are still there. Ctrl+Z brings back both versions; a second Ctrl+Z gives the original file |
+| N7 | Press **Accept** (a light bulb on a blank line is VS Code's own, not ours) | The red lines are gone, the green ones are normal code, the shading and buttons are gone. The blank lines above and below the function are still there. Ctrl+Z brings back both versions; a second Ctrl+Z gives the original file |
 | N8 | Ask for a change again (`Rename value to data`) and press **Reject** | The green lines disappear, the file is exactly as in S3 |
 | N9 | Ask for a change again, and before choosing press Ctrl+S | A message says the proposal was rejected before saving. Open the file on disk (`type %TEMP%\adaptai-run\src\service.ts`): only the original code |
 | N10 | Ask for a change, then type a letter inside the green lines | A message says the review ended; shading and buttons disappear; the text stays as it is. Press Ctrl+Z until the file is as in S3 |
@@ -143,6 +143,10 @@ For each: do the steps, compare with Expected, write PASS, FAIL (what you saw) o
 | U1 | Send `Count from 1 to 40, one number per line` and watch | The page follows the answer to the end by itself |
 | U2 | While it writes (or after, with more messages), scroll up in the messages. Send another short message | While you read above, the page does not pull you down. After sending it goes to the newest message |
 | U3 | Drag the side bar to about 300 px, then 600 px, then 900 px or more | At 300 and 600 px the menu is a bar of tabs on top and the box to write is at the bottom, not covering any message, no sideways scroll. At 900 px or more the menu is a column on the left |
+| U5 | Stop the backend (Ctrl+C), wait a few seconds, click **My progress** and then **Assistant**; start the backend again | While it is off every tab shows "The backend is not reachable" with **Try again**; after it is on again the tab loads by itself |
+| B1 | Select lines 7 to 10 in `service.ts`. In the chat box write `Throw an Error if id is empty` and press **Suggest a change** | The button is grey while the box is empty or nothing is selected (hover shows why). After the click the red and green lines and Accept / Reject appear in the editor; the box is cleared |
+| B2 | Write `make it better` in the box and press **Improve prompt** | The Prompt Coach opens on that text, like the ✦ button |
+| B3 | At about 300 px wide | **Suggest a change** and **Improve prompt** are visible, wrapped onto a second line if needed, nothing cut off |
 | U4 | Light theme (Ctrl+K Ctrl+T), then dark | Both readable; the Selection button, the red and green lines and the buttons are visible in both |
 
 ### C. The old features (regression: nothing may be broken)
@@ -159,7 +163,7 @@ For each: do the steps, compare with Expected, write PASS, FAIL (what you saw) o
 | R8 | **My progress** | Numbers and charts, no error |
 | R9 | **Profile**: switch on "Save task text and AI responses" | A consent dialog appears first; **Cancel** leaves it off |
 | R10 | **Shortcuts**: **Change** on any shortcut | The keyboard shortcuts editor opens filtered on it |
-| R11 | In `service.ts` select lines 7 to 10 and press Ctrl+Alt+A | A confirmation names the backend and the model; the analysis opens beside the editor |
+| R11 | In `service.ts` select lines 7 to 10 and press Ctrl+Alt+A | The analysis opens beside the editor; the message after it names the backend address and the model. A question before sending appears only for an external model or a whole file |
 | R12 | In a new file type `write about dogs`, select it and press Ctrl+K Ctrl+E | A diff with the improved prompt opens; **Apply** replaces the text; Ctrl+Z restores it |
 | R13 | Stop the backend (Ctrl+C in its terminal), click any tab, start it again, press **Retry** if shown | A clear "backend not reachable" message while it is off; it works again after |
 | R14 | Set `adaptai.backendUrl` to `http://example.com`, open the AdaptAI view | The extension refuses and says why; nothing is sent. Set it back to `http://127.0.0.1:8033` |

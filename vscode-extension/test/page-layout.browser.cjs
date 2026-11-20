@@ -16,7 +16,7 @@ new vm.Script(html.match(/<script[^>]*>([\s\S]*?)<\/script>/)[1])
 
 const many = Array.from({ length: 30 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', who: i % 2 ? 'AdaptAI' : 'You', text: `Message ${i} ` + 'word '.repeat(30) }))
 const data = { type: 'data', tab: 'analyse', options: [], chats: [], messages: many, chatModel: '', auto: null, assessment: null, streaming: false, analysing: false }
-const WIDTHS = [320, 480, 760, 899, 900, 1200]
+const WIDTHS = [300, 320, 480, 760, 899, 900, 1200]
 
 ;(async () => {
   const browser = await chromium.launch({ headless: true })
@@ -64,6 +64,8 @@ const WIDTHS = [320, 480, 760, 899, 900, 1200]
           pageScrolls: document.scrollingElement.scrollHeight > window.innerHeight + 1,
           overflowing,
           msgsScroll: document.getElementById('msgs').scrollHeight > document.getElementById('msgs').clientHeight,
+          navScrolls: (() => { const n = document.querySelector('.nav'); return n.scrollWidth > n.clientWidth + 1 || ['auto', 'scroll'].includes(getComputedStyle(n).overflowX) })(),
+          buttonsFit: ['#suggestbtn', '#improvebtn'].every(id => { const r = document.querySelector(id)?.getBoundingClientRect(); return r && r.width > 0 && r.left >= 0 && r.right <= window.innerWidth })
         }
       })
       assert.equal(errors.length, 0, errors.join('; '))
@@ -74,6 +76,8 @@ const WIDTHS = [320, 480, 760, 899, 900, 1200]
       assert.equal(facts.pageScrolls, false, 'the whole page scrolls instead of the messages')
       assert.equal(facts.overflowing, 0, 'something in the box sticks out')
       assert.equal(facts.msgsScroll, true, 'the list of messages is not what scrolls')
+      assert.equal(facts.navScrolls, false, 'ui_04 the bar of tabs has a scroll of its own')
+      assert.equal(facts.buttonsFit, true, 'btn_04 the buttons are missing or cut off')
       await page.close()
     })
   }
@@ -137,6 +141,44 @@ const WIDTHS = [320, 480, 760, 899, 900, 1200]
     assert.match(await caption.innerText(), /src\/service\.ts · 7–9/)
     assert.equal(await page.locator('.selcap').evaluate(el => el.open), false)
     assert.equal(await page.locator('#msgs').innerText().then(text => text.includes('export function save')), false, 'the code is visible')
+    await page.close()
+  })
+
+  await check('btn_01 Suggest a change is off until there is text and a selection, then asks the extension', async () => {
+    const { page, post } = await open(480)
+    const button = page.locator('#suggestbtn')
+    assert.equal(await button.isDisabled(), true)
+    await page.locator('#task').fill('Throw an error if id is empty')
+    assert.equal(await button.isDisabled(), true, 'enabled without a selection')
+    assert.ok((await button.getAttribute('title')).length > 5, 'no reason in the tooltip')
+    await post({ type: 'selection', info: 'service.ts · 7–9' })
+    assert.equal(await button.isDisabled(), false)
+    await button.click()
+    const sent = await page.evaluate(() => window.__sent.filter(m => m.type === 'suggestChange'))
+    assert.deepEqual(sent.map(m => m.text), ['Throw an error if id is empty'])
+    assert.equal(await page.evaluate(() => window.__sent.some(m => m.type === 'chatSend')), false, 'it also sent a chat message')
+    await post({ type: 'selection', info: '' })
+    assert.equal(await page.locator('#suggestbtn').isDisabled(), true)
+    await page.close()
+  })
+
+  await check('btn_02 Improve prompt opens the Prompt Coach on the text in the box', async () => {
+    const { page } = await open(480)
+    await page.locator('#task').fill('make it better')
+    await page.locator('#improvebtn').click()
+    assert.ok(await page.locator('.coachbtn[aria-expanded=true]').count(), 'the Coach did not open')
+    await page.close()
+  })
+
+  await check('ui_05 an unreachable backend shows a message on the tab, and it recovers by itself', async () => {
+    const { page, post } = await open(480)
+    await post({ type: 'connection', online: false, email: 'a@b.c' })
+    assert.match(await page.locator('main').innerText(), /backend is not reachable/i)
+    assert.ok(await page.getByRole('button', { name: 'Try again' }).count(), 'no Try again')
+    await post({ type: 'connection', online: true, email: 'a@b.c' })
+    assert.doesNotMatch(await page.locator('main').innerText(), /backend is not reachable/i)
+    const forced = await page.evaluate(() => window.__sent.filter(m => m.type === 'ready' && m.force).length)
+    assert.ok(forced >= 1, 'it did not reload when the backend came back')
     await page.close()
   })
 

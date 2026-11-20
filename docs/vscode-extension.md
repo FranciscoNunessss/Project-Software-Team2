@@ -427,7 +427,7 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 | SEL-05 | A message is at most 8000 characters. A longer selection is cut at a line break and the message says how much was sent. The text the user typed is never cut. |
 | SEL-06 | The confirmation for an external model and the secret check that already exist apply to the code too. No new question is added. |
 
-**Suggest a change (CHG).** The command **AdaptAI: Suggest a change** (palette and right click on a selection) works in the editor, not in the chat.
+**Suggest a change (CHG).** The command **AdaptAI: Suggest a change** (palette and right click on a selection) and the button **Suggest a change** in the chat box (BTN-01) start it. The proposal always appears in the editor, not in the chat.
 
 | Id | Requirement |
 |---|---|
@@ -454,8 +454,27 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 | UI-01 | The chat follows the newest message: when you send, for every part of the answer, and when a chat opens. If you scrolled up to read, it does not pull you down until you send again or go back to the end. |
 | UI-02 | The list of messages is what scrolls. The box to write stays at the bottom and never covers a message. |
 | UI-03 | From 300 to 1200 px wide nothing is cut off and the page never scrolls sideways. Under 900 px the menu is a bar of tabs at the top instead of a column. |
+| UI-04 | At 300 px the bar of tabs has no scroll bar of its own: its tabs wrap onto a second line instead. |
+| UI-05 | When the backend is not reachable, every tab shows a clear message, "The backend is not reachable", with **Try again**, on top of what it already shows. When it is reachable again the tab loads by itself. |
+
+**Buttons in the chat box (BTN).** The same actions as the commands and key bindings, one click away. The commands, the right click menu and the key bindings stay.
+
+| Id | Requirement |
+|---|---|
+| BTN-01 | **Suggest a change** uses what is written in the box as the instruction and the code selected in the editor. It is disabled, with the reason as its tooltip, while the box is empty or nothing is selected. It does not need the Selection button. The proposal then appears in the editor as in APP-01. |
+| BTN-02 | **Improve prompt** opens the Prompt Coach on the text in the box, the same as the ✦ button, which stays. |
+| BTN-03 | With Selection On, Send analyses the selected code (SEL-02). There is no separate Analyse-the-selection button in the chat. |
+| BTN-04 | Both buttons fit at every width of UI-03, wrapping onto a second line when they must. |
+
+**Analysis result (RES).**
+
+| Id | Requirement |
+|---|---|
+| RES-01 | The message that follows an analysis names the backend (its address) and the model, so the user sees where the text went. A question before sending still appears only for an external model or a whole file. |
 
 **Decisions.** The backend takes only text in `content`, so the code travels inside the message, written by the extension; the page and the loaded history hide it behind the caption. The change request is a message in the current chat, so it also appears in the chat list. The default backend address is unchanged. Left out on purpose: the VS Code chat, `/` commands, a side by side comparison, a key binding and a refusal of files by name.
+
+**Review in place after Accept or Reject (APP-06).** After Accept or Reject the marks and the Accept and Reject buttons are gone at once, and a moment later again if VS Code redraws them late.
 
 **Known limits.** The proposal is written into the file until it is accepted or rejected (APP-04 keeps it out of a save); with automatic saving after a delay it can be rejected while you read it. The tests use a stand-in for VS Code; checks 31 to 36 of the [acceptance run](vscode-extension-acceptance-codex.md) are the only proof in a real window. The change prompt has not been measured with a real model.
 

@@ -91,10 +91,18 @@ New injection tasks (wording to review at G1):
 - `docs/quality-eval.md`: the draft set is replaced; link this file.
 - `backend/eval/quality/tasks-2.json` `status` field: "labelled by two members on <date>".
 
-## Open questions
+## Decisions (21 Nov)
 
-1. Who is the second labeller? Proposal: a member who did not write rubric-2.x.
-2. Label the 7 request-quality dimensions (L1) as well? Lets WS4 measure L1 accuracy, about +1 h each.
-3. **Expected model depends on rated cards.** catalogue-2.1 has no capability levels on real models,
-   so the product cannot recommend them today. Labellers can still choose the expected model by
-   judgement, but M6 needs the product to recommend real models by the freeze.
+- Second labeller: a team member who did not write rubric-2.x, named on the card.
+- Request-quality (L1) dimensions are not labelled in this set.
+- The expected model is chosen among the real catalogue-2.1 cards. The product recommends real models
+  through `Ratings` (LMArena and Artificial Analysis levels), so the labels are comparable.
+
+## How to run it (built)
+
+```bash
+python scripts/labelled_set.py agree sheet-A.csv sheet-B.csv
+python scripts/labelled_set.py build sheet-A.csv sheet-B.csv --resolutions resolutions.json
+```
+
+Code: `backend/app/labelled_set.py`, `backend/app/agreement.py`; tests `backend/tests/test_labelled_set.py`.

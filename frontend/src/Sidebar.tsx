@@ -5,7 +5,7 @@ import { Icon } from './AnalysisResult'
 import { IconButton } from './ui'
 import './Sidebar.css'
 
-export type Screen = 'assistant' | 'progress' | 'profile' | 'llm' | 'privacy'
+export type Screen = 'assistant' | 'progress' | 'team' | 'profile' | 'llm' | 'privacy'
 
 // Small line icons for the sidebar (16px, drawn in the current text colour).
 const glyph = (path: ReactNode) => (
@@ -15,6 +15,7 @@ const ICONS = {
   new: glyph(<path d="M12 5v14M5 12h14" />),
   assistant: glyph(<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z" />),
   progress: glyph(<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />),
+  team: glyph(<><circle cx="9" cy="8" r="3.2" /><circle cx="17" cy="9" r="2.4" /><path d="M3 20a6 6 0 0 1 12 0M15 20a4.5 4.5 0 0 1 7-3.7" /></>),
   profile: glyph(<><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>),
   llm: glyph(<><path d="M4 6h16M4 12h16M4 18h16" /><circle cx="9" cy="6" r="2" fill="var(--surface)" /><circle cx="15" cy="12" r="2" fill="var(--surface)" /><circle cx="7" cy="18" r="2" fill="var(--surface)" /></>),
 }
@@ -22,6 +23,7 @@ const ICONS = {
 const PAGES: { screen: Exclude<Screen, 'privacy'>; label: string }[] = [
   { screen: 'assistant', label: 'Assistant' },
   { screen: 'progress', label: 'My progress' },
+  { screen: 'team', label: 'Team' },
   { screen: 'profile', label: 'Profile' },
   { screen: 'llm', label: 'LLM config' },
 ]

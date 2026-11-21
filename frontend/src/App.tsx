@@ -18,6 +18,7 @@ import { Icon, ProfileCard, RecommendationCard } from './AnalysisResult'
 import { Button, Card } from './ui'
 import { AssistantOutcome } from './TaskOutcome'
 import { Sidebar, type Screen } from './Sidebar'
+import { TeamScreen } from './Team'
 import './App.css'
 
 type ResultState = 'empty' | 'loading' | 'result'
@@ -306,9 +307,11 @@ export default function App() {
 // Everything shown once signed in. Remounted per user by Account.
 function Shell({ account, dark, onToggleTheme }: { account: AccountInfo; dark: boolean; onToggleTheme: () => void }) {
   const [screen, setScreen] = useState<Screen>(() => {
+    // An invite link (Team Scope) opens the Team page, which accepts it.
+    if (new URLSearchParams(window.location.search).has('invite')) return 'team'
     try {
       const saved = window.localStorage.getItem('adaptai-screen')
-      if (saved === 'assistant' || saved === 'progress' || saved === 'profile' || saved === 'llm') return saved
+      if (saved === 'assistant' || saved === 'progress' || saved === 'team' || saved === 'profile' || saved === 'llm') return saved
     } catch { /* Navigation remains available without browser storage. */ }
     return 'assistant'
   })
@@ -378,6 +381,7 @@ function Shell({ account, dark, onToggleTheme }: { account: AccountInfo; dark: b
           if (hasChat) setChat({ key: saved.sessionId, id: saved.sessionId })
           navigate('assistant')
         }} /></PagePanel>}
+        {visited.has('team') && <PagePanel active={screen === 'team'}><TeamScreen /></PagePanel>}
         {visited.has('profile') && <PagePanel active={screen === 'profile'}><ProfileScreen onOpenPrivacy={() => navigate('privacy')} /></PagePanel>}
         {visited.has('llm') && <PagePanel active={screen === 'llm'}><LLMConfigScreen /></PagePanel>}
         {visited.has('privacy') && <PagePanel active={screen === 'privacy'}><PrivacyPolicy onBack={() => navigate('assistant')} backLabel="Back to Assistant" /></PagePanel>}

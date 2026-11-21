@@ -29,7 +29,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 from app.providers import Settings  # noqa: E402
 from app.storage import Storage  # noqa: E402
-from app.team_data import MockSource  # noqa: E402
+from app.team_data import MockSource, activity  # noqa: E402
 
 ALLOWED_ENVIRONMENTS = ("preview", "demo", "local")
 DEMO_DOMAIN = "demo.adaptai.invalid"
@@ -38,6 +38,18 @@ ORGANISATION = "AdaptAI demo organisation"
 GROUPS = {"Engineering": 6, "Support": 5, "Interns": 4}
 HISTORY_DAYS = 28
 DAY = 86400
+# The mock source gives each user id a fixed activity, and about one id in five never uses
+# AdaptAI. Synthetic members get ids of at least one task a day, so every week of the demo has
+# its planned contributors and Engineering and Support show numbers on every seed.
+MIN_DEMO_ACTIVITY = 1.0
+
+
+def demo_user_id() -> str:
+    """A new user id that the mock source makes active enough for the demo."""
+    while True:
+        user_id = str(uuid4())
+        if activity(user_id) >= MIN_DEMO_ACTIVITY:
+            return user_id
 
 
 def refuse_unless_allowed(environ: dict[str, str]) -> str | None:
@@ -105,7 +117,7 @@ def seed(store: Storage, admin_email: str, now: int) -> dict:
             )
         user_ids = []
         for member in plan(now):
-            user_id = str(uuid4())
+            user_id = demo_user_id()
             user_ids.append(user_id)
             # "!" is never a valid scrypt hex digest: nobody can sign in as a synthetic member.
             db.execute(

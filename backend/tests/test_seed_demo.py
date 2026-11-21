@@ -34,6 +34,13 @@ def test_the_plan_has_three_groups_fifteen_members_and_one_group_below_the_minim
     assert all(m["email"].endswith("@demo.adaptai.invalid") for m in members)
 
 
+def test_synthetic_member_ids_are_always_active_in_the_mock_source():
+    from app.team_data import activity
+
+    seed = seeder()
+    assert all(activity(seed.demo_user_id()) >= seed.MIN_DEMO_ACTIVITY for _ in range(200))
+
+
 def test_seed_then_reset_creates_and_removes_only_the_demo(tmp_path):
     from app.main import create_app
     from app.providers import Settings
@@ -53,8 +60,14 @@ def test_seed_then_reset_creates_and_removes_only_the_demo(tmp_path):
 
     groups = presenter.get("/api/organisations").json()[0]["groups"]
     assert {g["name"]: g["size"] for g in groups} == {"Engineering": 6, "Support": 5, "Interns": 4}
-    interns = next(g for g in groups if g["name"] == "Interns")
-    assert presenter.get(f"/api/groups/{interns['id']}/dashboard").json()["enough_members"] is False
+    by_name = {g["name"]: g["id"] for g in groups}
+    # The README promises numbers for Engineering and Support on every seed, not by luck.
+    for name in ("Engineering", "Support"):
+        assert presenter.get(f"/api/groups/{by_name[name]}/dashboard").json()["enough_members"]
+    assert (
+        presenter.get(f"/api/groups/{by_name['Interns']}/dashboard").json()["enough_members"]
+        is False
+    )
     assert (tmp_path / "c1-usage.jsonl").read_text(encoding="utf-8").strip()
     assert seed.reset(store) == 0
     assert presenter.get("/api/organisations").json() == []

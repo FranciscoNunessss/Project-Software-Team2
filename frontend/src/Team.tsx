@@ -27,6 +27,24 @@ const percent = (value: number | null | undefined) => value === null || value ==
 const tokens = (value: number | undefined) => value === undefined ? '—' : value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value)
 const euros = (value: number | undefined) => value === undefined ? '—' : `€${value.toFixed(value < 1 ? 4 : 2)}`
 
+// An invite link opens the app with ?invite=…. The token is taken from the address once and its
+// acceptance is shared, so a second mount (React StrictMode, or the page remounting) waits for it
+// instead of loading the teams before the new membership exists.
+type InviteResult = { joined: { group: string; role: string } } | { failure: string }
+let pendingInvite: Promise<InviteResult> | null = null
+
+function inviteFromAddress(): Promise<InviteResult> | null {
+  const url = new URL(window.location.href)
+  const token = url.searchParams.get('invite')
+  if (token) {
+    url.searchParams.delete('invite')
+    window.history.replaceState(null, '', url.toString())
+    pendingInvite = api<{ group: string; role: string }>('invites/accept', { token })
+      .then(joined => ({ joined }), failure => ({ failure: message(failure, 'Could not accept the invite') }))
+  }
+  return pendingInvite
+}
+
 export function TeamScreen() {
   const [organisations, setOrganisations] = useState<Organisation[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,16 +58,13 @@ export function TeamScreen() {
   useEffect(() => {
     const controller = new AbortController()
     const run = async () => {
-      // An invite link opens the app with ?invite=…: accept it once, then clean the address.
-      const url = new URL(window.location.href)
-      const token = url.searchParams.get('invite')
-      if (token) {
-        url.searchParams.delete('invite')
-        window.history.replaceState(null, '', url.toString())
-        try {
-          const joined = await api<{ group: string; role: string }>('invites/accept', { token })
-          setNotice(`You joined ${joined.group} as ${joined.role}.`)
-        } catch (failure) { setError(message(failure, 'Could not accept the invite')) }
+      const invite = inviteFromAddress()
+      if (invite) {
+        const result = await invite
+        if (controller.signal.aborted) return
+        pendingInvite = null
+        if ('joined' in result) setNotice(`You joined ${result.joined.group} as ${result.joined.role}.`)
+        else setError(result.failure)
       }
       await load(controller.signal)
     }

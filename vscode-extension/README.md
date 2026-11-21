@@ -10,7 +10,7 @@ The extension has no model and no rules of its own. Every result is what the bac
 | --- | --- |
 | Analyse a task | **Analyse selection / file / clipboard / a typed task**. The result opens as a Markdown preview beside the editor: recommended model and price, coverage per need, alternatives, notes, tips, profile and completeness. |
 | "Use this model", "Task solved?" | Actions after each analysis (notification, or CodeLens above the source view): **Use this model in the chat**, **Task solved?**, **Copy summary**. |
-| Prompt Coach (also in the page) | **Improve the prompt** (diff, then Apply; Undo restores), **Coach the clipboard**, and **Prompt Coach: improve** on an analysis. Tips, Edits or Rewrite. |
+| Prompt Coach (also in the page) | **Prompt Coach: improve the selection** (asks Rewrite, Edits or Tips first; the diff has **Apply** and **Dismiss** in its tab bar; Undo restores), **Coach the clipboard**, and **Prompt Coach: improve** on an analysis. Tips, Edits or Rewrite. |
 | Chat and Assistant | The AdaptAI page: one screen with the conversation and a composer (model picker, Prompt Coach bubble, **Analyse**, **Send**), and the analysis panel beside it or as a sheet. The participant **`@adaptai`** in VS Code's chat view: streaming, Stop, `/retry`, `/new`, `/analyse <task>` (inside the chat's session). A **Chats** view lists, opens, renames and deletes your chats. |
 | Assistant history | **Recent analyses**. |
 | My progress | Charts (activity and recommendation match), numbers, solved tasks by model, whether you describe tasks better, patterns, the Educator's suggestions, choices to confirm, your sessions (open an analysis, **Continue**, delete) and **Export my data** (preferences, coaching, sessions and chats). |
@@ -25,11 +25,18 @@ Not in VS Code: creating or revoking API tokens (a token cannot manage tokens, s
 | Shortcut | Command |
 | --- | --- |
 | `Ctrl+Alt+A` (editor) | Analyse selection (or the whole file) |
-| `Ctrl+K Ctrl+E` (editor) | Improve the prompt |
+| `Ctrl+K Ctrl+E` (editor) | Prompt Coach on the selection |
 | `Ctrl+K Ctrl+A` | Coach the clipboard |
 | `Ctrl+K Ctrl+Y` | Analyse clipboard |
 
 Mac: `Cmd` for the chords. The extension cannot add buttons inside another extension's panel (the Claude Code box), so for those prompts copy the text and use the clipboard commands. Rebind anything in *Keyboard Shortcuts*; every command is in the Command Palette.
+
+### The code assistant
+
+* **Selection: Off / On** in the chat box sends the code you selected, with its file and lines, together with your message. The answer comes back in the chat.
+* **Suggest a change** is a button in the same box; the Prompt Coach is the ✦ button by it, with its three modes. Suggest a change uses the text in the box as the instruction and the code selected in the editor; the proposal opens in the VS Code diff with Accept and Reject. The commands, the right click menu and the key bindings stay.
+* **Suggest a change to the selection** (right click on a selection, or the command palette) asks what to change in the box at the top. The proposal opens in the VS Code diff, with **Accept** and **Reject** in its tab bar. Nothing is written to the file until you press Accept, and one Ctrl+Z undoes it.
+* It uses the chat model you picked in AdaptAI, through the backend. There are no `/` commands and it does not use the VS Code chat.
 
 ## Signing in
 
@@ -108,5 +115,7 @@ Extension Development Host self-test (a throw-away VS Code profile, quits when d
 ADAPTAI_SELFTEST=1 ADAPTAI_SELFTEST_REPORT=/tmp/report.jsonl ADAPTAI_SELFTEST_TOKEN=<token> \
   Code.exe --user-data-dir /tmp/ud --extensions-dir /tmp/ex --extensionDevelopmentPath <this folder>
 ```
+
+**The long self-test** (`src/selftest.ts`) runs 38 checks inside a real VS Code window against a real backend and a local model: chat, Stop and Retry, code in the message, analysis, project context, Improve prompt (Apply and Dismiss), ten ways to ask for, accept, reject or lose a change, and the backend address checks. Add `ADAPTAI_SELFTEST_LONG=1 ADAPTAI_SELFTEST_E2E=1 ADAPTAI_SELFTEST_FOLDER=<an empty folder to use as the workspace>` to the command above, open that folder as the workspace, and start the backend with `ADAPTAI_LMSTUDIO_MODEL=<the loaded model>`. It writes one JSON line per check to `ADAPTAI_SELFTEST_REPORT`. It does not click inside the AdaptAI page (see `test/page*.browser.cjs`).
 
 Run it: open this folder in VS Code and press F5. Package: `pnpm package` makes `adaptai-<version>.vsix`; install with `code --install-extension`.

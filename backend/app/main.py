@@ -22,6 +22,7 @@ from app.evaluations import Ratings, install_evaluations, pending_for
 from app.evaluations import _router_snapshot as router_snapshot
 from app.evaluations import label as evaluation_label
 from app.evaluations import statuses as evaluation_statuses
+from app.learning import install_learning
 from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
 from app.openrouter import CatalogueUnavailable, OpenRouterCatalogue, fetch_models
@@ -154,6 +155,7 @@ def create_app(
     install_outcomes(
         app, store, ratings_for=lambda user_id: Ratings(store, active_catalogue(), user_id)
     )
+    install_learning(app, store)
 
     @app.middleware("http")
     async def private_responses(request: Request, call_next):

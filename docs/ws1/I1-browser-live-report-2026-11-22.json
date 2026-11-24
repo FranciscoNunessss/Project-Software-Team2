@@ -1,0 +1,291 @@
+{
+  "protocol": "ws1-latency-1",
+  "created_at": "2026-11-22T21:59:26.295885+00:00",
+  "environment": "production",
+  "model": "openai-gpt-oss-20b",
+  "versions": "backend-74d6872-frontend-unverified",
+  "build": {
+    "commit": "not_recorded",
+    "dirty": true
+  },
+  "rounds": 5,
+  "cells": [
+    {
+      "source": "browser_live",
+      "phase": "warm",
+      "journey": "page_change",
+      "concurrency": 1,
+      "attempted": 5,
+      "outcomes": {
+        "ok": 5
+      },
+      "successful": 5,
+      "p50_ms": 785.9758000000002,
+      "p95_ms": 1034.6543999999994,
+      "limitation": "small_sample"
+    },
+    {
+      "source": "browser_live",
+      "phase": "warm",
+      "journey": "page_change",
+      "concurrency": 5,
+      "attempted": 0,
+      "outcomes": {},
+      "successful": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "limitation": "no_successful_samples"
+    },
+    {
+      "source": "browser_live",
+      "phase": "warm",
+      "journey": "page_change",
+      "concurrency": 20,
+      "attempted": 0,
+      "outcomes": {},
+      "successful": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "limitation": "no_successful_samples"
+    },
+    {
+      "source": "browser_live",
+      "phase": "warm",
+      "journey": "analysis",
+      "concurrency": 1,
+      "attempted": 5,
+      "outcomes": {
+        "ok": 5
+      },
+      "successful": 5,
+      "p50_ms": 5599.978300000017,
+      "p95_ms": 6011.755499999999,
+      "limitation": "small_sample"
+    },
+    {
+      "source": "browser_live",
+      "phase": "warm",
+      "journey": "analysis",
+      "concurrency": 5,
+      "attempted": 0,
+      "outcomes": {},
+      "successful": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "limitation": "no_successful_samples"
+    },
+    {
+      "source": "browser_live",
+      "phase": "warm",
+      "journey": "analysis",
+      "concurrency": 20,
+      "attempted": 0,
+      "outcomes": {},
+      "successful": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "limitation": "no_successful_samples"
+    },
+    {
+      "source": "browser_live",
+      "phase": "warm",
+      "journey": "chat_first_text",
+      "concurrency": 1,
+      "attempted": 5,
+      "outcomes": {
+        "ok": 5
+      },
+      "successful": 5,
+      "p50_ms": 2318.373900000006,
+      "p95_ms": 2603.5240999999805,
+      "limitation": "small_sample"
+    },
+    {
+      "source": "browser_live",
+      "phase": "warm",
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "attempted": 0,
+      "outcomes": {},
+      "successful": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "limitation": "no_successful_samples"
+    },
+    {
+      "source": "browser_live",
+      "phase": "warm",
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "attempted": 0,
+      "outcomes": {},
+      "successful": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "limitation": "no_successful_samples"
+    },
+    {
+      "source": "browser_live",
+      "phase": "warm",
+      "journey": "ide_load",
+      "concurrency": 1,
+      "attempted": 0,
+      "outcomes": {},
+      "successful": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "limitation": "no_successful_samples"
+    },
+    {
+      "source": "browser_live",
+      "phase": "warm",
+      "journey": "ide_load",
+      "concurrency": 5,
+      "attempted": 0,
+      "outcomes": {},
+      "successful": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "limitation": "no_successful_samples"
+    },
+    {
+      "source": "browser_live",
+      "phase": "warm",
+      "journey": "ide_load",
+      "concurrency": 20,
+      "attempted": 0,
+      "outcomes": {},
+      "successful": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "limitation": "no_successful_samples"
+    }
+  ],
+  "samples": [
+    {
+      "journey": "page_change",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 302.4294000000082
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 785.9758000000002
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1034.6543999999994
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 389.31119999999646
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1033.676099999997
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 4529.585800000001
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 2603.5240999999805
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 6011.755499999999
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 2548.699800000002
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 5648.615499999985
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 2318.373900000006
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 5599.978300000017
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1513.2773999999918
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 5257.784799999994
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 1,
+      "source": "browser_live",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1518.6512999999977
+    }
+  ],
+  "limits": [
+    "No SLA conclusion; missing cells remain unavailable",
+    "Simulated results do not measure production LLM latency",
+    "API and IDE host timings do not prove visible rendering latency"
+  ]
+}

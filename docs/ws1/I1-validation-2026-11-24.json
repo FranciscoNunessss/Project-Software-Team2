@@ -1,0 +1,76 @@
+{
+  "branch": "agent/ws1-latency-diagnosis",
+  "source_commit": "8313bfecf5c0304eff77e221f8a801b18e1eed1f",
+  "run_date": "2026-11-24",
+  "production_model_actions": 0,
+  "checks": {
+    "ruff_lint": "passed",
+    "ruff_format": "passed_92_files",
+    "frontend_frozen_install_and_build": "passed",
+    "extension_unit": {
+      "passed": 257,
+      "skipped_integration": 11,
+      "failed": 0,
+      "separate_integration_passed": 11,
+      "all_integration_cases_executed_separately": true
+    },
+    "extension_browser_scripts": "three_scripts_passed",
+    "backend": {
+      "passed": 691,
+      "failed": 0,
+      "duration_seconds": 406.15,
+      "total_coverage_percent": 96,
+      "core_coverage_percent": 99
+    },
+    "e2e": {
+      "passed": 51,
+      "failed": 0,
+      "duration_reported": "2.5m",
+      "isolated_concurrency_levels": [
+        1,
+        5,
+        20
+      ],
+      "fresh_timing_samples": 390,
+      "providers": "fake"
+    },
+    "removal_drill": {
+      "passed": 534,
+      "failed": 0,
+      "deselected": 12,
+      "duration_seconds": 224.11,
+      "original_files_deleted": 0
+    },
+    "containers": {
+      "build": "passed",
+      "initial_smoke": "passed",
+      "recreation": "passed",
+      "encryption_key_preserved": true,
+      "data_and_login_after_recreation": "passed",
+      "real_providers_disabled": true,
+      "preview_url": "http://127.0.0.1:8080",
+      "project": "adaptai-i1-checks"
+    },
+    "runner_cli": {
+      "simulation_samples": 26,
+      "imported_browser_fake_samples": 390,
+      "outside_restricted_sandbox": "passed"
+    }
+  },
+  "limitations": [
+    "Automated checks are not the developer G2 or independent peer G3",
+    "Initial restricted extension run failed; unchanged tests passed with local HTTP fixtures permitted",
+    "No isolated Render preview exists; the prior shared-service idle experiment remains inconclusive",
+    "Visible native IDE startup timing still unavailable due automation geometry faults"
+  ],
+  "local_postgres_project": "adaptai-i1-checks",
+  "core_gate_passed": true,
+  "container_provider_policy": "all real provider models/keys disabled in disposable override",
+  "host_node_version": "24.14.0",
+  "host_python_version": "3.12.14",
+  "container_python_version": "3.12.16",
+  "container_frontend_node_major": 22,
+  "remote_ci_status": "not_yet_verified",
+  "human_g2": "pending",
+  "human_g3": "pending"
+}

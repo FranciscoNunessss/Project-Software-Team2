@@ -9,6 +9,14 @@ API `https://adaptai-team2-api.onrender.com`. `render.yaml` does not declare
 (ADR-014 A10) does not run in production. Owner of the hosting: Francisco Nunes (cloud and
 infrastructure).
 
+**Verified hosting update, 21 November 2026:** the services listed below are now
+published. Render's latest live deploy uses `74d6872` (17 November), with Free,
+Docker, Frankfurt, one instance, auto-deploy off and PR previews off. Netlify's
+production deploy is `6afbb01b7f1c704d32b54bcf` (17 November); its source commit is
+not returned by the connector. The earlier setup notes are historical. This check
+did not inspect runtime secret values or change any configuration. See the
+[I1 report](ws1/I1-baseline-report.md#hosting-identity-and-telemetry-checked-on-2026-11-21).
+
 The free plans have two effects users notice: the Render server sleeps after 15 idle minutes
 (the first request then took 38 to 67 seconds on 16 and 17 November), and the Supabase project
 pauses after a quiet week. A keep-awake job is in review (#73).
@@ -163,6 +171,14 @@ With the API awake, compare the response time of the chat list and of **My Progr
 browser's Network tab, with the same test account and five repetitions. For **Analyse** and
 the chat, use the same synthetic text and the same model each time, and record the time to
 the first chat text.
+
+## WS1 measurement protocol (20 November 2026)
+
+Use the [I1 protocol](ws1/I1-implementation-plan.md) and
+[partial baseline](ws1/I1-baseline-report.md) for repeatable measurements. Cold-start
+observations stay separate from warm timings. A successful public health check
+does not prove page usability, LLM throughput or first rendered chat text.
+No hosting or quota configuration was changed during these checks.
 
 ## Official references
 

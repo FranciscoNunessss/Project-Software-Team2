@@ -29,10 +29,15 @@ REASON_CODES = frozenset(f"{dim}_{name}" for dim in DIMENSIONS for name in LEVEL
 SHORT_REQUEST_WORDS = 15
 # Requests that ask for marks are content, never instructions (prompt-injection guard).
 _ASKS_FOR_MARKS = re.compile(
-    r"full marks|maximum (?:score|marks)|(?:score|rate|grade)\s+(?:it|this|me|everything)?\s*"
-    r"(?:a\s+)?2\b|(?:give|assign)\s+(?:it\s+|me\s+)?(?:a\s+)?(?:score\s+of\s+)?2\b|"
-    r"ignore (?:the |all |previous )*(?:rubric|instructions|rules)|"
-    r"nota m[áa]xima|pontua[çc][ãa]o m[áa]xima|d[áa][- ]?(?:me|lhe)? ?(?:um )?2 em",
+    # Only explicit requests about the assessment itself: "give me 2 options", "grade 2
+    # students" or "rate 2 suppliers" are ordinary tasks and must never match.
+    r"full marks|maximum (?:score|marks)|top marks|perfect score|"
+    r"\b(?:score|mark|rate|grade)\s+(?:this|it|me|the request|my request)\s+"
+    r"(?:as\s+)?(?:a\s+)?(?:2|two|clear)\b|"
+    r"\b2\s+(?:in|on|for)\s+(?:every|all|each)\s+(?:dimension|criteri(?:on|a)|categor(?:y|ies))|"
+    r"ignore (?:the |all |any |previous |these )*(?:rubric|instructions|rules|scoring)|"
+    r"nota m[áa]xima|pontua[çc][ãa]o m[áa]xima|"
+    r"\b2\s+em\s+(?:todas|tudo|cada)",
     re.IGNORECASE,
 )
 

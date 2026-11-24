@@ -384,6 +384,8 @@ Prompt Coach focus). To change the rubric, add a new version file, register its 
 point `ACTIVE` at it and run the core eval; never edit a registered file.
 `uv run python scripts/render_rubric.py` prints the active rubric as Markdown.
 
+`rubric-2.2` is registered but **not active** either (WS4 L1): it is `rubric-2.0` plus a request-quality block, so the need-level prompt is unchanged byte for byte (tested), and the assessor also scores how the request is framed on 7 dimensions (0, 1, 2 or not applicable). Guards in `backend/app/request_quality.py` cap what the request cannot support; only the scores and a reason code are stored (`request_quality`). Activate it only after the M3 evaluation against `rubric-2.0`: need levels unchanged beyond run-to-run variation, and at least 80% of the request-quality scores identical across 3 runs.
+
 ## End-to-end tests
 
 `e2e/` runs Playwright against the real backend and the Vite frontend, with deterministic

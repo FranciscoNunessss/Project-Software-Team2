@@ -55,7 +55,7 @@ test('task solved is asked once, under the answers, never per answer', async ({ 
   await expect(page.locator('[data-task-solved]')).toHaveCount(0)
 })
 
-test('starting the next task asks about the previous one, and Skip is final', async ({ page }) => {
+test('starting the next task asks about the previous one, and Skip ends the question in the chat', async ({ page }) => {
   await signUp(page)
   await analyseAndSend(page, COMPLETE)
   await page.locator('[data-chat-input]').fill('Now draft the email to the board about the risk.')

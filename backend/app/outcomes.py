@@ -219,6 +219,8 @@ def outcome_summary(store: Storage, user_id: str) -> dict:
 
 
 FEEDBACK_LIST_LIMIT = 20
+# The inbox and the response rate look at the newest tasks only (same horizon as the engine).
+FEEDBACK_SCAN_LIMIT = 500
 
 
 def feedback_inbox(store: Storage, user_id: str) -> dict:
@@ -235,8 +237,8 @@ def feedback_inbox(store: Storage, user_id: str) -> dict:
                FROM analyses a JOIN sessions s ON s.id=a.session_id
                JOIN decisions d ON d.analysis_id=a.id
                LEFT JOIN task_outcomes o ON o.analysis_id=a.id
-               WHERE s.user_id=%s ORDER BY a.created_at DESC,a.sequence_id DESC""",
-            (user_id,),
+               WHERE s.user_id=%s ORDER BY a.created_at DESC,a.sequence_id DESC LIMIT %s""",
+            (user_id, FEEDBACK_SCAN_LIMIT),
         ).fetchall()
     items = [dict(row) for row in rows]
     pending = [item for item in items if item["outcome"] is None]

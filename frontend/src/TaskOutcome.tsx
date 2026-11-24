@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { ApiError, notifyProgressChange, OUTCOME_REASONS, putOutcome, type OutcomeReason, type TaskOutcome } from './api'
+import { notifyProgressChange, OUTCOME_REASONS, putOutcome, type OutcomeReason, type TaskOutcome } from './api'
 import './TaskOutcome.css'
 
-// Feedback per task (ADR-014): once per task, at the end, never per answer.
+// Feedback per task (ADR-014): asked once per task, at the end, never per answer. Since the
+// revision of 24 Nov 2026 the answer can be changed later in My progress (FeedbackInbox).
 
 /** A quiet "Task solved" under the answers of the open task. */
 export function SolvedButton({ models, disabled, onAnswer }: { models?: string; disabled: boolean; onAnswer: (outcome: TaskOutcome) => void }) {
@@ -61,7 +62,7 @@ export function AssistantOutcome({ analysisId }: { analysisId: string }) {
     <>
       <OutcomeCard question="After using the model, did it solve the task?" title="" disabled={state === 'saving'} onAnswer={async (outcome, reason) => {
         setState('saving')
-        try { await putOutcome(analysisId, { outcome, reason: reason ?? null }); setState('done'); notifyProgressChange() } catch (failure) { setState(failure instanceof ApiError && failure.status === 409 ? 'done' : 'failed') }
+        try { await putOutcome(analysisId, { outcome, reason: reason ?? null }); setState('done'); notifyProgressChange() } catch (failure) { setState('failed') }
       }} />
       {state === 'failed' && <p className="api-error" role="alert">Could not save your feedback.</p>}
     </>

@@ -304,14 +304,18 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None, ratings_for=N
                         levels = {name: card.level(name) for name in CAPABILITIES}
             recommended = result["recommendation"]["id"]
             follows = followed(result, used, card_id, chosen)
-            if existing:
-                db.execute("DELETE FROM task_outcomes WHERE analysis_id=%s", (analysis_id,))
+            # A change updates the row in place: created_at and sequence_id stay, so an old task
+            # answered again never becomes "the last task" that steers the next analysis.
+            columns = (
+                "outcome,reason,model_card_id,catalogue_version,recommended_card_id,"
+                "followed_recommendation,needs_json,capabilities_json,completeness,turns,"
+                "switched_model,retries,stops,used_provider,used_model,levels_source,changes"
+            )
+            updates = ",".join(f"{name}=EXCLUDED.{name}" for name in columns.split(","))
             db.execute(
-                """INSERT INTO task_outcomes(analysis_id,user_id,outcome,reason,model_card_id,
-                   catalogue_version,recommended_card_id,followed_recommendation,needs_json,
-                   capabilities_json,completeness,turns,switched_model,retries,stops,
-                   used_provider,used_model,levels_source,changes)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                f"""INSERT INTO task_outcomes(analysis_id,user_id,{columns})
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                   ON CONFLICT (analysis_id) DO UPDATE SET {updates}""",
                 (
                     analysis_id,
                     user["id"],

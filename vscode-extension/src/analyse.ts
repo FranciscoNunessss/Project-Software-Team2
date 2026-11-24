@@ -478,7 +478,7 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     void vscode.window.showInformationMessage('AdaptAI: summary copied.')
   }
 
-  /** "Task solved?" (ADR-014 D9, D10): once per task, three answers, a reason only when it was not solved. */
+  /** "Task solved?" (ADR-014 D9, D10): asked once per task, three answers, a reason only when it was not solved. Since the revision of 24 Nov 2026 the answer can be changed later in My progress on the web. */
   async taskOutcome(id?: string): Promise<void> {
     const result = this.find(id)
     if (!result) return

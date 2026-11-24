@@ -318,3 +318,27 @@ def test_feedback_inbox_is_per_user_and_returns_only_ids_answers_and_titles(app)
         "reason",
         "changes",
     }
+
+
+def test_changing_an_old_answer_does_not_make_it_the_latest_task(app):
+    client = account(TestClient(app))
+    old, recent = analyse(client), analyse(client)
+    client.put(f"/api/analyses/{old['id']}/outcome", json={"outcome": "resolved"})
+    client.put(f"/api/analyses/{recent['id']}/outcome", json={"outcome": "resolved"})
+    with app.state.storage.connect() as db:
+        before = db.execute(
+            "SELECT created_at,sequence_id FROM task_outcomes WHERE analysis_id=%s", (old["id"],)
+        ).fetchone()
+    changed = client.put(
+        f"/api/analyses/{old['id']}/outcome",
+        json={"outcome": "not_resolved", "reason": "description"},
+    )
+    assert changed.json()["changes"] == 1
+    with app.state.storage.connect() as db:
+        after = db.execute(
+            "SELECT created_at,sequence_id FROM task_outcomes WHERE analysis_id=%s", (old["id"],)
+        ).fetchone()
+    assert dict(after) == dict(before)
+    # The next analysis is steered by the most recent task (still solved), not the changed one.
+    following = analyse(client)
+    assert not any("Your last task was not solved" in note for note in following["notes"])

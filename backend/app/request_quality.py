@@ -32,6 +32,7 @@ _ASKS_FOR_MARKS = re.compile(
     # Only explicit requests about the assessment itself: "give me 2 options", "grade 2
     # students" or "rate 2 suppliers" are ordinary tasks and must never match.
     r"full marks|maximum (?:score|marks)|top marks|perfect score|"
+    r"\bgive (?:it|this|the request|my request) (?:a )?(?:2|two)\b|"
     r"\b(?:score|mark|rate|grade)\s+(?:this|it|me|the request|my request)\s+"
     r"(?:as\s+)?(?:a\s+)?(?:2|two|clear)\b|"
     r"\b2\s+(?:in|on|for)\s+(?:every|all|each)\s+(?:dimension|criteri(?:on|a)|categor(?:y|ies))|"

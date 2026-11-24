@@ -58,6 +58,18 @@ def _capped(item: QualityScore, ceiling: int) -> QualityScore:
     return QualityScore(score=ceiling, reason=item.reason)
 
 
+def guard_ceiling(dimension: str, task: str) -> int:
+    """The highest score the request can support for a dimension, by the guards alone.
+
+    Used by the assessment (apply_guards) and again after a dispute, so a dispute can never
+    lift a score above what the guards allow."""
+    if _ASKS_FOR_MARKS.search(task):
+        return 1
+    if dimension in ("context", "constraints") and len(task.split()) < SHORT_REQUEST_WORDS:
+        return 1
+    return 2
+
+
 def apply_guards(quality: RequestQuality, task: str) -> tuple[RequestQuality, list[Guard]]:
     """Scores the request cannot support are lowered; returns the guards that fired."""
     scores = {name: getattr(quality, name) for name in DIMENSIONS}

@@ -27,6 +27,7 @@ from app.learning import install_learning
 from app.learning_experience import (
     JudgeVerdict,
     educator_hint,
+    expire_fingerprints,
     install_learning_experience,
     judge_prompt,
     task_fingerprint,
@@ -929,6 +930,8 @@ def create_app(
                             digest,
                         ),
                     )
+                # WS4 L11: fingerprints older than the dispute window are forgotten.
+                expire_fingerprints(db)
                 # WS4 L17: while learning is paused, new tasks do not count.
                 if db.execute(
                     "SELECT 1 FROM learning_settings WHERE user_id=%s AND paused=1",

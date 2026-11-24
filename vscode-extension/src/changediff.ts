@@ -58,7 +58,17 @@ export class ChangeDiff implements ReviewHost, vscode.TextDocumentContentProvide
     this.content.delete(item.right.path)
     if (this.latest === item.key) this.latest = undefined
     this.context()
-    if (closeDiff && vscode.window.activeTextEditor?.document.uri.scheme === CHANGE_SCHEME) await vscode.commands.executeCommand('workbench.action.closeActiveEditor')
+    if (closeDiff) await this.closeTab(item)
+  }
+
+  /** Closes the tab that shows the proposal, whether or not it is the editor in front. */
+  private async closeTab(item: Pending): Promise<void> {
+    for (const group of vscode.window.tabGroups.all) {
+      for (const tab of group.tabs) {
+        const modified = (tab.input as { modified?: vscode.Uri } | undefined)?.modified
+        if (modified?.scheme === CHANGE_SCHEME && modified.path === item.right.path) await vscode.window.tabGroups.close(tab)
+      }
+    }
   }
 
   /** Opens the diff of the proposal. `where` names the file and the text the lines had when the question was asked. */
@@ -69,7 +79,7 @@ export class ChangeDiff implements ReviewHost, vscode.TextDocumentContentProvide
     if (this.textOf(document, first, last) !== original) return this.warnStale('the selected code changed while the model was answering, so nothing was changed.')
     const key = document.uri.toString()
     const previous = this.pending.get(key)
-    if (previous) await this.settle(previous, false)
+    if (previous) await this.settle(previous, true)
     const lines = Array.from({ length: document.lineCount }, (_, i) => document.lineAt(i).text)
     const proposedLines = proposed.replace(/\r\n/g, '\n').split('\n')
     const name = fileName(document.uri.path)
@@ -105,12 +115,15 @@ export class ChangeDiff implements ReviewHost, vscode.TextDocumentContentProvide
     if (!item) return void vscode.window.showInformationMessage('AdaptAI: there is no proposed change waiting.')
     const document = vscode.workspace.textDocuments.find(candidate => candidate.uri.toString() === item.uri.toString()) ?? (await vscode.workspace.openTextDocument(item.uri))
     const first = this.locate(document, item)
-    await this.settle(item, true)
-    if (first === undefined) return this.warnStale('the code changed since the proposal, so nothing was done.')
+    if (first === undefined) {
+      await this.settle(item, true)
+      return this.warnStale('the code changed since the proposal, so nothing was done.')
+    }
     const last = first + (item.last - item.first)
     const edit = new vscode.WorkspaceEdit()
     edit.replace(item.uri, new vscode.Range(first, 0, last, document.lineAt(last).text.length), item.proposed.replace(/\r\n/g, '\n').split('\n').join(this.eol(document)))
-    if (!(await vscode.workspace.applyEdit(edit))) return this.warn('the change could not be written to the file.')
+    if (!(await vscode.workspace.applyEdit(edit))) return this.warn('the change could not be written to the file. The proposal is still open, so you can try Accept again.')
+    await this.settle(item, true)
     await vscode.window.showTextDocument(document, { preview: false })
   }
 

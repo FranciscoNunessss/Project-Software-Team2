@@ -36,7 +36,25 @@ function fakeDocument(lines, eol = 1) {
 
 const reviewing = () => log.executed.filter(call => call[0] === 'setContext' && call[1] === 'adaptai.reviewing').at(-1)?.[2]
 
+// Stand-in for the open tabs: every diff that was opened is a tab until it is closed.
+let closed
+function fakeTabs() {
+  closed = []
+  vscode.window.tabGroups = {
+    get all() {
+      const tabs = log.executed.filter(call => call[0] === 'vscode.diff').map(call => ({ input: { original: call[1], modified: call[2] } }))
+      return [{ tabs: tabs.filter(tab => !closed.includes(tab.input.modified.path)) }]
+    },
+    close: async tab => {
+      closed.push(tab.input.modified.path)
+      return true
+    },
+  }
+}
+const rightOf = n => log.executed.filter(call => call[0] === 'vscode.diff')[n][2]
+
 test.beforeEach(() => {
+  fakeTabs()
   edits = []
   log.executed.length = 0
   log.info.length = 0
@@ -71,7 +89,7 @@ test('app_02 Accept replaces the selected lines in ONE edit, closes the diff and
   assert.equal(edits.length, 1, 'Accept must be one edit so one Ctrl+Z undoes it')
   assert.deepEqual(document.lines, ['one', 'X', 'Y', 'Z', 'four'])
   assert.equal(reviewing(), false)
-  assert.ok(log.executed.some(call => call[0] === 'workbench.action.closeActiveEditor'), 'the diff stays open')
+  assert.deepEqual(closed, [right.path], 'the diff stays open')
   await diff.accept()
   assert.equal(edits.length, 1)
   assert.match(log.info.at(-1), /nothing|no proposed change/i)
@@ -183,4 +201,39 @@ test('app_07 the same code twice and the lines moved: it is not clear which one,
   await diff.accept()
   assert.equal(edits.length, 0)
   assert.deepEqual(document.lines, ['top', 'a', 'dup', 'b', 'dup', 'c'])
+})
+
+test('app_04 a second proposal in the same file closes the tab of the first, so it is never left against an empty text', async () => {
+  const document = fakeDocument(['one', 'two', 'three'])
+  const diff = new ChangeDiff()
+  await diff.show(0, 0, 'FIRST', { uri: document.uri, original: 'one' })
+  await diff.show(2, 2, 'SECOND', { uri: document.uri, original: 'three' })
+  assert.deepEqual(closed, [rightOf(0).path])
+  assert.equal(diff.provideTextDocumentContent(rightOf(1)), 'one\ntwo\nSECOND')
+})
+
+test('app_02 Accept and Reject close the diff of the proposal also when another editor is in front', async () => {
+  const document = fakeDocument(['one', 'two'])
+  const diff = new ChangeDiff()
+  await diff.show(1, 1, 'TWO', { uri: document.uri, original: 'two' })
+  await diff.accept()
+  assert.deepEqual(closed, [rightOf(0).path])
+  await diff.show(0, 0, 'ONE', { uri: document.uri, original: 'one' })
+  await diff.reject()
+  assert.deepEqual(closed, [rightOf(0).path, rightOf(1).path])
+})
+
+test('app_02 when the file cannot be written the proposal stays, so Accept can be tried again', async () => {
+  const document = fakeDocument(['one', 'two'])
+  const diff = new ChangeDiff()
+  await diff.show(1, 1, 'TWO', { uri: document.uri, original: 'two' })
+  const write = vscode.workspace.applyEdit
+  vscode.workspace.applyEdit = async () => false
+  await diff.accept()
+  assert.deepEqual(closed, [], 'the diff was closed although nothing was written')
+  assert.equal(reviewing(), true)
+  vscode.workspace.applyEdit = write
+  await diff.accept()
+  assert.deepEqual(document.lines, ['one', 'TWO'])
+  assert.deepEqual(closed, [rightOf(0).path])
 })

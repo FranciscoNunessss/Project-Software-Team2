@@ -37,6 +37,9 @@ from app.providers import (
 )
 from app.recommendation import POLICY_VERSION, Option, candidate_gap
 from app.relay import install_relay
+from app.request_quality import DIMENSIONS as QUALITY_DIMENSIONS
+from app.request_quality import stored_row as quality_row
+from app.request_quality import summary as quality_summary
 from app.retention import install_retention
 from app.storage import Storage, history_result, stored_result
 from app.tokens import install_tokens
@@ -838,6 +841,9 @@ def create_app(
                 else None,
                 "previous_analysis_id": body.previous_analysis_id,
                 "completeness": state["completeness"],
+                "request_quality_summary": quality_summary(state["profile"].request_quality)
+                if state["profile"].request_quality is not None
+                else None,
                 "changes": explain_changes(previous, state["profile"])
                 if previous is not None
                 else [],
@@ -855,6 +861,21 @@ def create_app(
                         json.dumps(history_result(result.model_dump())),
                     ),
                 )
+                if result.profile.request_quality is not None:
+                    row = quality_row(result.profile.request_quality)
+                    db.execute(
+                        "INSERT INTO request_quality(analysis_id,user_id,objective,context,"
+                        "constraints,risks,ambiguity,success_criteria,audience_format,"
+                        "reason_codes,prompt_version) "
+                        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                        (
+                            identifier,
+                            user["id"],
+                            *(row[name] for name in QUALITY_DIMENSIONS),
+                            json.dumps(row["reason_codes"]),
+                            RUBRIC_VERSION,
+                        ),
+                    )
                 # Re-read opt-in after the provider call, so disabling during a request wins.
                 memory_settings = db.execute(
                     "SELECT save_enabled,conversation_memory_enabled FROM user_context "

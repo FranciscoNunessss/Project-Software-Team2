@@ -5,6 +5,7 @@ import { HistoryAnalysis } from './HistoryAnalysis'
 import { MyLearning } from './MyLearning'
 import { ProgressDashboard, type Summary } from './ProgressDashboard'
 import { TaskOutcomes } from './TaskOutcomes'
+import { FeedbackInbox } from './FeedbackInbox'
 import { usePageActive } from './PagePanel'
 import './Progress.css'
 type SessionDetail = SavedSession & { analyses: HistoryItem[] }
@@ -171,6 +172,7 @@ export function ProgressScreen({ onResume }: { onResume: (resume: Resume) => voi
     <MyLearning />
     <ProgressDashboard summary={summary} busy={busy} onExport={()=>void exportData()} onDeleteAll={()=>setDeleteAll(true)} onReviewPending={()=>pendingSection.current?.scrollIntoView({behavior:'smooth',block:'start'})} onHistory={()=>{if(historySection.current){historySection.current.open=true;historySection.current.scrollIntoView({behavior:'smooth',block:'start'})}}} pendingContent={<section className="card pending-choices" ref={pendingSection} aria-labelledby="pending-title"><div className="card-heading"><div><p className="eyebrow">Next step</p><h2 id="pending-title">Choices to confirm ({summary?summary.analyses-summary.choices:0})</h2></div></div><p>Analyses are saved automatically. Confirm your actual model choices here to build your match chart and patterns.</p>{pending.map(item=><HistoryAnalysis key={item.result.id} item={item} busy={busy} onConfirm={(row,candidate)=>void confirm(row,candidate)} onOpen={()=>onResume({sessionId:item.result.session_id,analysis:item})} />)}{morePending&&<button className="button button-secondary" disabled={busy} onClick={()=>void loadPending()}>Load more pending choices</button>}{!pending.length&&!loading&&<p className="muted">No choices waiting for confirmation.</p>}</section>} />
 
+    <FeedbackInbox />
     <TaskOutcomes />
     {loading && <p role="status">Loading your progress…</p>}
     {error && <p className="api-error" role="alert">{error}</p>}

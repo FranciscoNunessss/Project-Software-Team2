@@ -386,6 +386,8 @@ Prompt Coach focus). To change the rubric, add a new version file, register its 
 point `ACTIVE` at it and run the core eval; never edit a registered file.
 `uv run python scripts/render_rubric.py` prints the active rubric as Markdown.
 
+`rubric-2.2` is registered but **not active** either (WS4 L1): it is `rubric-2.0` plus a request-quality block, so the need-level prompt is unchanged byte for byte (tested), and the assessor also scores how the request is framed on 7 dimensions (0, 1, 2 or not applicable). Guards in `backend/app/request_quality.py` cap what the request cannot support; only the scores and a reason code are stored (`request_quality`). Activate it only after the M3 evaluation against `rubric-2.0`: need levels unchanged beyond run-to-run variation, and at least 80% of the request-quality scores identical across 3 runs.
+
 ## End-to-end tests
 
 `e2e/` runs Playwright against the real backend and the Vite frontend, with deterministic
@@ -522,7 +524,10 @@ carries the analysis only if it was made from that exact text; the message then 
 the analysis compared. Under the answers of the open task a quiet **Task solved** asks once
 whether the user needed to refine it; when the next task starts (a new analysis, another chat)
 a card asks whether the previous one was solved (Solved, Solved after refining, Not solved
-with an optional reason, Skip). Never per answer, never twice. Both show the model used and the
+with an optional reason, Skip). Never per answer. Since the ADR-014 revision of 24 November
+2026 the answer can be changed: My progress lists **Tasks without feedback** (answered in one
+click) and **Change a recent answer**, and the chat list marks a chat whose task has no answer
+yet (`GET /api/progress/feedback`). Both show the model used and the
 recommended one. The model actually used is always stored (provider and model id); "followed
 the recommendation" is yes when it was the recommended model, no otherwise, and unknown only
 when the recommendation was illustrative. While an answer streams in, Send becomes **Stop**;

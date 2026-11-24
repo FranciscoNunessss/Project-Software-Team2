@@ -74,6 +74,25 @@ class RubricModality(_Strict):
     coach_focus: str = Field(min_length=1)
 
 
+class RubricRequestQuality(_Strict):
+    """WS4 L1: request-quality instructions (rubric-2.2 and later)."""
+
+    definition: str = Field(min_length=1)
+    dimensions: dict[
+        Literal[
+            "objective",
+            "context",
+            "constraints",
+            "risks",
+            "ambiguity",
+            "success_criteria",
+            "audience_format",
+        ],
+        str,
+    ]
+    prompt_lines: list[str] = Field(min_length=1)
+
+
 class GeneralTips(_Strict):
     simple_task: str = Field(min_length=1)
 
@@ -85,6 +104,7 @@ class Rubric(_Strict):
     preamble_lines: list[str] = Field(min_length=1)
     dimensions: list[RubricDimension]
     modality: RubricModality
+    request_quality: RubricRequestQuality | None = None
     closing_lines: list[str] = Field(min_length=1)
     general_tips: GeneralTips
 
@@ -109,6 +129,9 @@ def _check(rubric: Rubric) -> None:
                 raise RubricError(
                     f"{rubric.version}: {item.name} level {level} is not in its prompt_lines"
                 )
+    quality = rubric.request_quality
+    if quality is not None and len(quality.dimensions) != 7:
+        raise RubricError(f"{rubric.version}: request_quality must define all 7 dimensions")
     for name, item in [(item.name, item) for item in rubric.dimensions] + [
         ("modality", rubric.modality)
     ]:
@@ -169,6 +192,9 @@ def build_assessment_prompt(rubric: Rubric) -> str:
     lines.extend(rubric.modality.prompt_lines)
     lines.extend(rubric.modality.anchors)
     lines.append("")
+    if rubric.request_quality is not None:
+        lines.extend(rubric.request_quality.prompt_lines)
+        lines.append("")
     lines.extend(rubric.closing_lines)
     return "\n".join(lines) + "\n"
 

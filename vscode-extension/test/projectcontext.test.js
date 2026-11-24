@@ -44,6 +44,18 @@ test('prj_01 broken or empty files give nothing and never throw', () => {
   assert.equal(describeProject({ languages: [], frameworks: [], testRunners: [] }), '')
 })
 
+test('prj_01 a package that only starts with a framework name is not that framework', () => {
+  assert.deepEqual(detectProject([file('pyproject.toml', '[project]\ndependencies = ["flask-cors>=4", "django-filter", "fastapi-users"]\n')]), { languages: ['Python'], frameworks: [], testRunners: [] })
+  assert.deepEqual(detectProject([file('requirements.txt', 'flask-cors\ndjango-filter\n')]), { languages: ['Python'], frameworks: [], testRunners: [] })
+  assert.deepEqual(detectProject([file('pom.xml', '<project><dependency><artifactId>spring-jdbc-helper</artifactId></dependency></project>')]), { languages: ['Java'], frameworks: [], testRunners: [] })
+})
+
+test('prj_01 pyproject names are read exactly: PEP 621 lists with extras and Poetry tables', () => {
+  assert.deepEqual(detectProject([file('pyproject.toml', '[project]\ndependencies = ["Flask[async]>=3", "flask-cors"]\n')]).frameworks, ['Flask'])
+  assert.deepEqual(detectProject([file('pyproject.toml', '[tool.poetry.dependencies]\npython = "^3.12"\ndjango = "^5.0"\ndjango-filter = "*"\n[tool.poetry.group.dev.dependencies]\npytest = "^8"\n')]), { languages: ['Python'], frameworks: ['Django'], testRunners: ['pytest'] })
+  assert.deepEqual(detectProject([file('pyproject.toml', '[tool.pytest.ini_options]\naddopts = "-q"\n')]).testRunners, ['pytest'])
+})
+
 test('prj_02 the line is short and stays within the task context limit', () => {
   const found = detectProject([file('package.json', JSON.stringify({ dependencies: { react: '1', vue: '1', next: '1', express: '1' }, devDependencies: { jest: '1', vitest: '1', mocha: '1', typescript: '1' } })), file('requirements.txt', 'django\nfastapi\nflask\npytest\n'), file('go.mod', 'module x')])
   assert.ok(describeProject(found).length < 300)

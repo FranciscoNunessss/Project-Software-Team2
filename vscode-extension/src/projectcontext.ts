@@ -36,6 +36,34 @@ function requirementNames(text: string): string[] {
   return text.split('\n').map(line => /^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)/.exec(line.split('#')[0])?.[1]?.toLowerCase() ?? '').filter(Boolean)
 }
 
+/**
+ * The package names a pyproject.toml asks for, read exactly (so flask-cors is not Flask): the quoted requirement
+ * strings of PEP 621 lists ("Flask[async]>=3") and the keys of Poetry dependency tables (django = "^5").
+ */
+function tomlNames(text: string): { names: string[]; pytestTable: boolean } {
+  const names: string[] = []
+  let poetry = false
+  let pytestTable = false
+  for (const raw of text.split('\n')) {
+    const line = raw.split('#')[0].trim()
+    const header = /^\[+\s*([^\]]+?)\s*\]+$/.exec(line)
+    if (header) {
+      poetry = /^tool\.poetry\.(group\.[\w-]+\.)?(dev-)?dependencies$/.test(header[1])
+      if (/^tool\.pytest(\.|$)/.test(header[1])) pytestTable = true
+      continue
+    }
+    if (poetry) {
+      const key = /^([A-Za-z0-9][A-Za-z0-9_.-]*)\s*=/.exec(line)?.[1]
+      if (key) names.push(key.toLowerCase())
+    }
+    for (const quoted of line.matchAll(/"([^"]*)"/g)) {
+      const name = /^\s*([A-Za-z0-9][A-Za-z0-9_.-]*)\s*(\[[^\]]*\])?\s*([<>=!~;(]|$)/.exec(quoted[1])?.[1]
+      if (name) names.push(name.toLowerCase())
+    }
+  }
+  return { names, pytestTable }
+}
+
 export function detectProject(files: ProjectFile[]): Project {
   const byName = new Map(files.map(file => [file.name, file.text]))
   const languages: string[] = []
@@ -55,9 +83,9 @@ export function detectProject(files: ProjectFile[]): Project {
   if (requirements !== undefined || pyproject !== undefined) {
     add(languages, 'Python')
     const names = requirementNames(requirements ?? '')
-    const toml = (pyproject ?? '').split('\n').map(line => line.split('#')[0]).join('\n').toLowerCase()
-    for (const [name, label] of Object.entries(PY_FRAMEWORKS)) if (names.includes(name) || new RegExp(`\\b${name}\\b`).test(toml)) add(frameworks, label)
-    if (names.includes('pytest') || /\bpytest\b/.test(toml)) add(testRunners, 'pytest')
+    const toml = tomlNames(pyproject ?? '')
+    for (const [name, label] of Object.entries(PY_FRAMEWORKS)) if (names.includes(name) || toml.names.includes(name)) add(frameworks, label)
+    if (names.includes('pytest') || toml.names.includes('pytest') || toml.pytestTable) add(testRunners, 'pytest')
   }
 
   if (byName.has('go.mod')) add(languages, 'Go')
@@ -68,7 +96,7 @@ export function detectProject(files: ProjectFile[]): Project {
   if (pom !== undefined || gradle !== undefined) {
     add(languages, 'Java')
     const text = `${pom ?? ''}\n${gradle ?? ''}`.toLowerCase()
-    if (/spring-boot|org\.springframework|spring-/.test(text)) add(frameworks, 'Spring')
+    if (/spring-boot|org\.springframework/.test(text)) add(frameworks, 'Spring')
     if (/junit/.test(text)) add(testRunners, 'JUnit')
   }
 

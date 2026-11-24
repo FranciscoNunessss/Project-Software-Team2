@@ -89,6 +89,9 @@ def test_asking_for_marks_never_raises_scores(task):
         "Write a quiz to grade 2 students on fractions, with answers and a marking scheme",
         "Help me rate 2 suppliers on price, delivery and quality, as a table for procurement",
         "Score 2 candidates against the job criteria and recommend one, with the main risks",
+        "Give this 2 hours of research and summarise the main findings for the product team",
+        "Give it 2 more paragraphs about pricing and keep the tone of the first draft",
+        "Give the request two examples of good answers so the model sees the expected format",
     ],
 )
 def test_ordinary_tasks_with_numbers_are_not_requests_for_marks(task):

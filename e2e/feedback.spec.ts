@@ -82,3 +82,27 @@ test('starting the next task asks about the previous one, and Skip is final', as
   await page.locator('.chat-open').first().click()
   await expect(page.locator('[data-task-solved]')).toHaveCount(0)
 })
+
+test('a task without feedback is marked in the chat list and answered or changed from My progress', async ({ page }) => {
+  await signUp(page)
+  await analyseAndSend(page, COMPLETE)
+  // WS4 L16: the chat with a task run and no answer gets a dot in the list.
+  await expect(page.locator('[data-feedback-dot]')).toHaveCount(1)
+  await page.getByRole('button', { name: 'My progress' }).click()
+  const inbox = page.locator('[data-feedback-inbox]')
+  await expect(inbox.getByRole('heading', { name: 'Tasks without feedback (1)' })).toBeVisible()
+  await expect(inbox.locator('[data-response-rate]')).toContainText('You answered 0 of 1 tasks')
+  const saved = page.waitForRequest(request => request.method() === 'PUT' && request.url().endsWith('/outcome'))
+  await inbox.locator('[data-feedback-pending]').getByRole('button', { name: 'Solved', exact: true }).click()
+  expect((await saved).postDataJSON().outcome).toBe('resolved')
+  await expect(inbox.getByRole('heading', { name: 'Tasks without feedback (0)' })).toBeVisible()
+  await expect(inbox.locator('[data-response-rate]')).toContainText('You answered 1 of 1 tasks (100%)')
+  await expect(page.locator('[data-feedback-dot]')).toHaveCount(0)
+  // ADR-014 revision: the answer can be changed later, with a reason.
+  await inbox.getByText('Change a recent answer').click()
+  await inbox.locator('[data-feedback-recent]').getByRole('button', { name: 'Not solved' }).click()
+  const changed = page.waitForRequest(request => request.method() === 'PUT' && request.url().endsWith('/outcome'))
+  await inbox.getByRole('button', { name: 'No reason' }).click()
+  expect((await changed).postDataJSON().outcome).toBe('not_resolved')
+  await expect(inbox.locator('[data-feedback-recent]')).toContainText('Not solved')
+})

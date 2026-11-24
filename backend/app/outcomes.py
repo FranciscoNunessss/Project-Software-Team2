@@ -1,8 +1,9 @@
 """Choices and feedback per task (ADR-014). Core: the Educator and My progress read them.
 
-A task starts with an analysed message. The user says once, at the end, whether the model
-they used solved it: resolved, resolved_with_refinement, not_resolved (with an optional
-reason) or skipped. Never per answer, never twice for the same task.
+A task starts with an analysed message. The user says at the end whether the model they used
+solved it: resolved, resolved_with_refinement, not_resolved (with an optional reason) or
+skipped. Never per answer. Since the ADR-014 revision of 24 November 2026 (WS4 L16) the
+answer can be changed: the latest one counts and ``changes`` counts the changes.
 
 Privacy (Product Specification section 8): only choices, counts, levels and identifiers are
 stored, never text. Rows go with the analysis, the history or the account (cascade).
@@ -159,6 +160,7 @@ def public_outcome(row) -> dict:
         "retries",
         "stops",
         "created_at",
+        "changes",
     )
     data = {key: row[key] for key in keys}
     data["followed_recommendation"] = (
@@ -216,6 +218,39 @@ def outcome_summary(store: Storage, user_id: str) -> dict:
     }
 
 
+FEEDBACK_LIST_LIMIT = 20
+
+
+def feedback_inbox(store: Storage, user_id: str) -> dict:
+    """WS4 L16: tasks run with a model (a choice was recorded) and their feedback.
+
+    pending: no answer yet, newest first; recent: the latest answers, which can be changed;
+    response_rate: answered (skipped excluded) out of tasks run with a model. Titles are the
+    chat titles the history already shows; no other text.
+    """
+    with store.connect() as db:
+        rows = db.execute(
+            """SELECT a.id AS analysis_id,a.session_id,s.title,a.created_at,
+                      o.outcome,o.reason,o.changes
+               FROM analyses a JOIN sessions s ON s.id=a.session_id
+               JOIN decisions d ON d.analysis_id=a.id
+               LEFT JOIN task_outcomes o ON o.analysis_id=a.id
+               WHERE s.user_id=%s ORDER BY a.created_at DESC,a.sequence_id DESC""",
+            (user_id,),
+        ).fetchall()
+    items = [dict(row) for row in rows]
+    pending = [item for item in items if item["outcome"] is None]
+    answered = [item for item in items if item["outcome"] not in (None, "skipped")]
+    return {
+        "pending": pending[:FEEDBACK_LIST_LIMIT],
+        "pending_count": len(pending),
+        "recent": [item for item in items if item["outcome"] is not None][:FEEDBACK_LIST_LIMIT],
+        "run_with_a_model": len(items),
+        "answered": len(answered),
+        "response_rate": round(100 * len(answered) / len(items)) if items else None,
+    }
+
+
 def install_outcomes(app: FastAPI, store: Storage, on_change=None, ratings_for=None) -> None:
     """ratings_for(user_id) -> app.evaluations.Ratings: levels of models without a catalogue
     card (measured, LMArena, Artificial Analysis...), so their outcomes feed calibration."""
@@ -225,10 +260,31 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None, ratings_for=N
         with store.connect() as db:
             store.lock_user(db, user["id"])
             analysis = owned_analysis(db, user["id"], analysis_id)
-            if db.execute(
-                "SELECT 1 FROM task_outcomes WHERE analysis_id=%s", (analysis_id,)
-            ).fetchone():
-                raise HTTPException(409, "outcome_already_recorded")
+            # ADR-014 revision (24 Nov 2026): the answer can be changed; the latest one counts.
+            existing = db.execute(
+                "SELECT * FROM task_outcomes WHERE analysis_id=%s", (analysis_id,)
+            ).fetchone()
+            if existing:
+                # A change from the history or My progress carries only the answer: keep what
+                # the chat recorded the first time (model used, turns, switches, retries).
+                body = body.model_copy(
+                    update={
+                        "provider": body.provider or existing["used_provider"],
+                        "model": body.model or existing["used_model"],
+                        "turns": body.turns if body.turns is not None else existing["turns"],
+                        "switched_model": body.switched_model
+                        if body.switched_model is not None
+                        else (
+                            None
+                            if existing["switched_model"] is None
+                            else bool(existing["switched_model"])
+                        ),
+                        "retries": body.retries
+                        if body.retries is not None
+                        else existing["retries"],
+                        "stops": body.stops if body.stops is not None else existing["stops"],
+                    }
+                )
             result = json.loads(analysis["result_json"])
             decision = db.execute(
                 "SELECT candidate_id FROM decisions WHERE analysis_id=%s", (analysis_id,)
@@ -248,12 +304,14 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None, ratings_for=N
                         levels = {name: card.level(name) for name in CAPABILITIES}
             recommended = result["recommendation"]["id"]
             follows = followed(result, used, card_id, chosen)
+            if existing:
+                db.execute("DELETE FROM task_outcomes WHERE analysis_id=%s", (analysis_id,))
             db.execute(
                 """INSERT INTO task_outcomes(analysis_id,user_id,outcome,reason,model_card_id,
                    catalogue_version,recommended_card_id,followed_recommendation,needs_json,
                    capabilities_json,completeness,turns,switched_model,retries,stops,
-                   used_provider,used_model,levels_source)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                   used_provider,used_model,levels_source,changes)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                 (
                     analysis_id,
                     user["id"],
@@ -273,6 +331,7 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None, ratings_for=N
                     used[0],
                     used[1],
                     source,
+                    existing["changes"] + 1 if existing else 0,
                 ),
             )
             row = db.execute(
@@ -296,3 +355,7 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None, ratings_for=N
     @app.get("/api/progress/outcomes")
     def outcomes(user: AuthenticatedUser):
         return outcome_summary(store, user["id"])
+
+    @app.get("/api/progress/feedback")
+    def feedback(user: AuthenticatedUser):
+        return feedback_inbox(store, user["id"])

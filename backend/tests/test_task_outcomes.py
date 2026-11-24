@@ -27,7 +27,7 @@ def analyse(client, task="Summarise the private report"):
     return client.post("/api/analyze", json={"task": task}).json()
 
 
-def test_outcome_once_per_task_owner_only_and_without_text(app, tmp_path):
+def test_outcome_per_task_owner_only_changeable_and_without_text(app, tmp_path):
     alice, bob = account(TestClient(app)), account(TestClient(app), "bob@example.com")
     result = analyse(alice)
     path = f"/api/analyses/{result['id']}/outcome"
@@ -41,14 +41,18 @@ def test_outcome_once_per_task_owner_only_and_without_text(app, tmp_path):
     assert body["outcome"] == "resolved_with_refinement"
     assert body["recommended_card_id"] == result["recommendation"]["id"]
     assert body["turns"] == 3 and body["switched_model"] is True
-    assert alice.put(path, json={"outcome": "resolved"}).status_code == 409
-    assert alice.get(path).json()["outcome"] == "resolved_with_refinement"
+    # ADR-014 revision (24 Nov 2026): the answer can be changed; the chat's counts are kept.
+    changed = alice.put(path, json={"outcome": "resolved"})
+    assert changed.status_code == 200
+    assert changed.json()["outcome"] == "resolved" and changed.json()["changes"] == 1
+    assert changed.json()["turns"] == 3 and changed.json()["switched_model"] is True
+    assert alice.get(path).json()["outcome"] == "resolved"
     with app.state.storage.connect() as db:
         stored = json.dumps(db.execute("SELECT * FROM task_outcomes").fetchall())
     assert "private report" not in stored
 
 
-def test_skip_is_final_and_reason_only_for_not_resolved(app):
+def test_skip_can_be_answered_later_and_reason_only_for_not_resolved(app):
     client = account(TestClient(app))
     first, second = analyse(client), analyse(client)
     bad = client.put(
@@ -57,7 +61,9 @@ def test_skip_is_final_and_reason_only_for_not_resolved(app):
     assert bad.status_code == 422
     path = f"/api/analyses/{first['id']}/outcome"
     assert client.put(path, json={"outcome": "skipped"}).status_code == 200
-    assert client.put(path, json={"outcome": "resolved"}).status_code == 409
+    assert client.put(path, json={"outcome": "skipped"}).status_code == 200
+    summary_after_skip = client.get("/api/progress/outcomes").json()
+    assert summary_after_skip["skipped"] == 1
     failed = client.put(
         f"/api/analyses/{second['id']}/outcome",
         json={"outcome": "not_resolved", "reason": "description"},
@@ -269,3 +275,46 @@ def test_an_outcome_records_where_the_levels_came_from(app):
     ).json()
     assert body["levels_source"] == "arena"
     assert body["model_card_id"] == "openrouter-openai-gpt-6-luna"
+
+
+def test_feedback_inbox_lists_tasks_run_with_a_model(app):
+    client = account(TestClient(app))
+    first, second = analyse(client), analyse(client)
+    analyse(client)  # analysed but never run with a model
+    for item in (first, second):
+        chosen = client.post(
+            "/api/decisions",
+            json={"analysis_id": item["id"], "candidate_id": item["recommendation"]["id"]},
+        )
+        assert chosen.status_code == 200, chosen.text
+    inbox = client.get("/api/progress/feedback").json()
+    # The third analysis was never run with a model: nothing to ask about.
+    assert inbox["run_with_a_model"] == 2 and inbox["pending_count"] == 2
+    assert {item["analysis_id"] for item in inbox["pending"]} == {first["id"], second["id"]}
+    assert inbox["response_rate"] == 0
+    client.put(f"/api/analyses/{first['id']}/outcome", json={"outcome": "resolved"})
+    inbox = client.get("/api/progress/feedback").json()
+    assert inbox["pending_count"] == 1 and inbox["answered"] == 1
+    assert inbox["response_rate"] == 50
+    assert inbox["recent"][0]["analysis_id"] == first["id"]
+    assert inbox["recent"][0]["outcome"] == "resolved"
+
+
+def test_feedback_inbox_is_per_user_and_returns_only_ids_answers_and_titles(app):
+    alice, bob = account(TestClient(app)), account(TestClient(app), "bob@example.com")
+    item = analyse(alice)
+    alice.post(
+        "/api/decisions",
+        json={"analysis_id": item["id"], "candidate_id": item["recommendation"]["id"]},
+    )
+    assert bob.get("/api/progress/feedback").json()["pending_count"] == 0
+    pending = alice.get("/api/progress/feedback").json()["pending"][0]
+    assert set(pending) == {
+        "analysis_id",
+        "session_id",
+        "title",
+        "created_at",
+        "outcome",
+        "reason",
+        "changes",
+    }

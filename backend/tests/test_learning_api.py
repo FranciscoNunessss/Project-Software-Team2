@@ -131,7 +131,9 @@ def test_exclusion_does_not_turn_a_paused_task_into_an_excluded_one(app):
             (item["id"], user),
         )
     path = f"/api/analyses/{item['id']}/exclusion"
-    assert client.put(path).status_code == 200
+    refused = client.put(path)
+    assert refused.status_code == 409
+    assert refused.json()["detail"] == "task_paused"
     assert client.delete(path).status_code == 404
     with app.state.storage.connect() as db:
         kind = db.execute("SELECT kind FROM learning_exclusions").fetchone()["kind"]

@@ -85,12 +85,16 @@ def install_learning(app: FastAPI, store: Storage) -> None:
     def exclude(analysis_id: str, user: AuthenticatedUser):
         with store.connect() as db:
             owned_analysis(db, user["id"], analysis_id)
-            db.execute(
+            row = db.execute(
                 """INSERT INTO learning_exclusions(analysis_id,user_id,kind)
                    VALUES (%s,%s,'excluded')
-                   ON CONFLICT (analysis_id) DO NOTHING""",
+                   ON CONFLICT (analysis_id) DO UPDATE SET kind=learning_exclusions.kind
+                   RETURNING kind""",
                 (analysis_id, user["id"]),
-            )
+            ).fetchone()
+        if row["kind"] != "excluded":
+            # Never say "excluded" when nothing changed: a paused task stays paused.
+            raise HTTPException(409, "task_paused")
         return {"analysis_id": analysis_id, "excluded": True}
 
     @app.delete("/api/analyses/{analysis_id}/exclusion")

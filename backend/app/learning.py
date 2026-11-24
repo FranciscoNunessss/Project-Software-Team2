@@ -88,7 +88,7 @@ def install_learning(app: FastAPI, store: Storage) -> None:
             db.execute(
                 """INSERT INTO learning_exclusions(analysis_id,user_id,kind)
                    VALUES (%s,%s,'excluded')
-                   ON CONFLICT (analysis_id) DO UPDATE SET kind='excluded'""",
+                   ON CONFLICT (analysis_id) DO NOTHING""",
                 (analysis_id, user["id"]),
             )
         return {"analysis_id": analysis_id, "excluded": True}

@@ -206,13 +206,27 @@ def test_coach_ignored_skips_tasks_with_few_gaps():
     assert "coach_ignored" not in codes(compute(tasks))
 
 
-def test_coach_pays_off_needs_five_of_each():
-    tasks = coached([(2, True, "yes")] * 5 + [(2, False, "no")] * 5)
-    assert "coach_pays_off" in codes(compute(tasks))
-    assert "coach_pays_off" not in codes(compute(tasks[:9]))
+def test_coach_pays_off_needs_ten_of_each_and_a_real_gap():
+    tasks = coached([(2, True, "yes")] * 10 + [(2, False, "no")] * 10)
+    result = compute(tasks)
+    assert "coach_pays_off" in codes(result)
+    assert next(p for p in result.patterns if p.code == "coach_pays_off").caveat == "correlation"
+    assert "coach_pays_off" not in codes(compute(tasks[:19]))
+
+
+def test_coach_pays_off_ignores_a_small_gap():
+    accepted = [(2, True, "yes")] * 6 + [(2, True, "no")] * 4
+    rejected = [(2, False, "yes")] * 5 + [(2, False, "no")] * 5
+    assert "coach_pays_off" not in codes(compute(coached(accepted + rejected)))
 
 
 # ---- interaction -----------------------------------------------------------------------------
+
+
+def test_chats_just_above_the_median_are_not_long():
+    turns = [2, 2, 2, 2, 2, 3, 3, 2, 3, 2]
+    tasks = [TaskRecord(task_id=f"l{i}", turns=t, outcome="yes") for i, t in enumerate(turns)]
+    assert "long_chats" not in codes(compute(tasks))
 
 
 def test_long_chats_against_the_users_own_median():
@@ -246,4 +260,59 @@ def test_same_input_gives_same_output():
 
 def test_output_holds_no_text_fields():
     data = compute(scored([2] * 6)).as_dict()
-    assert set(data) == {"version", "tasks", "overall_level", "dimensions", "patterns"}
+    assert set(data) == {
+        "version",
+        "tasks",
+        "overall_level",
+        "overall_level_raw",
+        "dimensions",
+        "patterns",
+    }
+
+
+# ---- what the evidence can claim (caveats) and the manager's level ---------------------------
+
+
+def test_over_sizing_is_a_possible_saving_not_a_mistake():
+    result = compute(sized([("over", "yes")] * 3 + [("match", "yes")] * 2))
+    assert next(p for p in result.patterns if p.code == "over_sizing").caveat == "possible_saving"
+
+
+def quality(value):
+    return {name: value for name in DIMENSIONS}
+
+
+def test_under_sizing_ignores_failures_on_poorly_framed_requests():
+    poor = [
+        TaskRecord(task_id=f"u{i}", sizing="under", outcome="no", scores=quality(0))
+        for i in range(3)
+    ]
+    rest = sized([("match", "yes")] * 2)
+    assert "under_sizing" not in codes(compute(poor + rest))
+
+
+def test_under_sizing_on_well_framed_requests_has_no_caveat():
+    good = [
+        TaskRecord(task_id=f"u{i}", sizing="under", outcome="no", scores=quality(2))
+        for i in range(3)
+    ]
+    result = compute(good + sized([("match", "yes")] * 2))
+    assert next(p for p in result.patterns if p.code == "under_sizing").caveat is None
+
+
+def test_under_sizing_without_scores_says_model_or_request():
+    result = compute(sized([("under", "no")] * 3 + [("match", "yes")] * 2))
+    pattern = next(p for p in result.patterns if p.code == "under_sizing")
+    assert pattern.caveat == "model_or_request"
+
+
+def test_manager_level_has_no_hysteresis():
+    result = compute(scored([2] * 10 + [0]))
+    item = result.dimensions["success_criteria"]
+    assert item.level == 4
+    assert item.level_raw == raw_level([2] * 9 + [0])
+    assert result.overall_level_raw == item.level_raw
+
+
+def test_improving_needs_the_scores_to_rise_not_only_the_level():
+    assert "improving_dimension" not in codes(compute(scored([1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 2])))

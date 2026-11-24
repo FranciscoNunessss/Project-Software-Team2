@@ -119,3 +119,21 @@ def test_request_quality_rejects_scores_out_of_range(app):
                 "VALUES (%s,%s,3,'test')",
                 (item["id"], user),
             )
+
+
+def test_exclusion_does_not_turn_a_paused_task_into_an_excluded_one(app):
+    client = account(TestClient(app))
+    item = analyse(client)
+    with app.state.storage.connect() as db:
+        user = db.execute("SELECT id FROM users").fetchone()["id"]
+        db.execute(
+            "INSERT INTO learning_exclusions(analysis_id,user_id,kind) VALUES (%s,%s,'paused')",
+            (item["id"], user),
+        )
+    path = f"/api/analyses/{item['id']}/exclusion"
+    assert client.put(path).status_code == 200
+    assert client.delete(path).status_code == 404
+    with app.state.storage.connect() as db:
+        kind = db.execute("SELECT kind FROM learning_exclusions").fetchone()["kind"]
+    assert kind == "paused"
+    assert client.get("/api/progress/indicators").json()["tasks"] == 0

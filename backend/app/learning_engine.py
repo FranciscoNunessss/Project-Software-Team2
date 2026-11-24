@@ -14,7 +14,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
-ENGINE_VERSION = "learning-engine-1"
+ENGINE_VERSION = "learning-engine-2"
 
 # Request-quality dimensions (L1): how the user frames a task, scored 0, 1, 2 or None (NA).
 DIMENSIONS = (
@@ -38,7 +38,10 @@ MIN_LEVEL_TASKS = 5
 DROP_SHARE = 0.2  # the weakest 20% of a window are dropped (2 of 10, 1 of 5 to 9)
 HYSTERESIS_TASKS = 3
 COACH_MIN_GAPS = 2
-COACH_MIN_EACH = 5
+COACH_MIN_EACH = 10
+COACH_Z = 1.96  # accepted rewrites must resolve more often than chance explains (5%, two-sided)
+LONG_CHAT_FACTOR = 2  # a long chat has more than twice the user's median turns
+IMPROVING_MEAN_GAIN = 0.6  # the last 5 scores beat the 5 before them by this much on average
 
 # Stability of each dimension across runs, measured by the M3 harness for the active prompt
 # version (1.0 = identical in every run). Until M3 measures L1, every dimension counts as stable.
@@ -73,6 +76,9 @@ class TaskRecord:
 class DimensionLevel:
     level: int | None
     tasks: int
+    # The window's level without hysteresis: what a manager sees (Team Scope), because the
+    # user's level rises at once and falls slowly, which flatters on purpose.
+    level_raw: int | None
     confidence: Literal["high", "medium", "low"] | None
     confidence_reasons: list[str] = field(default_factory=list)
 
@@ -86,6 +92,10 @@ class Pattern:
     dimension: str | None = None
     level_from: int | None = None
     level_to: int | None = None
+    # What the evidence can and cannot claim, for the wording shown to the user:
+    # possible_saving (a smaller model might have done; not proven), model_or_request (the
+    # failure may come from the request, not the model), correlation (not cause and effect).
+    caveat: str | None = None
 
 
 @dataclass
@@ -94,6 +104,7 @@ class Indicators:
     tasks: int
     dimensions: dict[str, DimensionLevel]
     overall_level: int | None
+    overall_level_raw: int | None
     patterns: list[Pattern]
 
     def as_dict(self) -> dict:
@@ -101,9 +112,11 @@ class Indicators:
             "version": self.version,
             "tasks": self.tasks,
             "overall_level": self.overall_level,
+            "overall_level_raw": self.overall_level_raw,
             "dimensions": {
                 name: {
                     "level": item.level,
+                    "level_raw": item.level_raw,
                     "tasks": item.tasks,
                     "confidence": item.confidence,
                     "confidence_reasons": item.confidence_reasons,
@@ -119,6 +132,7 @@ class Indicators:
                     "dimension": p.dimension,
                     "level_from": p.level_from,
                     "level_to": p.level_to,
+                    "caveat": p.caveat,
                 }
                 for p in self.patterns
             ],
@@ -227,10 +241,19 @@ def dimension_patterns(dimension: str, scores: Sequence[int]) -> list[Pattern]:
         zeros = sum(score == 0 for score in window)
         if zeros >= PATTERN_HITS:
             found.append(Pattern("missing_dimension", "improve", zeros, len(window), dimension))
+    # A level that rose on its own is not enough: with hysteresis a level rises at once and falls
+    # slowly, so noise alone makes it climb. The scores themselves must also have improved.
     history = level_history(scores)
-    if len(history) > PATTERN_WINDOW:
+    if len(history) > PATTERN_WINDOW and len(scores) >= 2 * PATTERN_WINDOW:
         now, before = history[-1], history[-1 - PATTERN_WINDOW]
-        if now is not None and before is not None and now > before:
+        recent = statistics.mean(scores[-PATTERN_WINDOW:])
+        earlier = statistics.mean(scores[-2 * PATTERN_WINDOW : -PATTERN_WINDOW])
+        if (
+            now is not None
+            and before is not None
+            and now > before
+            and recent - earlier >= IMPROVING_MEAN_GAIN
+        ):
             found.append(
                 Pattern(
                     "improving_dimension",
@@ -245,6 +268,16 @@ def dimension_patterns(dimension: str, scores: Sequence[int]) -> list[Pattern]:
     return found
 
 
+def request_ok(task: TaskRecord) -> bool | None:
+    """Was the request reasonably framed (mean applicable L1 score of 1 or more)? None: unknown."""
+    if task.scores is None:
+        return None
+    applicable = [score for score in task.scores.values() if score is not None]
+    if not applicable:
+        return None
+    return statistics.mean(applicable) >= 1
+
+
 def sizing_patterns(tasks: Sequence[TaskRecord]) -> list[Pattern]:
     decided = [task for task in tasks if task.sizing is not None and task.outcome is not None]
     if len(decided) < PATTERN_WINDOW:
@@ -252,12 +285,27 @@ def sizing_patterns(tasks: Sequence[TaskRecord]) -> list[Pattern]:
     window = _last(decided)
     found = []
     over = sum(t.sizing == "over" and t.outcome in ("yes", "partly") for t in window)
-    under = sum(t.sizing == "under" and t.outcome == "no" for t in window)
+    # A smaller model that failed on a poorly framed request says nothing about the model.
+    under_tasks = [
+        t
+        for t in window
+        if t.sizing == "under" and t.outcome == "no" and request_ok(t) is not False
+    ]
+    under = len(under_tasks)
     good = sum(t.sizing == "match" and t.outcome == "yes" for t in window)
     if over >= PATTERN_HITS:
-        found.append(Pattern("over_sizing", "improve", over, len(window)))
+        found.append(Pattern("over_sizing", "improve", over, len(window), caveat="possible_saving"))
     if under >= PATTERN_HITS:
-        found.append(Pattern("under_sizing", "improve", under, len(window)))
+        unknown = any(request_ok(t) is None for t in under_tasks)
+        found.append(
+            Pattern(
+                "under_sizing",
+                "improve",
+                under,
+                len(window),
+                caveat="model_or_request" if unknown else None,
+            )
+        )
     if good >= GOOD_CHOICE_HITS:
         found.append(Pattern("good_model_choice", "positive", good, len(window)))
     return found
@@ -275,16 +323,14 @@ def coach_patterns(tasks: Sequence[TaskRecord]) -> list[Pattern]:
     accepted = [t for t in rated if t.coach.accepted]
     rejected_all = [t for t in rated if not t.coach.accepted]
     if len(accepted) >= COACH_MIN_EACH and len(rejected_all) >= COACH_MIN_EACH:
-
-        def solved(items):
-            return sum(t.outcome == "yes" for t in items) / len(items)
-
-        if solved(accepted) > solved(rejected_all):
-            found.append(
-                Pattern(
-                    "coach_pays_off", "positive", len(accepted), len(accepted) + len(rejected_all)
-                )
-            )
+        # Two-proportion z-test: a small gap between two small samples is chance, not the Coach.
+        a, r = len(accepted), len(rejected_all)
+        solved_a = sum(t.outcome == "yes" for t in accepted)
+        solved_r = sum(t.outcome == "yes" for t in rejected_all)
+        pooled = (solved_a + solved_r) / (a + r)
+        spread = (pooled * (1 - pooled) * (1 / a + 1 / r)) ** 0.5
+        if spread > 0 and (solved_a / a - solved_r / r) / spread >= COACH_Z:
+            found.append(Pattern("coach_pays_off", "positive", solved_a, a, caveat="correlation"))
     return found
 
 
@@ -292,9 +338,11 @@ def interaction_patterns(tasks: Sequence[TaskRecord]) -> list[Pattern]:
     found = []
     resolved = [t for t in tasks if t.turns is not None and t.outcome in ("yes", "partly")]
     if len(resolved) >= PATTERN_WINDOW:
+        # Above the median alone happens to half of any user's chats by definition, so 3 of 5
+        # "above the median" would fire by chance; a long chat is well above it.
         median = statistics.median(t.turns for t in resolved)
         window = _last(resolved)
-        long = sum(t.turns > median for t in window)
+        long = sum(t.turns > LONG_CHAT_FACTOR * median for t in window)
         if long >= PATTERN_HITS:
             found.append(Pattern("long_chats", "improve", long, len(window)))
     chats = [t for t in tasks if t.switched_model is not None]
@@ -322,6 +370,7 @@ def compute(tasks: Sequence[TaskRecord], stability: dict[str, float] | None = No
         label, reasons = confidence(window, stability[name])
         dimensions[name] = DimensionLevel(
             level=history[-1] if history else None,
+            level_raw=raw_level(window),
             tasks=len(scores),
             confidence=label,
             confidence_reasons=reasons,
@@ -331,10 +380,12 @@ def compute(tasks: Sequence[TaskRecord], stability: dict[str, float] | None = No
     patterns.extend(coach_patterns(counted))
     patterns.extend(interaction_patterns(counted))
     levels = [item.level for item in dimensions.values() if item.level is not None]
+    raw_levels = [item.level_raw for item in dimensions.values() if item.level_raw is not None]
     return Indicators(
         version=ENGINE_VERSION,
         tasks=len(counted),
         dimensions=dimensions,
         overall_level=lower_median(levels),
+        overall_level_raw=lower_median(raw_levels),
         patterns=patterns,
     )

@@ -9,7 +9,6 @@ import { Dashboard } from './dashboard'
 import { PROGRESS_SCHEME, ProgressReport } from './profile'
 import { RelayAgent, RelayStatus } from './relay'
 import { StatusBar } from './statusbar'
-import { runLong } from './selftest'
 import { diagnosticSamples, startDiagnostics, stopDiagnostics } from './diagnostics'
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -205,7 +204,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       } catch (error) {
         report?.({ step: 'diff: threw', ok: false, detail: String(error) })
       }
-      if (token && process.env.ADAPTAI_SELFTEST_LONG && process.env.ADAPTAI_SELFTEST_FOLDER) await runLong({ backend, analyser, chat, assist, changes, report: report!, folder: process.env.ADAPTAI_SELFTEST_FOLDER }).catch(error => report?.({ step: 'long run threw', ok: false, detail: String(error) }))
+      if (token && process.env.ADAPTAI_SELFTEST_LONG && process.env.ADAPTAI_SELFTEST_FOLDER) await import('./selftest').then(module => module.runLong({ backend, analyser, chat, assist, changes, report: report!, folder: process.env.ADAPTAI_SELFTEST_FOLDER! })).catch(error => report?.({ step: 'long run threw', ok: false, detail: String(error) }))
       report?.({ step: 'done', ok: true, detail: 'self-test finished' })
     })()
   }

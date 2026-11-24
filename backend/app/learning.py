@@ -88,7 +88,12 @@ def user_indicators(
     last: the newest N tasks against the N before them. days: the last N days against the N
     days before. Neither: all tasks, no trend. The user is only ever compared with themselves.
     """
-    dated = dated_tasks(store, user_id)
+    # Excluded and paused tasks never count, so "the last 10 tasks" means 10 counted tasks.
+    dated = [
+        (at, task)
+        for at, task in dated_tasks(store, user_id)
+        if not task.excluded and not task.paused
+    ]
     if last is not None:
         current = [task for _, task in dated[-last:]]
         previous = [task for _, task in dated[-2 * last : -last]] if len(dated) > last else []
@@ -103,6 +108,13 @@ def user_indicators(
     result = compute(current).as_dict()
     earlier = compute(previous).as_dict() if previous else None
     result["range"] = {"last": last, "days": days}
+    # Feedback in the same range, so "tasks solved" follows the range the user picked.
+    answered = [task for task in current if task.outcome is not None]
+    result["feedback"] = {
+        "answered": len(answered),
+        "solved": sum(task.outcome in ("yes", "partly") for task in answered),
+    }
+    result["assessed_tasks"] = sum(task.scores is not None for task in current)
     result["previous"] = (
         {
             "tasks": earlier["tasks"],

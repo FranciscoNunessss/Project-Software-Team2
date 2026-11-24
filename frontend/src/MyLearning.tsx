@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, type OutcomeSummary } from './api'
+import { api } from './api'
 import './MyLearning.css'
 
 // WS4 PR7 (L4, L7, L14): how the user frames tasks and chooses models, from
@@ -16,6 +16,8 @@ export type Indicators = {
   dimensions: Record<string, DimensionIndicator>
   patterns: PatternIndicator[]
   range: { last: number | null; days: number | null }
+  feedback: { answered: number; solved: number }
+  assessed_tasks: number
   previous: { tasks: number; overall_level: Level; dimensions: Record<string, Level> } | null
 }
 
@@ -99,14 +101,12 @@ export function Radar({ dimensions }: { dimensions: Record<string, DimensionIndi
 export function MyLearning() {
   const [range, setRange] = useState(RANGES[0].query)
   const [data, setData] = useState<Indicators>()
-  const [outcomes, setOutcomes] = useState<OutcomeSummary>()
   const [failed, setFailed] = useState(false)
   useEffect(() => {
     const controller = new AbortController()
     const load = () => {
       setFailed(false)
       api<Indicators>(`progress/indicators${range ? `?${range}` : ''}`, undefined, controller.signal).then(setData).catch(() => { if (!controller.signal.aborted) setFailed(true) })
-      api<OutcomeSummary>('progress/outcomes', undefined, controller.signal).then(setOutcomes).catch(() => undefined)
     }
     load()
     window.addEventListener('adaptai-progress-updated', load)
@@ -114,8 +114,8 @@ export function MyLearning() {
   }, [range])
   if (failed) return <section className="card my-learning"><p className="api-error" role="alert">Could not load your learning profile.</p></section>
   if (!data) return null
-  const solved = outcomes ? outcomes.resolved + outcomes.resolved_with_refinement : 0
-  const assessed = Object.values(data.dimensions).some(item => item.tasks > 0)
+  const { answered, solved } = data.feedback
+  const assessed = data.assessed_tasks > 0
   const improve = data.patterns.filter(p => p.kind === 'improve')
   const positive = data.patterns.filter(p => p.kind === 'positive')
   return (
@@ -135,8 +135,8 @@ export function MyLearning() {
         </div>
         <div data-top-resolved="">
           <dt>Tasks solved</dt>
-          <dd>{outcomes && outcomes.tasks > 0 ? `${Math.round((100 * solved) / outcomes.tasks)}%` : '—'}</dd>
-          <p className="muted">{outcomes && outcomes.tasks > 0 ? `${solved} of ${outcomes.tasks} tasks with feedback` : 'Answer "Did it solve it?" to see this.'}</p>
+          <dd>{answered > 0 ? `${Math.round((100 * solved) / answered)}%` : '—'}</dd>
+          <p className="muted">{answered > 0 ? `${solved} of ${answered} tasks with feedback in this range` : 'Answer "Did it solve it?" to see this.'}</p>
         </div>
         <div data-top-maturity="">
           <dt>Level</dt>
@@ -145,7 +145,12 @@ export function MyLearning() {
         </div>
       </dl>
 
-      {data.tasks < MIN_TASKS || !assessed ? (
+      {data.tasks >= MIN_TASKS && !assessed ? (
+        <div className="learning-tour" data-learning-not-assessed="">
+          <h3>How you describe tasks is not assessed yet</h3>
+          <p>The assessment of request quality (objective, context, success criteria…) is not switched on in this version, so there are no levels yet. Your patterns about model choices and chats still appear below.</p>
+        </div>
+      ) : data.tasks < MIN_TASKS ? (
         <div className="learning-tour" data-learning-tour="">
           <h3>Your learning profile is on its way</h3>
           <p>After {MIN_TASKS} analysed tasks, this section shows:</p>

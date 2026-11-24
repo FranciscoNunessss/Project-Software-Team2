@@ -171,3 +171,16 @@ def test_range_parameters_are_validated(app):
     client = account(TestClient(app))
     assert client.get("/api/progress/indicators?last=2").status_code == 422
     assert client.get("/api/progress/indicators?last=10&days=7").status_code == 422
+
+
+def test_range_counts_only_counted_tasks_and_reports_feedback_in_range(app):
+    client = account(TestClient(app))
+    items = [analyse(client) for _ in range(6)]
+    feedback(client, items[-1], "resolved")
+    feedback(client, items[-2], "not_resolved")
+    assert client.put(f"/api/analyses/{items[-3]['id']}/exclusion").status_code == 200
+    body = client.get("/api/progress/indicators?last=5").json()
+    # The excluded task is skipped, so the 5 counted tasks reach back to the first one.
+    assert body["tasks"] == 5
+    assert body["feedback"] == {"answered": 2, "solved": 1}
+    assert body["assessed_tasks"] == 0

@@ -157,7 +157,7 @@ chat drafts, unsaved preferences and loaded charts when switching screens. This 
 discarded on reload, logout or account change; task drafts are not written to browser storage.
 Progress refreshes after relevant changes and when revisited after 30 seconds. Hidden pages
 pause coaching polling, and model and Prompt Coach settings propagate to the open Assistant.
-My progress also answers "Are you describing tasks better?": it compares the completeness of the first analysis of each session (re-analyses do not count) between your first and last sessions (up to five each, from five sessions on), gives a verdict computed in Python (improving, stable or declining; a change under 5 points is stable) and lists which dimensions you now describe more or less often (`GET /api/progress/learning`, numbers only). The Educator receives the same verdict and must not contradict it.
+My progress also answers "Are you describing tasks better?": it compares the completeness of the first analysis of each session (re-analyses do not count) between your first and last sessions (up to five each, from five sessions on), gives a verdict computed in Python (improving, stable or declining; a change under 5 points is stable) and lists which dimensions you now describe more or less often (`GET /api/progress/learning`, numbers only). The Educator receives the same verdict and must not contradict it. Above it, **How you use AI** (WS4) shows estimated savings (not measured until usage metering exists), tasks solved and the overall level with its trend, a radar of 7 request-quality dimensions and the patterns in plain sentences, for a range the user picks (`GET /api/progress/indicators`).
 The original progress dashboard uses actual per-session agreement and capacity comparison counts.
 My data exports the account's context and paginated session history as a local JSON file.
 Groq coaching uses derived metadata, on request or automatically when enabled in Profile. The optional Prompt Coach helps describe a task better (see "Prompt Coach (optional)"). Team aggregation remains unimplemented.
@@ -326,6 +326,8 @@ the catalogue's capability cards. It does not execute the task or generate catal
 | `GET /api/progress` | Current user session, analysis, choice and match counts |
 | `GET /api/progress/dashboard` | Last six sessions with choices, over/under counts and the over- and under-provisioning verdict over the 50 newest analyses (`patterns`: detected, not detected or too few confirmed choices) |
 | `GET /api/progress/outcomes` | Feedback totals: solved, after refining, not solved, followed the recommendation, per model |
+| `GET /api/progress/indicators` | WS4 learning indicators: levels per request-quality dimension (with `level_raw`, without hysteresis), confidence, patterns with their caveat, feedback in the range. `?last=N` (5 to 500 counted tasks) or `?days=N` (1 to 365) picks a range and returns the range before it as `previous`; excluded and paused tasks never count |
+| `PUT`/`DELETE /api/analyses/{id}/exclusion` | Leave a task out of the learning indicators, or bring it back (a paused task answers 409 `task_paused`) |
 | `GET /api/context`, `PUT /api/context` | Read/save account preferences and memory settings |
 | `DELETE /api/context/memory` | Clear learned metadata memory without deleting progress |
 | `GET /api/providers` | Provider IDs, availability and external destination flag |

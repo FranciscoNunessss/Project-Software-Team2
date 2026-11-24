@@ -30,13 +30,15 @@ test('levels, trend, confidence and patterns with what the evidence can claim', 
       { code: 'over_sizing', kind: 'improve', hits: 3, window: 5, dimension: null, level_from: null, level_to: null, caveat: 'possible_saving' },
       { code: 'improving_dimension', kind: 'positive', hits: 5, window: 5, dimension: 'context', level_from: 2, level_to: 3, caveat: null },
     ],
-    range: { last: null, days: null },
+    range: { last: null, days: null }, feedback: { answered: 8, solved: 6 }, assessed_tasks: 12,
     previous: { tasks: 10, overall_level: 2, dimensions: { objective: 4 } },
   } }))
   await signUp(page)
   await goTo(page, 'My progress')
   const section = page.locator('[data-my-learning]')
   await expect(section.locator('[data-top-maturity]')).toContainText('Proficient ↑')
+  await expect(section.locator('[data-top-resolved]')).toContainText('75%')
+  await expect(section.locator('[data-top-resolved]')).toContainText('6 of 8 tasks with feedback in this range')
   await expect(section.locator('[data-learning-radar]')).toBeVisible()
   await expect(section.locator('[data-learning-dimension="objective"]')).toContainText('Expert →')
   await expect(section.locator('[data-learning-dimension="success_criteria"]')).toContainText('low (harder to assess reliably)')
@@ -53,4 +55,21 @@ test('the range picker asks for the chosen range', async ({ page }) => {
   const asked = page.waitForRequest(request => request.url().includes('/api/progress/indicators?last=10'))
   await page.locator('[data-learning-range]').selectOption({ label: 'Last 10 tasks' })
   await asked
+})
+
+test('with tasks but no request-quality assessment it says so instead of the tour', async ({ page }) => {
+  const empty = { level: null, level_raw: null, tasks: 0, confidence: null, confidence_reasons: ['few_tasks'] }
+  await page.route('**/api/progress/indicators**', route => route.fulfill({ json: {
+    version: 'learning-engine-2', tasks: 12, overall_level: null, overall_level_raw: null,
+    dimensions: Object.fromEntries(['objective', 'context', 'constraints', 'risks', 'ambiguity', 'success_criteria', 'audience_format'].map(name => [name, empty])),
+    patterns: [{ code: 'model_switching', kind: 'improve', hits: 3, window: 5, dimension: null, level_from: null, level_to: null, caveat: null }],
+    range: { last: null, days: null }, feedback: { answered: 0, solved: 0 }, assessed_tasks: 0, previous: null,
+  } }))
+  await signUp(page)
+  await goTo(page, 'My progress')
+  const section = page.locator('[data-my-learning]')
+  await expect(section.locator('[data-learning-not-assessed]')).toContainText('not assessed yet')
+  await expect(section.locator('[data-learning-tour]')).toHaveCount(0)
+  await expect(section.getByText('of 5 tasks so far')).toHaveCount(0)
+  await expect(section.locator('[data-pattern="model_switching"]')).toBeVisible()
 })

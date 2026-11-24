@@ -328,6 +328,11 @@ the catalogue's capability cards. It does not execute the task or generate catal
 | `GET /api/progress/outcomes` | Feedback totals: solved, after refining, not solved, followed the recommendation, per model |
 | `GET /api/progress/indicators` | WS4 learning indicators: levels per request-quality dimension (with `level_raw`, without hysteresis), confidence, patterns with their caveat, feedback in the range. `?last=N` (5 to 500 counted tasks) or `?days=N` (1 to 365) picks a range and returns the range before it as `previous`; excluded and paused tasks never count |
 | `PUT`/`DELETE /api/analyses/{id}/exclusion` | Leave a task out of the learning indicators, or bring it back (a paused task answers 409 `task_paused`) |
+| `POST /api/analyses/{id}/quality-dispute` | WS4 L11: dispute one request-quality score with a passage of the request (checked against a salted hash of the analysed request, which is never stored); a restricted judge can raise it one level at most; 24 hours, once per dimension, 5 a day |
+| `GET`/`PUT /api/progress/goal` | WS4 L9: this week's goal (suggested from the strongest pattern, 2 alternatives), progress in tasks |
+| `GET /api/progress/achievements` | WS4 L13: achievements for quality (a dimension clear 3 times in a row, Proficient reached, 5 tasks solved with the recommended model), never for volume |
+| `POST /api/learning/hints/{key}/dismiss` | WS4 L5: hide an Educator hint for the next 3 analyses |
+| `GET`/`PUT /api/learning/settings`, `POST /api/learning/reset` | WS4 L17: pause learning (new tasks do not count) and start over (learning data deleted, feedback kept) |
 | `GET /api/context`, `PUT /api/context` | Read/save account preferences and memory settings |
 | `DELETE /api/context/memory` | Clear learned metadata memory without deleting progress |
 | `GET /api/providers` | Provider IDs, availability and external destination flag |

@@ -246,3 +246,5 @@ class AnalysisResult(BaseModel):
     suggestion_reason: str | None = None
     # WS4 L1: clear dimensions out of applicable ones and the reason codes; None before rubric-2.2.
     request_quality_summary: dict | None = None
+    # WS4 L5: an active "missing dimension" pattern this request repeats, or None.
+    educator_hint: dict | None = None

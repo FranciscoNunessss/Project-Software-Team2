@@ -51,7 +51,12 @@ export type Profile = {
   tools: Dimension
   modality: { required: ('text' | 'image' | 'audio' | 'video')[] | null; confidence: Confidence; evidence: string }
   explanation: string
+  // WS4 L1 (rubric-2.2 and later): how the request is framed; the reason is shown once.
+  request_quality?: Record<QualityDimension, { score: 0 | 1 | 2 | null; reason: string }>
 }
+export type QualityDimension = 'objective' | 'context' | 'constraints' | 'risks' | 'ambiguity' | 'success_criteria' | 'audience_format'
+export type EducatorHint = { key: string; pattern: 'missing_dimension'; dimension: QualityDimension; hits: number; window: number }
+export type DisputeResult = { dimension: QualityDimension; accepted: boolean; score_before: number; score_after: number; code: string }
 export type DimensionName = 'reasoning' | 'context' | 'ambiguity' | 'domain' | 'risk' | 'tools' | 'modality'
 // History keeps dimension/before/after only; evidence is present only in the live response.
 export type Change = { dimension: DimensionName; before: number | string[] | null; after: number | string[] | null; evidence?: string }
@@ -88,6 +93,8 @@ export type Analysis = {
   previous_analysis_id?: string | null
   completeness?: number | null
   changes?: Change[]
+  request_quality_summary?: { clear: number; applicable: number; codes: Record<string, string> } | null
+  educator_hint?: EducatorHint | null
 }
 // Keep in sync with backend/app/assessment.py PROFILE_VERSION.
 export const PROFILE_VERSION = 'profile-2'
@@ -325,3 +332,17 @@ export async function streamChat(path: string, body: unknown, handlers: ChatHand
   if (!done) throw new ApiError('The answer was interrupted.', 0)
   return done
 }
+
+// WS4 experience (L5, L9, L11, L13, L17).
+export const disputeQuality = (analysisId: string, body: { dimension: QualityDimension; task: string; passage: string; allow_external: boolean }) =>
+  api<DisputeResult>(`analyses/${analysisId}/quality-dispute`, body)
+export const dismissHint = (key: string) => api(`learning/hints/${key}/dismiss`, {})
+export type WeeklyGoal = { week: string; goal: { code: string; target: number; progress: number; met: boolean; chosen: boolean }; alternatives: string[] }
+export const getGoal = (signal?: AbortSignal) => api<WeeklyGoal>('progress/goal', undefined, signal)
+export const chooseGoal = (code: string) => api<WeeklyGoal>('progress/goal', { code }, undefined, 'PUT')
+export type Achievement = { code: 'clear_dimension' | 'proficient_dimension' | 'right_model'; dimension: QualityDimension | null; unlocked: boolean; progress: number; target: number }
+export const getAchievements = (signal?: AbortSignal) => api<{ achievements: Achievement[] }>('progress/achievements', undefined, signal)
+export type LearningSettings = { paused: boolean; reset_at: string | null; can_pause: boolean; can_reset: boolean }
+export const getLearningSettings = (signal?: AbortSignal) => api<LearningSettings>('learning/settings', undefined, signal)
+export const setLearningPaused = (paused: boolean) => api<LearningSettings>('learning/settings', { paused }, undefined, 'PUT')
+export const startLearningOver = () => api<LearningSettings>('learning/reset', {})

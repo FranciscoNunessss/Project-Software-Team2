@@ -20,5 +20,17 @@ section.my-learning { padding: 1.25rem; }
 .learning-patterns .pattern { padding: 0.5rem 0.75rem; border-radius: 0.4rem; border-left: 3px solid var(--border, #ccc); background: var(--surface-alt, rgba(0, 0, 0, 0.03)); }
 .learning-patterns .pattern.positive { border-left-color: var(--success, #2e8b57); }
 .learning-patterns .pattern.improve { border-left-color: var(--accent, #c27a00); }
-.learning-tour ol { padding-left: 1.25rem; }
+.learning-tour ol { padding-left: 1.25rem; list-style: decimal; }
+.learning-tour h3, .learning-extras h3 { font-size: 1rem; margin: 0.5rem 0 0.25rem; }
 .learning-note { font-size: 0.8rem; margin-top: 0.75rem; }
+.learning-extras { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; margin-top: 1rem; }
+.goal-bar { height: 0.5rem; border-radius: 0.25rem; background: var(--border, #eee); overflow: hidden; }
+.goal-bar span { display: block; height: 100%; background: var(--success, #2e8b57); }
+.goal-alternatives { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+.learning-achievements ul { list-style: none; padding: 0; margin: 0.25rem 0; display: grid; gap: 0.25rem; }
+.achievement.unlocked { font-weight: 600; }
+.level-up { padding: 0.5rem 0.75rem; border-radius: 0.4rem; background: var(--success-soft, rgba(46, 139, 87, 0.12)); }
+.learning-controls { margin-top: 1rem; }
+.learning-controls .learning-toggle { display: block; margin: 0.5rem 0; }
+.pattern-advice summary { cursor: pointer; font-size: 0.85rem; margin-top: 0.25rem; }
+.pattern-advice p { margin: 0.35rem 0; }

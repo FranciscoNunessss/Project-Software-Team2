@@ -271,8 +271,13 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None, ratings_for=N
                 # the chat recorded the first time (model used, turns, switches, retries).
                 body = body.model_copy(
                     update={
-                        "provider": body.provider or existing["used_provider"],
-                        "model": body.model or existing["used_model"],
+                        # The model used is a pair: both from the new answer, or both kept.
+                        "provider": body.provider
+                        if body.provider or body.model
+                        else existing["used_provider"],
+                        "model": body.model
+                        if body.provider or body.model
+                        else existing["used_model"],
                         "turns": body.turns if body.turns is not None else existing["turns"],
                         "switched_model": body.switched_model
                         if body.switched_model is not None

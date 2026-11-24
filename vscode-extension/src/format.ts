@@ -1,6 +1,6 @@
 // Turns an analysis into Markdown for an editor tab. Pure: no VS Code import, so it is unit tested.
 // The wording follows the app (frontend/src/AnalysisResult.tsx): needs, coverage, alternatives, why.
-import type { Analysis, Candidate, Coverage, CoverageState, Need } from './api'
+import type { Analysis, Candidate, Coverage, CoverageState, Need, QualityDimension } from './api'
 
 const LEVEL = ['', 'Low', 'Medium', 'High'] as const
 export const level = (value: number | null | undefined): string => (value ? LEVEL[value] ?? String(value) : 'Not determined')
@@ -88,6 +88,52 @@ export function summaryLine(analysis: Analysis): string {
   return `${modelName(model)}${tier ? ` (${tier} tier, stored before ADR-014)` : ''}${analysis.recommendation_provisional ? ' · provisional' : ''}`
 }
 
+// RQ-01 to RQ-03 (release plan E5, WS4 L1 and L5). The names and words are the ones of the web app.
+const QUALITY_LABEL: Record<QualityDimension, string> = {
+  objective: 'Objective',
+  context: 'Context you gave',
+  constraints: 'Constraints',
+  risks: 'Risks',
+  ambiguity: 'Open points',
+  success_criteria: 'Success criteria',
+  audience_format: 'Audience and format',
+}
+const QUALITY_WORD = ['Missing', 'Partial', 'Clear'] as const
+const NOT_RETAINED = 'Reason is not retained in history.'
+
+export type QualityView = { title: string | null; hint: string | null; rows: { name: string; word: string; reason: string }[] }
+
+/** The same view for the document and the chat panel; null when the analysis has no request quality (RQ-03). */
+export function qualityView(analysis: Analysis): QualityView | null {
+  const quality = analysis.profile.request_quality
+  if (!quality) return null
+  const summary = analysis.request_quality_summary
+  const hint = analysis.educator_hint
+  const rows: QualityView['rows'] = []
+  for (const name of Object.keys(QUALITY_LABEL) as QualityDimension[]) {
+    const item = quality[name]
+    if (!item) continue
+    rows.push({ name: QUALITY_LABEL[name], word: item.score === null ? 'Not needed' : QUALITY_WORD[item.score] ?? String(item.score), reason: item.reason === NOT_RETAINED ? '' : item.reason })
+  }
+  return {
+    title: summary ? `${summary.clear} of ${summary.applicable} clear` : null,
+    hint: hint ? `You often leave out ${QUALITY_LABEL[hint.dimension].toLowerCase()} (${hint.hits} of your last ${hint.window} tasks), and this message does too. Add it before you send?` : null,
+    rows,
+  }
+}
+
+function requestQualitySection(analysis: Analysis): string[] {
+  const view = qualityView(analysis)
+  if (!view) return []
+  const out = ['## How you described it', '']
+  if (view.title) out.push(`**${view.title}**`, '')
+  if (view.hint) out.push(`> ${view.hint} You can dismiss this hint in the web app.`, '')
+  out.push('| Part | How clear | Why |', '| --- | --- | --- |')
+  for (const row of view.rows) out.push(`| ${row.name} | ${row.word} | ${cell(row.reason)} |`)
+  out.push('')
+  return out
+}
+
 export function renderAnalysis(analysis: Analysis, extra: { task?: string; source?: string; truncated?: boolean; at?: string } = {}): string {
   const model = analysis.recommendation
   const out: string[] = []
@@ -131,6 +177,7 @@ export function renderAnalysis(analysis: Analysis, extra: { task?: string; sourc
     for (const change of analysis.changes) out.push(`- ${DIMENSION_LABEL[change.dimension] ?? change.dimension}: ${JSON.stringify(change.before)} → ${JSON.stringify(change.after)}`)
     out.push('')
   }
+  out.push(...requestQualitySection(analysis))
   out.push('## Task profile', '', profileTable(analysis), '', analysis.profile.explanation, '')
   out.push(`Completeness: ${analysis.completeness ?? 'n/a'}/100 · profile ${analysis.profile_version} · policy ${analysis.policy_version} · catalogue ${analysis.catalogue_version}${analysis.rubric_version ? ` · rubric ${analysis.rubric_version}` : ''}. Levels are uncalibrated unless marked calibrated.`)
   return out.join('\n') + '\n'

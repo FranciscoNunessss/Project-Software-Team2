@@ -496,6 +496,15 @@ Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.m
 | IMP-02 | It first asks how the Coach should help, in a list at the top: **Rewrite**, **Edits** or **Tips**, with the last mode used (or else `adaptai.coachMode`) on top. Escape sends nothing. Rewrite and Edits end in the diff of IMP-01; Tips changes nothing in the file and shows the tips with the analysis. The Coach works on an analysis of the text (the backend needs its id), so the analysis is made as part of the same step; if the very same text was analysed before in this window, that analysis is used again and only the Coach request is sent, with its own confirmation when the model is external. |
 | IMP-01 | When the improvement is shown as a diff (`adaptai.improveApply` = `diff`), the diff's tab bar has **Apply** and **Dismiss** buttons, and the same two commands are in the Command Palette while a diff waits. Apply replaces the text (Undo brings it back); Dismiss leaves it. Both hide the buttons. The notice "apply the improved prompt?" stays, but a missed or hidden notice does not lose the improvement. With nothing waiting, Apply says so and changes nothing. |
 
+**How you described it (RQ, release plan task E5).** Since PR #92 and #95 of WS4 the analysis can carry `profile.request_quality` (seven dimensions: objective, context, constraints, risks, ambiguity, success criteria, audience and format; each 0 missing, 1 partial, 2 clear, or not needed), a `request_quality_summary` and an `educator_hint`. For a code request these are the checks E5 asks for: the expected behaviour (objective), the constraints and an acceptance test (success criteria). The IDE shows them as the web app does and never invents them.
+
+| Id | Requirement |
+|---|---|
+| RQ-01 | When the analysis has request quality, the Analysis document and the chat panel show "How you described it": "N of M clear" and one line per dimension (Missing, Partial, Clear or Not needed) with the assessor's reason. The dimension names and the three words are the ones of the web app. |
+| RQ-02 | When the analysis has an Educator hint, it is shown above the table in the web app's words (the dimension, "X of your last Y tasks"), with no button that sends anything: dismissing it is done in the web app. |
+| RQ-03 | When the analysis has no request quality (the active rubric is 2.0, or an older backend), nothing is shown and nothing fails. A reason that the backend marks as not retained ("Reason is not retained in history.") is left out. |
+| RQ-04 | Nothing in this section sends the text of the request anywhere new: it only shows what the analysis already returned. |
+
 **Project context (PRJ, release plan task E4).** The analysis also gets the language, framework and test runner of the project, so a recommendation fits the kind of work.
 
 | Id | Requirement |

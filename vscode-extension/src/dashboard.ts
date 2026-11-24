@@ -10,7 +10,7 @@ import { describeFailure } from './core'
 import { buildMessage, splitMessage, type SelectionView } from './codemsg'
 import { describeSelection, readSelection } from './selection'
 import type { RelayAgent } from './relay'
-import { assessedBy, modelName, price, summaryLine } from './format'
+import { assessedBy, modelName, price, qualityView, summaryLine } from './format'
 import type { Result } from './analyse'
 import { beginTiming } from './diagnostics'
 
@@ -1264,6 +1264,7 @@ export function richResult(result: Result): unknown {
     alternatives: a.alternatives.map(item => ({ name: item.name, short: shortText(item) + (item.status !== 'short' && item.gap === 1 ? ', more than needed' : ''), cost: costText(item) })),
     suggestion: a.suggestion ? { name: a.suggestion.name, reason: a.suggestion_reason ?? '', sub: [a.suggestion.model ?? '', a.suggestion.cost_band ? `${a.suggestion.cost_band} cost` : '', a.suggestion.levels_from ? `Levels from: ${a.suggestion.levels_from}` : ''].filter(Boolean).join(' · ') } : null,
     questions: a.clarification_questions,
+    quality: qualityView(a),
     guidance: a.guidance,
     tips: a.tips.map(tip => ({ title: tip.dimension ? TIP_LABELS[tip.dimension] ?? tip.dimension : 'General', text: tip.text })),
     assessor: assessedBy(a),
@@ -1505,6 +1506,15 @@ function page(nonce: string, csp: string, tab: Tab): string {
     tier.append(el('div', { class: 'btns', style: 'margin-top:12px' }, btn('Task solved?', 'result', { command: 'adaptai.taskOutcome', id: r.id }), btn('Full report', 'open', { id: r.id }), btn('Copy summary', 'result', { command: 'adaptai.copySummary', id: r.id })))
     out.push(tier)
 
+    if (r.quality) {
+      const q = el('section', { class: 'card' }, el('p', { class: 'eyebrow', text: 'How you described it' }))
+      if (r.quality.title) q.append(el('h2', { text: r.quality.title, style: 'margin-bottom:8px' }))
+      if (r.quality.hint) q.append(el('div', { class: 'banner', style: 'display:block;margin-bottom:8px' }, el('p', { text: r.quality.hint })))
+      const qt = el('table', { class: 'cov' })
+      for (const row of r.quality.rows) qt.append(el('tr', null, el('th', { text: row.name }), el('td', { text: row.word }), el('td', { class: 'muted', text: row.reason })))
+      q.append(qt)
+      out.push(q)
+    }
     const tips = el('section', { class: 'card' }, el('p', { class: 'eyebrow', text: 'Practical guidance' }), el('h2', { text: 'Improve your request', style: 'margin-bottom:8px' }))
     if (r.questions.length) tips.append(el('div', { class: 'tip' }, el('span', { class: 'tipn', text: '01' }), el('div', null, el('h3', { text: 'Clarify first' }), el('p', { text: 'Answer the ' + (r.questions.length === 1 ? 'clarification question' : r.questions.length + ' clarification questions') + ' above and analyse the task again; tips for each dimension follow once the task is clear.' }))))
     else if (!r.tips.length) tips.append(el('div', { class: 'tip' }, el('div', null, el('p', { text: 'No tips for this analysis.' }))))

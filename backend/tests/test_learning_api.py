@@ -139,3 +139,35 @@ def test_exclusion_does_not_turn_a_paused_task_into_an_excluded_one(app):
         kind = db.execute("SELECT kind FROM learning_exclusions").fetchone()["kind"]
     assert kind == "paused"
     assert client.get("/api/progress/indicators").json()["tasks"] == 0
+
+
+def test_range_of_last_tasks_compares_with_the_tasks_before(app):
+    client = account(TestClient(app))
+    ids = [analyse(client)["id"] for _ in range(10)]
+    with app.state.storage.connect() as db:
+        user = db.execute("SELECT id FROM users").fetchone()["id"]
+        for index, analysis_id in enumerate(ids):
+            db.execute(
+                "INSERT INTO request_quality(analysis_id,user_id,objective,prompt_version) "
+                "VALUES (%s,%s,%s,'test')",
+                (analysis_id, user, 0 if index < 5 else 2),
+            )
+    body = client.get("/api/progress/indicators?last=5").json()
+    assert body["tasks"] == 5 and body["range"] == {"last": 5, "days": None}
+    assert body["dimensions"]["objective"]["level"] == 4
+    assert body["previous"]["tasks"] == 5
+    assert body["previous"]["dimensions"]["objective"] == 1
+
+
+def test_date_range_and_no_trend_without_earlier_tasks(app):
+    client = account(TestClient(app))
+    analyse(client)
+    body = client.get("/api/progress/indicators?days=7").json()
+    assert body["tasks"] == 1 and body["previous"] is None
+    assert client.get("/api/progress/indicators").json()["previous"] is None
+
+
+def test_range_parameters_are_validated(app):
+    client = account(TestClient(app))
+    assert client.get("/api/progress/indicators?last=2").status_code == 422
+    assert client.get("/api/progress/indicators?last=10&days=7").status_code == 422

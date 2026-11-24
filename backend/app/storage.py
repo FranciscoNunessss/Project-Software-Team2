@@ -50,8 +50,14 @@ def history_result(result: dict) -> dict:
     safe["profile"] = {
         key: {**value, "evidence": "Evidence is not retained in history."}
         for key, value in result["profile"].items()
-        if isinstance(value, dict)
+        if isinstance(value, dict) and key != "request_quality"
     }
+    if result["profile"].get("request_quality"):
+        # WS4 L1: the reasons are task-derived text, shown once; only the scores are kept.
+        safe["profile"]["request_quality"] = {
+            name: {"score": item["score"], "reason": "Reason is not retained in history."}
+            for name, item in result["profile"]["request_quality"].items()
+        }
     safe["profile"]["explanation"] = "Only derived profile metadata is retained."
     safe["rationale"] = "Original explanation is not retained in history."
     safe["guidance"] = []

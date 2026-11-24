@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { api, notifyProgressChange, type SavedSession, type HistoryItem, type Resume } from './api'
 
 import { HistoryAnalysis } from './HistoryAnalysis'
+import { MyLearning } from './MyLearning'
 import { ProgressDashboard, type Summary } from './ProgressDashboard'
 import { TaskOutcomes } from './TaskOutcomes'
-import { MyLearning } from './MyLearning'
 import { usePageActive } from './PagePanel'
 import './Progress.css'
 type SessionDetail = SavedSession & { analyses: HistoryItem[] }

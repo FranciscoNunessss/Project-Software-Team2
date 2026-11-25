@@ -157,3 +157,43 @@ test('a re-analysis names its session and previous analysis; without a session i
   assert.equal(again.body.previous_analysis_id, 'a1')
   assert.equal(core.analysisPlan('t', options, { previousId: 'a1' }).body.previous_analysis_id, undefined)
 })
+
+// RQ: "How you described it" (release plan E5, WS4 L1/L5). Shown as the web app shows it, never invented.
+const quality = (overrides = {}) => ({
+  objective: { score: 2, reason: 'States the goal.' },
+  context: { score: 1, reason: 'Names the file but not the framework.' },
+  constraints: { score: 0, reason: 'No limits given.' },
+  risks: { score: null, reason: 'Not needed.' },
+  ambiguity: { score: 2, reason: 'One clear reading.' },
+  success_criteria: { score: 0, reason: 'No way to check it works.' },
+  audience_format: { score: 2, reason: 'Format is clear.' },
+  ...overrides,
+})
+const withQuality = (extra = {}) => {
+  const base = analysis()
+  return analysis({ profile: { ...base.profile, request_quality: quality() }, request_quality_summary: { clear: 3, applicable: 6, codes: {} }, ...extra })
+}
+
+test('RQ-01 the analysis shows how the request was described, with the web app words', () => {
+  const md = format.renderAnalysis(withQuality())
+  assert.match(md, /## How you described it/)
+  assert.match(md, /3 of 6 clear/)
+  assert.match(md, /\| Objective \| Clear \| States the goal\. \|/)
+  assert.match(md, /\| Context you gave \| Partial \| Names the file but not the framework\. \|/)
+  assert.match(md, /\| Constraints \| Missing \| No limits given\. \|/)
+  assert.match(md, /\| Risks \| Not needed \|/)
+  assert.match(md, /\| Success criteria \| Missing \| No way to check it works\. \|/)
+  assert.match(md, /\| Audience and format \| Clear \|/)
+})
+
+test('RQ-02 the Educator hint is shown in the web app words and nothing is sent', () => {
+  const md = format.renderAnalysis(withQuality({ educator_hint: { key: 'k', pattern: 'missing_dimension', dimension: 'success_criteria', hits: 4, window: 5 } }))
+  assert.match(md, /success criteria \(4 of your last 5 tasks\)/)
+  assert.match(md, /Add it before you send\?/)
+})
+
+test('RQ-03 without request quality nothing is shown, and a reason that is not retained is left out', () => {
+  assert.doesNotMatch(format.renderAnalysis(analysis()), /How you described it/)
+  const md = format.renderAnalysis(withQuality({ profile: { ...analysis().profile, request_quality: quality({ objective: { score: 2, reason: 'Reason is not retained in history.' } }) } }))
+  assert.match(md, /\| Objective \| Clear \|\s+\|/)
+})

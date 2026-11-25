@@ -144,6 +144,26 @@ days, **L** more.
 * **Work.** A line in the rubric prompt (a new rubric version) that a referred document that is not in the text means essential information is missing.
 * **Done when.** The study's tasks `summarise-missing` and `literature` get ambiguity 3 from at least three of four assessors.
 
+### IDE-19 · The code assistant: selection in the chat, suggest a change, accept in place (M) · BUILT 20 Nov 2026
+
+* **Why.** The client asked for the extension to be useful to a developer ([F-IDE-04, F-IDE-05](vscode-extension-requirement.md)): ask about selected code, get a proposed change, apply it.
+* **What.** The **Selection: Off / On** button of the chat; the command **Suggest a change to the selection** in the editor; the proposal shown in place with Accept and Reject; a chat page that follows the newest message and fits from 300 px. Requirements SEL, CHG, APP and UI in the [developer guide](vscode-extension.md#the-code-assistant); tests `codemsg`, `review`, `codeassist`, `dashboard-selection`, `chat-code` and `page-layout.browser.cjs`, written before the code.
+* **Open.** Checks 31 to 36 of the [acceptance run](vscode-extension-acceptance-codex.md) in a real window; the change prompt has not been measured with a real model; automatic saving after a delay can reject a proposal while it is read.
+* **Done when.** Checks 31 to 36 pass and the change prompt is measured on a small set of tasks.
+
+### IDE-19b · Buttons in the chat box and fixes after the first real-window run (M) · BUILT 20 Nov 2026
+
+Suggest a change and Improve prompt as buttons in the chat box (BTN-01 to BTN-04); a message on every tab when the backend is not reachable (UI-05); the bar of tabs wraps instead of scrolling at 300 px (UI-04); the address of the backend in the message after an analysis (RES-01); the Accept and Reject buttons are redrawn after Accept or Reject (APP-06). Found by the first Codex run (N7, N8, U3, R11, R13).
+
+### IDE-20 to IDE-23 · The next developer features (decided order, not started)
+
+| Id | Feature | Size | Needs |
+|---|---|---|---|
+| IDE-20 | Suggest the commit message from the staged changes (VS Code Git API, our model) | S | Cut by file to fit 8000 characters; the secret check |
+| IDE-21 | "Ask AdaptAI about this error" as a lightbulb on the errors the editor shows (Code Action) | M | Sends the message of the error and the code around it |
+| IDE-22 | Explain an error selected in the terminal | M | Selection copied from the terminal (the extension cannot read the screen) |
+| IDE-23 | The recommendation takes the code into account (language, size) | M | Decision of the Architecture Owner and an evaluation before it reaches production |
+
 ## Order we recommend
 
 1. IDE-11: a person clicks through the 18 checks below in a real window.

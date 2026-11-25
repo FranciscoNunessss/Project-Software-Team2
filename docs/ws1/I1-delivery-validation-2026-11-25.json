@@ -42,16 +42,17 @@
     "outcome": "recovered_checks_executed_normally"
   },
   "delivery": {
-    "report_followup_uncommitted": true,
+    "report_followup_uncommitted": false,
     "pr_opened": false,
     "implementation_committed_locally": true,
-    "branch_pushed": false,
-    "remote_ci_verified": false
+    "branch_pushed": true,
+    "remote_ci_verified": false,
+    "pr_creation": "blocked_by_approval_review_pending_explicit_G2_order_exception",
+    "ci_run_url": "https://github.com/FranciscoNunessss/Project-Software-Team2/actions/runs/45515532062"
   },
   "remaining": [
-    "publish delivery branch and draft PR",
-    "verify remote CI",
-    "developer manual G2",
+    "explicit confirmation for draft PR before manual G2 or developer G2 result",
+    "verify remote CI completion",
     "PO scope/options decision",
     "independent peer G3"
   ],

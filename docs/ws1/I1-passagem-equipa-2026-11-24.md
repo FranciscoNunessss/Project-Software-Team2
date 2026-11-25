@@ -2,8 +2,7 @@
 
 Atualizado em 25 de novembro de 2026. Responsável: Francisco Nunes.
 Cartão: [I1 · Latency and capacity diagnosis](https://app.clickup.com/t/1an3cktb6h8).
-Estado: em progresso. O diagnóstico e as ferramentas estão preparados; a entrega
-isolada ainda não tem todos os testes nem as aprovações necessárias para fechar.
+Estado: em progresso. A entrega isolada passou os testes automáticos. A branch está publicada; o PR está preenchido, mas a criação aguarda confirmação explícita para abrir o rascunho antes do G2 manual.
 
 ## O que foi feito
 
@@ -68,8 +67,8 @@ custos estão no baseline; a recomendação mantém planos gratuitos, pendente d
 
 ## O que ficou por fazer
 
-1. Publicar a branch e abrir o PR como rascunho, conforme o pedido explícito do
-   responsável em 25/11; verificar CI remoto. G2 permanece pendente e visível no PR.
+1. Abrir o PR como rascunho após confirmação explícita da exceção à ordem G2, pelo
+   responsável; a branch já está publicada. CI remoto iniciado. G2 permanece pendente.
 2. G2 pelo developer: testar a conta sintética, Profile, análise demo, chat e retenção
    após reload no preview local. Registar pass/fail e os problemas encontrados.
 3. Decisão do PO (Ricardo): aceitar explicitamente o âmbito reduzido de saúde HTTP

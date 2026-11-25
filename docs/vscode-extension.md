@@ -254,18 +254,38 @@ streaming, final transcript replacement and ignored signed-out patches in a real
 
 ### Immediate tab navigation and a 15-second memory cache
 
-Selecting a tab replaces the previous screen immediately with the target's loading state.
-The host then supplies a cached snapshot without API calls if it is under 15 seconds old.
-An expired snapshot remains visible with “Updating…” while it is revalidated. The first visit
-still waits for its data, but the user sees the destination immediately. If revalidation fails,
-the old content remains with a visible error and Retry; its age is not renewed.
+Selecting a previously visited tab immediately restores its last content and scroll position.
+The webview keeps one in-memory snapshot per tab so navigation does not flash “Loading…” while
+waiting for the extension host. The host supplies its snapshot without API calls if it is under
+15 seconds old. An expired snapshot remains visible with “Updating…” while it is revalidated.
+A tab without any data still shows its loading state. If revalidation fails, the old content
+remains with a visible error and Retry; its age is not renewed.
 
-Snapshots live only in the extension's memory, at most one per tab. They are cleared on session
-or backend changes, disposal, explicit refresh and backend mutations. The Assistant's selected
-conversation and chat model form part of the cache key. Analysis/chat completion invalidates
-dependent progress, profile and model snapshots. A 401/rejected token clears cached pages and
-shows sign-in. Token-management pages while unlocked bypass the cache. No migrations, prompts,
-provider settings or persistent cache files were added.
+Snapshots live only in memory, at most one per tab in the host and the webview. They are cleared
+on session or backend changes, disposal, explicit refresh and backend mutations. The Assistant's
+selected conversation and chat model form part of the host cache key. Analysis/chat completion
+marks Progress and Profile stale without deleting their last data; Models keeps its normal TTL.
+Finishing a response on another tab refreshes that tab without changing the user's destination.
+A 401/rejected token clears cached pages and shows sign-in. Token-management pages while unlocked
+bypass both caches. No migrations, prompts, provider settings or persistent cache files were added.
+
+**New chat** is one local action: clear the selected conversation and draft, reuse the loaded
+model metadata, then display the empty composer. A fresh model snapshot needs no network requests.
+The first reply saves the new chat id with the Assistant snapshot, so returning to it does not
+reload the model catalogue. A response continues while visiting other tabs; its partial text and
+final transcript are retained. Starting or opening another chat while a task is running asks the
+user to stop it or wait first, preventing the live response from appearing in another conversation.
+Send resets the character counter and local prompt hints immediately. Completed evaluations
+read the backend's nested `level` and `below_level_1` fields instead of printing object strings.
+
+The navigation fixes were approved in the development conversation on 20 November 2026 after
+the developer reproduced them with the updated extension. Changes are limited to extension UI
+state, display types, command wiring, tests and these guides. `test/dashboard-navigation.test.js`
+covers post-message revalidation, first-chat snapshots, local New chat, running-task guards,
+obsolete reads and refresh failures. `test/navigation.browser.cjs` covers immediate revisits,
+scroll, counter/hints, background streaming, cache reset, uncached token management and a connected
+host/webview flow with a deliberately delayed refresh. `test/models.test.js` covers measured level
+summaries. No owning board card was supplied; card linking and G2 acceptance remain open before PR.
 
 Tab changes no longer request health/auth status or inspect relay configurations. The status
 bar updates only the connection header; its periodic check may revalidate the active tab if
@@ -411,6 +431,112 @@ every command and keybinding is registered, signs in with a token and runs one a
 * Every form is a dialog with required fields marked, a clear cancel, and no data sent before the final button.
 * The text is the app's text where the app has one.
 * Tests as in "How to add a feature", and the manual check in the [backlog](vscode-extension-backlog.md#manual-acceptance-checklist) done in a real VS Code window.
+
+## The code assistant
+
+Requirements F-IDE-04 and F-IDE-05 ([requirement](vscode-extension-requirement.md)). It uses the AdaptAI chat model through the backend, never the VS Code chat or Copilot, and has no `/` commands. Each id below is the start of a test name (`sel_`, `chg_`, `app_`, `ui_`); the tests were written before the code.
+
+**Selection in the chat (SEL).** A button in the chat box, **Selection: Off / On**, decides whether the selected code goes with the message.
+
+| Id | Requirement |
+|---|---|
+| SEL-01 | The button is Off at first. While it is On and code is selected, it shows what will be sent (`service.ts · 7–9`). |
+| SEL-02 | With the button On and code selected, Send adds to the message the file path, the language, the line range and the code. The answer streams in the chat as usual. |
+| SEL-03 | With the button On and nothing selected, nothing is sent and the box says to select code or switch the button off. |
+| SEL-04 | The message of the user shows what they typed, with a caption `file · lines` and the code folded. The same after the chat is opened again from the backend. |
+| SEL-05 | A message is at most 8000 characters. A longer selection is cut at a line break and the message says how much was sent. The text the user typed is never cut. |
+| SEL-06 | The confirmation for an external model and the secret check that already exist apply to the code too. No new question is added. |
+| SEL-07 | The title of a chat that starts with a code question or a change request is only what the user typed, never the rule text or the code. |
+| SEL-08 | Before sending (release plan task E2). With Selection On and code selected, a line above the box says what will be sent (file and lines, number of lines and characters) with **Show** to open the exact text that goes with the message, the same text the message will carry. If the selection is too long for one message, the line says before sending how much will be sent (the first N of M characters), or that it is too long and to select less. With Selection Off, or nothing selected, there is no line. |
+| SEL-09 | Code in a file that holds secrets by convention (`.env`, `.env.*`, `*.pem`, `*.key`, `id_rsa`, `.npmrc` and similar) is never offered, previewed or sent: the Selection button shows nothing, Send says why, and Suggest a change says why and asks nothing. The same rule as Analyse (release plan E2). |
+
+**Suggest a change (CHG).** The command **AdaptAI: Suggest a change** (palette and right click on a selection) and the button **Suggest a change** in the chat box (BTN-01) start it. The proposal always appears in the editor, not in the chat.
+
+| Id | Requirement |
+|---|---|
+| CHG-01 | The command asks one thing in the box at the top: what should change. With nothing selected it says so and stops. |
+| CHG-02 | The selection is widened to whole lines. The model gets the instruction, the lines and the rule: one short sentence and exactly one code block that replaces them. |
+| CHG-03 | An answer is usable only with exactly one closed, non-empty code block. Otherwise the file is not touched and the message says which of the three it was (none, several, empty). |
+| CHG-04 | Blank lines at the start and the end of the selection are kept in the proposal. Nothing outside the selected lines changes. |
+| CHG-05 | A request that does not fit in 8000 characters is refused, never cut. |
+
+**Review the change in the VS Code diff (APP).** The proposal opens in the editor's own diff view and nothing is written to the file until it is accepted (release plan task E1).
+
+| Id | Requirement |
+|---|---|
+| APP-01 | The proposal opens in a VS Code diff: the file as it is on the left, the same file with the proposed lines in place of the selected ones on the right. The file is not touched. The diff's title bar has **Accept** and **Reject**, and the commands are in the Command Palette while a proposal waits. |
+| APP-02 | Accept replaces the selected lines with the proposed ones in one single edit: one Ctrl+Z puts the file back as it was. It closes the diff and the file is not saved by it. Reject closes the diff and changes nothing. In both the buttons go away. |
+| APP-03 | Only the selected lines are replaced. Lines outside them may change while the diff is open without harm: when lines are added or removed above, Accept finds the same code where it is now (the one place with exactly that text; if the text appears twice, it does nothing and says so). If the selected lines themselves changed after the proposal was made, Accept does nothing and says so (APP-07). |
+| APP-04 | A second proposal in the same file replaces the first one. A proposal whose file is closed is forgotten. Accept or Reject with nothing waiting say so and change nothing. |
+
+**The chat page (UI).**
+
+| Id | Requirement |
+|---|---|
+| UI-01 | The chat follows the newest message: when you send, for every part of the answer, and when a chat opens. If you scrolled up to read, it does not pull you down until you send again or go back to the end. |
+| UI-02 | The list of messages is what scrolls. The box to write stays at the bottom and never covers a message. |
+| UI-03 | From 300 to 1200 px wide nothing is cut off and the page never scrolls sideways. Under 900 px the menu is a bar of tabs at the top instead of a column. |
+| UI-04 | At 300 px the bar of tabs has no scroll bar of its own: its tabs wrap onto more lines instead (two or three, depending on the width). |
+| UI-05 | When the backend is not reachable, every tab shows a clear message, "The backend is not reachable", with **Try again**, on top of what it already shows. When it is reachable again the tab loads by itself. |
+
+**Buttons in the chat box (BTN).** The same actions as the commands and key bindings, one click away. The commands, the right click menu and the key bindings stay.
+
+| Id | Requirement |
+|---|---|
+| BTN-01 | **Suggest a change** uses what is written in the box as the instruction and the code selected in the editor. It is never greyed out: with an empty box or nothing selected, a click says what is missing next to the box. It sits with Analyse and Send as a button of the same weight. It does not need the Selection button. The proposal then opens in the diff as in APP-01. |
+| BTN-02 | The Prompt Coach is the ✦ button by the box; there is no second button for it. It opens on the text in the box with its three modes (Rewrite, Edits, Tips) to choose from, and nothing is sent until you press **Improve with Prompt Coach**. |
+| BTN-03 | With Selection On, Send analyses the selected code (SEL-02). There is no separate Analyse-the-selection button in the chat. |
+| BTN-04 | Both buttons fit at every width of UI-03, wrapping onto a second line when they must. |
+| BTN-05 | The lists that open from the box (model, Prompt Coach, chats) open inside the window at every width, and the box never has a scroll bar of its own, also with a long model name. |
+
+**The Prompt Coach on the selection (IMP).** `Ctrl+K Ctrl+E` on a selection or a file starts the Prompt Coach, the same Coach as the ✦ button, on that text.
+
+| Id | Requirement |
+|---|---|
+| IMP-02 | It first asks how the Coach should help, in a list at the top: **Rewrite**, **Edits** or **Tips**, with the last mode used (or else `adaptai.coachMode`) on top. Escape sends nothing. Rewrite and Edits end in the diff of IMP-01; Tips changes nothing in the file and shows the tips with the analysis. The Coach works on an analysis of the text (the backend needs its id), so the analysis is made as part of the same step; if the very same text was analysed before in this window, that analysis is used again and only the Coach request is sent, with its own confirmation when the model is external. |
+| IMP-01 | When the improvement is shown as a diff (`adaptai.improveApply` = `diff`), the diff's tab bar has **Apply** and **Dismiss** buttons, and the same two commands are in the Command Palette while a diff waits. Apply replaces the text (Undo brings it back); Dismiss leaves it. Both hide the buttons. The notice "apply the improved prompt?" stays, but a missed or hidden notice does not lose the improvement. With nothing waiting, Apply says so and changes nothing. |
+
+**How you described it (RQ, release plan task E5).** Since PR #92 and #95 of WS4 the analysis can carry `profile.request_quality` (seven dimensions: objective, context, constraints, risks, ambiguity, success criteria, audience and format; each 0 missing, 1 partial, 2 clear, or not needed), a `request_quality_summary` and an `educator_hint`. For a code request these are the checks E5 asks for: the expected behaviour (objective), the constraints and an acceptance test (success criteria). The IDE shows them as the web app does and never invents them.
+
+| Id | Requirement |
+|---|---|
+| RQ-01 | When the analysis has request quality, the Analysis document and the chat panel show "How you described it": "N of M clear" and one line per dimension (Missing, Partial, Clear or Not needed) with the assessor's reason. The dimension names and the three words are the ones of the web app. |
+| RQ-02 | When the analysis has an Educator hint, it is shown above the table in the web app's words (the dimension, "X of your last Y tasks"), with no button that sends anything: dismissing it is done in the web app. |
+| RQ-03 | When the analysis has no request quality (the active rubric is 2.0, or an older backend), nothing is shown and nothing fails. A reason that the backend marks as not retained ("Reason is not retained in history.") is left out. |
+| RQ-04 | Nothing in this section sends the text of the request anywhere new: it only shows what the analysis already returned. |
+
+**Project context (PRJ, release plan task E4).** The analysis also gets the language, framework and test runner of the project, so a recommendation fits the kind of work.
+
+| Id | Requirement |
+|---|---|
+| PRJ-01 | Language, framework and test runner are detected from the manifest files at the top of the workspace folder (`package.json`, `tsconfig.json`, `requirements.txt`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `pom.xml`, `build.gradle`). Only names from a fixed list can come out. Package names, file text and paths never do, however the files are written. |
+| PRJ-02 | The values go with an analysis as one short line in its task context (`Project: TypeScript, React, Vitest`), never in a chat message. The message after the analysis says what was sent. Nothing is added when nothing is detected. No file content leaves the machine for this. |
+| PRJ-03 | The setting `adaptai.projectContext` (on by default) turns it off; when off nothing is added and the message says nothing. The setting's text lists what is sent. |
+
+**Analysis result (RES).**
+
+| Id | Requirement |
+|---|---|
+| RES-01 | The message that follows an analysis names the backend (its address) and the model, so the user sees where the text went. A question before sending still appears only for an external model or a whole file. |
+
+**Refused backend address (CFG-02).** When `adaptai.backendUrl` is refused (plain http to another machine), an error message says why with **Open settings**, and the signed-out view of the page shows the same reason.
+
+**LLM config (CFG-01).** The page only lists, adds, tests, edits and deletes models. It has no "Use for chat" button and no "chat model" label; the model is chosen in the box of the chat (Model), and later a model suggested by the app can be offered there too.
+
+**Decisions.** The backend takes only text in `content`, so the code travels inside the message, written by the extension; the page and the loaded history hide it behind the caption. The change request is a message in the current chat, so it also appears in the chat list. The default backend address is unchanged. Left out on purpose: the VS Code chat, `/` commands, a side by side comparison, a key binding and a refusal of files by name.
+
+
+**Code that changed (APP-07, release plan task E1).** A proposal is never applied to code that changed after it was asked for: if the selected lines changed while the model was answering, nothing is written; if they changed after the proposal was shown, Accept does nothing. Both say so with an **Ask again** button that opens the question again with the same instruction filled in. Lines outside the selection may change freely: only the selected lines are ever replaced.
+
+**Measuring a model (release plan task E1).** `test/edit-samples.cjs` holds 10 sample edits (rename, type hints, async/await, JSDoc, early return and others), each with a check that the code does the change. `test/measure-edits.cjs` sends them through the extension's own chat code to a real backend and model and prints, per model, how many answers were usable (exactly one closed, non-empty code block: the rule of CHG-03) and how many also do the change. Use a throw-away account, because every sample starts a chat:
+
+```bash
+ADAPTAI_URL=http://127.0.0.1:8033 ADAPTAI_TOKEN=adaptai_pat_... ADAPTAI_MODELS=<id>,<id> node test/measure-edits.cjs report.json
+```
+
+`ADAPTAI_MODELS` are ids from `/api/llm-options`. The offline test `edit-samples.test.js` checks that every sample's reference answer is usable and passes its check, and that the original does not.
+
+**Known limits.** The diff shows only the file as it was when the proposal was made; if lines outside the selection change meanwhile, Accept still replaces only the selected lines. The tests use a stand-in for VS Code; checks 31 to 36 of the [acceptance run](vscode-extension-acceptance-codex.md) are the only proof in a real window. The change prompt has not been measured with a real model.
 
 ## Known limits today
 

@@ -9,11 +9,12 @@ engine (``learning_engine``) turns them into patterns, levels and confidence.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 
 from app.accounts import AuthenticatedUser
-from app.learning_engine import DIMENSIONS, TaskRecord, compute
+from app.learning_engine import DIMENSIONS, MIN_LEVEL_TASKS, TaskRecord, compute
 from app.outcomes import owned_analysis
 from app.recommendation import candidate_gap
 from app.storage import Storage
@@ -34,6 +35,10 @@ def sizing(result: dict, candidate_id: str | None):
 
 
 def user_tasks(store: Storage, user_id: str) -> list[TaskRecord]:
+    return [task for _, task in dated_tasks(store, user_id)]
+
+
+def dated_tasks(store: Storage, user_id: str) -> list[tuple[str, TaskRecord]]:
     """The user's analysed tasks, oldest first, reduced to the engine's input."""
     columns = ",".join(f"q.{name}" for name in DIMENSIONS)
     with store.connect() as db:
@@ -56,30 +61,85 @@ def user_tasks(store: Storage, user_id: str) -> list[TaskRecord]:
     for row in rows:
         result = json.loads(row["result_json"])
         tasks.append(
-            TaskRecord(
-                task_id=row["id"],
-                scores={name: row[name] for name in DIMENSIONS} if row["assessed"] else None,
-                sizing=sizing(result, row["candidate_id"]),
-                outcome=OUTCOMES.get(row["outcome"]),
-                turns=row["turns"],
-                switched_model=None
-                if row["switched_model"] is None
-                else bool(row["switched_model"]),
-                excluded=row["exclusion"] == "excluded",
-                paused=row["exclusion"] == "paused",
+            (
+                row["created_at"],
+                TaskRecord(
+                    task_id=row["id"],
+                    scores={name: row[name] for name in DIMENSIONS} if row["assessed"] else None,
+                    sizing=sizing(result, row["candidate_id"]),
+                    outcome=OUTCOMES.get(row["outcome"]),
+                    turns=row["turns"],
+                    switched_model=None
+                    if row["switched_model"] is None
+                    else bool(row["switched_model"]),
+                    excluded=row["exclusion"] == "excluded",
+                    paused=row["exclusion"] == "paused",
+                ),
             )
         )
     return tasks
 
 
-def user_indicators(store: Storage, user_id: str) -> dict:
-    return compute(user_tasks(store, user_id)).as_dict()
+def user_indicators(
+    store: Storage, user_id: str, last: int | None = None, days: int | None = None
+) -> dict:
+    """Indicators for a range of the user's tasks, with the range before it for the trend.
+
+    last: the newest N tasks against the N before them. days: the last N days against the N
+    days before. Neither: all tasks, no trend. The user is only ever compared with themselves.
+    """
+    # Excluded and paused tasks never count, so "the last 10 tasks" means 10 counted tasks.
+    dated = [
+        (at, task)
+        for at, task in dated_tasks(store, user_id)
+        if not task.excluded and not task.paused
+    ]
+    if last is not None:
+        current = [task for _, task in dated[-last:]]
+        previous = [task for _, task in dated[-2 * last : -last]] if len(dated) > last else []
+    elif days is not None:
+        now = datetime.now(UTC)
+        start = (now - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+        before = (now - timedelta(days=2 * days)).strftime("%Y-%m-%dT%H:%M:%S")
+        current = [task for at, task in dated if at >= start]
+        previous = [task for at, task in dated if before <= at < start]
+    else:
+        current, previous = [task for _, task in dated], []
+    result = compute(current).as_dict()
+    # A trend needs an earlier range with enough tasks for a level: 2 earlier tasks against
+    # 10 would show a trend that means nothing.
+    earlier = compute(previous).as_dict() if len(previous) >= MIN_LEVEL_TASKS else None
+    result["range"] = {"last": last, "days": days}
+    # Feedback in the same range, so "tasks solved" follows the range the user picked.
+    answered = [task for task in current if task.outcome is not None]
+    result["feedback"] = {
+        "answered": len(answered),
+        "solved": sum(task.outcome in ("yes", "partly") for task in answered),
+    }
+    result["assessed_tasks"] = sum(task.scores is not None for task in current)
+    result["previous"] = (
+        {
+            "tasks": earlier["tasks"],
+            "overall_level": earlier["overall_level"],
+            "dimensions": {name: item["level"] for name, item in earlier["dimensions"].items()},
+        }
+        if earlier
+        else None
+    )
+    return result
 
 
 def install_learning(app: FastAPI, store: Storage) -> None:
     @app.get("/api/progress/indicators")
-    def learning(user: AuthenticatedUser):
-        return user_indicators(store, user["id"])
+    def indicators(
+        user: AuthenticatedUser,
+        # The trend reads 2 * last tasks, and only HISTORY_LIMIT tasks are read.
+        last: int | None = Query(default=None, ge=5, le=HISTORY_LIMIT // 2),
+        days: int | None = Query(default=None, ge=1, le=365),
+    ):
+        if last is not None and days is not None:
+            raise HTTPException(422, "choose_last_or_days")
+        return user_indicators(store, user["id"], last, days)
 
     @app.put("/api/analyses/{analysis_id}/exclusion")
     def exclude(analysis_id: str, user: AuthenticatedUser):

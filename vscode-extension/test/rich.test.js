@@ -65,3 +65,32 @@ test('an illustrative recommendation is labelled as one and cannot be used', () 
   assert.match(result.sub, /Medium cost · illustrative$/)
   assert.match(result.footnote, /^\* Illustrative level of a demo model/)
 })
+
+// RQ-01 to RQ-03: "How you described it" in the chat panel, as in the web app.
+test('RQ-01 the chat panel carries how the request was described, with the web app words', () => {
+  const base = JSON.parse(JSON.stringify(fixture.analysis))
+  base.profile.request_quality = {
+    objective: { score: 2, reason: 'States the goal.' },
+    context: { score: 1, reason: 'Names the file only.' },
+    constraints: { score: 0, reason: 'No limits.' },
+    risks: { score: null, reason: 'Not needed.' },
+    ambiguity: { score: 2, reason: 'Clear.' },
+    success_criteria: { score: 0, reason: 'Reason is not retained in history.' },
+    audience_format: { score: 2, reason: 'Clear.' },
+  }
+  base.request_quality_summary = { clear: 3, applicable: 6, codes: {} }
+  base.educator_hint = { key: 'k', pattern: 'missing_dimension', dimension: 'success_criteria', hits: 4, window: 5 }
+  const result = richResult({ task: 'x', analysis: base, truncated: false, at: '12:00', source: 'typed text', coachAvailable: false })
+  assert.equal(result.quality.title, '3 of 6 clear')
+  assert.match(result.quality.hint, /success criteria \(4 of your last 5 tasks\)/)
+  assert.deepEqual(result.quality.rows.map(r => [r.name, r.word]), [
+    ['Objective', 'Clear'], ['Context you gave', 'Partial'], ['Constraints', 'Missing'], ['Risks', 'Not needed'],
+    ['Open points', 'Clear'], ['Success criteria', 'Missing'], ['Audience and format', 'Clear'],
+  ])
+  assert.equal(result.quality.rows[5].reason, '')
+  assert.equal(result.quality.rows[2].reason, 'No limits.')
+})
+
+test('RQ-03 without request quality the chat panel has none and nothing fails', () => {
+  assert.equal(rich.quality, null)
+})

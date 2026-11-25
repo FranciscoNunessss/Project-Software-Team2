@@ -17,6 +17,8 @@ import {
   type Connection,
 } from './core'
 import { assessedBy, renderAnalysis, summaryLine, textSummary } from './format'
+import { describeProject, detectProject } from './projectcontext'
+import { readProjectFiles } from './projectfiles'
 
 export const DIFF_SCHEME = 'adaptai-coach'
 export const ANALYSIS_SCHEME = 'adaptai-analysis'
@@ -52,6 +54,10 @@ export type Result = {
   at: string
   source: string
   coachAvailable: boolean
+  /** The project line that went with the analysis (PRJ-02), or an empty text. */
+  project?: string
+  /** This analysis was made earlier for the same text and is used again, so the Coach request is the only one sent now (IMP-02). */
+  reused?: boolean
   coach?: Coach
   coachMode?: CoachMode
   improved?: string
@@ -219,12 +225,20 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
    * shows the diff and asks to apply it (default) or applies it at once (`adaptai.improveApply`).
    * Only on this command, never while typing; Undo restores the original.
    */
-  async improveInEditor(): Promise<Result | undefined> {
+  async improveInEditor(chosen?: unknown): Promise<Result | undefined> {
+    // A key binding or a script may name the mode (`"args": "rewrite"`); then nothing is asked.
+    const mode = chosen === 'rewrite' || chosen === 'edits' || chosen === 'tips' ? chosen : await this.pickCoachMode()
+    if (!mode) return undefined
     const result = await this.fromEditor({ thenCoach: true })
     if (!result) return undefined
     if (!result.coachAvailable) return void vscode.window.showWarningMessage('AdaptAI: Prompt Coach is not installed on this backend.')
-    const configured = vscode.workspace.getConfiguration('adaptai').get<string>('coachMode', 'rewrite')
-    await this.coach(result, configured === 'edits' ? 'edits' : 'rewrite', true)
+    // A reused analysis did not go through the confirmation of this request, so the Coach asks for its own.
+    await this.coach(result, mode, !result.reused)
+    if (mode === 'tips') {
+      // Tips never change the text: they are shown with the analysis.
+      if (result.coach && !result.error) await this.show(result, false)
+      return result
+    }
     if (!result.improved) {
       if (result.coach && !result.error) void vscode.window.showInformationMessage('AdaptAI: nothing to improve in this prompt.')
       return result
@@ -234,16 +248,70 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
       await this.apply(result)
       return result
     }
+    this.improving = result
     await this.diff(result)
+    await vscode.commands.executeCommand('setContext', 'adaptai.improving', true)
+    // The notice can be missed or hidden; the diff's title bar carries the same two buttons.
     const choice = await vscode.window.showInformationMessage('AdaptAI: apply the improved prompt?', 'Apply', 'Not now')
-    if (choice === 'Apply') await this.apply(result)
+    if (choice === 'Apply') await this.applyImprovement(result)
     return result
+  }
+
+  private lastCoachMode: CoachMode | undefined
+
+  /** The question at the top: how the Prompt Coach should help. The last mode used, or else the setting, comes first. */
+  private async pickCoachMode(): Promise<CoachMode | undefined> {
+    const configured = vscode.workspace.getConfiguration('adaptai').get<string>('coachMode', 'rewrite')
+    const first: CoachMode = this.lastCoachMode ?? (configured === 'edits' || configured === 'tips' ? configured : 'rewrite')
+    const all: { label: string; description: string; mode: CoachMode }[] = [
+      { label: 'Rewrite', description: 'A new version of the prompt, shown as a diff', mode: 'rewrite' },
+      { label: 'Edits', description: 'Small changes to your own words, shown as a diff', mode: 'edits' },
+      { label: 'Tips', description: 'Advice only; your text is not changed', mode: 'tips' },
+    ]
+    const items = [...all.filter(item => item.mode === first), ...all.filter(item => item.mode !== first)]
+    const chosen = await vscode.window.showQuickPick(items, { title: 'AdaptAI: Prompt Coach', placeHolder: 'How should the Prompt Coach help with the selected text?' })
+    if (chosen) this.lastCoachMode = chosen.mode
+    return chosen?.mode
+  }
+
+  /** The improvement whose diff is open and waiting for Apply or Dismiss. */
+  private improving: Result | undefined
+
+  /** Apply from the diff's title bar (or the notice). Nothing happens if there is no improvement waiting. */
+  async applyImprovement(only?: Result): Promise<void> {
+    const result = this.improving
+    if (!result || (only && only !== result)) {
+      if (!only) void vscode.window.showInformationMessage('AdaptAI: there is nothing to apply. Run "Improve the prompt" first.')
+      return
+    }
+    await this.settleImprovement()
+    await this.apply(result)
+  }
+
+  /** Dismiss from the diff's title bar: the text stays as it is and the buttons go away. */
+  async dismissImprovement(): Promise<void> {
+    await this.settleImprovement()
+  }
+
+  private async settleImprovement(): Promise<void> {
+    this.improving = undefined
+    await vscode.commands.executeCommand('setContext', 'adaptai.improving', false)
   }
 
   /** Repeats the latest request exactly (same text), after a failure or to refresh a result. */
   async retry(): Promise<Result | undefined> {
     if (!this.lastRequest) return void vscode.window.showInformationMessage('AdaptAI: there is nothing to retry yet.')
     return this.run(this.lastRequest)
+  }
+
+  /** Language, framework and test runner of the project as one short line, or an empty text when the setting is off or nothing is detected. */
+  private async projectLine(): Promise<string> {
+    if (!vscode.workspace.getConfiguration('adaptai').get<boolean>('projectContext', true)) return ''
+    try {
+      return describeProject(detectProject(await readProjectFiles()))
+    } catch {
+      return ''
+    }
   }
 
   // ---- model choice and confirmation -----------------------------------------------------------
@@ -341,6 +409,18 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     this.lastRequest = request
     const task = taskFrom(request.source === 'file' ? '' : request.raw, request.raw)
     if (!task.text) return void vscode.window.showInformationMessage('AdaptAI: there is no text to analyse.')
+    // The Coach works on an analysis. If this very text was analysed earlier, that analysis is used again: one request less (IMP-02).
+    if (request.thenCoach) {
+      const prior = [...this.results.values()].find(item => item.task === task.text && !item.truncated)
+      if (prior) {
+        prior.target = request.target && !task.truncated ? request.target : undefined
+        prior.improved = undefined
+        prior.coach = undefined
+        prior.error = undefined
+        prior.reused = true
+        return prior
+      }
+    }
     const secrets = secretsIn(task.text)
     if (secrets.length) {
       const go = await vscode.window.showWarningMessage(
@@ -352,7 +432,8 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     }
     const options = await this.options()
     if (!options) return undefined
-    const plan = analysisPlan(task.text, options, { chat: this.chatModel(options), sessionId: this.continueFrom?.sessionId, previousId: this.continueFrom?.previousId })
+    const project = await this.projectLine()
+    const plan = analysisPlan(task.text, options, { chat: this.chatModel(options), sessionId: this.continueFrom?.sessionId, previousId: this.continueFrom?.previousId, context: project })
     if ('error' in plan) return void vscode.window.showWarningMessage(`AdaptAI: ${plan.error}`)
     if (!(await this.confirmSend({ source: request.source, name: request.name, characters: task.text.length, noSelection: request.noSelection, thenCoach: request.thenCoach }, plan.via))) return undefined
     const started = Date.now()
@@ -372,6 +453,7 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
         at: new Date().toLocaleTimeString(),
         source: request.source === 'file' ? `file ${request.name ?? ''}`.trim() : request.source === 'selection' ? 'selection' : request.source === 'clipboard' ? 'clipboard' : 'typed text',
         coachAvailable: Boolean(features.prompt_coach),
+        project,
       }
       if (this.continueFrom) this.continueFrom = { ...this.continueFrom, previousId: analysis.id }
       if (request.quiet) {
@@ -400,7 +482,8 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     }
     const options = await this.options()
     if (!options) return undefined
-    const plan = analysisPlan(task.text, options, { chat: this.chatModel(options), sessionId: extra.sessionId, previousId: extra.previousId })
+    const project = await this.projectLine()
+    const plan = analysisPlan(task.text, options, { chat: this.chatModel(options), sessionId: extra.sessionId, previousId: extra.previousId, context: project })
     if ('error' in plan) return void vscode.window.showWarningMessage(`AdaptAI: ${plan.error}`)
     if (!(await this.confirmSend({ source: 'text', characters: task.text.length, thenCoach: extra.thenCoach }, plan.via))) return undefined
     try {
@@ -409,7 +492,7 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
       const mismatch = plan.manual ? servedBy(analysis, plan.via) : undefined
       if (mismatch) throw new ApiError(0, `${mismatch} The result was discarded.`)
       const features = await this.backend.api<{ prompt_coach?: boolean }>('/api/features').catch(() => ({ prompt_coach: false }))
-      const result: Result = { task: task.text, analysis, via: plan.via, truncated: task.truncated, at: new Date().toLocaleTimeString(), source: 'the chat', coachAvailable: Boolean(features.prompt_coach) }
+      const result: Result = { task: task.text, analysis, via: plan.via, truncated: task.truncated, at: new Date().toLocaleTimeString(), source: 'the chat', coachAvailable: Boolean(features.prompt_coach), project }
       this.results.set(analysis.id, result)
       this.refreshed.fire()
       return result
@@ -446,7 +529,7 @@ export class Analyser implements vscode.TextDocumentContentProvider, vscode.Code
     }
     if (!offer) return
     const buttons = ['Copy summary', 'Task solved?', ...(result.coachAvailable ? ['Improve with the Coach'] : [])]
-    const choice = await vscode.window.showInformationMessage(`AdaptAI: ${summaryLine(result.analysis)} · assessed by ${assessedBy(result.analysis)}`, ...buttons)
+    const choice = await vscode.window.showInformationMessage(`AdaptAI: ${summaryLine(result.analysis)} · assessed by ${assessedBy(result.analysis)} · through ${new URL(this.backend.url).host}${result.project ? ` · ${result.project}` : ''}`, ...buttons)
     if (choice === 'Copy summary') await vscode.commands.executeCommand('adaptai.copySummary', id)
     else if (choice === 'Task solved?') await vscode.commands.executeCommand('adaptai.taskOutcome', id)
     else if (choice === 'Improve with the Coach') await vscode.commands.executeCommand('adaptai.coachResult', id)

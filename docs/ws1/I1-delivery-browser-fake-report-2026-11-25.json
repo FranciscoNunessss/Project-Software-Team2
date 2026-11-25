@@ -1,0 +1,3303 @@
+{
+  "protocol": "ws1-latency-1",
+  "created_at": "2026-11-25T00:05:46.810144+00:00",
+  "environment": "local",
+  "model": "e2e-fakes",
+  "versions": "node24.14.0-python3.12.14",
+  "build": {
+    "commit": "0100ae8069418233d14908cb8863a2ccb8429c1f",
+    "dirty": true
+  },
+  "rounds": 5,
+  "cells": [
+    {
+      "source": "browser_fake",
+      "phase": "warm",
+      "journey": "page_change",
+      "concurrency": 1,
+      "attempted": 5,
+      "outcomes": {
+        "ok": 5
+      },
+      "successful": 5,
+      "p50_ms": 57.00189999998838,
+      "p95_ms": 57.65629999998782,
+      "limitation": "small_sample"
+    },
+    {
+      "source": "browser_fake",
+      "phase": "warm",
+      "journey": "page_change",
+      "concurrency": 5,
+      "attempted": 25,
+      "outcomes": {
+        "ok": 25
+      },
+      "successful": 25,
+      "p50_ms": 67.2560000000085,
+      "p95_ms": 74.71540000000095,
+      "limitation": "descriptive_only"
+    },
+    {
+      "source": "browser_fake",
+      "phase": "warm",
+      "journey": "page_change",
+      "concurrency": 20,
+      "attempted": 100,
+      "outcomes": {
+        "ok": 100
+      },
+      "successful": 100,
+      "p50_ms": 178.64429999999993,
+      "p95_ms": 205.42799999999988,
+      "limitation": "descriptive_only"
+    },
+    {
+      "source": "browser_fake",
+      "phase": "warm",
+      "journey": "analysis",
+      "concurrency": 1,
+      "attempted": 5,
+      "outcomes": {
+        "ok": 5
+      },
+      "successful": 5,
+      "p50_ms": 149.965200000006,
+      "p95_ms": 180.80340000000433,
+      "limitation": "small_sample"
+    },
+    {
+      "source": "browser_fake",
+      "phase": "warm",
+      "journey": "analysis",
+      "concurrency": 5,
+      "attempted": 25,
+      "outcomes": {
+        "ok": 25
+      },
+      "successful": 25,
+      "p50_ms": 330.20849999999336,
+      "p95_ms": 415.1785999999993,
+      "limitation": "descriptive_only"
+    },
+    {
+      "source": "browser_fake",
+      "phase": "warm",
+      "journey": "analysis",
+      "concurrency": 20,
+      "attempted": 100,
+      "outcomes": {
+        "ok": 100
+      },
+      "successful": 100,
+      "p50_ms": 1154.5803999999916,
+      "p95_ms": 1748.503199999992,
+      "limitation": "descriptive_only"
+    },
+    {
+      "source": "browser_fake",
+      "phase": "warm",
+      "journey": "chat_first_text",
+      "concurrency": 1,
+      "attempted": 5,
+      "outcomes": {
+        "ok": 5
+      },
+      "successful": 5,
+      "p50_ms": 106.87159999999858,
+      "p95_ms": 125.76140000000305,
+      "limitation": "small_sample"
+    },
+    {
+      "source": "browser_fake",
+      "phase": "warm",
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "attempted": 25,
+      "outcomes": {
+        "ok": 25
+      },
+      "successful": 25,
+      "p50_ms": 249.46979999999166,
+      "p95_ms": 287.054999999993,
+      "limitation": "descriptive_only"
+    },
+    {
+      "source": "browser_fake",
+      "phase": "warm",
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "attempted": 100,
+      "outcomes": {
+        "ok": 100
+      },
+      "successful": 100,
+      "p50_ms": 980.1351999999897,
+      "p95_ms": 1231.224199999997,
+      "limitation": "descriptive_only"
+    },
+    {
+      "source": "browser_fake",
+      "phase": "warm",
+      "journey": "ide_load",
+      "concurrency": 1,
+      "attempted": 0,
+      "outcomes": {},
+      "successful": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "limitation": "no_successful_samples"
+    },
+    {
+      "source": "browser_fake",
+      "phase": "warm",
+      "journey": "ide_load",
+      "concurrency": 5,
+      "attempted": 0,
+      "outcomes": {},
+      "successful": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "limitation": "no_successful_samples"
+    },
+    {
+      "source": "browser_fake",
+      "phase": "warm",
+      "journey": "ide_load",
+      "concurrency": 20,
+      "attempted": 0,
+      "outcomes": {},
+      "successful": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "limitation": "no_successful_samples"
+    }
+  ],
+  "samples": [
+    {
+      "journey": "page_change",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 57.00189999998838
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 180.80340000000433
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 125.76140000000305
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 54.97590000000491
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 149.965200000006
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 106.87159999999858
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 55.52390000000014
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 153.62399999999616
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 82.92480000000796
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 57.57940000000235
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 135.30900000000838
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 120.06550000001153
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 57.65629999998782
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 148.32450000000244
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 1,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 98.06269999999495
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 177.03149999999732
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 177.83030000000144
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 175.62979999999516
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 176.61230000000796
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 180.07440000001225
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 178.64429999999993
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 178.2152999999962
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 176.89340000000084
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 179.1881999999896
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 180.69809999999416
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 177.40080000000307
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 178.94899999999325
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 179.49129999999423
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 177.72980000000098
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 179.6765000000014
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 181.79439999999886
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 177.99400000000605
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 179.19489999998768
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 180.2560000000085
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 181.35959999999614
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 971.5824999999895
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 978.7790999999997
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 984.328800000003
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1004.652299999987
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1028.7786999999953
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1026.4526000000042
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1054.890499999994
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1059.6853999999876
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1089.3032000000094
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1600.8206999999966
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1599.9679000000033
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1600.9878000000026
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1625.5771999999997
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1624.218200000003
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1653.8603999999905
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1653.8206999999966
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1676.5138000000006
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1704.8227000000043
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1735.169200000004
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1784.8093999999983
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 937.9425999999949
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 975.8708000000042
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 973.3791000000056
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 976.1876000000047
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 974.8319000000047
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 976.0089000000007
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 979.7111000000004
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 978.1949999999924
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 979.1700999999885
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 978.7026999999944
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 980.2599000000046
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 976.636799999993
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 981.0504999999976
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 978.6944000000076
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 982.5118999999977
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 977.0924999999988
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 982.0495999999985
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 979.6450000000041
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 980.1351999999897
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 980.8908999999985
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 81.47320000000764
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 85.13180000000284
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 82.02390000000014
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 84.4607999999862
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 147.56089999999676
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 144.13060000000405
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 151.2485000000015
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 150.02059999998892
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 162.98470000000088
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 162.2048000000068
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 165.49349999999686
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 169.71169999999984
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 168.08060000000114
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 168.46910000000207
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 167.75359999999637
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 166.12300000000687
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 169.75710000000254
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 165.48839999998745
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 169.43409999999858
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 171.88409999999567
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 353.95990000000165
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 488.58619999999064
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 494.27360000000044
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1003.0181000000011
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1005.5947000000015
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1013.1333000000013
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1092.4084000000003
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1091.7539000000106
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1106.7988000000041
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1130.6798999999883
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1154.5803999999916
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1152.4844000000012
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1215.571100000001
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1243.344299999997
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1241.8674000000028
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1389.4149000000034
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1635.5090000000055
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1714.8230999999942
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1778.8222999999998
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1775.733899999992
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 364.3558000000048
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 538.1680999999953
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 538.6376000000018
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 539.5649999999878
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 574.3945999999996
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 580.7059000000008
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 581.8276999999944
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1226.3222999999998
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1227.9671999999991
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1227.7517999999982
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1231.224199999997
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1228.582899999994
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1230.8545000000013
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1230.5104999999894
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1232.1797000000079
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1232.7726000000112
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1234.1260000000038
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1233.0593999999983
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1229.459600000002
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1232.4446999999927
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 187.056700000001
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 190.40490000000864
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 189.68499999999767
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 190.18910000000324
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 188.63880000000063
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 188.8926000000065
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 190.89419999999518
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 190.15140000000247
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 195.38189999999304
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 194.17849999999453
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 199.66219999999157
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 197.93480000000272
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 201.75890000000072
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 207.81439999998838
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 203.3347999999969
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 205.42799999999988
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 209.3243000000075
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 209.039300000004
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 206.88420000000042
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 207.5966999999946
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 499.05680000000575
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1042.5283999999956
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1039.4467000000004
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1082.000800000009
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1084.0348999999987
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1096.9642999999924
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1104.6840999999986
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1117.94739999999
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1657.4107999999978
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1658.0928999999887
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1659.8356000000058
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1659.5282000000007
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1661.9753999999957
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1667.2011999999959
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1692.2404000000097
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1691.3821000000025
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1732.8635000000068
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1736.1134999999922
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1753.262499999997
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1748.503199999992
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 332.37309999999707
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 509.3014000000112
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 532.9156999999977
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 533.6201999999903
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 536.7079999999987
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 533.053899999999
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 580.2350000000006
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 580.9621000000043
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1162.5485999999946
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1210.0164000000077
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1210.2482000000018
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1212.7700999999943
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1211.6220999999932
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1213.1934000000037
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1211.8981000000058
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1212.1489000000001
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1211.2121000000043
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1210.1166999999987
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1213.012499999997
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1209.6266999999934
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 117.38700000000244
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 143.36969999999565
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 142.03399999999965
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 145.61019999999553
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 147.4091000000044
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 144.5627999999997
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 150.67420000000857
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 157.0497000000032
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 161.8862999999983
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 163.90359999999055
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 161.66890000000421
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 162.65310000001045
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 162.41939999999886
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 166.78589999998803
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 166.5329000000056
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 164.68510000000242
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 187.0384999999951
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 190.19689999999537
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 193.22470000000612
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 196.1128999999928
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 603.2727000000014
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1043.6129999999976
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1098.9460000000108
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1125.6972999999998
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1144.8703000000096
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1146.6826
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1143.9732000000076
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1144.2103999999963
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1145.0887999999977
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1154.5595999999932
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1177.2914000000019
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1179.513500000001
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1189.452700000009
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1185.9910999999993
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1340.0666000000056
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1692.1523999999918
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1721.3095999999932
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1726.600999999995
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1724.7753999999986
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1724.4016999999876
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 189.53360000000976
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 461.4579999999987
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 462.2497000000003
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 467.829899999997
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 465.9122000000061
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 463.0622999999905
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 466.53579999999783
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 466.8148000000074
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 465.3551000000007
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 976.3919999999925
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 976.1486000000004
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 979.075800000006
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 976.4961000000039
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 980.9709000000003
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 979.1374999999971
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 976.2722999999969
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 977.3043000000034
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 982.2985999999946
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 980.5582999999897
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 977.7449000000051
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 94.16610000000219
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 149.7225999999937
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 151.3055999999924
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 152.10979999999108
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 183.47849999999744
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 182.8168999999907
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 180.40200000000186
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 179.71859999999288
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 182.1863999999914
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 183.24120000000403
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 183.14949999999953
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 182.72349999999278
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 182.43009999999776
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 187.16730000000098
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 186.3738000000012
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 188.01369999999588
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 185.62770000001183
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 188.41820000000007
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 188.98570000000473
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 191.37970000000496
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 316.443299999999
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 475.54760000000533
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1011.8898000000045
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1014.9477000000043
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1020.494399999996
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1070.6043000000063
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1067.6091000000015
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1092.0005000000092
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1093.5745999999926
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1129.1572999999917
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1129.0613000000012
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1210.4213000000018
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1675.0378999999957
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1675.5718999999954
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1704.938300000009
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1706.035699999993
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1727.1666000000114
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1733.6949000000022
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1733.1247000000003
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1853.4801999999909
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 319.66949999998906
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 505.5880999999936
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 510.74529999999504
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1163.2030999999988
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1160.2403999999951
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1160.7328000000125
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1189.055899999992
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1191.7556999999942
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1192.7387000000017
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1193.533899999995
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1195.9406000000017
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1199.3258999999962
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1195.4990000000107
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1195.608699999997
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1198.0200999999943
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1199.0827999999892
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1200.2434000000067
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1198.6612000000023
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1203.0725999999995
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 20,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 1202.6964000000007
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 67.9890000000014
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 68.33389999999781
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 69.1076999999932
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 68.87689999998838
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 71.50400000000081
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 281.56029999999737
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 297.01230000000214
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 298.81980000001204
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 301.5527000000002
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 401.3332999999984
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 179.44989999999234
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 180.9947000000102
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 182.42220000000088
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 183.56979999999749
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 182.59019999999146
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 43.64869999999064
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 63.86460000000079
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 65.0844999999972
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 68.87600000000384
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 70.81530000000203
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 330.247199999998
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 330.20849999999336
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 331.0603000000119
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 332.76699999999255
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 414.69289999999455
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 275.27090000000317
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 285.6094000000012
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 284.52390000000014
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 287.054999999993
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 301.3032999999996
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 58.528000000005704
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 64.1938999999984
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 64.77150000000256
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 66.1704000000027
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 68.1984000000084
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 258.62519999999495
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 316.08559999999125
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 368.50530000000435
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 407.80280000000494
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 415.1785999999993
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 149.68649999999616
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 150.13429999999062
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 249.46979999999166
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 252.27509999999893
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 251.3168000000005
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 61.1935000000085
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 67.1762000000017
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 70.9262000000017
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 74.71540000000095
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 75.08840000000782
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 259.7191000000021
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 271.9027999999962
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 324.09719999998924
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 396.4340000000084
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 430.9930999999924
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 164.53369999999995
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 262.0326999999961
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 263.1554000000033
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 263.79640000000654
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 264.59249999999884
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 57.55999999999767
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 63.978799999997136
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 65.27459999998973
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 67.2560000000085
+    },
+    {
+      "journey": "page_change",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 68.28590000000258
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 258.6777000000002
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 275.58289999999397
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 285.6539000000048
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 413.55319999999483
+    },
+    {
+      "journey": "analysis",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 414.5088000000105
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 156.45230000000447
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 158.35250000000815
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 159.1756999999925
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 161.60869999999704
+    },
+    {
+      "journey": "chat_first_text",
+      "concurrency": 5,
+      "source": "browser_fake",
+      "phase": "warm",
+      "outcome": "ok",
+      "ms": 265.01110000000335
+    }
+  ],
+  "limits": [
+    "No SLA conclusion; missing cells remain unavailable",
+    "Simulated results do not measure production LLM latency",
+    "API and IDE host timings do not prove visible rendering latency"
+  ]
+}

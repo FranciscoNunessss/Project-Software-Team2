@@ -419,3 +419,35 @@ Develop's existing cloud notes also report first requests taking 38–67 seconds
 on 16/17 November. This is historical team documentation, retained as such;
 it is not a newly verified I1 thirty-minute-idle sample. The inconclusive
 24 November trial and the missing visible IDE-load cells remain explicit.
+
+## Isolated delivery validation — 25 November 2026
+
+Runtime source: agent/i1-delivery, commit 0100ae8069418233d14908cb8863a2ccb8429c1f,
+based on develop 39f4f73. Documentation/evidence follow-up changes no runtime code.
+
+| Check | Result on the isolated delivery |
+|---|---|
+| Ruff lint / formatting | Passed; 103 files formatted. |
+| Full backend | 771 passed, zero failures/errors/skips; 534.091 s JUnit; 96% total coverage. |
+| Core coverage | 99%, required minimum 80%. |
+| Without chat and Prompt Coach | 613 passed, zero failures/errors/skips; 338.601 s; original files preserved. |
+| Frontend | Frozen install and build passed; existing chunk-size warning remains. |
+| Extension | 191 unit cases passed; 11 integrations skipped in that command then all 11 passed separately against clean local containers. Existing page-rendering script passed. |
+| Containers | Build, healthy services, demo smoke, recreation and retained login/data passed. |
+| Playwright | All 53 cases passed in 2.6 minutes; 390 fake-provider samples, zero failed samples. |
+
+At 20 users, descriptive p50/p95 in ms: Profile revisit 178.64/205.43,
+analysis click-to-visible 1154.58/1748.50, Send-to-first-visible-text 980.14/1231.22.
+All three journeys have 100 successful samples at 20 users. IDE cells remain empty.
+These are local fake-provider timings, not production inference capacity or SLA.
+
+Evidence: [capture](I1-delivery-browser-fake-capture-2026-11-25.jsonl),
+[computed report](I1-delivery-browser-fake-report-2026-11-25.json),
+[validation](I1-delivery-validation-2026-11-25.json).
+The approval-service usage failure on 24 November was resolved before these checks;
+no restriction was bypassed. No new production model actions were launched.
+
+The owner explicitly requested a PR on 25 November. It is prepared as a draft,
+with developer G2 explicitly pending rather than inventing a manual result.
+Original missing live/IDE/idle evidence or a PO scope decision and independent
+G3 remain required before closure. Local preview: http://127.0.0.1:8080 (demo only).

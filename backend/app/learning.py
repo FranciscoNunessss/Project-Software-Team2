@@ -1,0 +1,111 @@
+"""WS4 learning data (L0): the user's tasks as engine input, and the indicator API.
+
+Reads what the product already stores per analysed task, never text: the choice against the
+recommendation (``decisions``), the feedback (``task_outcomes``, ADR-014), the request-quality
+scores (``request_quality``, L1) and the user's exclusions (``learning_exclusions``, L17). The
+engine (``learning_engine``) turns them into patterns, levels and confidence.
+"""
+
+from __future__ import annotations
+
+import json
+
+from fastapi import FastAPI, HTTPException
+
+from app.accounts import AuthenticatedUser
+from app.learning_engine import DIMENSIONS, TaskRecord, compute
+from app.outcomes import owned_analysis
+from app.recommendation import candidate_gap
+from app.storage import Storage
+
+OUTCOMES = {"resolved": "yes", "resolved_with_refinement": "partly", "not_resolved": "no"}
+HISTORY_LIMIT = 500
+
+
+def sizing(result: dict, candidate_id: str | None):
+    """over, match or under from the recorded choice; None without a valid choice."""
+    if candidate_id is None:
+        return None
+    eligible = [result["recommendation"], *result["alternatives"]]
+    if not any(item["id"] == candidate_id for item in eligible):
+        return None
+    gap = candidate_gap(result, candidate_id)
+    return "over" if gap > 0 else "under" if gap < 0 else "match"
+
+
+def user_tasks(store: Storage, user_id: str) -> list[TaskRecord]:
+    """The user's analysed tasks, oldest first, reduced to the engine's input."""
+    columns = ",".join(f"q.{name}" for name in DIMENSIONS)
+    with store.connect() as db:
+        rows = db.execute(
+            f"""SELECT * FROM (
+                   SELECT a.id,a.result_json,a.created_at,a.sequence_id,d.candidate_id,
+                          o.outcome,o.turns,o.switched_model,q.analysis_id AS assessed,{columns},
+                          x.kind AS exclusion
+                   FROM analyses a JOIN sessions s ON s.id=a.session_id
+                   LEFT JOIN decisions d ON d.analysis_id=a.id
+                   LEFT JOIN task_outcomes o ON o.analysis_id=a.id
+                   LEFT JOIN request_quality q ON q.analysis_id=a.id
+                   LEFT JOIN learning_exclusions x ON x.analysis_id=a.id
+                   WHERE s.user_id=%s
+                   ORDER BY a.created_at DESC,a.sequence_id DESC LIMIT %s) recent
+                ORDER BY created_at,sequence_id""",
+            (user_id, HISTORY_LIMIT),
+        ).fetchall()
+    tasks = []
+    for row in rows:
+        result = json.loads(row["result_json"])
+        tasks.append(
+            TaskRecord(
+                task_id=row["id"],
+                scores={name: row[name] for name in DIMENSIONS} if row["assessed"] else None,
+                sizing=sizing(result, row["candidate_id"]),
+                outcome=OUTCOMES.get(row["outcome"]),
+                turns=row["turns"],
+                switched_model=None
+                if row["switched_model"] is None
+                else bool(row["switched_model"]),
+                excluded=row["exclusion"] == "excluded",
+                paused=row["exclusion"] == "paused",
+            )
+        )
+    return tasks
+
+
+def user_indicators(store: Storage, user_id: str) -> dict:
+    return compute(user_tasks(store, user_id)).as_dict()
+
+
+def install_learning(app: FastAPI, store: Storage) -> None:
+    @app.get("/api/progress/indicators")
+    def learning(user: AuthenticatedUser):
+        return user_indicators(store, user["id"])
+
+    @app.put("/api/analyses/{analysis_id}/exclusion")
+    def exclude(analysis_id: str, user: AuthenticatedUser):
+        with store.connect() as db:
+            owned_analysis(db, user["id"], analysis_id)
+            row = db.execute(
+                """INSERT INTO learning_exclusions(analysis_id,user_id,kind)
+                   VALUES (%s,%s,'excluded')
+                   ON CONFLICT (analysis_id) DO UPDATE SET kind=learning_exclusions.kind
+                   RETURNING kind""",
+                (analysis_id, user["id"]),
+            ).fetchone()
+        if row["kind"] != "excluded":
+            # Never say "excluded" when nothing changed: a paused task stays paused.
+            raise HTTPException(409, "task_paused")
+        return {"analysis_id": analysis_id, "excluded": True}
+
+    @app.delete("/api/analyses/{analysis_id}/exclusion")
+    def restore(analysis_id: str, user: AuthenticatedUser):
+        with store.connect() as db:
+            owned_analysis(db, user["id"], analysis_id)
+            deleted = db.execute(
+                "DELETE FROM learning_exclusions WHERE analysis_id=%s AND user_id=%s "
+                "AND kind='excluded'",
+                (analysis_id, user["id"]),
+            ).rowcount
+        if not deleted:
+            raise HTTPException(404, "exclusion_not_found")
+        return {"analysis_id": analysis_id, "excluded": False}

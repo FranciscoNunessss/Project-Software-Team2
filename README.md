@@ -326,7 +326,7 @@ the catalogue's capability cards. It does not execute the task or generate catal
 | `GET /api/progress` | Current user session, analysis, choice and match counts |
 | `GET /api/progress/dashboard` | Last six sessions with choices, over/under counts and the over- and under-provisioning verdict over the 50 newest analyses (`patterns`: detected, not detected or too few confirmed choices) |
 | `GET /api/progress/outcomes` | Feedback totals: solved, after refining, not solved, followed the recommendation, per model |
-| `GET /api/progress/indicators` | WS4 learning indicators: levels per request-quality dimension (with `level_raw`, without hysteresis), confidence, patterns with their caveat, feedback in the range. `?last=N` (5 to 500 counted tasks) or `?days=N` (1 to 365) picks a range and returns the range before it as `previous`; excluded and paused tasks never count |
+| `GET /api/progress/indicators` | WS4 learning indicators: levels per request-quality dimension (with `level_raw`, without hysteresis), confidence, patterns with their caveat, feedback in the range. `?last=N` (5 to 250 counted tasks) or `?days=N` (1 to 365) picks a range and returns the range before it as `previous` (only when it has at least 5 tasks, enough for a level); excluded and paused tasks never count |
 | `PUT`/`DELETE /api/analyses/{id}/exclusion` | Leave a task out of the learning indicators, or bring it back (a paused task answers 409 `task_paused`) |
 | `GET /api/context`, `PUT /api/context` | Read/save account preferences and memory settings |
 | `DELETE /api/context/memory` | Clear learned metadata memory without deleting progress |

@@ -34,6 +34,19 @@ def sizing(result: dict, candidate_id: str | None):
     return "over" if gap > 0 else "under" if gap < 0 else "match"
 
 
+def excluded_ids(store: Storage, user_id: str, analysis_ids: list[str]) -> set[str]:
+    """The analyses the user left out of their learning (L17), among the ones given."""
+    if not analysis_ids:
+        return set()
+    with store.connect() as db:
+        rows = db.execute(
+            "SELECT analysis_id FROM learning_exclusions "
+            "WHERE user_id=%s AND kind='excluded' AND analysis_id = ANY(%s)",
+            (user_id, analysis_ids),
+        ).fetchall()
+    return {row["analysis_id"] for row in rows}
+
+
 def user_tasks(store: Storage, user_id: str) -> list[TaskRecord]:
     return [task for _, task in dated_tasks(store, user_id)]
 
@@ -80,6 +93,15 @@ def dated_tasks(store: Storage, user_id: str) -> list[tuple[str, TaskRecord]]:
     return tasks
 
 
+def reset_at(store: Storage, user_id: str) -> str | None:
+    """When the user last started over (L17); tasks before it no longer count."""
+    with store.connect() as db:
+        row = db.execute(
+            "SELECT reset_at FROM learning_settings WHERE user_id=%s", (user_id,)
+        ).fetchone()
+    return row["reset_at"] if row else None
+
+
 def user_indicators(
     store: Storage, user_id: str, last: int | None = None, days: int | None = None
 ) -> dict:
@@ -88,11 +110,13 @@ def user_indicators(
     last: the newest N tasks against the N before them. days: the last N days against the N
     days before. Neither: all tasks, no trend. The user is only ever compared with themselves.
     """
-    # Excluded and paused tasks never count, so "the last 10 tasks" means 10 counted tasks.
+    # Excluded and paused tasks never count, so "the last 10 tasks" means 10 counted tasks;
+    # neither do tasks from before the user started over (L17).
+    since = reset_at(store, user_id)
     dated = [
         (at, task)
         for at, task in dated_tasks(store, user_id)
-        if not task.excluded and not task.paused
+        if not task.excluded and not task.paused and (since is None or at > since)
     ]
     if last is not None:
         current = [task for _, task in dated[-last:]]

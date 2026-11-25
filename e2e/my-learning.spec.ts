@@ -46,7 +46,6 @@ test('levels, trend, confidence and patterns with what the evidence can claim', 
   await expect(section.locator('[data-pattern="missing_dimension"]')).toContainText('You left out success criteria in 4 of your last 5 tasks')
   await expect(section.locator('[data-pattern="over_sizing"]')).toContainText('possible saving, not a proven one')
   await expect(section.locator('[data-pattern="improving_dimension"]')).toContainText('Context you gave improved from Developing to Proficient')
-  await page.screenshot({ path: 'test-results/my-learning.png', fullPage: false })
 })
 
 test('the range picker asks for the chosen range', async ({ page }) => {

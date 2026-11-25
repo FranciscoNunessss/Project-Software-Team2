@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from './api'
 import './MyLearning.css'
+import { EDUCATOR_CARDS } from './educatorCards'
+import { Achievements, LearningControls, LevelUp, WeeklyGoalCard } from './LearningExtras'
 
 // WS4 PR7 (L4, L7, L14): how the user frames tasks and chooses models, from
 // GET /api/progress/indicators. Always against the user's own earlier range, never other people.
@@ -64,6 +66,24 @@ export function patternText(p: PatternIndicator): string {
   }
 }
 
+/** A pattern with its Educator card (L5): why it matters, how to fix it, an example. */
+function PatternItem({ pattern }: { pattern: PatternIndicator }) {
+  const card = EDUCATOR_CARDS[pattern.code]
+  return (
+    <li className={`pattern ${pattern.kind}`} data-pattern={pattern.code}>
+      {patternText(pattern)}
+      {card && (
+        <details className="pattern-advice" data-pattern-advice={pattern.code}>
+          <summary>{pattern.kind === 'improve' ? 'Why it matters and how to fix it' : 'Why this is good'}</summary>
+          <p>{card.why}</p>
+          <p>{card.how}</p>
+          {card.before && card.after && <p className="muted">Before: “{card.before}”<br />After: “{card.after}”</p>}
+        </details>
+      )}
+    </li>
+  )
+}
+
 function trend(now: Level, before: Level | undefined): string {
   if (now === null || before === null || before === undefined) return ''
   return now > before ? '↑' : now < before ? '↓' : '→'
@@ -79,7 +99,9 @@ export function Radar({ dimensions }: { dimensions: Record<string, DimensionIndi
   }
   const shape = names.map((name, index) => point(index, dimensions[name]?.level ?? 0).join(',')).join(' ')
   return (
-    <svg className="learning-radar" viewBox={`-70 0 ${size + 140} ${size}`} role="img" aria-label="Your level on each of the 7 dimensions" data-learning-radar="">
+    <svg className="learning-radar" viewBox={`-70 0 ${size + 140} ${size}`} role="img" aria-labelledby="radar-title radar-desc" data-learning-radar="">
+      <title id="radar-title">Your level on each of the 7 dimensions</title>
+      <desc id="radar-desc">{names.map(name => `${DIMENSION_LABELS[name]}: ${dimensions[name]?.level ? LEVEL_NAMES[dimensions[name].level as number] : 'no level yet'}`).join('; ')}</desc>
       {[1, 2, 3, 4].map(ring => (
         <polygon key={ring} className="radar-ring" points={names.map((_, index) => point(index, ring).join(',')).join(' ')} />
       ))}
@@ -127,6 +149,7 @@ export function MyLearning() {
         </select></label>
       </div>
 
+      <LevelUp level={data.overall_level} />
       <dl className="learning-top" data-learning-top="">
         <div data-top-savings="">
           <dt>Estimated savings</dt>
@@ -186,10 +209,15 @@ export function MyLearning() {
 
       {(improve.length > 0 || positive.length > 0) && (
         <div className="learning-patterns" data-learning-patterns="">
-          {positive.length > 0 && <><h3>Going well</h3><ul>{positive.map(p => <li key={`${p.code}-${p.dimension}`} className="pattern positive" data-pattern={p.code}>{patternText(p)}</li>)}</ul></>}
-          {improve.length > 0 && <><h3>To work on</h3><ul>{improve.map(p => <li key={`${p.code}-${p.dimension}`} className="pattern improve" data-pattern={p.code}>{patternText(p)}</li>)}</ul></>}
+          {positive.length > 0 && <><h3>Going well</h3><ul>{positive.map(p => <PatternItem key={`${p.code}-${p.dimension}`} pattern={p} />)}</ul></>}
+          {improve.length > 0 && <><h3>To work on</h3><ul>{improve.map(p => <PatternItem key={`${p.code}-${p.dimension}`} pattern={p} />)}</ul></>}
         </div>
       )}
+      <div className="learning-extras">
+        <WeeklyGoalCard />
+        <Achievements />
+      </div>
+      <LearningControls />
       <p className="muted learning-note">Patterns follow rules the team set (for example 3 of your last 5 tasks) and are not yet validated with real users. The levels rise as soon as you improve and fall only after 3 weaker tasks in a row.</p>
     </section>
   )

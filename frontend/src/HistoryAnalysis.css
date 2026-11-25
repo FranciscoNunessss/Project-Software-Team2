@@ -12,3 +12,5 @@
 .saved-conversation summary { cursor: pointer; }
 .saved-conversation h4 { margin: 16px 0 8px; font-size: 13px; }
 .saved-conversation p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; color: var(--color-muted); }
+.history-learning { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.history-learning > p { margin: 0; font-size: 13px; }

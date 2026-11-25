@@ -87,6 +87,33 @@ def test_excluded_task_leaves_the_indicators_and_can_be_restored(app):
     assert client.get("/api/progress/indicators").json()["tasks"] == 5
 
 
+def test_session_history_says_which_tasks_are_left_out(app):
+    client = account(TestClient(app))
+    first = analyse(client)
+    second = client.post(
+        "/api/analyze", json={"task": "Plan the launch", "session_id": first["session_id"]}
+    ).json()
+    paused = client.post(
+        "/api/analyze", json={"task": "Plan the review", "session_id": first["session_id"]}
+    ).json()
+    with app.state.storage.connect() as db:
+        user = db.execute("SELECT id FROM users").fetchone()["id"]
+        db.execute(
+            "INSERT INTO learning_exclusions(analysis_id,user_id,kind) VALUES (%s,%s,'paused')",
+            (paused["id"], user),
+        )
+
+    def excluded():
+        detail = client.get(f"/api/sessions/{first['session_id']}").json()
+        return {item["result"]["id"]: item["excluded"] for item in detail["analyses"]}
+
+    assert excluded() == {first["id"]: False, second["id"]: False, paused["id"]: False}
+    assert client.put(f"/api/analyses/{first['id']}/exclusion").status_code == 200
+    assert excluded() == {first["id"]: True, second["id"]: False, paused["id"]: False}
+    assert client.delete(f"/api/analyses/{first['id']}/exclusion").status_code == 200
+    assert excluded()[first["id"]] is False
+
+
 def test_only_the_owner_can_exclude(app):
     alice, bob = account(TestClient(app)), account(TestClient(app), "bob@example.com")
     item = analyse(alice)

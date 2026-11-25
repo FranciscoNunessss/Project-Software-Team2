@@ -4,7 +4,8 @@
     python scripts/savings.py backend/eval/quality/reports/<run>.json --review <score.json>
 
 Writes <run>-savings.json next to the report. Exit codes: 0 measured (pass or fail is printed),
-2 incomplete (a task has no tokens or no price), 3 NOT RUN. No model is called.
+2 incomplete (a task has no tokens or no price) or reference.json disagrees with the catalogue,
+3 NOT RUN. No model is called. The ratio is printed only when the result is measured.
 """
 
 import argparse
@@ -29,6 +30,15 @@ def main() -> int:
     report = json.loads(Path(args.report).read_text(encoding="utf-8"))
     reference = json.loads(REFERENCE.read_text(encoding="utf-8"))
     catalogue = active_catalogue()
+    prices = sv.prices_from(catalogue)
+    differs = sv.reference_mismatch(reference, prices)
+    if differs:
+        print(
+            f"error: reference.json disagrees with {catalogue.version}: {'; '.join(differs)}. "
+            "Update both together (a new catalogue version and a new reference).",
+            file=sys.stderr,
+        )
+        return 2
     verdicts = None
     if args.review:
         items = json.loads(Path(args.review).read_text(encoding="utf-8"))["result"]["items"]
@@ -38,7 +48,7 @@ def main() -> int:
         verdicts = sv.verdicts_from_votes(votes)
     result = sv.savings(
         sv.rows_from_report(report),
-        sv.prices_from(catalogue),
+        prices,
         reference,
         verdicts,
         report.get("status"),
@@ -53,6 +63,11 @@ def main() -> int:
     if result["status"] == sv.NOT_RUN:
         print(f"NOT RUN: {result['reason']}")
         return 3
+    if result["status"] == sv.INCOMPLETE:
+        # No ratio on screen: a partial figure must not be copied into a report.
+        print(f"INCOMPLETE: no tokens or no price for {', '.join(result['unpriced'])}")
+        print(f"wrote {out}")
+        return 2
     print(
         f"KR1.2: following the recommendations costs {result['ratio_percent']}% of always using "
         f"{reference['model']} (prices of {reference['observed_on']}); target at most "
@@ -63,12 +78,15 @@ def main() -> int:
         f"if the top model wrote 1.5x more {result['ratio_if_top_writes_1_5x']}%; "
         f"under-sized {result['under_sized']}"
     )
+    capped = result["answers_at_token_limit"]
+    if capped:
+        print(
+            f"{len(capped)} answers reached the {sv.ANSWER_LIMIT}-token cap "
+            f"(output tokens are a floor): {', '.join(capped)}"
+        )
     if result.get("warning"):
         print(f"warning: {result['warning']}")
     print(f"wrote {out}")
-    if result["status"] == sv.INCOMPLETE:
-        print(f"INCOMPLETE: no tokens or no price for {', '.join(result['unpriced'])}")
-        return 2
     return 0
 
 

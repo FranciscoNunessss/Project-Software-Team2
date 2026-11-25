@@ -18,6 +18,9 @@ TARGET_PERCENT = 50.0
 TOP_OUTPUT_FACTOR = 1.5
 MEASURED, INCOMPLETE, NOT_RUN = "measured", "incomplete", "not_run"
 PER_TOKEN = 1_000_000
+# The answer cap of the M3 runner (scripts/run_quality_eval.py, ANSWER_MAX_TOKENS). An answer that
+# reaches it was cut, so its output tokens are a floor, not a measure.
+ANSWER_LIMIT = 2048
 
 
 def prices_from(catalogue) -> dict[str, dict]:
@@ -52,19 +55,42 @@ def ratio(followed: float, top: float) -> float | None:
 
 
 def verdicts_from_votes(votes: dict[str, list[str]]) -> dict[str, str]:
-    """Per task, the most common blind-review answer mapped to correct, over or under-sized.
+    """Per task, correct, over or under-sized from the blind-review answers.
 
-    A or B is correct. A tie between correct and a fault keeps the fault (conservative).
+    Correct is the KR1.1 rule of M2 (``blind_review.score``): a strict majority said A or B, so
+    both KRs classify a task the same way. A task that is not correct is under-sized when at least
+    as many reviewers said D as C (a tie keeps the costlier fault, conservative), else over-sized.
     """
     verdicts = {}
     for task, answers in votes.items():
-        counted = Counter(VERDICT_OF[answer] for answer in answers)
-        if not counted:
+        if not answers:
             continue
-        best = max(counted.values())
-        leaders = {verdict for verdict, count in counted.items() if count == best}
-        verdicts[task] = UNDER if UNDER in leaders else OVER if OVER in leaders else CORRECT
+        counted = Counter(VERDICT_OF[answer] for answer in answers)
+        if 2 * counted[CORRECT] > len(answers):
+            verdicts[task] = CORRECT
+        else:
+            verdicts[task] = UNDER if counted[UNDER] >= counted[OVER] else OVER
     return verdicts
+
+
+def reference_mismatch(reference: dict, prices: dict[str, dict]) -> list[str]:
+    """Where the frozen reference disagrees with the catalogue card of its model (empty if none).
+
+    ``reference.json`` repeats the top model's prices; a catalogue or reference edited alone would
+    change the ratio without any warning, so the two must match.
+    """
+    card = prices.get(reference["model"])
+    if card is None:
+        return [f"the reference model {reference['model']!r} is not a card of the catalogue"]
+    return [
+        f"{field}: reference {reference[field]} but catalogue {card[key]}"
+        for field, key in (
+            ("price_in_per_mtok", "in"),
+            ("price_out_per_mtok", "out"),
+            ("observed_on", "observed_on"),
+        )
+        if field in reference and reference[field] != card.get(key)
+    ]
 
 
 def rows_from_report(report: dict) -> list[dict]:
@@ -105,9 +131,11 @@ def savings(
     top_price = {"in": reference["price_in_per_mtok"], "out": reference["price_out_per_mtok"]}
     verdicts = verdicts or {}
     totals = {"followed": 0.0, "followed_no_penalty": 0.0, "top": 0.0, "top_x": 0.0}
-    unpriced, local, injection, under = [], [], [], []
+    unpriced, local, injection, under, at_limit = [], [], [], [], []
     for row in rows:
         tokens_in, tokens_out = row.get("tokens_in"), row.get("tokens_out")
+        if isinstance(tokens_out, int) and tokens_out >= ANSWER_LIMIT:
+            at_limit.append(row["task"])
         price = prices.get(row["model"])
         if not isinstance(tokens_in, int) or not isinstance(tokens_out, int) or price is None:
             unpriced.append(row["task"])
@@ -145,6 +173,7 @@ def savings(
         "under_sized": under,
         "unpriced": unpriced,
         "local": local,
+        "answers_at_token_limit": at_limit,
         "injection": injection,
         "totals_usd": {key: round(value, 6) for key, value in totals.items()},
         "currency": "USD",

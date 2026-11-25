@@ -131,3 +131,41 @@ def test_rows_from_a_report_take_the_first_repeat_and_the_answer_tokens():
 
 def test_free_quota_is_still_priced_at_the_catalogue_price():
     assert sv.cost(1_000_000, 0, {"in": 0.1, "out": 0.5, "local": False}) == 0.1
+
+
+def test_the_verdict_uses_the_m2_majority_rule_for_correct():
+    # Two of four said A: a split, so not correct in M2 (KR1.1) and not correct here either.
+    votes = {"split": ["A", "A", "C", "D"], "acd": ["A", "C", "D"], "aab": ["A", "B", "C"]}
+
+    assert sv.verdicts_from_votes(votes) == {"split": sv.UNDER, "acd": sv.UNDER, "aab": sv.CORRECT}
+
+
+def test_the_reference_prices_must_match_the_catalogue_card():
+    prices = {"top": {"in": 2.0, "out": 10.0, "observed_on": "2026-11-06"}}
+
+    assert sv.reference_mismatch(REFERENCE, prices) == []
+    changed = {"top": {**prices["top"], "out": 12.0}}
+    assert sv.reference_mismatch(REFERENCE, changed) == [
+        "price_out_per_mtok: reference 10.0 but catalogue 12.0"
+    ]
+    assert "not a card" in sv.reference_mismatch(REFERENCE, {})[0]
+
+
+def test_answers_that_reach_the_token_cap_are_listed():
+    rows = [row("a", "cheap", tokens_out=sv.ANSWER_LIMIT), row("b", "cheap")]
+
+    assert sv.savings(rows, PRICES, REFERENCE)["answers_at_token_limit"] == ["a"]
+
+
+def test_the_committed_reference_matches_its_catalogue():
+    import json
+    from pathlib import Path
+
+    from app.catalogue import active_catalogue
+
+    path = Path(__file__).resolve().parents[1] / "eval/quality/reference.json"
+    reference = json.loads(path.read_text(encoding="utf-8"))
+    catalogue = active_catalogue()
+
+    assert catalogue.version == reference["catalogue"]
+    assert sv.reference_mismatch(reference, sv.prices_from(catalogue)) == []

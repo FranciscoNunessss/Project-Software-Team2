@@ -45,13 +45,25 @@ call was free"), so free quota does not fake a saving.
 | Over-sized (C) | cost of the recommended model (a quality-safe but smaller saving) |
 | Under-sized (D) | cost of the recommended model **plus** the top model's cost (the retry the user would need) |
 
+A task is correct by the M2 rule for KR1.1 (a strict majority of the reviewers who answered said A
+or B), so KR1.1 and KR1.2 never classify a task differently. A task that is not correct is
+under-sized when at least as many reviewers said D as C (a tie keeps the costlier fault), else
+over-sized. Example with 3 reviewers: A, C, D is not correct (1 of 3), and under-sized.
+
 **6. Result.** `ratio = sum(cost following recommendations) / sum(cost of top model) x 100`.
 KR1.2 passes at 50% or less. Reported with: the ratio without the quality penalty, the 1.5x
 sensitivity, the number of under-sized tasks, the catalogue date, and the currency (USD; the ratio does
 not depend on currency). L7 uses steps 3, 4 and 6 per user, without step 5, and says so in its label.
 
 **7. Limits written into the report (M7).** 20 synthetic tasks, not a sample of real use; same-token
-assumption; prices of one date; the top model was not run.
+assumption; prices of one date; the top model was not run. Answers are capped at 2048 output tokens
+(M3); the result lists the answers that reached the cap (`answers_at_token_limit`), whose output
+tokens are a floor on both sides.
+
+**Frozen reference.** `reference.json` repeats the top model's prices and date. The script compares
+them with that model's card in the active catalogue and stops (exit 2) when they differ, so a
+catalogue or reference edited alone cannot change the ratio silently. An incomplete result (a task
+with no tokens or price) prints no ratio.
 
 ## Requirements
 

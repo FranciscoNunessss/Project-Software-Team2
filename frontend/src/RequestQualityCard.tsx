@@ -47,6 +47,8 @@ export function RequestQualityCard({ analysis, task }: { analysis: Analysis; tas
   const summary = analysis.request_quality_summary
   const hint = !hintGone ? analysis.educator_hint : null
   const names = Object.keys(DIMENSION_LABELS) as QualityDimension[]
+  // Only the marks guard caps the objective, so a capped objective means the request asks for marks.
+  const asksForMarks = summary?.ceilings?.objective === 1
   return (
     <Card className="request-quality" data-request-quality="">
       <p className="eyebrow">How you described it</p>
@@ -68,15 +70,20 @@ export function RequestQualityCard({ analysis, task }: { analysis: Analysis; tas
             const item = quality[name]
             const result = results[name]
             const score = result ? result.score_after : item.score
+            // The L1 guards cap some dimensions for this request (short, or asking for marks):
+            // no dispute can go above, so the panel says why instead of offering one.
+            const ceiling = summary?.ceilings?.[name] ?? 2
+            const capped = item.score !== null && item.score < 2 && item.score >= ceiling
             return (
               <tr key={name} data-quality-dimension={name}>
                 <th scope="row">{DIMENSION_LABELS[name]}</th>
                 <td className={`quality-score score-${score ?? 'na'}`}>{score === null ? 'Not needed' : SCORE_WORDS[score as 0 | 1 | 2]}</td>
                 <td className="muted">
                   {item.reason !== NOT_RETAINED && item.reason}
+                  {capped && !result && <span className="quality-capped" data-quality-capped="">{asksForMarks ? ' This request asks for a score, so it cannot be clear here.' : ' This request is too short to be clear here: add detail and analyse again.'}</span>}
                   {result && <span role="status" data-dispute-result={result.accepted ? 'accepted' : 'refused'}>{result.accepted ? ` Dispute accepted: now ${SCORE_WORDS[result.score_after as 0 | 1 | 2].toLowerCase()}.` : ' Dispute not accepted: the passage does not show more than this.'}</span>}
                 </td>
-                <td>{task !== undefined && !result && item.score !== null && item.score < 2 && (
+                <td>{task !== undefined && !result && item.score !== null && item.score < 2 && !capped && (
                   <Dispute analysis={analysis} task={task} dimension={name} onDone={answer => setResults(current => ({ ...current, [name]: answer }))} />
                 )}</td>
               </tr>

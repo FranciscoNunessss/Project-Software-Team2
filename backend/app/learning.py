@@ -34,6 +34,19 @@ def sizing(result: dict, candidate_id: str | None):
     return "over" if gap > 0 else "under" if gap < 0 else "match"
 
 
+def excluded_ids(store: Storage, user_id: str, analysis_ids: list[str]) -> set[str]:
+    """The analyses the user left out of their learning (L17), among the ones given."""
+    if not analysis_ids:
+        return set()
+    with store.connect() as db:
+        rows = db.execute(
+            "SELECT analysis_id FROM learning_exclusions "
+            "WHERE user_id=%s AND kind='excluded' AND analysis_id = ANY(%s)",
+            (user_id, analysis_ids),
+        ).fetchall()
+    return {row["analysis_id"] for row in rows}
+
+
 def user_tasks(store: Storage, user_id: str) -> list[TaskRecord]:
     return [task for _, task in dated_tasks(store, user_id)]
 

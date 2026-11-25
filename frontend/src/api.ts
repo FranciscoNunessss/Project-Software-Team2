@@ -93,7 +93,7 @@ export type Analysis = {
   previous_analysis_id?: string | null
   completeness?: number | null
   changes?: Change[]
-  request_quality_summary?: { clear: number; applicable: number; codes: Record<string, string> } | null
+  request_quality_summary?: { clear: number; applicable: number; codes: Record<string, string>; ceilings?: Partial<Record<QualityDimension, number>> } | null
   educator_hint?: EducatorHint | null
 }
 // Keep in sync with backend/app/assessment.py PROFILE_VERSION.
@@ -121,7 +121,7 @@ export type CoachResponse = {
   event_id: string | null
 }
 export type SavedSession = { id: string; title: string; context: string; created_at: string; analysis_count?:number; choice_count?:number }
-export type HistoryItem = { request: { task?: string; session_context?: string; personal_context?: string }; result: Analysis; candidate_id: string | null; created_at: string; conversation?: {task:string;task_context:string;response:Analysis}|null }
+export type HistoryItem = { excluded?: boolean; request: { task?: string; session_context?: string; personal_context?: string }; result: Analysis; candidate_id: string | null; created_at: string; conversation?: {task:string;task_context:string;response:Analysis}|null }
 export type Resume = { sessionId: string; analysis?: HistoryItem }
 export type MemorySettings = {content:string; updated_at:string|null; save_enabled:boolean; use_enabled:boolean; coaching_auto_enabled:boolean; conversation_memory_enabled:boolean;saved_conversations:number; memory:{analysis_id:string; profile:Record<string,number|string[]|null>; recommended_capacity?:number; chosen_capacity?:number|null; recommended_model?:string; chosen_model?:string|null; chosen_gap?:number|null}[]}
 export function tierOf(candidate: Candidate): Tier {
@@ -146,6 +146,9 @@ export function notifyProgressChange() {
   try { window.localStorage.setItem('adaptai-progress-updated', String(Date.now())) } catch { /* Refresh on focus remains available. */ }
 }
 const errorMessages: Record<string, string> = {
+  dispute_capped: 'This score is already the highest this request allows. Add detail to your message and analyse again.',
+  task_paused: 'This task was analysed while learning was paused, so it already does not count.',
+  exclusion_not_found: 'This task already counts for your learning.',
   no_history_for_coaching: 'Analyse a task first to generate guidance from your usage metadata.',
   history_changed: 'Your history changed while guidance was being generated. Refresh and try again.',
   project_default_not_configured: 'The project Groq model is not configured. Ask the project administrator or select a configured model manually.',
@@ -337,6 +340,9 @@ export async function streamChat(path: string, body: unknown, handlers: ChatHand
 export const disputeQuality = (analysisId: string, body: { dimension: QualityDimension; task: string; passage: string; allow_external: boolean }) =>
   api<DisputeResult>(`analyses/${analysisId}/quality-dispute`, body)
 export const dismissHint = (key: string) => api(`learning/hints/${key}/dismiss`, {})
+/** WS4 L17: leave one task out of the learning profile, or count it again. */
+export const setTaskExcluded = (analysisId: string, excluded: boolean) =>
+  api<{ analysis_id: string; excluded: boolean }>(`analyses/${analysisId}/exclusion`, excluded ? {} : undefined, undefined, excluded ? 'PUT' : 'DELETE')
 export type WeeklyGoal = { week: string; goal: { code: string; target: number; progress: number; met: boolean; chosen: boolean }; alternatives: string[] }
 export const getGoal = (signal?: AbortSignal) => api<WeeklyGoal>('progress/goal', undefined, signal)
 export const chooseGoal = (code: string) => api<WeeklyGoal>('progress/goal', { code }, undefined, 'PUT')

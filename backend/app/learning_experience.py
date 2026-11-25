@@ -180,7 +180,7 @@ HINT_PAUSE = 3
 
 def educator_hint(store: Storage, user_id: str, scores: dict[str, int | None]) -> dict | None:
     """One hint for the task being analysed: an active 'missing dimension' pattern that this
-    request repeats (scored 0 now), unless the user dismissed it in the last 3 analyses."""
+    request repeats (scored 0 now), unless the user dismissed a hint in the last 3 analyses."""
     tasks = [task for _, task in counted_tasks(store, user_id)]
     patterns = [p for p in compute(tasks).patterns if p.code == "missing_dimension"]
     candidates = [p for p in patterns if scores.get(p.dimension) == 0]
@@ -199,18 +199,18 @@ def educator_hint(store: Storage, user_id: str, scores: dict[str, int | None]) -
                 (user_id,),
             ).fetchall()
         }
-    for pattern in sorted(candidates, key=lambda p: -p.hits):
-        key = f"missing_{pattern.dimension}"
-        if key in dismissed and analyses - dismissed[key] < HINT_PAUSE:
-            continue
-        return {
-            "key": key,
-            "pattern": "missing_dimension",
-            "dimension": pattern.dimension,
-            "hits": pattern.hits,
-            "window": pattern.window,
-        }
-    return None
+    # "Not now" pauses every hint for the next HINT_PAUSE analyses, not only the one dismissed:
+    # another hint straight away would read as nagging (G2 WS4 3.3).
+    if any(analyses - at < HINT_PAUSE for at in dismissed.values()):
+        return None
+    pattern = max(candidates, key=lambda p: p.hits)
+    return {
+        "key": f"missing_{pattern.dimension}",
+        "pattern": "missing_dimension",
+        "dimension": pattern.dimension,
+        "hits": pattern.hits,
+        "window": pattern.window,
+    }
 
 
 # ---- pause and start over (L17) --------------------------------------------------------------
@@ -393,6 +393,9 @@ def install_learning_experience(app: FastAPI, store: Storage, judge: Judge) -> N
             raise HTTPException(409, "task_changed")
         if body.passage.strip() not in body.task:
             raise HTTPException(422, "passage_not_in_task")
+        if before >= guard_ceiling(dimension, body.task):
+            # The guards already hold this score: no passage can raise it, so no model call.
+            raise HTTPException(409, "dispute_capped")
         result = json.loads(analysis["result_json"])
         judged = await judge(
             user["id"], result, dimension, body.task, body.passage.strip(), body.allow_external

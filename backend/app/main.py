@@ -23,7 +23,7 @@ from app.evaluations import Ratings, install_evaluations, pending_for
 from app.evaluations import _router_snapshot as router_snapshot
 from app.evaluations import label as evaluation_label
 from app.evaluations import statuses as evaluation_statuses
-from app.learning import install_learning
+from app.learning import excluded_ids, install_learning
 from app.learning_experience import (
     JudgeVerdict,
     educator_hint,
@@ -48,7 +48,7 @@ from app.providers import (
 from app.recommendation import POLICY_VERSION, Option, candidate_gap
 from app.relay import install_relay
 from app.request_quality import DIMENSIONS as QUALITY_DIMENSIONS
-from app.request_quality import demonstration_quality
+from app.request_quality import demonstration_quality, guard_ceiling
 from app.request_quality import stored_row as quality_row
 from app.request_quality import summary as quality_summary
 from app.retention import install_retention
@@ -599,7 +599,12 @@ def create_app(
         offset: int = Query(default=0, ge=0),
     ):
         session = owned_session(user, identifier)
-        return {**session, "analyses": store.history(user["id"], identifier, limit, offset)}
+        analyses = store.history(user["id"], identifier, limit, offset)
+        # WS4 L17: the history says which tasks are left out, so they can be counted again.
+        left_out = excluded_ids(store, user["id"], [item["result"]["id"] for item in analyses])
+        for item in analyses:
+            item["excluded"] = item["result"]["id"] in left_out
+        return {**session, "analyses": analyses}
 
     @app.patch("/api/sessions/{identifier}")
     def update_session(identifier: str, body: SessionInput, user: AuthenticatedUser):
@@ -881,7 +886,14 @@ def create_app(
                 else None,
                 "previous_analysis_id": body.previous_analysis_id,
                 "completeness": state["completeness"],
-                "request_quality_summary": quality_summary(state["profile"].request_quality)
+                "request_quality_summary": {
+                    **quality_summary(state["profile"].request_quality),
+                    # The highest score each dimension can reach for this request (L1 guards):
+                    # the panel offers a dispute only below it, and says why otherwise.
+                    "ceilings": {
+                        name: guard_ceiling(name, body.task) for name in QUALITY_DIMENSIONS
+                    },
+                }
                 if state["profile"].request_quality is not None
                 else None,
                 # WS4 L5: one Educator hint when this request repeats an active pattern.

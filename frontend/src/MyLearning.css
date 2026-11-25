@@ -34,3 +34,4 @@ section.my-learning { padding: 1.25rem; }
 .learning-controls .learning-toggle { display: block; margin: 0.5rem 0; }
 .pattern-advice summary { cursor: pointer; font-size: 0.85rem; margin-top: 0.25rem; }
 .pattern-advice p { margin: 0.35rem 0; }
+.goal-others summary { cursor: pointer; font-size: 0.9rem; color: var(--color-muted); }

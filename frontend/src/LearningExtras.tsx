@@ -26,6 +26,8 @@ export function WeeklyGoalCard() {
   const [busy, setBusy] = useState(false)
   if (!goal) return null
   const { code, target, progress, met, chosen } = goal.goal
+  // The suggestions come first, but the user may pick any goal (autonomy keeps goals alive).
+  const others = Object.keys(GOAL_TEXT).filter(item => item !== code && !goal.alternatives.includes(item))
   const pick = async (next: string) => { setBusy(true); try { await chooseGoal(next); reload() } finally { setBusy(false) } }
   return (
     <div className="learning-goal" data-weekly-goal={code}>
@@ -39,6 +41,14 @@ export function WeeklyGoalCard() {
         <p className="goal-alternatives">Prefer another? {goal.alternatives.map(item => (
           <button key={item} type="button" className="chip" disabled={busy} onClick={() => void pick(item)} data-goal-alternative={item}>{GOAL_TEXT[item] ?? item}</button>
         ))}{!chosen && <button type="button" className="chat-link" disabled={busy} onClick={() => void pick(code)} data-goal-accept="">Keep this one</button>}</p>
+      )}
+      {others.length > 0 && (
+        <details className="goal-others" data-goal-others="">
+          <summary>Other goals…</summary>
+          <p className="goal-alternatives">{others.map(item => (
+            <button key={item} type="button" className="chip" disabled={busy} onClick={() => void pick(item)} data-goal-option={item}>{GOAL_TEXT[item]}</button>
+          ))}</p>
+        </details>
       )}
     </div>
   )

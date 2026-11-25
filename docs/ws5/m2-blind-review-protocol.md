@@ -64,6 +64,9 @@ Fleiss' kappa (3). A kappa under 0.4 is reported as "low agreement" next to the 
 - **Controls (decided 21 Nov):** 6 control items whose model was chosen by a fixed rule
   (3 always-cheapest, 3 always-top). Controls are not counted in KR1.1; they show whether a reviewer
   approves everything. Cost: about 15 more minutes per reviewer.
+  A control is only drawn from a task whose recommended model is not the control's model, so the
+  form never shows the same task with the same model twice (that would give the control away, and
+  judging it correct would be legitimate).
 
 ## Scenarios
 
@@ -126,5 +129,10 @@ python scripts/blind_review.py export backend/eval/quality/reports/<run>.json --
 # Send form-R1.csv, form-R2.csv, form-R3.csv and models.csv; collect one CSV per reviewer
 python scripts/blind_review.py score backend/eval/review/<date>/packet.json R1=r1.csv R2=r2.csv R3=r3.csv
 ```
+
+`export` needs a full run of task set 2 (`mode: full`). `score` refuses (exit 2) an argument
+without `R<n>=`, a reviewer id that is not in the packet, and the same reviewer answering the same
+item twice. It prints, next to the KR1.1 count, how many items were decided without every
+reviewer (the protocol uses the majority of those who answered); report that number with `passes`.
 
 Code: `backend/app/blind_review.py`, tests `backend/tests/test_blind_review.py`.

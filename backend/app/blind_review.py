@@ -25,6 +25,7 @@ TARGET = 16
 CONTROLS = 6
 LOW_AGREEMENT = 0.4
 MIN_REVIEWERS = 2
+TASK_SET = 2
 NOT_RUN = "not_run"
 MEASURED = "measured"
 
@@ -49,6 +50,11 @@ def packet(
     """
     if report.get("status") == NOT_RUN:
         raise ReviewError("the run was NOT RUN: there is nothing to review")
+    if report.get("task_set") != TASK_SET or report.get("mode") != "full":
+        raise ReviewError(
+            f"the review needs a full run of task set {TASK_SET}, not task set "
+            f"{report.get('task_set')!r} in mode {report.get('mode')!r}"
+        )
     first = [row for row in report.get("rows", []) if row.get("repeat", 0) == 0]
     failed = [row["task"] for row in first if "recommended" not in row]
     if failed:
@@ -63,15 +69,24 @@ def packet(
     cheapest = min(prices, key=lambda card: (prices[card], card))
     rng = random.Random(seed)
     entries = [{"task": task, "model": model, "control": None} for task, model in tasks.items()]
-    for number, task in enumerate(rng.sample(sorted(tasks), controls)):
-        low = number < controls // 2
-        entries.append(
-            {
-                "task": task,
-                "model": cheapest if low else reference,
-                "control": "cheapest" if low else "top",
-            }
-        )
+    # A control is only a control when its model differs from the task's recommendation: the same
+    # task and model twice in the form would give the control away, and judging it correct would be
+    # legitimate. Each kind draws from the tasks whose recommendation is another model.
+    order = rng.sample(sorted(tasks), len(tasks))
+    used: set[str] = set()
+    for kind, model, count in (
+        ("cheapest", cheapest, controls // 2),
+        ("top", reference, controls - controls // 2),
+    ):
+        eligible = [task for task in order if task not in used and tasks[task] != model]
+        if len(eligible) < count:
+            raise ReviewError(
+                f"only {len(eligible)} tasks have a recommendation other than {model!r}; "
+                f"the {kind} controls need {count}"
+            )
+        for task in eligible[:count]:
+            used.add(task)
+            entries.append({"task": task, "model": model, "control": kind})
     rng.shuffle(entries)
     items = [{"item": f"I{index + 1:02d}", **entry} for index, entry in enumerate(entries)]
     ids = [item["item"] for item in items]
@@ -87,8 +102,10 @@ def packet(
     }
 
 
-def check_answers(answers: list[dict], items: set[str]) -> None:
+def check_answers(answers: list[dict], items: set[str], reviewers: set[str] | None = None) -> None:
+    """Every problem in the answers: fields, values, unknown items or reviewers, duplicates."""
     problems = []
+    seen: set[tuple[str, str]] = set()
     for number, answer in enumerate(answers):
         extra = set(answer) - ANSWER_FIELDS
         if extra:
@@ -99,8 +116,18 @@ def check_answers(answers: list[dict], items: set[str]) -> None:
             problems.append(f"answer {number}: confidence must be one of {', '.join(CONFIDENCE)}")
         if answer.get("item") not in items:
             problems.append(f"answer {number}: unknown item {answer.get('item')!r}")
-        if not str(answer.get("reviewer", "")).strip():
+        reviewer = str(answer.get("reviewer", "")).strip()
+        if not reviewer:
             problems.append(f"answer {number}: no reviewer id")
+        elif reviewers is not None and reviewer not in reviewers:
+            known = ", ".join(sorted(reviewers))
+            problems.append(
+                f"answer {number}: reviewer {reviewer!r} is not in the packet ({known})"
+            )
+        pair = (reviewer, answer.get("item"))
+        if pair in seen:
+            problems.append(f"answer {number}: {reviewer} answered {pair[1]} twice")
+        seen.add(pair)
     if problems:
         raise ReviewError("; ".join(problems))
 
@@ -108,7 +135,8 @@ def check_answers(answers: list[dict], items: set[str]) -> None:
 def score(review_packet: dict, answers: list[dict], target: int = TARGET) -> dict:
     """KR1.1 count, verdict per item, gaps, agreement and how reviewers judged the controls."""
     items = {item["item"]: item for item in review_packet["items"]}
-    check_answers(answers, set(items))
+    known = set(review_packet.get("orders", {})) or None
+    check_answers(answers, set(items), known)
     reviewers = sorted({answer["reviewer"] for answer in answers})
     if len(reviewers) < MIN_REVIEWERS:
         return {
@@ -168,6 +196,8 @@ def score(review_packet: dict, answers: list[dict], target: int = TARGET) -> dic
         "passes": count >= target,
         "splits": sorted(item_id for item_id, v in verdicts.items() if v["split"]),
         "gaps": gaps,
+        # Shown next to the count: an item answered by fewer reviewers is decided by fewer votes.
+        "items_with_gaps": len({gap["item"] for gap in gaps}),
         "agreement": {
             "percent": agreed,
             "kappa": kappa,

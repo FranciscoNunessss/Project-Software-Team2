@@ -14,7 +14,8 @@ PRICES = {"cheap": 0.1, "mid": 1.0, "top": 4.0}
 def run(size=20, **override):
     rows = [{"task": f"t{n:02d}", "repeat": 0, "recommended": "mid"} for n in range(size)]
     rows += [{"task": "t00", "repeat": 1, "recommended": "top"}]  # later repeats are ignored
-    return {"status": "pass", "date": "2026-12-14", "model": "m", "rows": rows, **override}
+    report = {"status": "pass", "date": "2026-12-14", "model": "m", "task_set": 2, "mode": "full"}
+    return {**report, "rows": rows, **override}
 
 
 def answers_for(review, reviewer, verdict_of):
@@ -143,3 +144,54 @@ def test_controls_do_not_count_and_are_reported_per_reviewer():
     assert result["correct"] == 20
     assert result["controls_judged_correct"]["R1"] == {"cheapest": "3/3", "top": "3/3"}
     assert result["controls_judged_correct"]["R2"] == {"cheapest": "0/3", "top": "0/3"}
+
+
+def test_a_control_never_repeats_the_recommended_model_of_its_task():
+    report = run()
+    for row in report["rows"][:10]:
+        row["recommended"] = "cheap"
+    for row in report["rows"][10:17]:
+        row["recommended"] = "top"
+
+    for seed in range(20):
+        review = br.packet(report, PRICES, "top", seed=seed)
+        real = {(item["task"], item["model"]) for item in review["items"] if not item["control"]}
+        controls = [(item["task"], item["model"]) for item in review["items"] if item["control"]]
+        assert len(controls) == 6 and not real & set(controls)
+
+
+def test_the_packet_refuses_when_too_few_tasks_can_hold_a_control():
+    report = run()
+    for row in report["rows"]:
+        row["recommended"] = "cheap"
+    report["rows"][0]["recommended"] = "mid"
+
+    with pytest.raises(br.ReviewError, match="cheapest controls need 3"):
+        br.packet(report, PRICES, "top")
+
+
+def test_the_packet_needs_a_full_run_of_task_set_two():
+    with pytest.raises(br.ReviewError, match="task set 2"):
+        br.packet(run(task_set=1), PRICES, "top")
+    with pytest.raises(br.ReviewError, match="mode 'subset'"):
+        br.packet(run(mode="subset"), PRICES, "top")
+
+
+def test_a_duplicate_answer_or_an_unknown_reviewer_is_rejected():
+    review = br.packet(run(), PRICES, "top", seed=1)
+    answers = answers_for(review, "R1", lambda item: "A")
+    answers += answers_for(review, "R2", lambda item: "A")
+
+    with pytest.raises(br.ReviewError, match="R1 answered I01 twice"):
+        br.score(review, [*answers, {**answers[0], "item": "I01"}, {**answers[0], "item": "I01"}])
+    with pytest.raises(br.ReviewError, match="reviewer 'R4' is not in the packet"):
+        br.score(review, [*answers, *answers_for(review, "R4", lambda item: "A")])
+
+
+def test_the_score_reports_how_many_items_had_a_missing_answer():
+    review = br.packet(run(), PRICES, "top", seed=1)
+    real = [item["item"] for item in review["items"] if not item["control"]]
+    answers = [a for a in answers_for(review, "R1", lambda item: "A") if a["item"] not in real[:2]]
+    answers += answers_for(review, "R2", lambda item: "A")
+
+    assert br.score(review, answers)["items_with_gaps"] == 2

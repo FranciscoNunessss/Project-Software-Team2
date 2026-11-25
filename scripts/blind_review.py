@@ -80,7 +80,11 @@ def export(args) -> int:
 
 
 def read_answers(reviewer: str, path: Path) -> list[dict]:
-    with path.open(encoding="utf-8", newline="") as stream:
+    try:
+        stream = path.open(encoding="utf-8", newline="")
+    except OSError as error:
+        raise br.ReviewError(f"{reviewer}: cannot read {path} ({error.strerror})") from error
+    with stream:
         return [
             {
                 "reviewer": reviewer,
@@ -98,7 +102,9 @@ def score(args) -> int:
     answers = []
     for pair in args.answers:
         reviewer, _, path = pair.partition("=")
-        answers += read_answers(reviewer, Path(path))
+        if not reviewer.strip() or not path.strip():
+            raise br.ReviewError(f"{pair!r}: answers are given as R1=path.csv")
+        answers += read_answers(reviewer.strip(), Path(path.strip()))
     result = br.score(review, answers)
     out = Path(args.packet).with_name("score.json")
     out.write_text(json.dumps({"answers": answers, "result": result}, indent=1), encoding="utf-8")
@@ -108,7 +114,8 @@ def score(args) -> int:
     agreement = result["agreement"]
     print(
         f"KR1.1: {result['correct']} of {result['out_of']} correct "
-        f"(target {result['target']}): {'PASS' if result['passes'] else 'FAIL'}"
+        f"(target {result['target']}): {'PASS' if result['passes'] else 'FAIL'}; "
+        f"{result['items_with_gaps']} items decided without every reviewer"
     )
     print(
         f"agreement {agreement['percent']}%, {agreement['kind']} kappa {agreement['kappa']}"

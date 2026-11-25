@@ -42,6 +42,8 @@ from app.request_quality import stored_row as quality_row
 from app.request_quality import summary as quality_summary
 from app.retention import install_retention
 from app.storage import Storage, history_result, stored_result
+from app.team_dashboard import install_team_dashboard
+from app.teams import install_teams
 from app.tokens import install_tokens
 from app.workflow import build_workflow
 
@@ -158,6 +160,8 @@ def create_app(
     install_outcomes(
         app, store, ratings_for=lambda user_id: Ratings(store, active_catalogue(), user_id)
     )
+    install_teams(app, store)
+    install_team_dashboard(app, store)
     install_learning(app, store)
 
     @app.middleware("http")

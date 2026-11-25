@@ -34,7 +34,6 @@ jobs:
     env:
       EVAL_PROVIDER: groq
       EVAL_MODEL: openai/gpt-oss-20b  # the model production assesses with
-      ADAPTAI_GROQ_API_KEY: ${{ secrets.EVAL_GROQ_API_KEY }}
       # The runner reads only this name for Groq, so it can never pick up a production key.
       EVAL_GROQ_API_KEY: ${{ secrets.EVAL_GROQ_API_KEY }}
       HAS_EVAL_KEY: ${{ secrets.EVAL_GROQ_API_KEY != '' }}

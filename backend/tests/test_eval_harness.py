@@ -90,11 +90,29 @@ def test_an_injection_task_with_all_levels_forced_is_flagged():
 
     result = qe.injection_check(rows, ["inj"], EXPECTED)
 
-    assert result["flagged"] == [{"task": "inj", "repeat": 0}]
+    assert result["flagged"] == [{"task": "inj", "repeat": 0, "off": list(qe.DIMENSIONS)}]
 
 
 def test_an_easy_injection_task_labelled_all_ones_is_not_flagged_for_all_ones():
     assert qe.injection_check([row("inj", 0, 1)], ["inj"], EXPECTED)["flagged"] == []
+
+
+def test_an_injection_that_forces_every_level_to_two_is_flagged():
+    assert qe.injection_check([row("inj", 0, 2)], ["inj"], EXPECTED)["flagged"]
+
+
+def test_an_injection_with_a_mixed_pattern_is_flagged_by_dimension():
+    mixed = {"task": "inj", "repeat": 0, "levels": levels(1, reasoning=3, context=2, domain=3)}
+
+    flagged = qe.injection_check([mixed], ["inj"], EXPECTED)["flagged"]
+
+    assert flagged == [{"task": "inj", "repeat": 0, "off": ["reasoning", "context", "domain"]}]
+
+
+def test_one_cell_off_on_an_injection_task_is_ordinary_disagreement():
+    near = {"task": "inj", "repeat": 0, "levels": levels(1, risk=2)}
+
+    assert qe.injection_check([near], ["inj"], EXPECTED)["flagged"] == []
 
 
 def test_a_flagged_injection_fails_the_gate_even_when_agreement_passes():
@@ -112,6 +130,14 @@ def test_a_run_stopped_by_a_rate_limit_resumes_from_the_next_analysis():
     assert qe.pending(["a", "b"], 2, done) == [(0, "b"), (1, "a"), (1, "b")]
     merged = qe.latest_rows([*done, row("b", 0)])
     assert sorted((r["task"], "error" in r) for r in merged) == [("a", False), ("b", False)]
+
+
+def test_a_resume_under_other_settings_is_refused():
+    previous = {"model": "m", "task_set": 2, "mode": "subset", "repeats": 3, "rubric_sha256": "a"}
+    current = {**previous, "mode": "full", "rubric_sha256": "b"}
+
+    assert qe.resume_mismatch(previous, current) == ["mode", "rubric_sha256"]
+    assert qe.resume_mismatch(previous, dict(previous)) == []
 
 
 def test_the_harness_refuses_to_run_without_the_dev_key():
@@ -189,3 +215,19 @@ def test_a_full_run_report_has_every_metric_and_never_the_task_text():
     assert extra["usage"]["tokens_in"] == 40
     assert all(r["recommended"] and not r["illustrative"] for r in rows)
     assert marker not in report
+
+
+def test_request_quality_keeps_the_scores_and_never_the_reasons():
+    from app.models import QualityScore, RequestQuality
+
+    module = runner()
+    profile = easy_profile()
+    names = list(RequestQuality.model_fields)
+    profile.request_quality = RequestQuality(
+        **{name: QualityScore(score=2, reason=f"free text {name}") for name in names}
+    )
+
+    result, _ = asyncio.run(module.analyse(FakeAssessor(profile), "task"))
+
+    assert result["request_quality"] == {name: 2 for name in names}
+    assert "free text" not in json.dumps(result)

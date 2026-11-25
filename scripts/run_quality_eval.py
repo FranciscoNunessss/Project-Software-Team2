@@ -146,12 +146,11 @@ async def analyse(
     }
     if assessment.usage:
         row["tokens"] = assessment.usage
-    # WS4 L1 adds request-quality scores to the same call; read them when they exist.
-    quality = getattr(assessment, "request_quality", None)
+    # WS4 L1 adds request-quality scores to the profile; keep the scores only (the reasons are
+    # free text that changes every run, so comparing them would never be stable).
+    quality = getattr(profile, "request_quality", None)
     if quality:
-        row["request_quality"] = (
-            quality.model_dump() if hasattr(quality, "model_dump") else dict(quality)
-        )
+        row["request_quality"] = {name: item.score for name, item in quality}
     if ratings is not None:
         row.update(recommendation(profile, text, ratings))
     return row, time.monotonic() - started
@@ -280,12 +279,10 @@ def run(args) -> int:
     if key is not None:
         settings = settings.model_copy(update={NEEDS_KEY[args.provider]: SecretStr(key)})
     previous = json.loads(Path(args.resume).read_text(encoding="utf-8")) if args.resume else None
-    if previous and (previous["model"], previous["task_set"]) != (args.model, document["version"]):
-        print("The report to resume is for another model or task set.", file=sys.stderr)
-        return 2
+    commit = git("rev-parse", "HEAD")
     base = {
         "date": previous["date"] if previous else datetime.now(UTC).isoformat(timespec="seconds"),
-        "commit": git("rev-parse", "HEAD"),
+        "commit": previous["commit"] if previous else commit,
         "provider": args.provider,
         "model": args.model,
         "task_set": document["version"],
@@ -302,6 +299,17 @@ def run(args) -> int:
         "catalogue": catalogue_version(),
         "key": "eval" if key else "local or personal",
     }
+    if previous:
+        differs = qe.resume_mismatch(previous, base)
+        if differs:
+            print(
+                "The report to resume was measured under other settings "
+                f"({', '.join(differs)}): start a new run instead.",
+                file=sys.stderr,
+            )
+            return 2
+        if commit != previous["commit"]:
+            base["resumed_at_commits"] = sorted({*previous.get("resumed_at_commits", []), commit})
     rows: list[dict] = list(previous["rows"]) if previous else []
     if has_key(args.provider, settings):
         provider = LangChainProvider(args.provider, settings)

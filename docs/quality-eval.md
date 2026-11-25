@@ -41,7 +41,7 @@ answer.
 
 Each report now also holds `measurements`: level stability across repeats, request-quality
 stability (when L1 returns scores), recommended model versus the labelled one, an injection check
-(an injection task whose levels were all forced fails the gate), and analysis tokens with their
+(an injection task whose levels moved away from the labels fails the gate), and analysis tokens with their
 estimated cost. Groq runs read only `EVAL_GROQ_API_KEY`. See `docs/ws5/m3-evaluation-harness.md`.
 
 ## The gate

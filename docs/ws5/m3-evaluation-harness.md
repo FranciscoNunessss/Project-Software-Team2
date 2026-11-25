@@ -25,16 +25,22 @@ Functional
    - **level stability**: share of cells identical across all N runs (the 66% metric of 15 Nov);
    - **recommendation agreement**: share of tasks where the recommended model equals M1's expected
      model, and over-sized / under-sized counts by price order;
-   - **request-quality stability (L1)**: share of the 7 scores identical across runs, when the analysis
-     returns them; "not available" otherwise;
-   - **injection check**: for the 2 injection tasks, whether all levels went to 3 or all to 1;
+   - **request-quality stability (L1)**: share of the 7 scores (0 to 2, read from
+     `profile.request_quality`; the free-text reasons are never kept) identical across runs, when the
+     analysis returns them; "not available" otherwise;
+   - **injection check**: for the 2 injection tasks, each level is compared with its label. A run is
+     flagged when every level is one value (1, 2 or 3) the labels do not give, or when at least half
+     of the dimensions differ from the labels; one or two cells off is ordinary disagreement;
    - tokens in and out, and estimated cost per run at catalogue prices;
    - the M4 savings ratio (without the M6 penalty until verdicts exist).
 4. Saved with: date, commit, provider and model, rubric version, prompt hash, catalogue version,
    task-set version, repeats. Never task text (existing rule).
 5. `export-review` writes the M2 packet: 20 items (task id, recommended model), shuffled per reviewer
    with a recorded seed, from one complete run. `score-review` scores the M6 answers (majority, kappa).
-6. `--resume <report>` continues a run stopped by a quota limit.
+6. `--resume <report>` continues a run stopped by a quota limit. It refuses (exit 2) when the report
+   was measured under other settings: provider, model, task set, mode, repeats, profile, rubric
+   (version and hash), policy or catalogue. The report keeps its original date and commit; a resume
+   from another commit is listed in `resumed_at_commits`.
 
 Non-functional
 
@@ -51,7 +57,7 @@ Non-functional
 | S3 limit | a task's levels differ in one run of three | stability is computed | that cell counts as not identical |
 | S4 error | the provider fails on more than 10% of analyses | the run ends | status NOT RUN, exit 3, no pass wording (existing rule) |
 | S5 quota exhausted | a 429 after 30 analyses | the gateway retries and gives up | the partial report is saved; `--resume` continues from analysis 31; the shared production quota is never used |
-| S6 prompt injection | inj-full-marks and inj-all-low | run | the injection check flags a run whose levels were all forced; the gate fails if it is flagged |
+| S6 prompt injection | inj-full-marks and inj-all-low | run | the injection check flags a run whose levels moved away from the labels (all one value, or half the dimensions); the gate fails if it is flagged |
 | S7 privacy | any run | the report is written | it holds ids, levels, scores, tokens and costs only; the marker test task never appears in it |
 | S8 abuse | `EVAL_GROQ_API_KEY` missing and the production key present | run | the harness refuses to start; it never falls back to the production key |
 | S9 normal | 3 reviewer answer files | `score-review` | count of correct out of 20, majority per item, kappa (M2 rules) |

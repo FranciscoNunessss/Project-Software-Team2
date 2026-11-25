@@ -38,6 +38,13 @@ artifact for 30 days.
 An undetermined level counts as a disagreement: the gate must not reward a model that declines to
 answer.
 
+## WS5 measurements (M3)
+
+Each report now also holds `measurements`: level stability across repeats, request-quality
+stability (when L1 returns scores), recommended model versus the labelled one, an injection check
+(an injection task whose levels moved away from the labels fails the gate), and analysis tokens with their
+estimated cost. Groq runs read only `EVAL_GROQ_API_KEY`. See `docs/ws5/m3-evaluation-harness.md`.
+
 ## The gate
 
 * A pull request that touches the assessment, the prompt builder, the recommendation, the workflow,

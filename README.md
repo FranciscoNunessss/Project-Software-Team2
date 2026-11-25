@@ -326,7 +326,7 @@ the catalogue's capability cards. It does not execute the task or generate catal
 | `GET /api/progress` | Current user session, analysis, choice and match counts |
 | `GET /api/progress/dashboard` | Last six sessions with choices, over/under counts and the over- and under-provisioning verdict over the 50 newest analyses (`patterns`: detected, not detected or too few confirmed choices) |
 | `GET /api/progress/outcomes` | Feedback totals: solved, after refining, not solved, followed the recommendation, per model |
-| `GET /api/progress/indicators` | WS4 learning indicators: levels per request-quality dimension (with `level_raw`, without hysteresis), confidence, patterns with their caveat, feedback in the range. `?last=N` (5 to 500 counted tasks) or `?days=N` (1 to 365) picks a range and returns the range before it as `previous`; excluded and paused tasks never count |
+| `GET /api/progress/indicators` | WS4 learning indicators: levels per request-quality dimension (with `level_raw`, without hysteresis), confidence, patterns with their caveat, feedback in the range. `?last=N` (5 to 250 counted tasks) or `?days=N` (1 to 365) picks a range and returns the range before it as `previous` (only when it has at least 5 tasks, enough for a level); excluded and paused tasks never count |
 | `PUT`/`DELETE /api/analyses/{id}/exclusion` | Leave a task out of the learning indicators, or bring it back (a paused task answers 409 `task_paused`); `GET /api/sessions/{id}` marks each analysis `excluded`, and My progress → Saved history offers "Leave out of my learning" / "Count again" |
 | `POST /api/analyses/{id}/quality-dispute` | WS4 L11: dispute one request-quality score with a passage of the request (checked against a salted hash of the analysed request, which is never stored); a restricted judge can raise it one level at most, never above the L1 guards (409 `dispute_capped`; the analysis lists these caps in `request_quality_summary.ceilings`); 24 hours, once per dimension, 5 a day, checked again after the judge so parallel disputes get 409/429. The salt and hash are deleted after the 24 hours by an hourly sweep, even without any activity |
 | `GET`/`PUT /api/progress/goal` | WS4 L9: this week's goal (suggested from the strongest pattern, 2 alternatives; any goal can be chosen), progress in tasks since it was chosen (choosing the same goal again keeps it) |
@@ -532,7 +532,7 @@ a card asks whether the previous one was solved (Solved, Solved after refining, 
 with an optional reason, Skip). Never per answer. Since the ADR-014 revision of 24 November
 2026 the answer can be changed: My progress lists **Tasks without feedback** (answered in one
 click) and **Change a recent answer**, and the chat list marks a chat whose task has no answer
-yet (`GET /api/progress/feedback`). Both show the model used and the
+yet (`GET /api/progress/feedback`; the response rate is answered out of answered plus pending, so a Skip does not lower it, and saving the same answer again is not counted as a change). Both show the model used and the
 recommended one. The model actually used is always stored (provider and model id); "followed
 the recommendation" is yes when it was the recommended model, no otherwise, and unknown only
 when the recommendation was illustrative. While an answer streams in, Send becomes **Stop**;

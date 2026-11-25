@@ -20,7 +20,8 @@ about whether the profile is right.
 | CI | `.github/workflows/quality-eval.yml` |
 | Tests of the arithmetic and the gate (logic only) | `backend/tests/test_quality_eval.py` |
 
-**The task set is a draft.** Its expected levels are one reader's application of rubric-2.0 and only
+**The task set is a draft.** Its replacement is being built by WS5 M1 (`docs/ws5/m1-labelled-set.md`,
+`scripts/labelled_set.py`, output `tasks-2.json`). Its expected levels are one reader's application of rubric-2.0 and only
 clear-cut dimensions are labelled. The labelled set of 20 tasks (card OI-8) replaces it when two
 reviewers agree on it; the runner takes the file name from one constant (`TASKS`). Until then the
 numbers measure agreement with that reading, not truth.

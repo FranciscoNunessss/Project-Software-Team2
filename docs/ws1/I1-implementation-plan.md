@@ -324,3 +324,16 @@ The owner explicitly requested a PR on 25 November. It is prepared as a draft,
 with developer G2 explicitly pending rather than inventing a manual result.
 Original missing live/IDE/idle evidence or a PO scope decision and independent
 G3 remain required before closure. Local preview: http://127.0.0.1:8080 (demo only).
+
+## G2 and PR publication — 25 November 2026
+
+After receiving the local demo checklist, Francisco Nunes reported the manual test
+completed ("já está testado"); no issue was reported. This records the developer's
+statement, not an agent-invented per-step result. Detailed step results/timings
+were not supplied. The G2 prerequisite for opening the PR is now recorded.
+
+[PR #96](https://github.com/FranciscoNunessss/Project-Software-Team2/pull/96) is open
+as a draft from agent/i1-delivery into develop. It does not close the I1 card.
+Remote checks are running; PO scope/options acceptance, original measurement gaps
+and independent G3 approval/merge remain open. Earlier pending-publication/G2
+statements describe their recording time and are superseded by this update.

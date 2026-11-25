@@ -2,7 +2,7 @@
 
 Atualizado em 25 de novembro de 2026. Responsável: Francisco Nunes.
 Cartão: [I1 · Latency and capacity diagnosis](https://app.clickup.com/t/1an3cktb6h8).
-Estado: em progresso. A entrega isolada passou os testes automáticos. A branch está publicada; o PR está preenchido, mas a criação aguarda confirmação explícita para abrir o rascunho antes do G2 manual.
+Estado: em progresso. Os testes automáticos locais passaram. Francisco confirmou o G2 manual em 25/11, sem problemas reportados. [PR #96](https://github.com/FranciscoNunessss/Project-Software-Team2/pull/96) aberto como rascunho para develop; CI remoto em curso.
 
 ## O que foi feito
 
@@ -67,18 +67,21 @@ custos estão no baseline; a recomendação mantém planos gratuitos, pendente d
 
 ## O que ficou por fazer
 
-1. Abrir o PR como rascunho após confirmação explícita da exceção à ordem G2, pelo
-   responsável; a branch já está publicada. CI remoto iniciado. G2 permanece pendente.
-2. G2 pelo developer: testar a conta sintética, Profile, análise demo, chat e retenção
-   após reload no preview local. Registar pass/fail e os problemas encontrados.
-3. Decisão do PO (Ricardo): aceitar explicitamente o âmbito reduzido de saúde HTTP
+1. Confirmar a conclusão dos [checks remotos do PR #96](https://github.com/FranciscoNunessss/Project-Software-Team2/pull/96/checks).
+2. Decisão do PO (Ricardo): aceitar explicitamente o âmbito reduzido de saúde HTTP
    e as opções/custos ou manter o âmbito original e aprovar o setup necessário.
-4. Se for mantido o âmbito original, faltam jornadas reais com 5/20 utilizadores,
+3. Se for mantido o âmbito original, faltam jornadas reais com 5/20 utilizadores,
    carregamento inicial visível da IDE e ensaio de inatividade com isolamento
    verificável. Não existe preview Render isolado. Health/fakes não substituem estas medições.
-5. Publicar revisão LLM no PR. G3 exige aprovação escrita e merge por um colega
-   diferente do autor. Só fechar a I1 quando os critérios e decisões estiverem cumpridos.
+4. G3: revisão, aprovação escrita e merge por um colega diferente do autor.
+   Não foi feito merge nem fechado o cartão I1. A revisão LLM acompanha o PR.
 
+## G2 comunicado pelo responsável
+
+Depois de receber o checklist do preview local, Francisco Nunes respondeu
+"já está testado" em 25/11. Registado como teste manual realizado pelo developer,
+sem problemas reportados. Não foram fornecidos resultados individuais de cada
+passo nem tempos; esses detalhes não foram inventados. O PR foi aberto após esta confirmação.
 Os testes automáticos pendentes foram concluídos em 25/11. O limite do serviço de
 aprovação que bloqueou a sessão anterior deixou de impedir a execução; não foi
 contornado. Foram reutilizados os resultados backend/remoção válidos de 24/11,

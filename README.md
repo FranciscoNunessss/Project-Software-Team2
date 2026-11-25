@@ -522,7 +522,10 @@ carries the analysis only if it was made from that exact text; the message then 
 the analysis compared. Under the answers of the open task a quiet **Task solved** asks once
 whether the user needed to refine it; when the next task starts (a new analysis, another chat)
 a card asks whether the previous one was solved (Solved, Solved after refining, Not solved
-with an optional reason, Skip). Never per answer, never twice. Both show the model used and the
+with an optional reason, Skip). Never per answer. Since the ADR-014 revision of 24 November
+2026 the answer can be changed: My progress lists **Tasks without feedback** (answered in one
+click) and **Change a recent answer**, and the chat list marks a chat whose task has no answer
+yet (`GET /api/progress/feedback`; the response rate is answered out of answered plus pending, so a Skip does not lower it, and saving the same answer again is not counted as a change). Both show the model used and the
 recommended one. The model actually used is always stored (provider and model id); "followed
 the recommendation" is yes when it was the recommended model, no otherwise, and unknown only
 when the recommendation was illustrative. While an answer streams in, Send becomes **Stop**;

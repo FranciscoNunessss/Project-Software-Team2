@@ -1,0 +1,6 @@
+.feedback-inbox .feedback-list { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
+.feedback-inbox .feedback-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 0; border-top: 1px solid var(--border, #e5e5e5); }
+.feedback-inbox .feedback-title { font-weight: 600; overflow-wrap: anywhere; }
+.feedback-inbox .feedback-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+.feedback-inbox details { margin-top: 0.75rem; }
+.chat-list .chat-feedback-dot { display: inline-block; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--accent, #c27a00); margin-left: 0.35rem; flex: none; }

@@ -421,14 +421,14 @@ test('Task solved sends the outcome, and a reason only when it was not solved', 
   }
 })
 
-test('a second answer is explained (the outcome is recorded once per task)', async () => {
+test('an answer the server refuses is explained (it can be changed later, ADR-014 revision)', async () => {
   reset()
-  const { server, analyser } = await backendStub({ outcome: (body, send) => send({ detail: 'outcome_already_recorded' }, 409) })
+  const { server, analyser } = await backendStub({ outcome: (body, send) => send({ detail: 'analysis_not_found' }, 404) })
   try {
     vscode.env.clipboard.text = 'write something about dogs'
     const result = await analyser.fromClipboard()
     await analyser.taskOutcome(result.analysis.id)
-    assert.match(log.error.join(' '), /409|outcome_already_recorded/)
+    assert.match(log.error.join(' '), /no longer stored|404|analysis_not_found/)
   } finally {
     await server.close()
   }

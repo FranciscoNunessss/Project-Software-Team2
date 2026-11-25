@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { api, type ChatSummary } from './api'
+import { api, getFeedbackInbox, type ChatSummary } from './api'
 import type { AccountInfo } from './Account'
 import { Icon } from './AnalysisResult'
 import { IconButton } from './ui'
@@ -50,6 +50,20 @@ export function Sidebar({ screen, onNavigate, dark, onToggleTheme, account, chat
   chats?: SidebarChats
 }) {
   const [drawer, setDrawer] = useState(false)
+  // WS4 L16: chats with a task run with a model and no feedback yet get a dot.
+  const [awaiting, setAwaiting] = useState<Set<string>>(new Set())
+  // Reload when a chat gains a message (a Send records the choice that makes a task count).
+  const chatSignature = chats?.list.map(chat => `${chat.id}:${chat.message_count}`).join(',') ?? ''
+  useEffect(() => {
+    if (!chats) return
+    const controller = new AbortController()
+    const load = () => getFeedbackInbox(controller.signal)
+      .then(inbox => setAwaiting(new Set(inbox.pending.map(item => item.session_id))))
+      .catch(() => undefined)
+    load()
+    window.addEventListener('adaptai-progress-updated', load)
+    return () => { controller.abort(); window.removeEventListener('adaptai-progress-updated', load) }
+  }, [!!chats, chatSignature]) // eslint-disable-line react-hooks/exhaustive-deps
   // Close the mobile drawer whenever the user moves somewhere else.
   const pick = (action: () => void) => { setDrawer(false); action() }
   useEffect(() => {
@@ -104,10 +118,11 @@ export function Sidebar({ screen, onNavigate, dark, onToggleTheme, account, chat
               <ul className="chat-list">
                 {chats.list.map(chat => {
                   const active = chat.id === chats.activeId && screen === 'assistant'
+                  const waiting = awaiting.has(chat.id)
                   return (
                     <li key={chat.id} className={active ? 'active' : ''}>
                       <button type="button" className="chat-open" onClick={() => pick(() => chats.onOpen(chat.id))} disabled={chats.locked}
-                        aria-current={active ? 'page' : undefined} title={chat.title}>{chat.title}</button>
+                        aria-current={active ? 'page' : undefined} title={waiting ? `${chat.title} (no feedback yet)` : chat.title}>{chat.title}{waiting && <span className="chat-feedback-dot" data-feedback-dot="" aria-label="no feedback yet" />}</button>
                       <button type="button" className="chat-delete" aria-label={`Delete ${chat.title}`} onClick={() => chats.onDelete(chat.id)} disabled={chats.locked}>×</button>
                     </li>
                   )

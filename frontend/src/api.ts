@@ -243,6 +243,10 @@ export type OutcomeSummary = {
   followed: number; mean_turns: number | null; by_model: { model: string | null; tasks: number; solved: number }[]
 }
 export const putOutcome = (analysisId: string, body: OutcomeInput) => api(`analyses/${analysisId}/outcome`, body, undefined, 'PUT')
+// WS4 L16: tasks run with a model, their answers (changeable) and the response rate.
+export type FeedbackItem = { analysis_id: string; session_id: string; title: string; created_at: string; outcome: TaskOutcome | null; reason: OutcomeReason | null; changes: number | null }
+export type FeedbackInbox = { pending: FeedbackItem[]; pending_count: number; recent: FeedbackItem[]; run_with_a_model: number; answered: number; asked: number; response_rate: number | null }
+export const getFeedbackInbox = (signal?: AbortSignal) => api<FeedbackInbox>('progress/feedback', undefined, signal)
 export const OUTCOME_REASONS: Record<OutcomeReason, string> = {
   quality: 'Not good or deep enough', instructions: 'Did not follow my request', description: 'I described it poorly', other: 'Other',
 }

@@ -113,9 +113,8 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
         stops: task.answers.filter(item => item.status === 'stopped').length,
         retries: retries.current.get(task.analysisId) ?? 0,
       })
-    } catch (failure) {
-      // Already answered elsewhere: nothing to ask any more.
-      if (!(failure instanceof ApiError && failure.status === 409)) { setError('Could not save your feedback.'); setSavingOutcome(false); return }
+    } catch {
+      setError('Could not save your feedback.'); setSavingOutcome(false); return
     }
     setMessages(items => items.map(item => item.analysis_id === task.analysisId && item.role === 'user' ? { ...item, outcome } : item))
     setPending(item => item?.analysisId === task.analysisId ? null : item)

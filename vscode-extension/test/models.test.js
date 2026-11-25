@@ -31,3 +31,14 @@ test('the consent says what is sent, the cost and its ceiling, and what declinin
   assert.match(consentText(waiting('e', UNKNOWN)), /price of this model is not known/)
   assert.match(consentText(waiting('e', { ...PAID, free: true })), /It is free\./)
 })
+
+test('measured backend summaries display levels instead of object strings', () => {
+  const entry = { ...done, evaluation: { ...done.evaluation, levels: {
+    reasoning: { level: 2, below_level_1: false, pass_rates: { 1: 1, 2: 0.8 } },
+    context: { level: 1, below_level_1: true, pass_rates: { 1: 0 } },
+    tools: { level: null, below_level_1: false },
+  } } }
+  const text = describeEvaluation(entry).text
+  assert.equal(text, 'Measured by AdaptAI · R2 C<1 T?')
+  assert.doesNotMatch(text, /object Object|null/)
+})

@@ -8,9 +8,11 @@ demonstration provider need no model.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
+import logging
 import secrets
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
@@ -26,9 +28,12 @@ from app.outcomes import owned_analysis
 from app.request_quality import guard_ceiling, reason_code
 from app.storage import Storage
 
+LOGGER = logging.getLogger(__name__)
+
 # ---- request hash for disputes (L11) ---------------------------------------------------------
 
 DISPUTE_WINDOW = timedelta(hours=24)
+FINGERPRINT_SWEEP_SECONDS = 3600
 DISPUTES_PER_DAY = 5
 MIN_PASSAGE_CHARS = 3
 
@@ -48,6 +53,11 @@ def expire_fingerprints(db) -> None:
         "WHERE task_hash IS NOT NULL AND created_at<%s",
         (limit,),
     )
+
+
+def sweep_fingerprints(store: Storage) -> None:
+    with store.connect() as db:
+        expire_fingerprints(db)
 
 
 def same_task(task: str, salt: str, digest: str) -> bool:
@@ -181,6 +191,9 @@ HINT_PAUSE = 3
 def educator_hint(store: Storage, user_id: str, scores: dict[str, int | None]) -> dict | None:
     """One hint for the task being analysed: an active 'missing dimension' pattern that this
     request repeats (scored 0 now), unless the user dismissed a hint in the last 3 analyses."""
+    # Paused learning means "not now" for the Educator too, not only "do not count".
+    if learning_settings(store, user_id)["paused"]:
+        return None
     tasks = [task for _, task in counted_tasks(store, user_id)]
     patterns = [p for p in compute(tasks).patterns if p.code == "missing_dimension"]
     candidates = [p for p in patterns if scores.get(p.dimension) == 0]
@@ -252,6 +265,26 @@ class SettingsInput(BaseModel):
 
 
 def install_learning_experience(app: FastAPI, store: Storage, judge: Judge) -> None:
+    @app.on_event("startup")
+    async def start_fingerprint_expiry():
+        # The fingerprints must go after 24 hours even for someone who never comes back, so
+        # expiry cannot wait for the next analysis or dispute: sweep every hour.
+        async def loop():
+            while True:
+                try:
+                    await asyncio.to_thread(sweep_fingerprints, store)
+                except Exception:  # noqa: BLE001 - the sweep must never take the app down
+                    LOGGER.exception("Fingerprint expiry failed; retrying in an hour")
+                await asyncio.sleep(FINGERPRINT_SWEEP_SECONDS)
+
+        app.state.fingerprint_task = asyncio.create_task(loop())
+
+    @app.on_event("shutdown")
+    async def stop_fingerprint_expiry():
+        task = getattr(app.state, "fingerprint_task", None)
+        if task:
+            task.cancel()
+
     @app.get("/api/progress/goal")
     def goal(user: AuthenticatedUser):
         now = datetime.now(UTC)
@@ -289,8 +322,10 @@ def install_learning_experience(app: FastAPI, store: Storage, judge: Judge) -> N
             db.execute(
                 """INSERT INTO learning_goals(user_id,week,code,target) VALUES (%s,%s,%s,%s)
                    ON CONFLICT (user_id,week) DO UPDATE SET code=EXCLUDED.code,
-                   set_at=to_char(clock_timestamp() AT TIME ZONE 'UTC',
-                                  'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')""",
+                   set_at=CASE WHEN learning_goals.code=EXCLUDED.code
+                               THEN learning_goals.set_at
+                               ELSE to_char(clock_timestamp() AT TIME ZONE 'UTC',
+                                            'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') END""",
                 (user["id"], week, body.code, GOAL_TARGET),
             )
         return goal(user)
@@ -404,6 +439,24 @@ def install_learning_experience(app: FastAPI, store: Storage, judge: Judge) -> N
         after = max(before, min(before + 1, judged, guard_ceiling(dimension, body.task)))
         accepted = after > before
         with store.connect() as db:
+            # The judge call runs outside any transaction, so two disputes sent together both
+            # pass the checks above. Check again under the user's lock before writing: the
+            # second one gets 409 or 429, never a 500 or a sixth dispute that day.
+            store.lock_user(db, user["id"])
+            if db.execute(
+                "SELECT 1 FROM quality_disputes WHERE analysis_id=%s AND dimension=%s",
+                (analysis_id, dimension),
+            ).fetchone():
+                raise HTTPException(409, "already_disputed")
+            if (
+                db.execute(
+                    "SELECT count(*) AS n FROM quality_disputes "
+                    "WHERE user_id=%s AND created_at>=%s",
+                    (user["id"], today),
+                ).fetchone()["n"]
+                >= DISPUTES_PER_DAY
+            ):
+                raise HTTPException(429, "dispute_limit_reached")
             if accepted:
                 codes = json.loads(row["reason_codes"])
                 codes[dimension] = reason_code(dimension, after)

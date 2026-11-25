@@ -4,9 +4,15 @@ pause and start over (L17). Runs with rubric-2.2 and the demonstration provider.
 import json
 
 import pytest
-from app import providers
+from app import main, providers
 from app.learning_engine import DIMENSIONS, TaskRecord
-from app.learning_experience import achievements, goal_met_by, same_task, task_fingerprint
+from app.learning_experience import (
+    achievements,
+    goal_met_by,
+    same_task,
+    sweep_fingerprints,
+    task_fingerprint,
+)
 from app.main import create_app
 from app.prompt_builder import load_rubric
 from app.providers import Settings
@@ -112,6 +118,45 @@ def test_a_dispute_never_lifts_a_score_above_the_guards(app):
     assert held.status_code == 409 and held.json()["detail"] == "dispute_capped"
     with app.state.storage.connect() as db:
         assert db.execute("SELECT count(*) AS n FROM quality_disputes").fetchone()["n"] == 0
+
+
+def test_a_dispute_that_lands_while_another_is_judged_gets_409_not_500(app, monkeypatch):
+    client = account(app)
+    item = analyse(client, SHORT_WITH_MUST)
+    real = main.demonstration_quality
+
+    def judged_while_another_lands(passage):
+        # The same dimension is disputed again while this one waits for the judge.
+        with app.state.storage.connect() as db:
+            user = db.execute("SELECT id FROM users").fetchone()["id"]
+            db.execute(
+                "INSERT INTO quality_disputes(analysis_id,user_id,dimension,accepted,"
+                "score_before,score_after) VALUES (%s,%s,'ambiguity',0,1,1)",
+                (item["id"], user),
+            )
+        return real(passage)
+
+    monkeypatch.setattr(main, "demonstration_quality", judged_while_another_lands)
+    answer = dispute(client, item, SHORT_WITH_MUST, "Write a short plan", "ambiguity")
+    assert answer.status_code == 409 and answer.json()["detail"] == "already_disputed"
+    with app.state.storage.connect() as db:
+        assert db.execute("SELECT count(*) AS n FROM quality_disputes").fetchone()["n"] == 1
+
+
+def test_fingerprints_expire_on_the_hourly_sweep_without_any_activity(app):
+    client = account(app)
+    item = analyse(client, SHORT_WITH_MUST)
+    with app.state.storage.connect() as db:
+        db.execute(
+            "UPDATE request_quality SET created_at='2026-01-01T00:00:00.000Z' WHERE analysis_id=%s",
+            (item["id"],),
+        )
+    sweep_fingerprints(app.state.storage)
+    with app.state.storage.connect() as db:
+        row = db.execute("SELECT task_salt,task_hash FROM request_quality").fetchone()
+    assert row["task_salt"] is None and row["task_hash"] is None
+    with TestClient(app):  # startup runs the sweep loop
+        assert not app.state.fingerprint_task.done()
 
 
 def test_fingerprints_are_forgotten_after_the_dispute_window(app):
@@ -258,6 +303,11 @@ def test_goal_is_suggested_with_alternatives_and_can_be_changed(app):
         analyse(client, CLEAR_FORMAT)
     done = client.get("/api/progress/goal").json()["goal"]
     assert done["progress"] == 3 and done["met"] is True
+    # Choosing the same goal again keeps the progress; another goal starts from 0.
+    again = client.put("/api/progress/goal", json={"code": "state_audience_format"}).json()
+    assert again["goal"]["progress"] == 3
+    other = client.put("/api/progress/goal", json={"code": "state_context"}).json()
+    assert other["goal"]["progress"] == 0
     assert client.put("/api/progress/goal", json={"code": "be_amazing"}).status_code == 422
 
 
@@ -307,6 +357,17 @@ def test_paused_tasks_do_not_count_until_resumed(app):
     client.put("/api/learning/settings", json={"paused": False})
     analyse(client, CLEAR_FORMAT)
     assert client.get("/api/progress/indicators").json()["tasks"] == 2
+
+
+def test_no_educator_hint_while_learning_is_paused(app):
+    client = account(app)
+    for index in range(5):
+        analyse(client, NO_CRITERIA.format(index))
+    assert analyse(client, NO_CRITERIA.format(5))["educator_hint"] is not None
+    client.put("/api/learning/settings", json={"paused": True})
+    assert analyse(client, NO_CRITERIA.format(6))["educator_hint"] is None
+    client.put("/api/learning/settings", json={"paused": False})
+    assert analyse(client, NO_CRITERIA.format(7))["educator_hint"] is not None
 
 
 def test_start_over_deletes_learning_data_but_keeps_feedback(app):

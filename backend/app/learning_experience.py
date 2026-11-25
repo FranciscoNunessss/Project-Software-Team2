@@ -15,6 +15,7 @@ import json
 import logging
 import secrets
 from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -265,10 +266,13 @@ class SettingsInput(BaseModel):
 
 
 def install_learning_experience(app: FastAPI, store: Storage, judge: Judge) -> None:
-    @app.on_event("startup")
-    async def start_fingerprint_expiry():
-        # The fingerprints must go after 24 hours even for someone who never comes back, so
-        # expiry cannot wait for the next analysis or dispute: sweep every hour.
+    # The fingerprints must go after 24 hours even for someone who never comes back, so expiry
+    # cannot wait for the next analysis or dispute: sweep every hour while the app runs. The
+    # app's lifespan is wrapped (not on_event, which is deprecated), keeping its other handlers.
+    previous_lifespan = app.router.lifespan_context
+
+    @asynccontextmanager
+    async def lifespan(application):
         async def loop():
             while True:
                 try:
@@ -278,12 +282,13 @@ def install_learning_experience(app: FastAPI, store: Storage, judge: Judge) -> N
                 await asyncio.sleep(FINGERPRINT_SWEEP_SECONDS)
 
         app.state.fingerprint_task = asyncio.create_task(loop())
+        try:
+            async with previous_lifespan(application) as state:
+                yield state
+        finally:
+            app.state.fingerprint_task.cancel()
 
-    @app.on_event("shutdown")
-    async def stop_fingerprint_expiry():
-        task = getattr(app.state, "fingerprint_task", None)
-        if task:
-            task.cancel()
+    app.router.lifespan_context = lifespan
 
     @app.get("/api/progress/goal")
     def goal(user: AuthenticatedUser):

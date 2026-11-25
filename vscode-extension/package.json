@@ -115,9 +115,39 @@
       },
       {
         "command": "adaptai.improvePrompt",
-        "title": "Improve the prompt (autocorrect)",
+        "title": "Prompt Coach: improve the selection",
         "category": "AdaptAI",
         "icon": "$(wand)"
+      },
+      {
+        "command": "adaptai.applyImprovement",
+        "title": "Apply the improved prompt",
+        "category": "AdaptAI",
+        "icon": "$(check)"
+      },
+      {
+        "command": "adaptai.dismissImprovement",
+        "title": "Dismiss the improved prompt",
+        "category": "AdaptAI",
+        "icon": "$(x)"
+      },
+      {
+        "command": "adaptai.suggestChange",
+        "title": "Suggest a change to the selection",
+        "category": "AdaptAI",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "adaptai.acceptChange",
+        "title": "Accept the proposed change",
+        "category": "AdaptAI",
+        "icon": "$(check)"
+      },
+      {
+        "command": "adaptai.rejectChange",
+        "title": "Reject the proposed change",
+        "category": "AdaptAI",
+        "icon": "$(x)"
       },
       {
         "command": "adaptai.testConnection",
@@ -205,6 +235,28 @@
           "group": "navigation@2"
         }
       ],
+      "editor/title": [
+        {
+          "command": "adaptai.applyImprovement",
+          "when": "adaptai.improving && isInDiffEditor",
+          "group": "navigation@1"
+        },
+        {
+          "command": "adaptai.dismissImprovement",
+          "when": "adaptai.improving && isInDiffEditor",
+          "group": "navigation@2"
+        },
+        {
+          "command": "adaptai.acceptChange",
+          "when": "adaptai.reviewing && isInDiffEditor && resourceScheme == adaptai-change",
+          "group": "navigation@1"
+        },
+        {
+          "command": "adaptai.rejectChange",
+          "when": "adaptai.reviewing && isInDiffEditor && resourceScheme == adaptai-change",
+          "group": "navigation@2"
+        }
+      ],
       "editor/context": [
         {
           "command": "adaptai.analyseSelection",
@@ -215,6 +267,11 @@
           "command": "adaptai.improvePrompt",
           "when": "editorHasSelection",
           "group": "adaptai@2"
+        },
+        {
+          "command": "adaptai.suggestChange",
+          "when": "editorHasSelection",
+          "group": "adaptai@3"
         }
       ],
       "explorer/context": [
@@ -236,6 +293,26 @@
         {
           "command": "adaptai.improvePrompt",
           "when": "editorIsOpen"
+        },
+        {
+          "command": "adaptai.suggestChange",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "adaptai.applyImprovement",
+          "when": "adaptai.improving"
+        },
+        {
+          "command": "adaptai.dismissImprovement",
+          "when": "adaptai.improving"
+        },
+        {
+          "command": "adaptai.acceptChange",
+          "when": "adaptai.reviewing"
+        },
+        {
+          "command": "adaptai.rejectChange",
+          "when": "adaptai.reviewing"
         },
         {
           "command": "adaptai.chatSendText",
@@ -280,7 +357,7 @@
             "Small edits applied to your text (copied to the clipboard).",
             "Tips only; nothing is copied."
           ],
-          "markdownDescription": "What **Coach the prompt on the clipboard** asks the Prompt Coach for."
+          "markdownDescription": "What **Coach the prompt on the clipboard** asks the Prompt Coach for, and the mode offered first when you start the Prompt Coach on a selection (`Ctrl+K Ctrl+E`)."
         },
         "adaptai.improveApply": {
           "type": "string",
@@ -294,6 +371,11 @@
             "Replace the text at once (Undo restores it)."
           ],
           "markdownDescription": "What **Improve the prompt** does with the improved text."
+        },
+        "adaptai.projectContext": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Send the **language, framework and test runner** of the project with an analysis, as one short line such as `Project: TypeScript, React, Vitest`. They are read from `package.json`, `tsconfig.json`, `requirements.txt`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `pom.xml` and `build.gradle` at the top of the workspace folder. Only names from a fixed list are sent: never file text, package names or paths. The message after an analysis shows what was sent."
         },
         "adaptai.lmStudioUrl": {
           "type": "string",
@@ -378,7 +460,7 @@
     "build": "tsc -p ./",
     "package": "npx --yes @vscode/vsce@3 package --no-dependencies --allow-missing-repository --skip-license",
     "test": "tsc -p ./ && node --test test/*.test.js",
-    "test:page": "tsc -p ./ && node test/page.browser.cjs"
+    "test:page": "tsc -p ./ && node test/page.browser.cjs && node test/page-layout.browser.cjs && node test/navigation.browser.cjs"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

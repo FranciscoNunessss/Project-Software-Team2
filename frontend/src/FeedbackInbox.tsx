@@ -60,7 +60,7 @@ export function FeedbackInbox() {
     <section className="card feedback-inbox" aria-labelledby="feedback-inbox-title" data-feedback-inbox="">
       <div className="card-heading"><div><p className="eyebrow">Feedback</p><h2 id="feedback-inbox-title">Tasks without feedback ({data.pending_count})</h2></div></div>
       <p className="muted" data-response-rate="">
-        You answered {data.answered} of {data.run_with_a_model} tasks{data.response_rate !== null ? ` (${data.response_rate}%)` : ''}. More answers make your patterns and savings more reliable.
+        You answered {data.answered} of {data.asked} tasks{data.response_rate !== null ? ` (${data.response_rate}%)` : ''}{data.run_with_a_model > data.asked ? `; ${data.run_with_a_model - data.asked} skipped` : ''}. More answers make your patterns and savings more reliable.
       </p>
       {data.pending.length === 0 ? <p className="muted">Nothing waiting: every task you ran has an answer.</p> : (
         <ul className="feedback-list">

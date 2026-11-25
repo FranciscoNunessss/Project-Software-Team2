@@ -36,7 +36,11 @@ _ASKS_FOR_MARKS = re.compile(
     r"\b(?:score|mark|rate|grade)\s+(?:this|it|me|the request|my request)\s+"
     r"(?:as\s+)?(?:a\s+)?(?:2|two|clear)\b|"
     r"\b2\s+(?:in|on|for)\s+(?:every|all|each)\s+(?:dimension|criteri(?:on|a)|categor(?:y|ies))|"
-    r"ignore (?:the |all |any |previous |these )*(?:rubric|instructions|rules|scoring)|"
+    # "ignore the rules of the road" is an ordinary task: only the rubric or scoring, or the
+    # instructions given before this message, count as asking to bypass the assessment.
+    r"ignore (?:the |all |any |these |your )*(?:rubric|scoring)|"
+    r"ignore (?:all |any )?(?:the |your )?(?:previous|above|prior|earlier|system) "
+    r"(?:instructions|rules|prompt)|"
     r"nota m[áa]xima|pontua[çc][ãa]o m[áa]xima|"
     r"\b2\s+em\s+(?:todas|tudo|cada)",
     re.IGNORECASE,
@@ -52,10 +56,19 @@ def reason_code(dimension: str, score: int | None) -> str:
     return code
 
 
-def _capped(item: QualityScore, ceiling: int) -> QualityScore:
+# A guard replaces the model's reason: "the objective is clearly stated" next to a lowered
+# score would contradict it.
+SHORT_REQUEST_REASON = "Lowered by a guard: a request this short cannot fully state this."
+ASKS_FOR_MARKS_REASON = (
+    "Lowered by a guard: the request asks for a score, so nothing counts as clear."
+)
+OBJECTIVE_REASON = "The objective always applies, and the request does not state one."
+
+
+def _capped(item: QualityScore, ceiling: int, reason: str) -> QualityScore:
     if item.score is None or item.score <= ceiling:
         return item
-    return QualityScore(score=ceiling, reason=item.reason)
+    return QualityScore(score=ceiling, reason=reason)
 
 
 def guard_ceiling(dimension: str, task: str) -> int:
@@ -75,11 +88,11 @@ def apply_guards(quality: RequestQuality, task: str) -> tuple[RequestQuality, li
     scores = {name: getattr(quality, name) for name in DIMENSIONS}
     fired: list[Guard] = []
     if scores["objective"].score is None:
-        scores["objective"] = QualityScore(score=0, reason=scores["objective"].reason)
+        scores["objective"] = QualityScore(score=0, reason=OBJECTIVE_REASON)
         fired.append("objective_always_applies")
     if len(task.split()) < SHORT_REQUEST_WORDS:
         for name in ("context", "constraints"):
-            capped = _capped(scores[name], 1)
+            capped = _capped(scores[name], 1, SHORT_REQUEST_REASON)
             if capped is not scores[name]:
                 scores[name] = capped
                 if "short_request" not in fired:
@@ -87,7 +100,7 @@ def apply_guards(quality: RequestQuality, task: str) -> tuple[RequestQuality, li
     if _ASKS_FOR_MARKS.search(task):
         changed = False
         for name in DIMENSIONS:
-            capped = _capped(scores[name], 1)
+            capped = _capped(scores[name], 1, ASKS_FOR_MARKS_REASON)
             changed |= capped is not scores[name]
             scores[name] = capped
         if changed:

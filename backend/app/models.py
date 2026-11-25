@@ -84,12 +84,24 @@ class Modality(Evidence):
         return self
 
 
+REASON_MAX = 160
+
+
 class QualityScore(BaseModel):
     """WS4 L1: one request-quality dimension. The reason is shown once and never stored."""
 
     model_config = ConfigDict(extra="forbid", strict=True)
     score: int | None = Field(ge=0, le=2)
-    reason: str = Field(min_length=1, max_length=160)
+    reason: str = Field(min_length=1, max_length=REASON_MAX)
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def shorten_reason(cls, value):
+        # A long reason is cut, never fatal: rejecting it would fail the whole assessment,
+        # need levels included, for a line of explanation.
+        if isinstance(value, str) and len(value.strip()) > REASON_MAX:
+            return value.strip()[: REASON_MAX - 1].rstrip() + "…"
+        return value
 
 
 class RequestQuality(BaseModel):

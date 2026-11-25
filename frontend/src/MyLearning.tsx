@@ -164,7 +164,7 @@ export function MyLearning() {
         <div data-top-maturity="">
           <dt>Level</dt>
           <dd>{data.overall_level ? `${LEVEL_NAMES[data.overall_level]} ${trend(data.overall_level, data.previous?.overall_level)}` : '—'}</dd>
-          <p className="muted">{data.overall_level ? `Based on ${data.tasks} tasks` : `After ${MIN_TASKS} assessed tasks`}</p>
+          <p className="muted">{data.overall_level ? `Based on ${data.tasks} tasks${range ? ' in this range' : ''}` : `After ${MIN_TASKS} assessed tasks`}</p>
         </div>
       </dl>
 
@@ -188,7 +188,7 @@ export function MyLearning() {
         <div className="learning-body">
           <Radar dimensions={data.dimensions} />
           <table className="learning-table" data-learning-table="">
-            <caption className="muted">Levels: Starting, Developing, Proficient, Expert</caption>
+            <caption className="muted">Levels: Starting, Developing, Proficient, Expert{range ? '. Levels for this range only, worked out from its own tasks.' : ''}</caption>
             <thead><tr><th scope="col">Dimension</th><th scope="col">Level</th><th scope="col">Based on</th><th scope="col">Confidence</th></tr></thead>
             <tbody>
               {Object.keys(DIMENSION_LABELS).map(name => {

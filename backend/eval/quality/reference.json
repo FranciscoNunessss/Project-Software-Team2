@@ -1,0 +1,9 @@
+{
+ "model": "claude-sonnet-5-5",
+ "price_in_per_mtok": 2.0,
+ "price_out_per_mtok": 10.0,
+ "observed_on": "2026-11-06",
+ "catalogue": "catalogue-2.1",
+ "source": "OpenRouter public model catalogue, as recorded in catalogue-2.1",
+ "decision": "D4 default (cost by default, top model fixed and dated). Assumption until the client confirms D4 in the weekly update. Frozen at the AI freeze (end of week 13)."
+}

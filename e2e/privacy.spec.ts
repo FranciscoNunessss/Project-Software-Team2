@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { goTo, signUp } from './helpers'
+import { closePanel, goTo, signUp } from './helpers'
 
 test('Profile deletes the account after the email and password are typed, and the sign-in stops working', async ({ page }) => {
   await signUp(page)
@@ -54,4 +54,22 @@ test('the footer and Profile open the Privacy Policy from the signed-in app', as
   await goTo(page, 'Profile')
   await page.getByRole('button', { name: 'Read the Privacy Policy' }).click()
   await expect(page.getByRole('heading', { name: '3. Summary' })).toBeVisible()
+})
+
+// G2 WS4 8.1: a draft that is only analysed is never stored as the chat title; Send names it.
+test('Analyse in a new chat keeps the default title until Send', async ({ page }) => {
+  await signUp(page)
+  const text = 'MARKER-e2e confidential plan for the merger'
+  await page.locator('[data-chat-input]').fill(text)
+  const analysed = page.waitForResponse(response => response.url().endsWith('/api/analyze'))
+  await page.locator('[data-analyse-button]').click()
+  expect((await analysed).status()).toBe(200)
+  const chats = page.locator('[data-chat-sidebar] .chat-open')
+  await expect(chats).toHaveText(['New chat'])
+  const stored = await (await page.request.get('/api/chats')).text()
+  expect(stored).not.toContain('MARKER-e2e')
+  await closePanel(page)
+  await page.locator('[data-chat-send]').click()
+  await expect(page.locator('[data-chat-message="assistant"]')).toHaveCount(1)
+  await expect(chats).toHaveText([text])
 })

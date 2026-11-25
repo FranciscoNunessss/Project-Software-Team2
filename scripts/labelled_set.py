@@ -31,7 +31,8 @@ def load(path: str) -> tuple[str, dict]:
 def print_report(report: dict) -> None:
     print(f"{report['tasks']} tasks, overall agreement {report['overall']}%")
     for field, cell in report["by_field"].items():
-        print(f"  {field:<15} {cell['agreement']}%  kappa {cell['kappa']}")
+        weighted = f"  weighted {cell['weighted_kappa']}" if "weighted_kappa" in cell else ""
+        print(f"  {field:<15} {cell['agreement']}%  kappa {cell['kappa']}{weighted}")
     print(f"{len(report['disagreements'])} disagreeing cells")
     for cell in report["disagreements"]:
         print(f"  {cell['task']}: {cell['field']} A={cell['a']} B={cell['b']}")

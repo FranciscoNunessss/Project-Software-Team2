@@ -165,6 +165,73 @@ def test_the_built_set_has_no_field_beyond_the_schema(tmp_path):
         }
 
 
+def test_a_third_value_is_checked_like_a_sheet_cell(tmp_path):
+    a = labels(filled(tmp_path, "a.csv"))
+    b = labels(
+        filled(
+            tmp_path,
+            "b.csv",
+            {("celsius", "modality"): "image", ("laptops", "expected_model"): "gpt-oss-120b"},
+        )
+    )
+    settled = [
+        {"task": "celsius", "field": "modality", "value": "audio+text", "reason": "r"},
+        {"task": "laptops", "field": "expected_model", "value": "no-such-model", "reason": "r"},
+    ]
+
+    with pytest.raises(ls.SheetError) as error:
+        ls.build(a, b, settled, ("AA", "BB"), "d", models=MODELS)
+
+    assert error.value.problems == [
+        "laptops: settled expected_model 'no-such-model' is not a catalogue model"
+    ]
+
+
+def test_a_third_modality_is_written_normalised(tmp_path):
+    a = labels(filled(tmp_path, "a.csv"))
+    b = labels(filled(tmp_path, "b.csv", {("celsius", "modality"): "image"}))
+    settled = [{"task": "celsius", "field": "modality", "value": "text+image", "reason": "r"}]
+
+    document = ls.build(a, b, settled, ("AA", "BB"), "d", models=MODELS)
+
+    celsius = next(task for task in document["tasks"] if task["id"] == "celsius")
+    assert celsius["modality"] == "image+text"
+    assert document["resolutions"][0]["value"] == "image+text"
+
+
+def test_sheets_whose_task_text_or_stratum_differ_are_not_compared(tmp_path):
+    a = labels(filled(tmp_path, "a.csv"))
+    b = labels(
+        filled(tmp_path, "b.csv", {("celsius", "task"): "edited", ("laptops", "stratum"): "hard"})
+    )
+
+    with pytest.raises(ls.SheetError) as error:
+        ls.compare(a, b)
+
+    assert error.value.problems == [
+        "celsius: task differs between the sheets",
+        "laptops: stratum differs between the sheets",
+    ]
+
+
+def test_two_sheets_with_the_same_initials_are_refused(tmp_path):
+    a = labels(filled(tmp_path, "a.csv"))
+
+    with pytest.raises(ls.SheetError, match="initials"):
+        ls.build(a, a, [], ("AA", "aa"), "d")
+
+
+def test_weighted_kappa_counts_one_against_three_as_worse():
+    first = [1, 1, 2, 2, 3, 3]
+    near = [1, 2, 2, 2, 3, 3]
+    far = [3, 1, 2, 2, 3, 3]
+
+    assert agreement.cohen_kappa(first, near) == agreement.cohen_kappa(first, far)
+    assert agreement.weighted_kappa(first, near) > agreement.weighted_kappa(first, far)
+    assert agreement.weighted_kappa(first, first) == 1.0
+    assert agreement.weighted_kappa([2, 2], [2, 2]) is None
+
+
 def test_cohen_kappa_matches_a_worked_example():
     first = ["y", "y", "n", "n", "y", "n", "y", "y", "n", "y"]
     second = ["y", "n", "n", "n", "y", "n", "y", "y", "y", "y"]

@@ -23,8 +23,13 @@ Functional
 3. Labellers work alone on their own copy of `m1-labelling-sheet.csv` and do not discuss before both
    are submitted.
 4. A script reports agreement per dimension and on the expected model (percent and Cohen's kappa).
+   Levels are ordinal, and plain kappa counts 1 against 3 the same as 1 against 2, so each
+   dimension also gets a quadratic-weighted kappa. Both are reported; neither is a gate.
+   The two sheets must hold the same task text and stratum for every task, and different
+   initials; otherwise nothing is compared.
 5. Each disagreement is settled in a short meeting; the settled value and a one-line reason go into a
-   log. Nothing is averaged.
+   log. Nothing is averaged. A settled value may be neither labeller's (a third value); it is checked
+   like a sheet cell (level 1 to 3, a known modality, written normalised, a catalogue model).
 6. The final set is written to `backend/eval/quality/tasks-2.json`, same shape as `tasks-1.json`
    plus `stratum`, `expected_model`, `modality`, and `labels` (both raw labels, for audit).
 
@@ -75,7 +80,7 @@ New injection tasks (wording to review at G1):
 | S1 | `test_agreement_report_lists_each_disagreeing_cell_and_kappa` |
 | S2 | `test_a_sheet_with_an_empty_cell_is_rejected_with_its_task_and_column` |
 | S3 | `test_identical_sheets_give_full_agreement_and_an_empty_log` |
-| S4 | `test_a_level_outside_one_to_three_or_an_unknown_model_is_rejected` |
+| S4 | `test_a_level_outside_one_to_three_or_an_unknown_model_is_rejected`, `test_a_third_value_is_checked_like_a_sheet_cell`, `test_sheets_whose_task_text_or_stratum_differ_are_not_compared`, `test_two_sheets_with_the_same_initials_are_refused` |
 | S5 | Card checklist: both sheets carry the independence statement |
 | S6 | `test_the_committed_set_has_twenty_tasks_two_marked_as_injection` |
 | S7 | `test_the_committed_set_has_no_field_beyond_the_schema` and the existing marker test |

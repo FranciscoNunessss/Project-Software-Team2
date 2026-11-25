@@ -227,8 +227,9 @@ def feedback_inbox(store: Storage, user_id: str) -> dict:
     """WS4 L16: tasks run with a model (a choice was recorded) and their feedback.
 
     pending: no answer yet, newest first; recent: the latest answers, which can be changed;
-    response_rate: answered (skipped excluded) out of tasks run with a model. Titles are the
-    chat titles the history already shows; no other text.
+    response_rate: answered out of answered plus pending. A skip is a deliberate "no answer":
+    it counts neither as answered nor against the rate. Titles are the chat titles the
+    history already shows; no other text.
     """
     with store.connect() as db:
         rows = db.execute(
@@ -249,7 +250,10 @@ def feedback_inbox(store: Storage, user_id: str) -> dict:
         "recent": [item for item in items if item["outcome"] is not None][:FEEDBACK_LIST_LIMIT],
         "run_with_a_model": len(items),
         "answered": len(answered),
-        "response_rate": round(100 * len(answered) / len(items)) if items else None,
+        "asked": len(answered) + len(pending),
+        "response_rate": round(100 * len(answered) / (len(answered) + len(pending)))
+        if answered or pending
+        else None,
     }
 
 
@@ -337,7 +341,15 @@ def install_outcomes(app: FastAPI, store: Storage, on_change=None, ratings_for=N
                     used[0],
                     used[1],
                     source,
-                    existing["changes"] + 1 if existing else 0,
+                    # Only a different answer is a change: a repeated save (double click,
+                    # retry) must not count as the user changing their mind.
+                    existing["changes"]
+                    + (
+                        existing["outcome"] != body.outcome
+                        or (existing["reason"] or None) != (body.reason or None)
+                    )
+                    if existing
+                    else 0,
                 ),
             )
             row = db.execute(

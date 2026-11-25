@@ -298,6 +298,25 @@ def test_feedback_inbox_lists_tasks_run_with_a_model(app):
     assert inbox["response_rate"] == 50
     assert inbox["recent"][0]["analysis_id"] == first["id"]
     assert inbox["recent"][0]["outcome"] == "resolved"
+    # A skip counts neither as answered nor against the rate.
+    client.put(f"/api/analyses/{second['id']}/outcome", json={"outcome": "skipped"})
+    inbox = client.get("/api/progress/feedback").json()
+    assert (inbox["answered"], inbox["asked"], inbox["response_rate"]) == (1, 1, 100)
+    assert inbox["run_with_a_model"] == 2
+
+
+def test_saving_the_same_answer_again_is_not_a_change(app):
+    client = account(TestClient(app))
+    item = analyse(client)
+    path = f"/api/analyses/{item['id']}/outcome"
+    client.put(path, json={"outcome": "not_resolved", "reason": "description"})
+    client.put(path, json={"outcome": "not_resolved", "reason": "description"})
+    assert client.get(path).json()["changes"] == 0
+    client.put(path, json={"outcome": "not_resolved", "reason": "quality"})
+    assert client.get(path).json()["changes"] == 1
+    client.put(path, json={"outcome": "resolved"})
+    client.put(path, json={"outcome": "resolved"})
+    assert client.get(path).json()["changes"] == 2
 
 
 def test_feedback_inbox_is_per_user_and_returns_only_ids_answers_and_titles(app):

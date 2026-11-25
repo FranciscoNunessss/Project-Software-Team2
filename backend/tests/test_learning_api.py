@@ -167,8 +167,18 @@ def test_date_range_and_no_trend_without_earlier_tasks(app):
     assert client.get("/api/progress/indicators").json()["previous"] is None
 
 
+def test_no_trend_against_an_earlier_range_too_small_for_a_level(app):
+    client = account(TestClient(app))
+    for _ in range(7):
+        analyse(client)
+    # last=5 leaves 2 earlier tasks: fewer than a level needs, so no trend.
+    assert client.get("/api/progress/indicators?last=5").json()["previous"] is None
+
+
 def test_range_parameters_are_validated(app):
     client = account(TestClient(app))
+    assert client.get("/api/progress/indicators?last=250").status_code == 200
+    assert client.get("/api/progress/indicators?last=251").status_code == 422
     assert client.get("/api/progress/indicators?last=2").status_code == 422
     assert client.get("/api/progress/indicators?last=10&days=7").status_code == 422
 

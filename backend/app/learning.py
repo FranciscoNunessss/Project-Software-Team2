@@ -14,7 +14,7 @@ from datetime import UTC, datetime, timedelta
 from fastapi import FastAPI, HTTPException, Query
 
 from app.accounts import AuthenticatedUser
-from app.learning_engine import DIMENSIONS, TaskRecord, compute
+from app.learning_engine import DIMENSIONS, MIN_LEVEL_TASKS, TaskRecord, compute
 from app.outcomes import owned_analysis
 from app.recommendation import candidate_gap
 from app.storage import Storage
@@ -106,7 +106,9 @@ def user_indicators(
     else:
         current, previous = [task for _, task in dated], []
     result = compute(current).as_dict()
-    earlier = compute(previous).as_dict() if previous else None
+    # A trend needs an earlier range with enough tasks for a level: 2 earlier tasks against
+    # 10 would show a trend that means nothing.
+    earlier = compute(previous).as_dict() if len(previous) >= MIN_LEVEL_TASKS else None
     result["range"] = {"last": last, "days": days}
     # Feedback in the same range, so "tasks solved" follows the range the user picked.
     answered = [task for task in current if task.outcome is not None]
@@ -131,7 +133,8 @@ def install_learning(app: FastAPI, store: Storage) -> None:
     @app.get("/api/progress/indicators")
     def indicators(
         user: AuthenticatedUser,
-        last: int | None = Query(default=None, ge=5, le=HISTORY_LIMIT),
+        # The trend reads 2 * last tasks, and only HISTORY_LIMIT tasks are read.
+        last: int | None = Query(default=None, ge=5, le=HISTORY_LIMIT // 2),
         days: int | None = Query(default=None, ge=1, le=365),
     ):
         if last is not None and days is not None:

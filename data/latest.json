@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-24T17:52:13.325Z",
-  "date": "2026-11-24",
+  "generatedAt": "2026-11-25T09:22:58.999Z",
+  "date": "2026-11-25",
   "repo": "FranciscoNunessss/Project-Software-Team2",
   "branch": "develop",
   "semester": {
@@ -125,7 +125,7 @@
         }
       ],
       "progress": null,
-      "expected": 82.9,
+      "expected": 85.7,
       "status": "no-data",
       "note": "Not measured: the 20-task set has no human labels and no outside reviewers yet. A team study gave 83% of levels right on 24 tasks (288 analyses, 15 Nov); it is not an outside review.",
       "updated": "2026-11-18",
@@ -159,7 +159,7 @@
         }
       ],
       "progress": null,
-      "expected": 82.9,
+      "expected": 85.7,
       "status": "no-data",
       "note": "Not measured. Measurable since ADR-014 (real, dated OpenRouter prices); ClickUp card \"KR1.2 · First measurement\".",
       "updated": "2026-11-18",
@@ -192,7 +192,7 @@
         }
       ],
       "progress": null,
-      "expected": 82.9,
+      "expected": 85.7,
       "status": "no-data",
       "note": "0 sessions. One session with a non-developer before the MVP review (card AA-015).",
       "updated": "2026-11-18",
@@ -231,7 +231,7 @@
         }
       ],
       "progress": 100,
-      "expected": 82.9,
+      "expected": 85.7,
       "status": "done",
       "note": "2 of 3 in code (over- and under-provisioning), 0 of 7 control histories flagged (PR #60, in review, not on main); evaluation of the prompt sentence in PR #80. Inflated prompting has no rule.",
       "updated": "2026-11-18",
@@ -265,7 +265,7 @@
         }
       ],
       "progress": null,
-      "expected": 46,
+      "expected": 47.6,
       "status": "no-data",
       "note": "Not measured on simulated profiles. My progress computes agreement on saved sessions (PR #12, #25); run 2 profiles after #60 is released.",
       "updated": "2026-11-18",
@@ -304,7 +304,7 @@
         }
       ],
       "progress": null,
-      "expected": 82.9,
+      "expected": 85.7,
       "status": "no-data",
       "note": "Not judged by the client. On 17 Nov the client asked for much better personal guidance (card \"Educator · Personalised guidance\").",
       "updated": "2026-11-18",
@@ -429,7 +429,7 @@
         "checked": 0
       },
       "completion": 100,
-      "lastModified": "2026-11-20T21:24:32Z",
+      "lastModified": "2026-11-25T09:22:41Z",
       "stale": false
     }
   ]

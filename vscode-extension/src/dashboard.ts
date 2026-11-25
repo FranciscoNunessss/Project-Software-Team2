@@ -7,8 +7,10 @@ import type { Analysis, Candidate, CoachMode, LlmOptions } from './api'
 import { CAPABILITIES, PROVIDERS, consentText, describeEvaluation, type CatalogueModel, type Evaluation, type PersonalConfig } from './models'
 import { CONSENT, type ProgressReport, type Settings } from './profile'
 import { describeFailure } from './core'
+import { buildMessage, splitMessage, type SelectionView } from './codemsg'
+import { describeSelection, readSelection } from './selection'
 import type { RelayAgent } from './relay'
-import { assessedBy, modelName, price, summaryLine } from './format'
+import { assessedBy, modelName, price, qualityView, summaryLine } from './format'
 import type { Result } from './analyse'
 import { beginTiming } from './diagnostics'
 
@@ -89,6 +91,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
     private readonly chat: ChatService,
     private readonly progress: ProgressReport,
     private readonly relay?: RelayAgent,
+    private readonly assist?: { suggest(instruction: string, signal: AbortSignal): Promise<unknown> },
   ) {
     analyser.onDidAnalyse(() => {
       if (this.busy || this.coachBusy || this.streaming) this.postAssistant()
@@ -138,15 +141,47 @@ export class Dashboard implements vscode.WebviewViewProvider {
     void this.view?.webview.postMessage(data)
   }
 
+  /** Tells the page what the Selection button would send: the file and the lines, or nothing. */
+  postSelection(): void {
+    this.post({ type: 'selection', info: describeSelection() })
+    this.post(this.selectionPreview())
+  }
+
+  /** The exact text the Selection button would add to a message, so the page can show it before sending (SEL-08). */
+  private selectionPreview(): { type: 'selectionPreview'; text: string | null; lines?: number; characters?: number; cut?: { sent: number; total: number } | null; tooLarge?: boolean } {
+    const picked = readSelection()
+    if (!picked.ok) return { type: 'selectionPreview', text: null }
+    const lines = picked.last - picked.first + 1
+    const built = buildMessage('ask', '', picked.ctx)
+    if (!built.ok) return { type: 'selectionPreview', text: null, lines, characters: picked.ctx.code.length, cut: null, tooLarge: true }
+    const text = built.content.replace(/^\n\n/, '')
+    return { type: 'selectionPreview', text, lines, characters: text.length, cut: built.cut ? { sent: built.sent, total: built.total } : null, tooLarge: false }
+  }
+
   private scopeKey(): string { return JSON.stringify([this.backend.url, this.backend.auth, this.sessionEpoch]) }
 
   private invalidateTabs(): void {
+    if (this.scope !== undefined) this.post({ type: 'clearTabCache' })
     this.tabData.clear()
     this.pendingReload?.abort.abort()
     this.pendingReload = undefined
     this.preloadRun = undefined
     for (const task of this.loadingTabs.values()) task.abort.abort()
     this.loadingTabs.clear()
+  }
+
+  /** A changed conversation makes these figures stale, but the last figures remain useful while loading. */
+  private staleTabs(tabs: Tab[]): void {
+    for (const tab of tabs) {
+      const saved = this.tabData.get(tab)
+      if (saved) saved.at = 0
+      this.loadingTabs.get(tab)?.abort.abort()
+      this.loadingTabs.delete(tab)
+      if (this.pendingReload?.key === this.tabKey(tab)) {
+        this.pendingReload.abort.abort()
+        this.pendingReload = undefined
+      }
+    }
   }
 
   /** Warm the Assistant first, then the other tabs, without waiting for a webview. */
@@ -248,7 +283,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
     this.pendingReload?.abort.abort()
     this.pendingReload = undefined
     if (auth === 'none' || this.authRejected) {
-      this.post({ type: 'data', tab, signedOut: true })
+      this.post({ type: 'data', tab, signedOut: true, urlProblem: this.backend.urlProblem })
       return Promise.resolve()
     }
     const saved = this.tabData.get(tab)
@@ -291,7 +326,7 @@ export class Dashboard implements vscode.WebviewViewProvider {
     try {
       if (!this.view) return
       if (this.backend.auth === 'none') {
-        if (current()) this.post({ type: 'data', tab, signedOut: true })
+        if (current()) this.post({ type: 'data', tab, signedOut: true, urlProblem: this.backend.urlProblem })
         return
       }
       signal.throwIfAborted()
@@ -337,12 +372,15 @@ export class Dashboard implements vscode.WebviewViewProvider {
       }
     }
     if (tab === 'progress') {
-      const get = (path: string) => api<unknown>(path).catch(() => undefined)
+      let firstError: unknown
+      const get = (path: string) => api<unknown>(path).catch(error => { firstError ??= error; return undefined })
       const [sessions, pending, activity, progress, dashboard, outcomes, learning, coaching] = await Promise.all([
         api<{ id: string; title: string; created_at: string; analysis_count: number }[]>('/api/sessions?limit=20').catch(() => []),
         api<{ result: Analysis; session_title: string }[]>('/api/progress/pending?limit=10').catch(() => []),
         get('/api/progress/activity'), get('/api/progress'), get('/api/progress/dashboard'), get('/api/progress/outcomes'), get('/api/progress/learning'), get('/api/progress/coaching'),
       ])
+      // Every figure failed: that is a backend problem, not an empty page.
+      if (firstError && activity === undefined && progress === undefined && dashboard === undefined) throw firstError
       return { activity, pending: pending.map(item => ({ id: item.result.id, title: item.session_title, recommended: modelName(item.result.recommendation), options: [item.result.recommendation, ...item.result.alternatives].filter(candidate => candidate.id).map(candidate => ({ id: candidate.id, name: modelName(candidate) })) })), sessions: sessions.map(item => ({ id: item.id, title: item.title, count: item.analysis_count, at: item.created_at })), progress, dashboard, outcomes, learning, coaching }
     }
     if (tab === 'models') {
@@ -416,38 +454,67 @@ export class Dashboard implements vscode.WebviewViewProvider {
   private postAssistant(extra: Record<string, unknown> = {}): void {
     const saved = this.tabData.get('analyse')
     if (saved?.key === this.tabKey('analyse')) saved.data = { ...saved.data, ...extra }
-    if (this.tab === 'analyse' && this.backend.auth !== 'none' && !this.authRejected) this.post({ type: 'assistantState', data: { ...extra, ...this.assistantState() } })
+    if (this.backend.auth !== 'none' && !this.authRejected) this.post({ type: 'assistantState', data: { ...extra, ...this.assistantState() } })
   }
 
   /** After a message/analysis only the conversation changed, not the model catalogue. */
   private async refreshAssistant(): Promise<void> {
-    for (const tab of ['progress', 'profile', 'models'] as Tab[]) this.tabData.delete(tab)
+    this.staleTabs(['progress', 'profile'])
     this.postAssistant()
     if (!this.view || this.backend.auth === 'none') return
-    if (this.tab !== 'analyse') return this.reload(true)
+    const visible = this.tab !== 'analyse' ? this.reload() : Promise.resolve()
     const view = this.view
     const epoch = this.sessionEpoch
     const origin = this.backend.url
     const auth = this.backend.auth
     const selected = this.chat.current
     const version = this.assistantVersion
-    const current = () => this.view === view && this.tab === 'analyse' && this.sessionEpoch === epoch && this.backend.url === origin && this.backend.auth === auth && this.chat.current === selected && this.assistantVersion === version
+    const saved = this.tabData.get('analyse')
+    const chatModel = vscode.workspace.getConfiguration('adaptai').get('chatModel', '')
+    const current = () => this.view === view && !this.authRejected && this.sessionEpoch === epoch && this.backend.url === origin && this.backend.auth === auth && this.chat.current === selected && this.assistantVersion === version && vscode.workspace.getConfiguration('adaptai').get('chatModel', '') === chatModel
     const signal = AbortSignal.timeout(10_000)
     try {
       const chats = await this.read(() => this.chat.list(), signal)
       const id = selected && chats.some(item => item.id === selected) ? selected : undefined
       const detail = id ? await this.read(() => this.backend.api<{ messages: ChatMessage[] }>(`/api/chats/${encodeURIComponent(id)}`, 'GET', undefined, signal), signal) : undefined
-      if (current()) this.postAssistant({ ...this.conversation(chats, id, detail) })
+      if (current()) {
+        // The first message creates its chat id. Keep the already loaded model metadata under that new key.
+        if (saved && this.tabData.get('analyse') === saved) saved.key = this.tabKey('analyse')
+        this.postAssistant(this.conversation(chats, id, detail))
+      }
     } catch (error) {
       if (current()) this.toast('err', explain(error))
+    } finally {
+      await visible
     }
+  }
+
+  /** One local action: clear the conversation and reuse the model metadata, without fetching the old chat. */
+  async newChat(): Promise<void> {
+    this.syncScope()
+    if (this.streaming || this.busy || this.coachBusy) return this.toast('err', 'Stop the current response or let the task finish before starting a new chat.')
+    const saved = this.tabData.get('analyse')
+    const usable = saved?.key === this.tabKey('analyse') ? saved : undefined
+    this.assistantVersion++
+    this.pendingReload?.abort.abort()
+    this.pendingReload = undefined
+    this.loadingTabs.get('analyse')?.abort.abort()
+    this.loadingTabs.delete('analyse')
+    await this.chat.setCurrent(undefined)
+    if (usable) {
+      usable.key = this.tabKey('analyse')
+      usable.data = { ...usable.data, current: undefined, messages: [] }
+    }
+    this.tab = 'analyse'
+    this.post({ type: 'navigate', tab: 'analyse', resetChat: true })
+    await this.reload()
   }
 
   private conversation(chats: ChatSummary[], current: string | undefined, detail?: { messages: ChatMessage[] }): Record<string, unknown> {
     return {
       chats: chats.map(item => ({ id: item.id, title: item.title, count: item.message_count, at: item.updated_at ?? item.created_at })),
       current,
-      messages: (detail?.messages ?? []).map(item => ({ role: item.role, text: item.content, who: item.role === 'user' ? 'You' : `AdaptAI${item.model ? ` · ${item.provider ?? ''} ${item.model}` : ''}`, cut: item.error === 'answer_truncated', error: item.error ? describeFailure(502, item.error, item.provider ?? undefined) : item.status === 'failed' ? 'This answer failed.' : item.status === 'stopped' ? 'Stopped by you.' : '' })),
+      messages: (detail?.messages ?? []).map(item => ({ role: item.role, ...(item.role === 'user' ? splitMessage(item.content) : { text: item.content }), who: item.role === 'user' ? 'You' : `AdaptAI${item.model ? ` · ${item.provider ?? ''} ${item.model}` : ''}`, cut: item.error === 'answer_truncated', error: item.error ? describeFailure(502, item.error, item.provider ?? undefined) : item.status === 'failed' ? 'This answer failed.' : item.status === 'stopped' ? 'Stopped by you.' : '' })),
     }
   }
 
@@ -929,6 +996,8 @@ export class Dashboard implements vscode.WebviewViewProvider {
       case 'ready':
         this.markReady()
         return this.reload(message.force === true)
+      case 'selectionAsk':
+        return this.postSelection()
       case 'dialogResult': {
         const resolve = this.dialogs.get(str('id'))
         this.dialogs.delete(str('id'))
@@ -1038,18 +1107,43 @@ export class Dashboard implements vscode.WebviewViewProvider {
       case 'choose':
         return this.choose(str('analysis'), str('candidate'))
       case 'chatSend': {
-        const text = str('text').slice(0, 8000)
-        if (!text.trim() || this.streaming) return
-        const analyse = /^\/analy[sz]e\s+/i.test(text)
+        const typed = str('text').slice(0, 8000)
+        if (!typed.trim() || this.streaming) return
+        let text = typed
+        let selection: SelectionView | undefined
+        if (message.withSelection === true) {
+          const picked = readSelection()
+          if (!picked.ok) return this.post({ type: 'note', text: picked.reason === 'secret_file' ? `${picked.name ?? 'This file'} holds secrets by convention and is never sent. Switch Selection off, or select code in another file.` : 'Select some code in the editor, or switch Selection off.' })
+          const built = buildMessage('ask', typed, picked.ctx)
+          if (!built.ok) return this.post({ type: 'note', text: 'The message and the selection are too long for one message. Select less code or write less.' })
+          text = built.content
+          selection = { ...picked.ctx, kind: 'ask', cut: built.cut ? { sent: built.sent, total: built.total } : undefined }
+        }
+        const analyse = /^\/analy[sz]e\s+/i.test(typed)
         const abort = new AbortController()
         this.streaming = abort
         this.assistantVersion++
         this.pendingReload?.abort.abort()
-        this.post({ type: 'chatStart', user: text })
+        this.post({ type: 'chatStart', user: typed, selection })
         const sink = { markdown: (t: string) => this.post({ type: 'delta', text: t }), progress: (t: string) => this.post({ type: 'note', text: t }), button: () => undefined }
         try {
-          if (analyse) await this.chat.analyse(text.replace(/^\/analy[sz]e\s+/i, ''), sink, abort.signal)
-          else await this.chat.send(text, sink, abort.signal, this.chatOverride)
+          if (analyse) await this.chat.analyse(typed.replace(/^\/analy[sz]e\s+/i, ''), sink, abort.signal)
+          else await this.chat.send(text, sink, abort.signal, this.chatOverride, selection ? { code: true } : undefined)
+        } finally {
+          this.streaming = undefined
+          await this.refreshAssistant()
+        }
+        return
+      }
+      case 'suggestChange': {
+        const instruction = str('text').trim().slice(0, 2000)
+        if (!instruction || this.streaming || !this.assist) return
+        const abort = new AbortController()
+        this.streaming = abort
+        this.assistantVersion++
+        this.post({ type: 'note', text: 'Asking for a change…' })
+        try {
+          await this.assist.suggest(instruction, abort.signal)
         } finally {
           this.streaming = undefined
           await this.refreshAssistant()
@@ -1076,8 +1170,11 @@ export class Dashboard implements vscode.WebviewViewProvider {
         return
       }
       case 'chatSelect':
+        if ((this.streaming || this.busy || this.coachBusy) && str('id') !== this.chat.current) return this.toast('err', 'Stop the current response or let the task finish before opening another chat.')
         await this.chat.setCurrent(str('id') || undefined)
         return this.reload()
+      case 'chatNew':
+        return this.newChat()
       case 'chatRename':
         return this.renameChat(str('id'))
       case 'chatDelete':
@@ -1167,6 +1264,7 @@ export function richResult(result: Result): unknown {
     alternatives: a.alternatives.map(item => ({ name: item.name, short: shortText(item) + (item.status !== 'short' && item.gap === 1 ? ', more than needed' : ''), cost: costText(item) })),
     suggestion: a.suggestion ? { name: a.suggestion.name, reason: a.suggestion_reason ?? '', sub: [a.suggestion.model ?? '', a.suggestion.cost_band ? `${a.suggestion.cost_band} cost` : '', a.suggestion.levels_from ? `Levels from: ${a.suggestion.levels_from}` : ''].filter(Boolean).join(' · ') } : null,
     questions: a.clarification_questions,
+    quality: qualityView(a),
     guidance: a.guidance,
     tips: a.tips.map(tip => ({ title: tip.dimension ? TIP_LABELS[tip.dimension] ?? tip.dimension : 'General', text: tip.text })),
     assessor: assessedBy(a),
@@ -1207,7 +1305,7 @@ function page(nonce: string, csp: string, tab: Tab): string {
   .foot b { display: block; color: var(--ink); font-weight: 600; word-break: break-all; margin-bottom: 6px; }
   .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #2f9e44; margin-right: 6px; box-shadow: 0 0 0 3px rgba(47,158,68,.18); }
   .page { max-width: 1180px; margin: 0 auto 0 240px; padding: 30px 30px 70px; }
-  @media (max-width: 760px) {
+  @media (max-width: 899px) {
     .side { position: static; width: auto; margin: 8px 8px 0; padding: 10px; border-radius: 14px; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 10px; box-shadow: none; }
     .brand { padding: 0 4px; font-size: 15px; } .mark { width: 24px; height: 24px; font-size: 13px; border-radius: 7px; }
     .nav { flex-direction: row; flex-wrap: wrap; gap: 3px; width: 100%; order: 3; } .nav button { min-height: 30px; padding: 0 10px; font-size: 12px; border-radius: 8px; }
@@ -1320,6 +1418,23 @@ function page(nonce: string, csp: string, tab: Tab): string {
   .spin { display: inline-block; width: 14px; height: 14px; margin-right: 8px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--blue); animation: turn .8s linear infinite; vertical-align: -2px; } @keyframes turn { to { transform: rotate(360deg) } }
   @media (max-width: 760px) { .drawer { top: auto; left: 0; width: 100%; max-height: 82vh; border-left: 0; border-top: 1px solid var(--line); border-radius: 18px 18px 0 0; box-shadow: 0 -18px 50px rgba(0,0,0,.25); } .pop.down { left: 0; right: auto; } }
   @media (min-width: 1280px) { .assist.with-drawer { display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 18px; align-items: start; } .assist.with-drawer .drawer { position: sticky; top: 14px; width: auto; height: calc(100vh - 28px); border: 1px solid var(--line); border-radius: 16px; box-shadow: none; } .assist.with-drawer + .drawer-backdrop, .assist .drawer-backdrop { display: none; } }
+  .cfoot2 .left { min-width: 0; max-width: 100%; } .cfoot2 .left .trigger { min-width: 0; max-width: 100%; } .trigger span { min-width: 0; flex: 0 1 auto; } .trigger small, .trigger b { flex: none; }
+  @media (max-width: 520px) { .cfoot2 .left { flex: 1 1 100%; } .trigger span { max-width: 120px; } .cfoot2 .right { flex: 1 1 100%; justify-content: flex-end; } }
+  .trigger.sel { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .trigger.sel[aria-pressed=true] { background: var(--dark); color: var(--bg); border-color: transparent; }
+  .selprev { margin: 0 0 6px; font-size: 11.5px; opacity: .9; min-width: 0; } .selprev summary { cursor: pointer; overflow-wrap: anywhere; } .selprev[open] { max-height: 20vh; overflow: auto; } .selprev pre { margin: 6px 0 0; text-align: left; max-width: 100%; overflow-x: auto; } .selprev .selwarn { margin: 4px 0 0; color: var(--vscode-editorWarning-foreground, #cca700); overflow-wrap: anywhere; }
+  .selcap { margin-top: 6px; font-size: 11.5px; opacity: .85; } .selcap summary { cursor: pointer; overflow-wrap: anywhere; } .selcap pre { margin: 6px 0 0; max-height: 220px; overflow: auto; text-align: left; }
+  body.chatmode { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  body.chatmode .side { flex: none; }
+  body.chatmode .page { flex: 1; min-height: 0; margin: 0 0 0 240px; width: min(1180px, calc(100% - 240px)); max-width: none; padding: 14px 18px; display: flex; flex-direction: column; overflow: auto; }
+  body.chatmode .page > .assist { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  body.chatmode .assist-main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  body.chatmode .assist .msgs { flex: 1; min-height: 80px; max-height: none; overflow: auto; }
+  body.chatmode .composer2 { position: relative; bottom: auto; flex: none; margin-top: 8px; }
+  body.chatmode .toolbar, body.chatmode .banner, body.chatmode .notice { flex: none; }
+  @media (max-width: 899px) { body.chatmode .page { margin: 0; width: 100%; padding: 10px 12px; } }
+  @media (max-width: 899px) { .side { padding: 8px 10px; gap: 4px 8px; } .brand { order: 0; } .newchat { order: 1; width: auto; margin: 0; min-height: 28px; padding: 0 10px; font-size: 12px; } .foot { order: 2; } .nav { order: 3; flex-wrap: wrap; overflow: visible; } .nav button { flex: none; white-space: nowrap; } }
+  @media (max-width: 520px) { .foot #acct { font-size: 0; } .foot #acct .dot { margin: 0; } .foot .btn { white-space: nowrap; } }
+  @media (min-width: 1280px) { body.chatmode .assist.with-drawer { display: grid; grid-template-rows: minmax(0, 1fr); } body.chatmode .assist.with-drawer .drawer { position: static; height: auto; overflow: auto; } }
   [hidden] { display: none !important; }
 </style></head>
 <body>
@@ -1338,6 +1453,10 @@ function page(nonce: string, csp: string, tab: Tab): string {
   const send = (type, extra) => api.postMessage(Object.assign({ type }, extra))
   let tab = ${JSON.stringify(tab)}
   let draft = (api.getState() || {}).text || ''
+  // Memory only, scoped to this signed-in webview. Unlocked token management is never cached.
+  const tabViews = new Map()
+  const tabScroll = new Map()
+  const cacheView = d => { if (d && !d.loading && !d.failed && !d.signedOut && d.tokenMode !== 'open') tabViews.set(d.tab, d); else if (d && d.tokenMode === 'open') tabViews.delete(d.tab) }
   const main = document.getElementById('main')
   const el = (tag, props, ...kids) => { const e = document.createElement(tag); if (props) for (const k in props) { if (k === 'text') e.textContent = props[k]; else if (k === 'class') e.className = props[k]; else if (k === 'role' || k.indexOf('aria-') === 0 || k.indexOf('data-') === 0) e.setAttribute(k, props[k]); else e[k] = props[k] } for (const kid of kids.flat()) if (kid != null) e.append(kid); return e }
   const btn = (label, type, extra, cls) => el('button', { text: label, class: 'btn small ' + (cls || ''), onclick: () => send(type, extra) })
@@ -1345,10 +1464,16 @@ function page(nonce: string, csp: string, tab: Tab): string {
   const row = (title, sub, ...buttons) => el('div', { class: 'row' }, el('div', { class: 'w' }, el('div', { text: title }), sub ? el('p', { class: 'muted', text: sub }) : null), el('div', { class: 'btns' }, buttons))
   const card = (eyebrow, title, ...kids) => el('section', { class: 'card' }, el('p', { class: 'eyebrow', text: eyebrow }), title ? el('h2', { text: title, style: 'margin-bottom:12px' }) : null, kids)
   const mark = () => document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab))
-  function showTab(target) { tab = target; mark(); lastData = { tab, loading: true }; renderTab() }
+  function showTab(target) {
+    tabScroll.set(tab, { page: main.scrollTop, window: window.scrollY })
+    tab = target; mark(); lastData = tabViews.get(tab) || { tab, loading: true }; renderTab()
+    const position = tabScroll.get(tab)
+    main.scrollTop = position ? position.page : 0
+    window.scrollTo(0, position ? position.window : 0)
+  }
   document.getElementById('nav').addEventListener('click', e => { const t = e.target.closest('button'); if (t && t.dataset.tab !== tab) { showTab(t.dataset.tab); send('tab', { tab }) } })
   document.getElementById('gear').addEventListener('click', () => send('settings'))
-  document.getElementById('newchat').addEventListener('click', () => { showTab('analyse'); drawerOpen = false; pop = null; send('tab', { tab: 'analyse' }); send('chatSelect', { id: '' }) })
+  document.getElementById('newchat').addEventListener('click', () => send('chatNew'))
   document.getElementById('signout').addEventListener('click', () => send('signOut'))
 
   function drawerCards(r, d) {
@@ -1381,6 +1506,15 @@ function page(nonce: string, csp: string, tab: Tab): string {
     tier.append(el('div', { class: 'btns', style: 'margin-top:12px' }, btn('Task solved?', 'result', { command: 'adaptai.taskOutcome', id: r.id }), btn('Full report', 'open', { id: r.id }), btn('Copy summary', 'result', { command: 'adaptai.copySummary', id: r.id })))
     out.push(tier)
 
+    if (r.quality) {
+      const q = el('section', { class: 'card' }, el('p', { class: 'eyebrow', text: 'How you described it' }))
+      if (r.quality.title) q.append(el('h2', { text: r.quality.title, style: 'margin-bottom:8px' }))
+      if (r.quality.hint) q.append(el('div', { class: 'banner', style: 'display:block;margin-bottom:8px' }, el('p', { text: r.quality.hint })))
+      const qt = el('table', { class: 'cov' })
+      for (const row of r.quality.rows) qt.append(el('tr', null, el('th', { text: row.name }), el('td', { text: row.word }), el('td', { class: 'muted', text: row.reason })))
+      q.append(qt)
+      out.push(q)
+    }
     const tips = el('section', { class: 'card' }, el('p', { class: 'eyebrow', text: 'Practical guidance' }), el('h2', { text: 'Improve your request', style: 'margin-bottom:8px' }))
     if (r.questions.length) tips.append(el('div', { class: 'tip' }, el('span', { class: 'tipn', text: '01' }), el('div', null, el('h3', { text: 'Clarify first' }), el('p', { text: 'Answer the ' + (r.questions.length === 1 ? 'clarification question' : r.questions.length + ' clarification questions') + ' above and analyse the task again; tips for each dimension follow once the task is clear.' }))))
     else if (!r.tips.length) tips.append(el('div', { class: 'tip' }, el('div', null, el('p', { text: 'No tips for this analysis.' }))))
@@ -1501,7 +1635,35 @@ function page(nonce: string, csp: string, tab: Tab): string {
     return box
   }
   let live = null
-  const bubble = (role, who, text, error) => { const b = el('div', { class: 'bubble ' + (role === 'user' ? 'user' : 'ai') }, el('div', { class: 'who', text: who }), role === 'user' ? el('div', { text, style: 'white-space:pre-wrap' }) : md(text || '')); if (error) b.append(el('div', { class: 'bad', text: error })); return b }
+  let streamMessages = null
+  let follow = true
+  let keep = null
+  let withSel = false
+  let selInfo = ''
+  let selPrev = null
+  let selPrevOpen = false
+  function selPrevEl() {
+    if (!withSel || !selPrev || (!selPrev.text && !selPrev.tooLarge)) return null
+    const n = selPrev.lines
+    const box = el('details', { class: 'selprev', id: 'selpreview', open: selPrevOpen }, el('summary', { text: 'Will be sent: ' + (selInfo || 'the selection') + ' · ' + n + (n === 1 ? ' line' : ' lines') + ' · ' + selPrev.characters + ' characters' }))
+    box.addEventListener('toggle', () => { selPrevOpen = box.open })
+    if (selPrev.text) box.append(el('pre', { text: selPrev.text }))
+    if (selPrev.tooLarge) box.append(el('p', { class: 'selwarn', role: 'status', text: 'This selection is too long for one message, so it cannot be sent. Select less code.' }))
+    else if (selPrev.cut) box.append(el('p', { class: 'selwarn', role: 'status', text: 'Too long for one message: only the first ' + selPrev.cut.sent + ' of ' + selPrev.cut.total + ' characters will be sent (fewer if your message is long).' }))
+    return box
+  }
+  function drawSelPrev() {
+    const old = document.getElementById('selpreview')
+    const next = selPrevEl()
+    if (old && next) old.replaceWith(next)
+    else if (old) old.remove()
+    else if (next) { const top = document.querySelector('.composer2 .wrapta'); if (top) top.before(next) }
+  }
+  const selLabel = () => 'Selection: ' + (withSel ? 'On' : 'Off') + (withSel && selInfo ? ' · ' + selInfo : '')
+  const nearEnd = box => box.scrollHeight - box.scrollTop - box.clientHeight < 80
+  const toEnd = () => { const box = document.getElementById('msgs'); if (box) box.scrollTop = box.scrollHeight }
+  const lines = s => s.startLine === s.endLine ? String(s.startLine) : s.startLine + '–' + s.endLine
+  const bubble = (role, who, text, error, selection) => { const b = el('div', { class: 'bubble ' + (role === 'user' ? 'user' : 'ai') }, el('div', { class: 'who', text: who }), role === 'user' ? el('div', { text, style: 'white-space:pre-wrap' }) : md(text || '')); if (selection) b.append(el('details', { class: 'selcap' }, el('summary', { text: selection.path + ' · ' + lines(selection) + (selection.cut ? ' (cut)' : '') }), el('pre', { text: selection.code }))); if (error) b.append(el('div', { class: 'bad', text: error })); return b }
 
   let drawerOpen = false
   let pop = null
@@ -1573,7 +1735,9 @@ function page(nonce: string, csp: string, tab: Tab): string {
     const text = area.value
     if (!text.trim()) return
     area.value = ''; draft = ''; api.setState({ text: '' }); drawerOpen = false; pop = null
-    send('chatSend', { text })
+    area.dispatchEvent(new Event('input'))
+    document.querySelectorAll('.hint').forEach(hint => hint.remove())
+    send('chatSend', { text, withSelection: withSel })
   }
 
   function assistantTab(d) {
@@ -1582,12 +1746,14 @@ function page(nonce: string, csp: string, tab: Tab): string {
     const current = d.chats.find(c => c.id === d.current)
     col.append(el('div', { class: 'toolbar' }, el('span', { class: 'muted', text: current ? current.title : '' }), el('div', { class: 'btns' }, el('button', { class: 'btn small', text: 'Chats' + (d.chats.length ? ' (' + d.chats.length + ')' : ''), 'aria-expanded': pop === 'chats', onclick: () => { pop = pop === 'chats' ? null : 'chats'; renderTab() } }))))
     if (pop === 'chats') col.append(chatsPop(d))
-    const msgs = el('div', { class: 'msgs', id: 'msgs', 'aria-live': 'polite' })
+    const msgs = el('div', { class: 'msgs', id: 'msgs', 'aria-live': 'polite', 'data-chat': d.current || '' })
     if (!d.messages.length) msgs.append(el('div', { class: 'chat-empty' }, el('h2', { text: 'What do you need to do?' }), el('p', { class: 'muted' }, 'Write your prompt. ', el('strong', { text: 'Analyse' }), ' shows how complete it is and which model fits; ', el('strong', { text: 'Send' }), ' gets the answer.')))
-    for (const m of d.messages) msgs.append(bubble(m.role, m.who, m.text, m.error))
-    live = null
+    const messages = d.streaming && streamMessages ? streamMessages : d.messages
+    for (const m of messages) msgs.append(bubble(m.role, m.who, m.text, m.error, m.selection))
+    msgs.addEventListener('scroll', () => { follow = nearEnd(msgs) })
+    live = d.streaming && streamMessages ? { raw: streamMessages[streamMessages.length - 1].text, el: msgs.lastElementChild } : null
     col.append(msgs)
-    const lastMsg = d.messages[d.messages.length - 1]
+    const lastMsg = messages[messages.length - 1]
     if (lastMsg && lastMsg.role === 'assistant' && lastMsg.error) col.append(el('div', { class: 'banner' }, el('span', { text: lastMsg.error }), lastMsg.cut ? el('button', { class: 'btn small primary', text: 'Continue', onclick: () => send('chatSend', { text: 'Continue exactly where you stopped.' }) }) : el('button', { class: 'btn small', text: 'Retry', onclick: () => send('chatRetry') })))
     if (d.continuing) col.append(el('div', { class: 'banner' }, el('span', { text: 'The next analysis continues ' + d.continuing + ' and is compared with the last one.' }), btn('Stop continuing', 'continueClear')))
 
@@ -1621,9 +1787,21 @@ function page(nonce: string, csp: string, tab: Tab): string {
     area.addEventListener('input', () => { analyseBtn.disabled = busy || !area.value.trim(); sendBtn.disabled = busy || !area.value.trim() || (usesRouter && !(d.override && d.override.openrouter)) })
     const stopBtn = el('button', { class: 'btn', id: 'stop', type: 'button', text: 'Stop', hidden: !d.streaming, onclick: () => send('chatStop') })
     const chip = d.last && d.last.task && d.last.task.trim() === draft.trim() && draft.trim() ? el('button', { class: 'recchip', type: 'button', title: 'Show analysis', onclick: () => { drawerOpen = true; renderTab() } }, 'Recommended: ', el('strong', { text: d.last.name }), d.last.usable && sel && d.last.modelId === sel.id ? ' · selected' : '') : null
+    const selBtn = el('button', { class: 'trigger sel', id: 'selbtn', type: 'button', text: selLabel(), 'aria-pressed': String(withSel), title: 'When On, the code selected in the editor goes with your message', onclick: () => { withSel = !withSel; const b = document.getElementById('selbtn'); if (b) { b.textContent = selLabel(); b.setAttribute('aria-pressed', String(withSel)) } drawSelPrev() } })
+    const suggestBtn = el('button', { class: 'btn', id: 'suggestbtn', type: 'button', text: 'Suggest a change', title: 'Ask for a change to the selected code; it appears in the editor', onclick: () => {
+      const text = area.value.trim()
+      const note = document.getElementById('note')
+      if (!text) { if (note) note.textContent = 'Write what should change in the box first.'; area.focus(); return }
+      if (!selInfo) { if (note) note.textContent = 'Select the code to change in the editor first.'; return }
+      if (busy) return
+      area.value = ''; draft = ''; api.setState({ text: '' }); counter.textContent = '0/' + MAXC
+      if (note) note.textContent = 'Asking for a change…'
+      send('suggestChange', { text })
+    } })
     const composer = el('section', { class: 'composer2' },
+      selPrevEl(),
       el('div', { class: 'wrapta' }, area, coachBtn), live2,
-      el('div', { class: 'cfoot2' }, el('div', { class: 'left' }, trigger, router), el('div', { class: 'right' }, el('span', { class: 'muted', id: 'note' }), counter, chip, analyseBtn, sendBtn, stopBtn)))
+      el('div', { class: 'cfoot2' }, el('div', { class: 'left' }, trigger, router, selBtn), el('div', { class: 'right' }, el('span', { class: 'muted', id: 'note' }), counter, chip, suggestBtn, analyseBtn, sendBtn, stopBtn)))
     if (pop === 'model') composer.append(modelPop(d, sel))
     if (pop === 'coach') composer.append(coachPop(d, area, found()))
     col.append(composer)
@@ -1633,7 +1811,11 @@ function page(nonce: string, csp: string, tab: Tab): string {
     wrap.append(col)
     if (drawerOpen) { wrap.append(el('div', { class: 'drawer-backdrop', onclick: () => { drawerOpen = false; renderTab() } }), drawerEl(d, area)) }
     setTimeout(hints, 0)
-    setTimeout(() => { const m = document.getElementById('msgs'); if (m && m.lastElementChild) m.lastElementChild.scrollIntoView({ block: 'nearest' }) }, 0)
+    // Redrawn while the user was reading above: stay where they were, as UI-01 says. Otherwise go to the newest message.
+    const stay = keep && keep.chat === (d.current || '') ? keep : null
+    keep = null
+    follow = !stay
+    setTimeout(() => { if (stay) { const box = document.getElementById('msgs'); if (box) box.scrollTop = stay.top } else toEnd() }, 0)
     return [wrap]
   }
 
@@ -1800,10 +1982,10 @@ function page(nonce: string, csp: string, tab: Tab): string {
     const out = intro('LLM config', 'Ready by default. More when you need it.', 'The project provides its own models. You can connect your own (Groq, OpenAI, Claude, OpenRouter, LM Studio, Ollama); keys are stored encrypted on the backend.')
     const p = card('Project', 'Project models')
     if (!d.project.length) p.append(el('p', { class: 'muted', text: 'The project has no model configured.' }))
-    for (const m of d.project) p.append(row(m.label + (m.model ? ' · ' + m.model : ''), m.provider + (m.assessor ? ' · analyses every task' : ''), m.id === d.chatModel ? el('span', { class: 'pill', text: 'chat model' }) : btn('Use for chat', 'chatModel', { id: m.id })))
+    for (const m of d.project) p.append(row(m.label + (m.model ? ' · ' + m.model : ''), m.provider + (m.assessor ? ' · analyses every task' : '')))
     const y = card('Yours', 'Your models'); y.append(el('div', { class: 'btns', style: 'margin-bottom:6px' }, el('button', { class: 'btn primary small', text: 'Add a model', onclick: () => send('modelAdd') })))
     if (!d.configs.length) y.append(el('p', { class: 'muted', text: 'None yet.' }))
-    for (const m of d.configs) y.append(row(m.label + ' · ' + m.model, m.provider + (m.external ? ' · external' : m.execution === 'client' ? ' · runs on this computer' : ' · local') + (m.hasKey ? ' · key saved' : ''), m.id === d.chatModel ? el('span', { class: 'pill', text: 'chat model' }) : btn('Use for chat', 'chatModel', { id: m.id }), btn('Test', 'modelTest', { id: m.id }), btn('Edit', 'modelEdit', { id: m.id }), btn('Delete', 'modelRemove', { id: m.id }, 'danger')))
+    for (const m of d.configs) y.append(row(m.label + ' · ' + m.model, m.provider + (m.external ? ' · external' : m.execution === 'client' ? ' · runs on this computer' : ' · local') + (m.hasKey ? ' · key saved' : ''), btn('Test', 'modelTest', { id: m.id }), btn('Edit', 'modelEdit', { id: m.id }), btn('Delete', 'modelRemove', { id: m.id }, 'danger')))
     if (d.configs.some(m => m.execution === 'client')) y.append(el('p', { class: 'notice', role: 'status' }, el('strong', { text: 'LM Studio on this computer: ' }), d.relay && d.relay.text ? d.relay.text : 'Not connected.'))
     const v = card('Evaluations', 'How models were evaluated'); v.append(el('div', { class: 'btns', style: 'margin-bottom:6px' }, btn('Add from the OpenRouter catalogue', 'openrouter')))
     if (!d.evaluations.length) v.append(el('p', { class: 'muted', text: 'Nothing evaluated yet.' }))
@@ -1822,17 +2004,56 @@ function page(nonce: string, csp: string, tab: Tab): string {
   }
   window.addEventListener('message', event => {
     const m = event.data
-    if (m && m.type === 'navigate') { showTab(m.tab); return }
-    if (m && m.type === 'resetTabs') { connection = null; live = null; document.getElementById('modal').replaceChildren(); lastData = { tab, signedOut: m.signedOut, loading: !m.signedOut }; renderAccount(lastData); renderTab(); return }
-    if (m && m.type === 'connection') { if (lastData && !lastData.signedOut) renderAccount(m); return }
+    if (m && m.type === 'clearTabCache') { tabViews.clear(); tabScroll.clear(); return }
+    if (m && m.type === 'navigate') {
+      if (m.resetChat) {
+        draft = ''; api.setState({ text: '' }); live = null; streamMessages = null; drawerOpen = false; pop = null
+        const saved = tabViews.get('analyse')
+        if (saved) tabViews.set('analyse', Object.assign({}, saved, { current: null, messages: [], streaming: false, refreshing: false, refreshError: null }))
+        tabScroll.delete('analyse')
+      }
+      showTab(m.tab); return
+    }
+    if (m && m.type === 'resetTabs') { tabViews.clear(); tabScroll.clear(); connection = null; live = null; streamMessages = null; document.getElementById('modal').replaceChildren(); lastData = { tab, signedOut: m.signedOut, loading: !m.signedOut }; renderAccount(lastData); renderTab(); return }
+    if (m && m.type === 'connection') { if (lastData && !lastData.signedOut) { const was = connection && connection.online; renderAccount(m); if (was !== m.online && !live && (was === false || m.online === false)) { renderTab(); if (was === false && m.online === true) send('ready', { force: true }) } } return }
     if (m && m.type === 'dialog') return showDialog(m)
     if (m && m.type === 'toast') return toast(m.kind, m.text)
-    if (m && m.type === 'chatStart') { const box = document.getElementById('msgs'); if (!box) return; const empty = box.querySelector('.empty, .chat-empty'); if (empty) empty.remove(); if (m.user) box.append(bubble('user', 'You', m.user)); live = { raw: '', el: bubble('ai', 'AdaptAI', '') }; box.append(live.el); box.scrollTop = box.scrollHeight; const stop = document.getElementById('stop'); if (stop) stop.hidden = false; const sb = document.getElementById('sendbtn'); if (sb) sb.hidden = true; return }
-    if (m && m.type === 'delta') { if (!live) return; live.raw += m.text; const next = bubble('ai', 'AdaptAI', live.raw); live.el.replaceWith(next); live.el = next; const box = document.getElementById('msgs'); if (box) box.scrollTop = box.scrollHeight; const note = document.getElementById('note'); if (note) note.textContent = ''; return }
+    if (m && m.type === 'chatStart') {
+      const saved = tab === 'analyse' ? lastData : tabViews.get('analyse')
+      if (!saved || saved.loading || saved.signedOut) return
+      streamMessages = (saved.messages || []).slice()
+      if (m.user) streamMessages.push({ role: 'user', who: 'You', text: m.user, selection: m.selection })
+      streamMessages.push({ role: 'assistant', who: 'AdaptAI', text: '' })
+      saved.messages = streamMessages; saved.streaming = true; cacheView(saved)
+      const box = tab === 'analyse' ? document.getElementById('msgs') : null
+      live = { raw: '', el: box ? bubble('ai', 'AdaptAI', '') : null }
+      if (!box) return
+      const empty = box.querySelector('.empty, .chat-empty'); if (empty) empty.remove()
+      if (m.user) box.append(bubble('user', 'You', m.user, '', m.selection))
+      box.append(live.el); follow = true; toEnd()
+      const stop = document.getElementById('stop'); if (stop) stop.hidden = false
+      const sb = document.getElementById('sendbtn'); if (sb) sb.hidden = true
+      return
+    }
+    if (m && m.type === 'delta') {
+      if (!streamMessages) return
+      const answer = streamMessages[streamMessages.length - 1]; answer.text += m.text
+      if (tab !== 'analyse' || !live || !live.el || !live.el.isConnected) return
+      live.raw = answer.text; const next = bubble('ai', 'AdaptAI', live.raw); live.el.replaceWith(next); live.el = next
+      if (follow) toEnd(); const note = document.getElementById('note'); if (note) note.textContent = ''
+      return
+    }
+    if (m && m.type === 'selection') { selInfo = m.info || ''; const b = document.getElementById('selbtn'); if (b) b.textContent = selLabel(); drawSelPrev(); return }
+    if (m && m.type === 'selectionPreview') { selPrev = m; drawSelPrev(); return }
     if (m && m.type === 'note') { const note = document.getElementById('note'); if (note) note.textContent = m.text; return }
     if (m && m.type === 'assistantState') {
-      if (tab === 'analyse' && lastData && !lastData.loading && !lastData.signedOut && !lastData.failed) {
-        lastData = Object.assign({}, lastData, m.data)
+      const saved = tab === 'analyse' ? lastData : tabViews.get('analyse')
+      if (saved && !saved.loading && !saved.signedOut && !saved.failed) {
+        const next = Object.assign({}, saved, m.data)
+        cacheView(next)
+        if (Object.prototype.hasOwnProperty.call(m.data, 'messages')) { streamMessages = null; live = null }
+        if (tab !== 'analyse') return
+        lastData = next
         if (live && !Object.prototype.hasOwnProperty.call(m.data, 'messages')) {
           const stop = document.getElementById('stop'); if (stop) stop.hidden = !m.data.streaming
           const sb = document.getElementById('sendbtn'); if (sb) sb.hidden = !!m.data.streaming
@@ -1842,20 +2063,27 @@ function page(nonce: string, csp: string, tab: Tab): string {
     }
     const d = event.data; if (!d || d.type !== 'data') return
     if (d.tab !== tab) return
+    if (d.tab === 'analyse' && d.streaming && streamMessages) d.messages = streamMessages
     tab = d.tab; mark(); lastData = d
-    if (d.signedOut) live = null
+    if (d.signedOut) { live = null; streamMessages = null }
     if (!d.loading) renderAccount(d)
-    if (tab === 'analyse' && d.streaming && live) return
+    cacheView(d)
+    if (tab === 'analyse' && d.streaming && live && live.el && live.el.isConnected) return
     renderTab()
   })
   function renderTab() {
     const d = lastData
     if (!d) return
+    const position = { page: main.scrollTop, window: window.scrollY }
+    document.body.classList.toggle('chatmode', tab === 'analyse' && !d.signedOut && !d.loading && !d.failed)
+    const prevMsgs = document.getElementById('msgs')
+    keep = prevMsgs && prevMsgs.scrollHeight > prevMsgs.clientHeight && !nearEnd(prevMsgs) ? { top: prevMsgs.scrollTop, chat: prevMsgs.getAttribute('data-chat') || '' } : null
     main.replaceChildren()
     main.setAttribute('aria-busy', d.loading || d.refreshing ? 'true' : 'false')
-    if (d.signedOut) return main.append(el('div', { class: 'center' }, el('h1', { text: 'Sign in to use AdaptAI' }), el('p', { class: 'lead', style: 'margin:0 auto 20px', text: 'Use your email and password once. Only a token is kept on this machine.' }), el('div', { class: 'btns', style: 'justify-content:center' }, el('button', { class: 'btn primary', text: 'Sign in', onclick: () => send('signIn') }), el('button', { class: 'btn', text: 'Create an account', onclick: () => send('register') }))))
+    if (d.signedOut) return main.append(el('div', { class: 'center' }, el('h1', { text: 'Sign in to use AdaptAI' }), d.urlProblem ? el('div', { class: 'err', role: 'alert', style: 'margin:0 auto 16px;max-width:560px', text: d.urlProblem }) : null, el('p', { class: 'lead', style: 'margin:0 auto 20px', text: 'Use your email and password once. Only a token is kept on this machine.' }), el('div', { class: 'btns', style: 'justify-content:center' }, el('button', { class: 'btn primary', text: 'Sign in', onclick: () => send('signIn') }), el('button', { class: 'btn', text: 'Create an account', onclick: () => send('register') }))))
     if (d.loading) return main.append(...intro('AdaptAI', { analyse: 'Assistant', progress: 'My progress', profile: 'Profile', models: 'LLM config', shortcuts: 'Shortcuts' }[tab], 'Loading…'))
     if (d.failed) return main.append(el('div', { class: 'err', text: d.failed }), el('p'), el('button', { class: 'btn', text: 'Try again', onclick: () => send('ready', { force: true }) }))
+    if (connection && connection.online === false) main.append(el('div', { class: 'err', role: 'alert', text: 'The backend is not reachable. Check that it is running; this page loads again by itself when it is.' }), el('button', { class: 'btn small', text: 'Try again', onclick: () => send('ready', { force: true }) }))
     if (d.refreshing) main.append(el('p', { class: 'muted', role: 'status', text: 'Updating…' }))
     if (d.refreshError) main.append(el('div', { class: 'err', text: 'Could not update: ' + d.refreshError }), el('button', { class: 'btn small', text: 'Try again', onclick: () => send('ready', { force: true }) }))
     try {
@@ -1863,7 +2091,9 @@ function page(nonce: string, csp: string, tab: Tab): string {
     } catch {
       main.replaceChildren(el('div', { class: 'err', role: 'alert', text: 'Could not display this page. Try again.' }), el('button', { class: 'btn', text: 'Try again', onclick: () => send('ready', { force: true }) }))
     }
+    main.scrollTop = position.page
+    window.scrollTo(0, position.window)
   }
-  mark(); send('ready')
+  mark(); send('ready'); send('selectionAsk')
 </script></body></html>`
 }

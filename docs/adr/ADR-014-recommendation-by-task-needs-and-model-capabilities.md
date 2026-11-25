@@ -109,3 +109,12 @@ browser tests pass, CI green. Public levels rate 227 of the 459 OpenRouter model
 models in `most-used.json`; a free OpenRouter model was measured with the project key at no
 cost. Not established yet: the reviewed calibration set, recommendation quality with real
 outcomes, and a paid evaluation with consent against a real key (mocks only).
+
+## Revision, 24 November 2026 (WS4, decided by the Product Owner)
+
+| ID | Decision | Reason |
+|---|---|---|
+| D9 (revised) | Feedback per task, never per answer; **the answer can be changed** while the analysis exists. The latest answer counts; `task_outcomes.changes` counts the changes (migration 012). A change that carries only the answer keeps the counts the chat recorded (model used, turns, switches, retries, stops) | Users often move to another chat before they know whether the task was solved; a final first answer made people skip or guess. The WS4 patterns and savings need as many correct answers as possible |
+| D9a | `GET /api/progress/feedback` lists the tasks run with a model (a choice was recorded) that have no answer yet, the latest answers, and the response rate | Answering from the history and from My progress without reopening the chat (WS4 L16) |
+
+Still true: no text is stored with the feedback (D12), and a skipped task counts as no answer.

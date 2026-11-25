@@ -1,0 +1,30 @@
+/* Team Scope page (WS3 T1, T2). Uses the tokens of src/ui/tokens.css only. */
+.team-card { padding: 20px 22px; margin-bottom: 16px; }
+.team-card h2 { margin: 0 0 6px; font-size: 18px; color: var(--color-heading); }
+.team-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+.team-role { font-size: 12px; color: var(--color-muted); }
+.team-groups { list-style: none; margin: 8px 0; padding: 0; }
+.team-groups > li { padding: 10px 0; border-top: 1px solid var(--well-line); }
+.team-groups > li:first-child { border-top: 0; }
+.team-group-line { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.team-group-line > div:first-child { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.team-group-line .muted { font-size: 12px; }
+.team-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.team-inline-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.team-inline-form input { flex: 1 1 200px; min-width: 0; }
+.team-inline-form label { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.team-link { margin-top: 10px; padding: 12px; border: 1px solid var(--well-line); border-radius: 8px; background: var(--well-bg); }
+.team-link p { margin: 0 0 6px; font-size: 13px; color: var(--color-muted); }
+.team-link code { display: block; margin-bottom: 8px; font-size: 12px; overflow-wrap: anywhere; }
+.team-notice, .team-mock { padding: 10px 12px; border: 1px solid var(--well-line); border-radius: 8px; background: var(--well-bg); color: var(--well-ink); font-size: 13px; }
+.team-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; }
+.team-tile { padding: 16px 18px; }
+.team-tile p { margin: 0; }
+.team-tile-label { font-size: 12px; color: var(--color-muted); }
+.team-tile-value { margin: 6px 0 !important; font-size: 26px; font-weight: 600; color: var(--color-heading); font-variant-numeric: tabular-nums; }
+.team-tile-detail { font-size: 12px; color: var(--color-caption); }
+.team-table-card { padding: 0; overflow-x: auto; }
+.team-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.team-table th, .team-table td { padding: 10px 14px; text-align: left; border-top: 1px solid var(--well-line); white-space: nowrap; }
+.team-table thead th { border-top: 0; font-weight: 600; color: var(--color-muted); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

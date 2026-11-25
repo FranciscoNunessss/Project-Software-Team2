@@ -69,7 +69,7 @@ and write PASS, FAIL (with what you saw instead) or SKIP (with why). Do not fix 
 | 3 | **Sign out**, then **Sign in** with the same account | The sign-in dialog says the password is used once and that a forgotten password is handled in the web app; you are signed in again |
 | 4 | Open **LLM config** > **Add a model** > LM Studio, name "LM Studio", model `gemma4-12b-qat-uncensored-hauhaucs-balanced` | No key is asked; the model appears under "Your models" |
 | 5 | On that model: **Test**, then **Edit** (rename it "LM Studio local") and save | Test says it answered and that this only proves one short request worked; the new name shows |
-| 6 | Click **Use for chat** on it, go to **Assistant** | The composer's model button shows the model, with its evaluation state next to it if it has one |
+| 6 | Go to **Assistant**, press **Model** in the box and choose it | The composer's model button shows the model, with its evaluation state next to it if it has one |
 | 7 | In the text box write `Reply with just the word PONG.` and press **Send** | Your message appears on the right, the answer streams in on the left, under "AdaptAI · lmstudio …" |
 | 8 | Write `Write a long story about a lighthouse, at least 400 words.`, **Send**, and press **Stop** after a few seconds | The answer stops; the part already written stays; the message says it was stopped; a **Retry** button is offered. Press Retry: a new answer streams |
 | 9 | Write `Write a SQL query that returns the ten customers with the highest total orders in 2025, and explain it for a beginner.` and press **Analyse** | The analysis panel opens (beside the chat if the window is wide, as a sheet at the bottom if narrow) with "Analysing…", then cards: completeness, guidance, recommended model, tips, profile. Takes up to a minute with LM Studio |
@@ -84,12 +84,12 @@ and write PASS, FAIL (with what you saw instead) or SKIP (with why). Do not fix 
 | 18 | **Profile** > API tokens: create a token (it asks for your password, once for 10 minutes), copy it, then **Revoke** | The token is shown once; after Revoke it is no longer listed |
 | 19 | **Shortcuts**: **Change** on any shortcut | The keyboard shortcuts editor opens filtered on that command |
 | 20 | Supabase-mode login | **ASK THE PERSON** to do it: in the web app, sign in with their own account, create a token in Profile, and in the extension use **Sign in** > **Use a token**. You only write down what they say |
-| 21 | Drag the side bar to about 300 px wide, then to about 800 px, and run 9 again at each width | At 300 px the tabs fit and the analysis opens as a bottom sheet; at 800 px the panel sits beside the chat; nothing is cut off |
+| 21 | Drag the side bar to about 300 px wide, then to about 800 px, and run 9 again at each width | At 300 px the menu is a bar of tabs on top and the analysis opens as a bottom sheet; at 800 px the panel sits beside the chat; nothing is cut off; the chat shows the newest message and the box to write stays at the bottom |
 | 22 | Switch VS Code to a light theme, then back to dark (Ctrl+K Ctrl+T) | Text and buttons readable in both |
 | 23 | Stop the backend terminal (Ctrl+C), click any tab, then start the backend again and click **Retry** if shown | A clear message that the backend is not reachable; it works again when the backend is back |
 | 24 | Set `adaptai.backendUrl` to `http://example.com`, open the side bar | The extension refuses the address and says why; nothing is sent. Set it back to `http://127.0.0.1:8033` |
 | 25 | Select a few lines of text in any file and press Ctrl+Alt+A | A confirmation names the backend and the model; the analysis opens beside the editor |
-| 26 | Select a prompt in a file and press Ctrl+K Ctrl+E | A diff with the improved prompt opens; **Apply** replaces the text; Undo (Ctrl+Z) restores it |
+| 26 | Select a prompt in a file and press Ctrl+K Ctrl+E, then choose **Rewrite** in the list at the top | A diff with the improved prompt opens; **Apply** replaces the text; Undo (Ctrl+Z) restores it |
 
 ## The relay: a model on this computer through a backend that cannot reach it (checks 27 to 30)
 
@@ -110,6 +110,33 @@ python -m uv run --env-file .env.supabase python -m uvicorn app.main:create_app 
 | 28 | Add a second model the same way, name "LM Studio my computer", **Where it runs: On this computer, through this extension**. Look at the status bar and at LLM config | The status bar shows **LM Studio relay**; LLM config says "Connected: your LM Studio answers requests from the backend" |
 | 29 | Make "LM Studio my computer" the chat model, send `Reply with just the word PONG.`, then run **Analyse** on a task | The answer streams in like any other (it comes from your LM Studio through the extension); the analysis opens with a full profile; the status bar shows it working while it runs |
 | 30 | Close LM Studio's server (or run the command **Developer: Reload Window**), wait 10 seconds, and send a message to "LM Studio my computer" | A clear message ("The extension could not reach LM Studio…" or "Your model on this computer is not available…"), and a message to any other model still works |
+
+## The code assistant (checks 31 to 36)
+
+Same set-up as above (backend on port 8033, LM Studio model, throw-away account, a clean profile). Open a folder with a small code file of 10 or more lines. Use **only LM Studio**; do not use the hosted backend. These six checks take about ten minutes.
+
+| # | Steps | Expected |
+|---|---|---|
+| 31 | Select three lines of code. In the chat press **Selection: Off** once, write `Explain this` and press **Send** | The button reads `Selection: On · file · lines`. Your message shows only `Explain this` with a line `path · lines` that opens to show the code. The answer is about that code |
+| 32 | Click in the file so nothing is selected, keep **Selection: On**, write `Explain this` and press **Send** | Nothing is sent; under the box it says to select some code or switch Selection off |
+| 33 | Select a whole function. Right click > **AdaptAI: Suggest a change to the selection**. In the box at the top write `Throw an error if the first argument is empty` | After a few seconds a VS Code diff opens (the file on the left, the file with the change on the right) with **Accept** and **Reject** in its tab bar. The file tab shows no unsaved changes |
+| 34 | Click **Accept** | The diff closes and the function lines are replaced; the tab shows unsaved changes. One Ctrl+Z brings back the original |
+| 35 | Ask for a change again and click **Reject** | The diff closes and the file is exactly as before |
+| 36 | Ask for a change again and press Ctrl+S in the real file before choosing | The file is saved as it was (only the original code on disk); the diff is still open |
+
+## Navigation and background updates (checks 37 to 42)
+
+Use the same disposable account and local model as above. A first visit with no loaded data may
+show Loading; an already visited page should retain its content while it updates.
+
+| # | Steps | Expected |
+|---|---|---|
+| 37 | Visit My progress, Profile and LLM config. Return to Assistant, send a short message, then revisit My progress | The previous figures appear immediately. Updating may appear; fresh figures replace them without a blank loading page |
+| 38 | Scroll down in My progress, visit Assistant, then return. Repeat while a refresh finishes | The page retains its scroll position and saved report. A failed refresh leaves the figures visible with an error and Retry |
+| 39 | In Assistant click New chat, including from the command palette, and repeat after another response | The empty composer appears using the already loaded models. The old messages and draft are cleared. Other pages remain available |
+| 40 | Send a response long enough to stream, visit My progress, and return before it finishes; then repeat and stay in My progress until it finishes | Partial text continues when returning to Assistant. Finishing on My progress updates the figures in place and keeps that tab selected. New chat/opening another conversation during a task explains that it must finish or be stopped first |
+| 41 | Type a short prompt and press Send | The counter resets to 0/8000 and the local prompt hints disappear immediately |
+| 42 | If a model already has a completed evaluation, inspect its existing result in LLM config; do not start a paid evaluation | Its numeric levels, below-level-1 marker or unknown marker appear without `[object Object]` |
 
 ## Clean up
 

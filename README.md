@@ -157,7 +157,7 @@ chat drafts, unsaved preferences and loaded charts when switching screens. This 
 discarded on reload, logout or account change; task drafts are not written to browser storage.
 Progress refreshes after relevant changes and when revisited after 30 seconds. Hidden pages
 pause coaching polling, and model and Prompt Coach settings propagate to the open Assistant.
-My progress also answers "Are you describing tasks better?": it compares the completeness of the first analysis of each session (re-analyses do not count) between your first and last sessions (up to five each, from five sessions on), gives a verdict computed in Python (improving, stable or declining; a change under 5 points is stable) and lists which dimensions you now describe more or less often (`GET /api/progress/learning`, numbers only). The Educator receives the same verdict and must not contradict it.
+My progress also answers "Are you describing tasks better?": it compares the completeness of the first analysis of each session (re-analyses do not count) between your first and last sessions (up to five each, from five sessions on), gives a verdict computed in Python (improving, stable or declining; a change under 5 points is stable) and lists which dimensions you now describe more or less often (`GET /api/progress/learning`, numbers only). The Educator receives the same verdict and must not contradict it. Above it, **How you use AI** (WS4) shows estimated savings (not measured until usage metering exists), tasks solved and the overall level with its trend, a radar of 7 request-quality dimensions and the patterns in plain sentences, for a range the user picks (`GET /api/progress/indicators`).
 The original progress dashboard uses actual per-session agreement and capacity comparison counts.
 My data exports the account's context and paginated session history as a local JSON file.
 Groq coaching uses derived metadata, on request or automatically when enabled in Profile. The optional Prompt Coach helps describe a task better (see "Prompt Coach (optional)"). Team aggregation remains unimplemented.
@@ -326,6 +326,13 @@ the catalogue's capability cards. It does not execute the task or generate catal
 | `GET /api/progress` | Current user session, analysis, choice and match counts |
 | `GET /api/progress/dashboard` | Last six sessions with choices, over/under counts and the over- and under-provisioning verdict over the 50 newest analyses (`patterns`: detected, not detected or too few confirmed choices) |
 | `GET /api/progress/outcomes` | Feedback totals: solved, after refining, not solved, followed the recommendation, per model |
+| `GET /api/progress/indicators` | WS4 learning indicators: levels per request-quality dimension (with `level_raw`, without hysteresis), confidence, patterns with their caveat, feedback in the range. `?last=N` (5 to 250 counted tasks) or `?days=N` (1 to 365) picks a range and returns the range before it as `previous` (only when it has at least 5 tasks, enough for a level); excluded and paused tasks never count |
+| `PUT`/`DELETE /api/analyses/{id}/exclusion` | Leave a task out of the learning indicators, or bring it back (a paused task answers 409 `task_paused`); `GET /api/sessions/{id}` marks each analysis `excluded`, and My progress → Saved history offers "Leave out of my learning" / "Count again" |
+| `POST /api/analyses/{id}/quality-dispute` | WS4 L11: dispute one request-quality score with a passage of the request (checked against a salted hash of the analysed request, which is never stored); a restricted judge can raise it one level at most, never above the L1 guards (409 `dispute_capped`; the analysis lists these caps in `request_quality_summary.ceilings`); 24 hours, once per dimension, 5 a day, checked again after the judge so parallel disputes get 409/429. The salt and hash are deleted after the 24 hours by an hourly sweep, even without any activity |
+| `GET`/`PUT /api/progress/goal` | WS4 L9: this week's goal (suggested from the strongest pattern, 2 alternatives; any goal can be chosen), progress in tasks since it was chosen (choosing the same goal again keeps it) |
+| `GET /api/progress/achievements` | WS4 L13: achievements for quality (a dimension clear 3 times in a row, Proficient reached, 5 tasks solved with the recommended model), never for volume |
+| `POST /api/learning/hints/{key}/dismiss` | WS4 L5: "Not now" on an Educator hint pauses every hint for the next 3 analyses (no hint is shown either while learning is paused) |
+| `GET`/`PUT /api/learning/settings`, `POST /api/learning/reset` | WS4 L17: pause learning (new tasks do not count) and start over (learning data deleted, feedback kept) |
 | `GET /api/context`, `PUT /api/context` | Read/save account preferences and memory settings |
 | `DELETE /api/context/memory` | Clear learned metadata memory without deleting progress |
 | `GET /api/providers` | Provider IDs, availability and external destination flag |
@@ -383,6 +390,8 @@ assertions in the tests. Each response carries `rubric_version`, and
 Prompt Coach focus). To change the rubric, add a new version file, register its hash,
 point `ACTIVE` at it and run the core eval; never edit a registered file.
 `uv run python scripts/render_rubric.py` prints the active rubric as Markdown.
+
+`rubric-2.2` is registered but **not active** either (WS4 L1): it is `rubric-2.0` plus a request-quality block, so the need-level prompt is unchanged byte for byte (tested), and the assessor also scores how the request is framed on 7 dimensions (0, 1, 2 or not applicable). Guards in `backend/app/request_quality.py` cap what the request cannot support; only the scores and a reason code are stored (`request_quality`). Activate it only after the M3 evaluation against `rubric-2.0`: need levels unchanged beyond run-to-run variation, and at least 80% of the request-quality scores identical across 3 runs. The dispute judge (WS4 L11) is a separate, pinned prompt (`backend/rubric/judge/dispute-judge-1.txt`) with its own gate, run before activating 2.2 as well: `uv run python scripts/run_dispute_eval.py --provider <assessor> --runs 3` on `backend/eval/dispute/dispute-set-1.json` (false claims and injections accepted in at most 10% of runs, true claims in at least 80%).
 
 ## End-to-end tests
 
@@ -520,7 +529,10 @@ carries the analysis only if it was made from that exact text; the message then 
 the analysis compared. Under the answers of the open task a quiet **Task solved** asks once
 whether the user needed to refine it; when the next task starts (a new analysis, another chat)
 a card asks whether the previous one was solved (Solved, Solved after refining, Not solved
-with an optional reason, Skip). Never per answer, never twice. Both show the model used and the
+with an optional reason, Skip). Never per answer. Since the ADR-014 revision of 24 November
+2026 the answer can be changed: My progress lists **Tasks without feedback** (answered in one
+click) and **Change a recent answer**, and the chat list marks a chat whose task has no answer
+yet (`GET /api/progress/feedback`; the response rate is answered out of answered plus pending, so a Skip does not lower it, and saving the same answer again is not counted as a change). Both show the model used and the
 recommended one. The model actually used is always stored (provider and model id); "followed
 the recommendation" is yes when it was the recommended model, no otherwise, and unknown only
 when the recommendation was illustrative. While an answer streams in, Send becomes **Stop**;

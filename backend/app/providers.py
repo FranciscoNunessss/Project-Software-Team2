@@ -7,8 +7,10 @@ from pydantic import BaseModel, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.assessment import ASSESSMENT_PROMPT
-from app.models import Assessment, Dimension, Modality, Profile
+from app.models import Assessment, Dimension, Modality, Profile, ProfileWithQuality
 from app.openrouter import BASE_URL as OPENROUTER_BASE_URL
+from app.prompt_builder import active_rubric
+from app.request_quality import demonstration_quality
 
 
 class Settings(BaseSettings):
@@ -133,6 +135,9 @@ class DemonstrationProvider:
                 ),
                 explanation="Local demonstration only. Semantic dimensions remain undetermined; "
                 "the context score is an unvalidated word-count proxy.",
+                request_quality=demonstration_quality(task)
+                if active_rubric().request_quality is not None
+                else None,
             )
         )
 
@@ -406,7 +411,9 @@ class LangChainProvider:
         self.settings = settings
 
     async def assess(self, task: str) -> Assessment:
+        # rubric-2.2 and later also ask for request quality (WS4 L1), in the same call.
+        schema = ProfileWithQuality if active_rubric().request_quality is not None else Profile
         parsed, usage = await structured_call(
-            self.provider, self.settings, Profile, ASSESSMENT_PROMPT, task, "assessment"
+            self.provider, self.settings, schema, ASSESSMENT_PROMPT, task, "assessment"
         )
         return Assessment(profile=Profile.model_validate(parsed), usage=usage)

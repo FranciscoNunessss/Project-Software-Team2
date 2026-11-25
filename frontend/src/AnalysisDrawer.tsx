@@ -5,6 +5,7 @@ import { Button, Card, Eyebrow, Sheet } from './ui'
 import './AnalysisDrawer.css'
 import { TipsCard } from './TipsCard'
 import { PromptCoachTips } from './PromptCoachTips'
+import { RequestQualityCard } from './RequestQualityCard'
 
 // The chat's analysis panel (ADR-011): the same result the Assistant page shows, in a Sheet.
 // Wide screens: a panel floating over the right of the chat, stopping above the message box.
@@ -55,6 +56,7 @@ export function AnalysisDrawer({ open, onClose, analysis, task, loading, stale, 
             </Card>
           )}
           <RecommendationCard analysis={analysis} useRecommended={useRecommended} useSuggestion={useSuggestion} />
+          <RequestQualityCard analysis={analysis} task={task} />
           <TipsCard analysis={analysis} fromHistory={fromHistory} />
           {task !== undefined && <PromptCoachTips analysis={analysis} task={task} />}
           <ProfileCard analysis={analysis} />

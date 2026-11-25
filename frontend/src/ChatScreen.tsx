@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { usePageActive } from './PagePanel'
 import {
-  api, createChat, renameChat, errorMessage, getChat, getChatSettings, notifyProgressChange, streamChat, candidateLabel, putOutcome, ApiError,
+  api, createChat, errorMessage, getChat, getChatSettings, notifyProgressChange, streamChat, candidateLabel, putOutcome, ApiError,
   type Analysis, type ChatMessage, type HistoryItem, type LLMOption, type LLMOptions, type OutcomeReason, type TaskOutcome,
 } from './api'
 import { AnalysisDrawer, type UseRecommended } from './AnalysisDrawer'
@@ -113,9 +113,8 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
         stops: task.answers.filter(item => item.status === 'stopped').length,
         retries: retries.current.get(task.analysisId) ?? 0,
       })
-    } catch (failure) {
-      // Already answered elsewhere: nothing to ask any more.
-      if (!(failure instanceof ApiError && failure.status === 409)) { setError('Could not save your feedback.'); setSavingOutcome(false); return }
+    } catch {
+      setError('Could not save your feedback.'); setSavingOutcome(false); return
     }
     setMessages(items => items.map(item => item.analysis_id === task.analysisId && item.role === 'user' ? { ...item, outcome } : item))
     setPending(item => item?.analysisId === task.analysisId ? null : item)
@@ -240,10 +239,9 @@ export function ChatScreen({ onConfigureModels, initialChatId, onNotAChat, title
     if (!draftAnalysis) askAboutOpenTask()
     setAnalysing(true); if (openPanel) setDrawer(true); setError(''); setAnalysisError('')
     try {
-      const fresh = !chatId
+      // A chat started by Analyse keeps the default title: the server names it after the first
+      // message on Send, so a draft that is only analysed is never stored as a title (8.1).
       const id = await ensureChat()
-      // A chat started by Analyse is named after the draft, as Send would name it.
-      if (fresh) await renameChat(id, titleFrom(content)).catch(() => undefined)
       // The project's assessor analyses every task, whatever model answers in the chat; only
       // without one (no project model configured) does the chat model analyse.
       const how = assessor

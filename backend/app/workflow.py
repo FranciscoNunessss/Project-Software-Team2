@@ -7,6 +7,7 @@ from app.catalogue import active_catalogue
 from app.models import AnalysisRequest, Assessment, Candidate, Profile, Tip
 from app.providers import AssessmentProvider, ProviderFailure
 from app.recommendation import NoEligibleModel, Option, recommend, task_needs
+from app.request_quality import apply_guards
 
 
 class State(TypedDict, total=False):
@@ -96,7 +97,12 @@ def suggest(needs, options, pool, result, ratings) -> dict | None:
 def build_workflow(provider: AssessmentProvider):
     async def assess(state: State):
         assessment = Assessment.model_validate(await provider.assess(state["request"].task))
-        return {"profile": assessment.profile, "usage": assessment.usage}
+        profile = assessment.profile
+        if profile.request_quality is not None:
+            # WS4 L1: guards in code cap what the request cannot support.
+            guarded, _ = apply_guards(profile.request_quality, state["request"].task)
+            profile = profile.model_copy(update={"request_quality": guarded})
+        return {"profile": profile, "usage": assessment.usage}
 
     def match(state: State):
         profile = state["profile"]

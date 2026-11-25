@@ -1,6 +1,7 @@
 import json
 import logging
 from time import perf_counter
+from types import SimpleNamespace
 from uuid import uuid4
 
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, Request
@@ -22,22 +23,38 @@ from app.evaluations import Ratings, install_evaluations, pending_for
 from app.evaluations import _router_snapshot as router_snapshot
 from app.evaluations import label as evaluation_label
 from app.evaluations import statuses as evaluation_statuses
+from app.learning import excluded_ids, install_learning
+from app.learning_experience import (
+    JudgeVerdict,
+    educator_hint,
+    expire_fingerprints,
+    install_learning_experience,
+    judge_prompt,
+    task_fingerprint,
+)
 from app.llm_config import ModelConfigurations, install_routes
 from app.models import AnalysisRequest, AnalysisResult, Decision
 from app.openrouter import CatalogueUnavailable, OpenRouterCatalogue, fetch_models
 from app.outcomes import install_outcomes, record_decision
-from app.prompt_builder import active_rubric, public_rubric
+from app.prompt_builder import active_rubric, load_rubric, public_rubric
 from app.providers import (
     DemonstrationProvider,
     LangChainProvider,
     ProviderFailure,
     Settings,
+    structured_call,
     with_server_models,
 )
 from app.recommendation import POLICY_VERSION, Option, candidate_gap
 from app.relay import install_relay
+from app.request_quality import DIMENSIONS as QUALITY_DIMENSIONS
+from app.request_quality import demonstration_quality, guard_ceiling
+from app.request_quality import stored_row as quality_row
+from app.request_quality import summary as quality_summary
 from app.retention import install_retention
 from app.storage import Storage, history_result, stored_result
+from app.team_dashboard import install_team_dashboard
+from app.teams import install_teams
 from app.tokens import install_tokens
 from app.workflow import build_workflow
 
@@ -154,6 +171,10 @@ def create_app(
     install_outcomes(
         app, store, ratings_for=lambda user_id: Ratings(store, active_catalogue(), user_id)
     )
+    install_teams(app, store)
+    install_team_dashboard(app, store)
+    install_learning(app, store)
+    install_learning_experience(app, store, lambda *args: quality_judge(*args))
 
     @app.middleware("http")
     async def private_responses(request: Request, call_next):
@@ -212,6 +233,34 @@ def create_app(
         "lmstudio": settings.lmstudio_model,
     }
     external_providers = {"openai", "claude", "groq", "openrouter"}
+
+    async def quality_judge(user_id, result, dimension, task, passage, allow_external):
+        """WS4 L11: the restricted dispute judge, on the model that analysed the task."""
+        name = result.get("provider")
+        if name == "demo" or name in (overrides or {}):
+            # The demonstration and test doubles use the same keyword heuristic as demo L1.
+            return demonstration_quality(passage).model_dump()[dimension]["score"] or 0
+        provider, provider_settings, _, _ = configurations.resolve(
+            user_id,
+            SimpleNamespace(provider=name, configuration_id=result.get("configuration_id")),
+            enabled,
+        )
+        if provider in external_providers and not allow_external:
+            raise HTTPException(403, "external_processing_requires_consent")
+        definition = active_rubric().request_quality or load_rubric("rubric-2.2").request_quality
+        try:
+            parsed, _ = await structured_call(
+                provider,
+                provider_settings,
+                JudgeVerdict,
+                judge_prompt(dimension, definition.dimensions[dimension]),
+                f"{task}\n\nPASSAGE:\n{passage}",
+                "assessment",
+            )
+        except ProviderFailure as exc:
+            raise HTTPException(502, exc.code) from None
+        return JudgeVerdict.model_validate(parsed).level
+
     router_models = openrouter_catalogue or OpenRouterCatalogue(
         lambda: fetch_models(settings.timeout_seconds)
     )
@@ -554,7 +603,12 @@ def create_app(
         offset: int = Query(default=0, ge=0),
     ):
         session = owned_session(user, identifier)
-        return {**session, "analyses": store.history(user["id"], identifier, limit, offset)}
+        analyses = store.history(user["id"], identifier, limit, offset)
+        # WS4 L17: the history says which tasks are left out, so they can be counted again.
+        left_out = excluded_ids(store, user["id"], [item["result"]["id"] for item in analyses])
+        for item in analyses:
+            item["excluded"] = item["result"]["id"] in left_out
+        return {**session, "analyses": analyses}
 
     @app.patch("/api/sessions/{identifier}")
     def update_session(identifier: str, body: SessionInput, user: AuthenticatedUser):
@@ -836,6 +890,27 @@ def create_app(
                 else None,
                 "previous_analysis_id": body.previous_analysis_id,
                 "completeness": state["completeness"],
+                "request_quality_summary": {
+                    **quality_summary(state["profile"].request_quality),
+                    # The highest score each dimension can reach for this request (L1 guards):
+                    # the panel offers a dispute only below it, and says why otherwise.
+                    "ceilings": {
+                        name: guard_ceiling(name, body.task) for name in QUALITY_DIMENSIONS
+                    },
+                }
+                if state["profile"].request_quality is not None
+                else None,
+                # WS4 L5: one Educator hint when this request repeats an active pattern.
+                "educator_hint": educator_hint(
+                    store,
+                    user["id"],
+                    {
+                        name: getattr(state["profile"].request_quality, name).score
+                        for name in QUALITY_DIMENSIONS
+                    },
+                )
+                if state["profile"].request_quality is not None
+                else None,
                 "changes": explain_changes(previous, state["profile"])
                 if previous is not None
                 else [],
@@ -853,6 +928,36 @@ def create_app(
                         json.dumps(history_result(result.model_dump())),
                     ),
                 )
+                if result.profile.request_quality is not None:
+                    row = quality_row(result.profile.request_quality)
+                    salt, digest = task_fingerprint(body.task)
+                    db.execute(
+                        "INSERT INTO request_quality(analysis_id,user_id,objective,context,"
+                        "constraints,risks,ambiguity,success_criteria,audience_format,"
+                        "reason_codes,prompt_version,task_salt,task_hash) "
+                        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                        (
+                            identifier,
+                            user["id"],
+                            *(row[name] for name in QUALITY_DIMENSIONS),
+                            json.dumps(row["reason_codes"]),
+                            RUBRIC_VERSION,
+                            salt,
+                            digest,
+                        ),
+                    )
+                # WS4 L11: fingerprints older than the dispute window are forgotten.
+                expire_fingerprints(db)
+                # WS4 L17: while learning is paused, new tasks do not count.
+                if db.execute(
+                    "SELECT 1 FROM learning_settings WHERE user_id=%s AND paused=1",
+                    (user["id"],),
+                ).fetchone():
+                    db.execute(
+                        "INSERT INTO learning_exclusions(analysis_id,user_id,kind) "
+                        "VALUES (%s,%s,'paused')",
+                        (identifier, user["id"]),
+                    )
                 # Re-read opt-in after the provider call, so disabling during a request wins.
                 memory_settings = db.execute(
                     "SELECT save_enabled,conversation_memory_enabled FROM user_context "

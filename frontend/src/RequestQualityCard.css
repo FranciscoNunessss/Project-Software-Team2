@@ -1,0 +1,12 @@
+.request-quality h3 { margin: 0.25rem 0 0.5rem; }
+.request-quality .quality-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.request-quality .quality-table th, .request-quality .quality-table td { text-align: left; padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--border, #eee); vertical-align: top; }
+.request-quality .quality-score.score-0 { color: var(--danger, #b42318); font-weight: 600; }
+.request-quality .quality-score.score-1 { color: var(--warning, #b25e00); font-weight: 600; }
+.request-quality .quality-score.score-2 { color: var(--success, #2e7d32); font-weight: 600; }
+.educator-hint { border-left: 3px solid var(--accent, #c27a00); padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; background: var(--surface-alt, rgba(0, 0, 0, 0.03)); }
+.educator-hint p { margin: 0 0 0.35rem; }
+.educator-hint-actions, .quality-dispute-actions { display: flex; gap: 0.75rem; align-items: center; }
+.quality-dispute textarea { width: 100%; margin-top: 0.25rem; }
+.quality-dispute { display: grid; gap: 0.35rem; }
+.quality-capped { display: block; margin-top: 4px; font-style: italic; }

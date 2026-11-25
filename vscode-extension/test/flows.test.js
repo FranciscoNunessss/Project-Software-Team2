@@ -292,6 +292,65 @@ test('Improve with "replace" puts the rewrite in the editor; with "diff" it show
   }
 })
 
+test('imp_01: the diff has its own Apply and Dismiss buttons, so a missed notice does not lose the improvement', async () => {
+  reset()
+  const { server, analyser } = await backendStub()
+  try {
+    config.improveApply = 'diff'
+    editor.document.text = 'write something about dogs'
+    log.executed.length = 0
+    await analyser.improveInEditor() // the notice is ignored (ui.info answers nothing)
+    const context = log.executed.filter(call => call[0] === 'setContext' && call[1] === 'adaptai.improving')
+    assert.equal(context.at(-1)[2], true, 'the buttons show while the diff waits')
+    assert.equal(editor.document.text, 'write something about dogs', 'nothing is replaced yet')
+    await analyser.applyImprovement()
+    assert.equal(editor.document.text, REWRITE)
+    assert.equal(log.executed.filter(call => call[0] === 'setContext' && call[1] === 'adaptai.improving').at(-1)[2], false, 'the buttons go away after Apply')
+    await analyser.applyImprovement()
+    assert.equal(editor.document.text, REWRITE, 'a second Apply has nothing to apply')
+    assert.match(log.info.at(-1), /nothing to apply/i)
+    // Dismiss leaves the text alone and hides the buttons
+    editor.document.text = 'write something about cats'
+    await analyser.improveInEditor()
+    await analyser.dismissImprovement()
+    assert.equal(editor.document.text, 'write something about cats')
+    assert.equal(log.executed.filter(call => call[0] === 'setContext' && call[1] === 'adaptai.improving').at(-1)[2], false)
+    await analyser.applyImprovement()
+    assert.equal(editor.document.text, 'write something about cats', 'a dismissed improvement is not applied')
+  } finally {
+    await server.close()
+  }
+})
+
+test('prj_02 an analysis carries the project context as one short line, the message says so, and the setting turns it off', async () => {
+  reset()
+  const files = { '/work/package.json': JSON.stringify({ dependencies: { react: '18' }, devDependencies: { vitest: '1', typescript: '5' } }), '/work/tsconfig.json': '{}' }
+  vscode.workspace.workspaceFolders = [{ uri: { path: '/work' } }]
+  vscode.Uri = { ...(vscode.Uri ?? {}), joinPath: (base, name) => ({ path: `${base.path}/${name}` }) }
+  vscode.workspace.fs = { readFile: async uri => { if (!(uri.path in files)) throw new Error('not found'); return new TextEncoder().encode(files[uri.path]) } }
+  const { server, analyser } = await backendStub()
+  try {
+    vscode.env.clipboard.text = 'Compare two API designs and recommend one.'
+    log.info.length = 0
+    await analyser.fromClipboard()
+    const [on] = bodies(server, '/api/analyze')
+    assert.equal(on.task_context, 'Project: TypeScript, React, Vitest')
+    assert.ok(log.info.some(message => /Project: TypeScript, React, Vitest/.test(message)), 'the message after the analysis does not say what was sent')
+    config.projectContext = false
+    await analyser.fromClipboard()
+    const second = bodies(server, '/api/analyze')[1]
+    assert.equal(second.task_context, '', 'the setting is off and something was sent')
+    config.projectContext = true
+    vscode.workspace.workspaceFolders = undefined
+    await analyser.fromClipboard()
+    assert.equal(bodies(server, '/api/analyze')[2].task_context, '', 'no folder open and something was sent')
+  } finally {
+    delete config.projectContext
+    vscode.workspace.workspaceFolders = undefined
+    await server.close()
+  }
+})
+
 test('Apply does not overwrite text that changed after the analysis; it opens a new file instead', async () => {
   reset()
   const { server, analyser } = await backendStub()
@@ -362,14 +421,14 @@ test('Task solved sends the outcome, and a reason only when it was not solved', 
   }
 })
 
-test('a second answer is explained (the outcome is recorded once per task)', async () => {
+test('an answer the server refuses is explained (it can be changed later, ADR-014 revision)', async () => {
   reset()
-  const { server, analyser } = await backendStub({ outcome: (body, send) => send({ detail: 'outcome_already_recorded' }, 409) })
+  const { server, analyser } = await backendStub({ outcome: (body, send) => send({ detail: 'analysis_not_found' }, 404) })
   try {
     vscode.env.clipboard.text = 'write something about dogs'
     const result = await analyser.fromClipboard()
     await analyser.taskOutcome(result.analysis.id)
-    assert.match(log.error.join(' '), /409|outcome_already_recorded/)
+    assert.match(log.error.join(' '), /no longer stored|404|analysis_not_found/)
   } finally {
     await server.close()
   }
@@ -443,6 +502,83 @@ test('an empty clipboard and an empty file say so', async () => {
     editor.document.text = '   '
     assert.equal(await analyser.fromEditor(), undefined)
     assert.match(log.info.at(-1), /is empty/)
+  } finally {
+    await server.close()
+  }
+})
+
+test('imp_02 Improve asks for the Coach mode first, the configured one on top, and a cancel sends nothing', async () => {
+  reset()
+  const { server, analyser } = await backendStub()
+  try {
+    config.coachMode = 'edits'
+    ui.quickPick = () => undefined
+    await analyser.improveInEditor()
+    assert.equal(log.quickPicks.length, 1, 'no question about the mode')
+    assert.deepEqual(log.quickPicks[0].items.map(item => item.mode), ['edits', 'rewrite', 'tips'], 'the configured mode comes first')
+    assert.equal(bodies(server, '/api/analyze').length + bodies(server, '/api/prompt-coach').length, 0, 'a cancelled question still sent something')
+    ui.quickPick = items => items.find(item => item.mode === 'rewrite')
+    await analyser.improveInEditor()
+    assert.equal(bodies(server, '/api/prompt-coach').at(-1).mode, 'rewrite', 'the chosen mode is the one sent, not the setting')
+    assert.equal(editor.document.text, REWRITE)
+    log.quickPicks.length = 0
+    ui.quickPick = items => items[0]
+    editor.document.text = 'write something about dogs'
+    await analyser.improveInEditor()
+    assert.equal(log.quickPicks[0].items[0].mode, 'rewrite', 'the last mode used comes first next time')
+  } finally {
+    await server.close()
+  }
+})
+
+test('imp_03 Improve in Tips mode changes nothing in the file and shows the tips in the analysis', async () => {
+  reset()
+  const { server, analyser } = await backendStub()
+  try {
+    ui.quickPick = items => items.find(item => item.mode === 'tips')
+    const before = editor.document.text
+    const result = await analyser.improveInEditor()
+    assert.equal(bodies(server, '/api/prompt-coach').at(-1).mode, 'tips')
+    assert.equal(editor.document.text, before)
+    assert.ok(!log.executed.some(call => call[0] === 'vscode.diff'), 'a diff was opened for tips')
+    assert.ok(log.executed.some(call => call[0] === 'markdown.showPreviewToSide'), 'the tips were not shown')
+    assert.match(rendered(analyser, result), /Say who it is for/)
+  } finally {
+    await server.close()
+  }
+})
+
+test('imp_04 the same text is analysed once: a second Improve reuses it and asks the Coach again with its own consent', async () => {
+  reset()
+  const { server, analyser } = await backendStub()
+  try {
+    await analyser.improveInEditor()
+    const asked = log.warning.length
+    assert.equal(bodies(server, '/api/analyze').length, 1)
+    editor.document.text = 'write something about dogs'
+    await analyser.improveInEditor()
+    assert.equal(bodies(server, '/api/analyze').length, 1, 'the text was analysed again')
+    assert.equal(bodies(server, '/api/prompt-coach').length, 2)
+    assert.equal(bodies(server, '/api/prompt-coach')[1].analysis_id, bodies(server, '/api/prompt-coach')[0].analysis_id)
+    assert.equal(log.warning.length, asked + 1, 'the Coach request, now alone, was not confirmed')
+    assert.match(log.warning.at(-1).message, /outside your machine/)
+    editor.document.text = 'write something about cats'
+    await analyser.improveInEditor()
+    assert.equal(bodies(server, '/api/analyze').length, 2, 'a different text must be analysed')
+  } finally {
+    await server.close()
+  }
+})
+
+test('imp_02 a mode named by the caller (a key binding or a script) is used without asking', async () => {
+  reset()
+  const { server, analyser } = await backendStub()
+  try {
+    await analyser.improveInEditor('edits')
+    assert.equal(log.quickPicks.length, 0, 'it asked although the mode was given')
+    assert.equal(bodies(server, '/api/prompt-coach').at(-1).mode, 'edits')
+    await analyser.improveInEditor({ scheme: 'file' }) // a menu passes a Uri: not a mode, so it asks
+    assert.equal(log.quickPicks.length, 1)
   } finally {
     await server.close()
   }

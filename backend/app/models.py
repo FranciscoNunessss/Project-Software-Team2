@@ -1,6 +1,13 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 
 class AnalysisRequest(BaseModel):
@@ -77,6 +84,39 @@ class Modality(Evidence):
         return self
 
 
+REASON_MAX = 160
+
+
+class QualityScore(BaseModel):
+    """WS4 L1: one request-quality dimension. The reason is shown once and never stored."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    score: int | None = Field(ge=0, le=2)
+    reason: str = Field(min_length=1, max_length=REASON_MAX)
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def shorten_reason(cls, value):
+        # A long reason is cut, never fatal: rejecting it would fail the whole assessment,
+        # need levels included, for a line of explanation.
+        if isinstance(value, str) and len(value.strip()) > REASON_MAX:
+            return value.strip()[: REASON_MAX - 1].rstrip() + "…"
+        return value
+
+
+class RequestQuality(BaseModel):
+    """WS4 L1: how well the request is framed (0 missing, 1 partial, 2 clear, None not needed)."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    objective: QualityScore
+    context: QualityScore
+    constraints: QualityScore
+    risks: QualityScore
+    ambiguity: QualityScore
+    success_criteria: QualityScore
+    audience_format: QualityScore
+
+
 class Profile(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     reasoning: Dimension
@@ -87,6 +127,22 @@ class Profile(BaseModel):
     tools: Dimension
     modality: Modality
     explanation: str = Field(min_length=1, max_length=1200)
+    # Present when the active rubric asks for it (rubric-2.2 and later); older analyses lack it.
+    request_quality: RequestQuality | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_absent_quality(self, handler):
+        # Without request quality the profile serialises exactly as profile-2 always did.
+        data = handler(self)
+        if isinstance(data, dict) and data.get("request_quality", 0) is None:
+            data.pop("request_quality")
+        return data
+
+
+class ProfileWithQuality(Profile):
+    """The schema the assessor fills when the active rubric asks for request quality."""
+
+    request_quality: RequestQuality
 
 
 DimensionName = Literal["reasoning", "context", "ambiguity", "domain", "risk", "tools", "modality"]
@@ -200,3 +256,7 @@ class AnalysisResult(BaseModel):
     # better (covers more, or the same for less), with the reason. None most of the time.
     suggestion: Candidate | None = None
     suggestion_reason: str | None = None
+    # WS4 L1: clear dimensions out of applicable ones and the reason codes; None before rubric-2.2.
+    request_quality_summary: dict | None = None
+    # WS4 L5: an active "missing dimension" pattern this request repeats, or None.
+    educator_hint: dict | None = None

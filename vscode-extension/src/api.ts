@@ -23,7 +23,12 @@ export type Dimension = { score: number | null; confidence: string; evidence: st
 export type Profile = Record<'reasoning' | 'context' | 'ambiguity' | 'domain' | 'risk' | 'tools', Dimension> & {
   modality: { required: string[] | null; confidence: string; evidence: string }
   explanation: string
+  /** WS4 L1, present when the active rubric asks for it (rubric-2.2 and later). */
+  request_quality?: Partial<Record<QualityDimension, { score: 0 | 1 | 2 | null; reason: string }>>
 }
+
+export type QualityDimension = 'objective' | 'context' | 'constraints' | 'risks' | 'ambiguity' | 'success_criteria' | 'audience_format'
+export type EducatorHint = { key: string; pattern: 'missing_dimension'; dimension: QualityDimension; hits: number; window: number }
 
 export type Need = 'reasoning' | 'context' | 'domain' | 'reliability' | 'tools'
 export type CoverageState = 'covers' | 'covers_as_described' | 'short'
@@ -95,6 +100,10 @@ export type Analysis = {
   suggestion?: Candidate | null
   suggestion_reason?: string | null
   observed_cost?: number | null
+  /** WS4 L1: clear dimensions out of applicable ones. Null or absent before rubric-2.2. */
+  request_quality_summary?: { clear: number; applicable: number; codes?: Record<string, string> } | null
+  /** WS4 L5: an active 'missing dimension' pattern this request repeats. */
+  educator_hint?: EducatorHint | null
 }
 
 export type Suggestion = { dimension: string; kind: 'question' | 'tip' | 'edit'; title: string; rationale: string; quote: string | null; replacement: string | null }

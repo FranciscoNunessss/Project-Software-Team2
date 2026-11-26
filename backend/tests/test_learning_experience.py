@@ -405,3 +405,20 @@ def test_learning_tables_never_hold_the_request(app):
             ]
         )
     assert "MARKER" not in stored and "free tools" not in stored
+
+
+def test_dispute_eval_never_uses_the_production_key():
+    import importlib.util
+    from pathlib import Path
+
+    from app import quality_eval as qe
+
+    path = Path(__file__).resolve().parents[2] / "scripts" / "run_dispute_eval.py"
+    spec = importlib.util.spec_from_file_location("run_dispute_eval_keys", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    with pytest.raises(qe.NoDevKey):
+        module.settings_for("groq", "openai/gpt-oss-20b", {"ADAPTAI_GROQ_API_KEY": "production"})
+    settings = module.settings_for("groq", "openai/gpt-oss-20b", {"EVAL_GROQ_API_KEY": "dev"})
+    assert settings.groq_api_key.get_secret_value() == "dev"
+    assert settings.groq_model == "openai/gpt-oss-20b"

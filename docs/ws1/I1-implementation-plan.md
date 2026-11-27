@@ -337,3 +337,31 @@ as a draft from agent/i1-delivery into develop. It does not close the I1 card.
 Remote checks are running; PO scope/options acceptance, original measurement gaps
 and independent G3 approval/merge remain open. Earlier pending-publication/G2
 statements describe their recording time and are superseded by this update.
+
+
+## Rebase and integration verification — 27 November 2026
+
+The delivery was rebased without conflicts onto develop `1a082fc`; the rebased
+runtime commit is `5d1ed3b`. Francisco Nunes approved a limited G1 extension in
+chat on 27 November: update only `vscode-extension/test/integration.test.js` to
+the editable-feedback contract already integrated by WS4. The old test failed
+expecting 409 after a repeated save. The corrected integration test verifies
+unchanged answers do not increase `changes`, edited answers replace the outcome,
+and progress counts one task with only the latest answer. All 11 integrations
+then passed; no product source or AI input was changed by this correction.
+
+Fresh checks: Ruff lint/format (128 files), frozen frontend build, 288 extension
+unit tests, all three extension browser scripts and 63 Playwright cases passed.
+The 390 new fake-provider samples passed the existing strict metadata validator.
+The full backend run passed 964 tests and failed one RLS test because the explicit
+ADAPTAI_TEST_DATABASE_URL variable was missing. Setting it to the disposable local
+database made all five RLS tests pass without source changes. The complete suite
+was not repeated; coverage accumulated across these runs is 96% total and 99% core.
+Removal-drill/container results from 25 November remain historical; new remote CI
+is required for the rebased head. See I1-rebase-validation-2026-11-27.json.
+
+Francisco reports that the PO accepted reduced I1 scope and will supply the
+original approval record; that record is pending. No missing live-load/IDE/idle
+measurement was fabricated. Prior developer G2 remains recorded; peer G3 and
+Ready for review remain outstanding. The original e482ac7 head showed 13/13
+checks passing before rebase; that result is not transferred to the new head.

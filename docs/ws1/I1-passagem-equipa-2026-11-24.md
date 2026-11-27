@@ -1,8 +1,27 @@
 # I1 — Passagem de trabalho à equipa
 
-Atualizado em 25 de novembro de 2026. Responsável: Francisco Nunes.
+Atualizado em 27 de novembro de 2026. Responsável: Francisco Nunes.
 Cartão: [I1 · Latency and capacity diagnosis](https://app.clickup.com/t/1an3cktb6h8).
-Estado: em progresso. Os testes automáticos locais passaram. Francisco confirmou o G2 manual em 25/11, sem problemas reportados. [PR #96](https://github.com/FranciscoNunessss/Project-Software-Team2/pull/96) aberto como rascunho para develop; CI remoto em curso.
+Estado: em progresso. Francisco confirmou o G2 manual em 25/11, sem problemas reportados. [PR #96](https://github.com/FranciscoNunessss/Project-Software-Team2/pull/96) aberto como rascunho para develop. Os 13 checks passaram no head anterior `e482ac7`; a atualização para o develop atual exige novo CI.
+
+## Atualização de 27 de novembro
+
+A entrega foi atualizada sem conflitos para `develop` `1a082fc`. O código do produto de I1 mantém o âmbito aprovado. Francisco aprovou uma extensão limitada de G1: atualizar apenas o teste de integração da extensão que ainda esperava um erro 409 ao repetir feedback, depois de o WS4 passar a permitir alterá-lo. O teste corrigido prova que repetir a mesma resposta não conta como alteração e que mudar a resposta mantém uma única tarefa contabilizada. Os 11 testes de integração passaram após a correção.
+
+| Verificação atual | Resultado |
+|---|---|
+| Backend completo | 964 passaram; 1 falhou por falta da variável explícita `ADAPTAI_TEST_DATABASE_URL` |
+| Repetição RLS com configuração local corrigida | Os 5 testes passaram; nenhum código do backend alterado; a suite completa não foi repetida |
+| Cobertura acumulada | 96% global; 99% principal |
+| Ruff e frontend | Lint/formatação passaram (128 ficheiros); instalação com lockfile e build passaram |
+| Extensão | 288 unitários passaram; 11 integrações passaram separadamente; 3 scripts de renderização passaram |
+| Playwright | 63 passaram em 3,9 minutos; 390 amostras simuladas, sem erros, validadas pelo runner |
+
+As verificações de remoção e contentores na tabela de 25/11 abaixo são históricas; não foram repetidas localmente após este rebase. O CI do novo head fará as verificações remotas. [Registo exato da validação](I1-rebase-validation-2026-11-27.json).
+
+Francisco comunicou em 27/11 que o PO aceitou o âmbito reduzido e que enviaria a aprovação. O texto/link original ainda não foi recebido. Esta comunicação fica atribuída a Francisco; não é uma nova medição nem uma aprovação independente criada pelo agente. A decisão original deve acompanhar a resolução do major do Ricardo no PR. Permanecem a passagem de draft para revisão e o G3 de um colega. Nenhum merge ou deploy foi feito.
+
+Os resultados e estados de 25/11 nas secções seguintes são históricos.
 
 ## O que foi feito
 

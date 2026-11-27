@@ -1,0 +1,73 @@
+{
+  "date": "2026-11-27",
+  "branch": "agent/i1-delivery",
+  "base_develop": "1a082fc",
+  "rebased_runtime_commit": "5d1ed3b",
+  "prior_remote_head": "e482ac7",
+  "scope_extension": {
+    "approver": "Francisco Nunes",
+    "source": "Codex chat 27 November 2026",
+    "scope": "Only vscode-extension/test/integration.test.js: repeated and edited feedback follows existing WS4 contract; no product change",
+    "test_sha256": "8c6a80e4e08288671b3173427e4184cc91380240a66fb6110baecd171dbbfc73"
+  },
+  "checks": {
+    "ruff_lint": "passed",
+    "ruff_format": "128 files formatted",
+    "frontend": "frozen install and build passed; existing chunk-size warning",
+    "backend_full": {
+      "passed": 964,
+      "failed": 1,
+      "duration_seconds": 814.5,
+      "failure": "test_row_level_security.py::test_another_role_sees_no_rows_even_with_select_granted: missing ADAPTAI_TEST_DATABASE_URL",
+      "product_failure": false
+    },
+    "rls_rerun": {
+      "passed": 5,
+      "failed": 0,
+      "duration_seconds": 7.22,
+      "change": "explicit disposable localhost ADAPTAI_TEST_DATABASE_URL; no source change"
+    },
+    "backend_unique_cases_passing_across_runs": 965,
+    "total_coverage_percent": 96,
+    "core_coverage_percent": 99,
+    "extension_units": {
+      "passed": 288,
+      "failed": 0,
+      "skipped_integration": 11
+    },
+    "extension_integrations": {
+      "initial_passed": 10,
+      "initial_failed": 1,
+      "cause": "obsolete expectation of 409 after repeat outcome save",
+      "after_approved_fix_passed": 11,
+      "failed": 0,
+      "skipped": 0
+    },
+    "extension_rendering": "all 3 scripts passed",
+    "playwright": {
+      "passed": 63,
+      "failed": 0,
+      "duration_label": "3.9m",
+      "fake_journey_samples": 390,
+      "failed_samples": 0,
+      "validated_metadata_cells": 9
+    }
+  },
+  "production_model_actions": 0,
+  "historical_only": {
+    "removal_drill": "613 passed on original delivery 0100ae8; not repeated locally after this rebase",
+    "containers": "build/smoke/recreation/persistence passed on original delivery; not repeated after rebase"
+  },
+  "gates": {
+    "g2": "Developer reported completion 25 November; no new human manual result claimed",
+    "po": "Francisco reports reduced scope accepted; original decision record promised and pending",
+    "g3": "independent human approval and merge required",
+    "remote_ci": "13/13 passed on prior e482ac7; new head not yet published at record time"
+  },
+  "limitations": [
+    "Full backend was not rerun after correcting only test-run environment; complete run plus all 5 RLS rerun results are reported separately.",
+    "Fake-provider timings do not establish production inference capacity.",
+    "No new real concurrency, visible initial IDE or verified cold/idle measurement.",
+    "No deployment, paid plan, AI-input change or migration added by I1."
+  ]
+}

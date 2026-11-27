@@ -1,0 +1,119 @@
+{
+  "protocol": "ws1-api-idle-1",
+  "created_at": "2026-11-24T23:01:59.5230112+00:00",
+  "environment": "production",
+  "endpoint": "/api/health",
+  "quiet_window_started_at": "2026-11-24T22:31:58+00:00",
+  "quiet_window_due_at": "2026-11-24T23:01:58+00:00",
+  "owner_confirmed_quiet_window": true,
+  "local_web_clients_closed": true,
+  "local_ide_closed": true,
+  "server_access_log_verification": "application_access_and_lifecycle_logs_checked",
+  "model_actions": 0,
+  "limitations": [
+    "The agreed thirty-minute interval elapsed, but intervening requests and a server startup invalidated the idle condition",
+    "First observed request is classified warm; it is not a measured cold wake-up",
+    "HTTP health endpoint only; no model or visible-journey capacity conclusion",
+    "Five warm comparison samples; descriptive only, not an SLA"
+  ],
+  "samples": [
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 1,
+      "outcome": "ok",
+      "status": 200,
+      "valid_health_payload": true,
+      "ms": 387.5084,
+      "started_at": "2026-11-24T23:01:58.4406816+00:00",
+      "requested_phase": "idle_30m",
+      "observation": "first_after_reserved_window_but_server_reactivated_earlier"
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 1,
+      "outcome": "ok",
+      "status": 200,
+      "valid_health_payload": true,
+      "ms": 211.1588,
+      "started_at": "2026-11-24T23:01:58.835534+00:00"
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 1,
+      "outcome": "ok",
+      "status": 200,
+      "valid_health_payload": true,
+      "ms": 123.2818,
+      "started_at": "2026-11-24T23:01:59.0470245+00:00"
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 1,
+      "outcome": "ok",
+      "status": 200,
+      "valid_health_payload": true,
+      "ms": 122.145,
+      "started_at": "2026-11-24T23:01:59.1705154+00:00"
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 1,
+      "outcome": "ok",
+      "status": 200,
+      "valid_health_payload": true,
+      "ms": 118.3736,
+      "started_at": "2026-11-24T23:01:59.2928747+00:00"
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 1,
+      "outcome": "ok",
+      "status": 200,
+      "valid_health_payload": true,
+      "ms": 111.5609,
+      "started_at": "2026-11-24T23:01:59.4113578+00:00"
+    }
+  ],
+  "idle_condition_verified": false,
+  "conclusion": "inconclusive_intervening_server_traffic",
+  "server_log_summary": {
+    "range_start": "2026-11-24T22:31:58Z",
+    "range_end": "2026-11-24T23:01:58Z",
+    "pages": 4,
+    "pagination_complete": true,
+    "total_logs": 349,
+    "health_gets": 325,
+    "other_get_requests": 10,
+    "non_get_requests": 0,
+    "lifecycle": [
+      {
+        "kind": "shutdown_started",
+        "timestamp": "2026-11-24T22:45:55.168877272Z"
+      },
+      {
+        "kind": "shutdown_complete",
+        "timestamp": "2026-11-24T22:45:55.270289322Z"
+      },
+      {
+        "kind": "server_process_finished",
+        "timestamp": "2026-11-24T22:45:55.270339243Z"
+      },
+      {
+        "kind": "startup_complete",
+        "timestamp": "2026-11-24T22:52:48.543081103Z"
+      }
+    ]
+  }
+}

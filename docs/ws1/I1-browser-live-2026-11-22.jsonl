@@ -1,0 +1,15 @@
+{"journey":"page_change","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":302.4294000000082}
+{"journey":"page_change","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":785.9758000000002}
+{"journey":"page_change","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":1034.6543999999994}
+{"journey":"page_change","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":389.31119999999646}
+{"journey":"page_change","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":1033.676099999997}
+{"journey":"analysis","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":4529.585800000001}
+{"journey":"chat_first_text","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":2603.5240999999805}
+{"journey":"analysis","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":6011.755499999999}
+{"journey":"chat_first_text","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":2548.699800000002}
+{"journey":"analysis","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":5648.615499999985}
+{"journey":"chat_first_text","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":2318.373900000006}
+{"journey":"analysis","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":5599.978300000017}
+{"journey":"chat_first_text","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":1513.2773999999918}
+{"journey":"analysis","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":5257.784799999994}
+{"journey":"chat_first_text","concurrency":1,"source":"browser_live","phase":"warm","outcome":"ok","ms":1518.6512999999977}

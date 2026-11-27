@@ -1,0 +1,71 @@
+{
+  "branch": "agent/i1-delivery",
+  "source_commit": "0100ae8069418233d14908cb8863a2ccb8429c1f",
+  "base_develop": "39f4f73",
+  "run_date": "2026-11-25",
+  "production_model_actions": 0,
+  "checks": {
+    "ruff_lint": "passed",
+    "ruff_format": "passed_103_files",
+    "backend": {
+      "skipped": 0,
+      "errors": 0,
+      "passed": 771,
+      "duration_seconds": 534.091,
+      "failed": 0
+    },
+    "total_coverage_percent": 96,
+    "core_coverage_percent": 99,
+    "optional_module_removal": {
+      "skipped": 0,
+      "errors": 0,
+      "passed": 613,
+      "duration_seconds": 338.601,
+      "failed": 0
+    },
+    "frontend_frozen_install_and_build": "passed_existing_chunk_warning",
+    "extension_unit": {
+      "integration_skipped": 11,
+      "passed": 191,
+      "failed": 0
+    },
+    "extension_browser_rendering": "existing_page_script_passed",
+    "container_build": "passed",
+    "container_startup": "backend_frontend_postgres_healthy",
+    "container_persistence": "passed_smoke_recreation_retained_login_and_data",
+    "extension_integration": "11_passed_zero_skipped",
+    "playwright": "53_passed_2.6m_390_fake_samples"
+  },
+  "approval_service": {
+    "unsafe_determination": false,
+    "reason": "usage_limit_prevented_automatic_approval_review",
+    "outcome": "recovered_checks_executed_normally"
+  },
+  "delivery": {
+    "report_followup_uncommitted": false,
+    "pr_opened": true,
+    "implementation_committed_locally": true,
+    "branch_pushed": true,
+    "remote_ci_verified": false,
+    "pr_creation": "opened_after_developer_G2_report",
+    "ci_run_url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/96/checks",
+    "pr_url": "https://github.com/FranciscoNunessss/Project-Software-Team2/pull/96"
+  },
+  "remaining": [
+    "verify remote CI completion",
+    "PO scope/options decision and unresolved original measurement gaps",
+    "independent peer G3"
+  ],
+  "limitations": [
+    "Historical 8313bfe checks are not substituted for this delivery.",
+    "Health checks do not establish real inference capacity.",
+    "Idle experiment remains inconclusive.",
+    "Visible initial IDE load and real 5/20-user inference unavailable."
+  ],
+  "g2": {
+    "developer": "Francisco Nunes",
+    "status": "developer_reported_completed_no_issue_reported",
+    "per_step_results": "not_supplied",
+    "date": "2026-11-25"
+  }
+}

@@ -1,0 +1,1351 @@
+{
+  "protocol": "ws1-health-load-powershell-1",
+  "created_at": "2026-11-22T22:50:00.5182866Z",
+  "environment": "production",
+  "endpoint": "/api/health",
+  "rounds": 5,
+  "concurrency_ceiling": 20,
+  "attempt_budget": 130,
+  "model_actions": 0,
+  "timeout_seconds": 15,
+  "limitations": [
+    "HTTP health endpoint only; no database, authenticated journey or LLM capacity conclusion",
+    "Warm run; not a thirty-minute idle test",
+    "Client stopwatch includes connection setup and task-completion polling overhead",
+    "Short burst test; no sustained-load or SLA conclusion"
+  ],
+  "cells": [
+    {
+      "concurrency": 1,
+      "attempted": 5,
+      "successful": 5,
+      "errors": 0,
+      "timeouts": 0,
+      "rate_limited": 0,
+      "p50_ms": 74.7028,
+      "p95_ms": 156.4426
+    },
+    {
+      "concurrency": 5,
+      "attempted": 25,
+      "successful": 25,
+      "errors": 0,
+      "timeouts": 0,
+      "rate_limited": 0,
+      "p50_ms": 76.906,
+      "p95_ms": 166.014
+    },
+    {
+      "concurrency": 20,
+      "attempted": 100,
+      "successful": 100,
+      "errors": 0,
+      "timeouts": 0,
+      "rate_limited": 0,
+      "p50_ms": 178.2046,
+      "p95_ms": 200.508
+    }
+  ],
+  "samples": [
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 1,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 156.4426
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 1,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 72.3779
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 1,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 81.7613
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 1,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 74.7028
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 1,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 57.4022
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 66.1901
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 119.466
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 119.8801
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 120.4871
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 135.5127
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 62.6263
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 76.906
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 77.3864
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 78.3291
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 166.014
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 64.3508
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 64.7161
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 64.9845
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 65.7474
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 177.2383
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 60.0529
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 60.3978
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 60.6817
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 78.1464
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 79.0399
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 65.891
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 66.127
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 66.2949
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 77.6265
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 5,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 78.068
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 77.8337
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 78.1752
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 78.407
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 78.6717
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 109.3551
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 119.4396
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 119.783
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 120.0456
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 120.2153
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 120.3756
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 120.5418
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 120.7687
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 120.924
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 121.0995
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 147.0561
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 198.7968
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 199.032
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 199.5658
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 216.505
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 1,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 217.0296
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 98.7669
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 98.9847
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 99.3588
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 99.4832
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 99.8074
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 100.0033
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 100.3262
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 100.4685
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 175.2256
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 192.1575
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 192.3331
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 192.6104
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 192.7744
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 193.0164
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 193.1427
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 193.2782
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 193.6961
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 193.8525
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 194.19
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 2,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 194.4607
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 89.557
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 90.0751
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 90.321
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 90.5668
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 183.3922
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 183.6262
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 183.8023
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 184.0029
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 192.2619
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 192.4354
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 192.6167
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 192.8406
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 193.0703
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 193.264
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 193.5179
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 193.7084
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 193.8988
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 194.0694
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 194.4882
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 3,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 220.4416
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 67.2464
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 67.8521
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 78.5579
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 79.534
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 79.7356
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 160.0406
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 160.4118
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 162.0839
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 174.96
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 175.2898
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 175.4602
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 175.6322
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 175.8084
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 176.0057
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 176.1904
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 176.3696
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 176.6932
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 177.8132
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 178.2046
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 4,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 178.678
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 88.4667
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 88.8981
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 116.4891
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 186.3848
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 186.7781
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 187.5517
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 197.8734
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 198.263
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 198.4727
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 198.7182
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 198.9271
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 199.1628
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 199.3674
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 199.5812
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 199.7847
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 200.0531
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 200.3095
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 200.508
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 200.7157
+    },
+    {
+      "journey": "api_health",
+      "source": "api",
+      "phase": "warm",
+      "concurrency": 20,
+      "round": 5,
+      "outcome": "ok",
+      "status": 200,
+      "ms": 214.9752
+    }
+  ]
+}

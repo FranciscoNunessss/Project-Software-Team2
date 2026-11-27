@@ -1,0 +1,386 @@
+{
+  "protocol": "ws1-extension-host-native-1",
+  "captured_at": "2026-11-24",
+  "source": "ide_host",
+  "extension_version": "0.3.0",
+  "environment": "production",
+  "backend_commit": "74d68722c156218722ab6f43fe0e21448da1ef38",
+  "limitations": [
+    "Existing authenticated owner session; not isolated synthetic-account capture",
+    "Automatic and configuration-triggered host reloads; not controlled initial webview loads",
+    "Includes request and reload completion, excludes webview paint",
+    "Native UI timing discarded because geometry changed and input targeting failed"
+  ],
+  "samples": [
+    {
+      "sequence": 3,
+      "startedMs": 53686.5,
+      "phase": "api",
+      "route": "/api/evaluations",
+      "ms": 1781,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 2,
+      "startedMs": 53685,
+      "phase": "api",
+      "route": "/api/llm-options",
+      "ms": 1785.2,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 4,
+      "startedMs": 53689,
+      "phase": "api",
+      "route": "/api/chats",
+      "ms": 1784.3,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 1,
+      "startedMs": 53684.5,
+      "phase": "reload",
+      "route": "analyse",
+      "ms": 1789.7,
+      "outcome": "ok"
+    },
+    {
+      "sequence": 5,
+      "startedMs": 55475.2,
+      "phase": "api",
+      "route": "/api/sessions",
+      "ms": 265.5,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 6,
+      "startedMs": 55477.7,
+      "phase": "api",
+      "route": "/api/progress/pending",
+      "ms": 265.7,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 7,
+      "startedMs": 55478.9,
+      "phase": "api",
+      "route": "/api/progress/activity",
+      "ms": 318.1,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 9,
+      "startedMs": 55743.5,
+      "phase": "api",
+      "route": "/api/progress/dashboard",
+      "ms": 301.4,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 10,
+      "startedMs": 55797,
+      "phase": "api",
+      "route": "/api/progress/outcomes",
+      "ms": 252.8,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 8,
+      "startedMs": 55740.9,
+      "phase": "api",
+      "route": "/api/progress",
+      "ms": 358.5,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 11,
+      "startedMs": 56045,
+      "phase": "api",
+      "route": "/api/progress/learning",
+      "ms": 244.5,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 13,
+      "startedMs": 56099.5,
+      "phase": "api",
+      "route": "/api/context",
+      "ms": 362.4,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 14,
+      "startedMs": 56289.6,
+      "phase": "api",
+      "route": "/api/prompt-coach/settings",
+      "ms": 240,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 15,
+      "startedMs": 56461.9,
+      "phase": "api",
+      "route": "/api/chat/settings",
+      "ms": 247.5,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 16,
+      "startedMs": 56529.7,
+      "phase": "api",
+      "route": "/api/chats",
+      "ms": 237.9,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 17,
+      "startedMs": 56709.4,
+      "phase": "api",
+      "route": "/api/llm-options",
+      "ms": 243.7,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 18,
+      "startedMs": 56767.7,
+      "phase": "api",
+      "route": "/api/llm-configs",
+      "ms": 245.1,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 19,
+      "startedMs": 56953.2,
+      "phase": "api",
+      "route": "/api/evaluations",
+      "ms": 1390.1,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 12,
+      "startedMs": 56049.9,
+      "phase": "api",
+      "route": "/api/progress/coaching",
+      "ms": 2299.6,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 20,
+      "startedMs": 107838.4,
+      "phase": "api",
+      "route": "/api/llm-configs",
+      "ms": 360.1,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 23,
+      "startedMs": 108201.7,
+      "phase": "api",
+      "route": "/api/evaluations",
+      "ms": 1443.8,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 22,
+      "startedMs": 108199.7,
+      "phase": "api",
+      "route": "/api/llm-options",
+      "ms": 1532.7,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 24,
+      "startedMs": 108203.4,
+      "phase": "api",
+      "route": "/api/chats",
+      "ms": 1535.8,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 21,
+      "startedMs": 108199.6,
+      "phase": "reload",
+      "route": "analyse",
+      "ms": 1540.6,
+      "outcome": "ok"
+    },
+    {
+      "sequence": 27,
+      "startedMs": 141341.1,
+      "phase": "api",
+      "route": "/api/evaluations",
+      "ms": 1602.4,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 28,
+      "startedMs": 141341.8,
+      "phase": "api",
+      "route": "/api/chats",
+      "ms": 1690.6,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 26,
+      "startedMs": 141339.5,
+      "phase": "api",
+      "route": "/api/llm-options",
+      "ms": 1705,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 25,
+      "startedMs": 141339.5,
+      "phase": "reload",
+      "route": "analyse",
+      "ms": 1705.5,
+      "outcome": "ok"
+    },
+    {
+      "sequence": 29,
+      "startedMs": 167844.4,
+      "phase": "api",
+      "route": "/api/llm-configs",
+      "ms": 339.2,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 31,
+      "startedMs": 168263,
+      "phase": "api",
+      "route": "/api/llm-options",
+      "ms": 1416.1,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 32,
+      "startedMs": 168264.2,
+      "phase": "api",
+      "route": "/api/evaluations",
+      "ms": 1426.3,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 33,
+      "startedMs": 168265,
+      "phase": "api",
+      "route": "/api/chats",
+      "ms": 1498.7,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 30,
+      "startedMs": 168262.9,
+      "phase": "reload",
+      "route": "analyse",
+      "ms": 1501.4,
+      "outcome": "ok"
+    },
+    {
+      "sequence": 34,
+      "startedMs": 227850.7,
+      "phase": "api",
+      "route": "/api/llm-configs",
+      "ms": 361.7,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 36,
+      "startedMs": 228296.6,
+      "phase": "api",
+      "route": "/api/llm-options",
+      "ms": 664.9,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 38,
+      "startedMs": 228298.7,
+      "phase": "api",
+      "route": "/api/chats",
+      "ms": 665,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 37,
+      "startedMs": 228297.8,
+      "phase": "api",
+      "route": "/api/evaluations",
+      "ms": 1767.7,
+      "outcome": "ok",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "sequence": 35,
+      "startedMs": 228296.5,
+      "phase": "reload",
+      "route": "analyse",
+      "ms": 1769.6,
+      "outcome": "ok"
+    }
+  ]
+}

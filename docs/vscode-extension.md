@@ -180,6 +180,12 @@ These are tested in `test/security.test.js` and `test/dashboard.test.js`.
 
 ### Local latency capture
 
+WS1 I1: reuse this opt-in capture under the [measurement protocol](ws1/I1-implementation-plan.md).
+Its extension-host API/stream/reload timings are not GPU paint or visible webview-load
+measurements. Do not label them as production inference or browser first-text timings.
+The WS1 importer accepts only its documented enum/numeric record shape; the native
+extension export requires a reviewed conversion and must not be passed through as raw data.
+
 Run **AdaptAI: Start local latency capture** in the Command Palette. Capture is off by default
 and resets on every start. It keeps the most recent 1,000 completed timings in memory and
 writes timing metadata to the local **AdaptAI Latency** log output channel. Nothing is uploaded.
@@ -196,6 +202,15 @@ The capture does not change consent, model selection, caching or request orderin
 Measure five repetitions after warming the API, using the same account, model and synthetic
 prompt, as in `cloud-setup.md`. Record rate limits and failures separately from successful runs.
 Do not include the first wake-up request in warm latency statistics.
+
+For an idle-hosting experiment, hiding the panel is insufficient: the extension's
+status bar checks the backend every sixty seconds while its host is active.
+Close participating VS Code windows and web clients before the agreed quiet
+interval; do not poll health during that interval. Capture the first request
+afterwards separately and state whether other users' traffic could be excluded.
+The [24 November I1 host capture](ws1/I1-ide-host-2026-11-24.json) contains
+successful API/reload timings, but no valid visible initial-load result; native
+window geometry problems made those UI timings unusable.
 
 * `api`: request through complete JSON response consumption, including network time. Authentication
   and status probes that call `Backend.call` directly are not individual `api` samples.

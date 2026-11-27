@@ -12,8 +12,34 @@ from app.providers import Settings
 from app.storage import Storage
 from conftest import drop_test_schema, legacy_copy
 from fastapi.testclient import TestClient
-from migration_tools.sqlite_import import import_sqlite
+from migration_tools.sqlite_import import import_sqlite, sqlite_snapshot
 from test_persistence import account
+
+
+@pytest.mark.parametrize("fails", [False, True])
+def test_sqlite_snapshot_closes_connection_before_removing_copy(tmp_path, fails):
+    source_path = tmp_path / "snapshot-source.sqlite3"
+    original = sqlite3.connect(source_path)
+    original.execute("CREATE TABLE marker (value INTEGER)")
+    original.close()
+    before = source_path.read_bytes()
+    connection = None
+
+    def consume():
+        nonlocal connection
+        with sqlite_snapshot(source_path) as connection:
+            assert connection.execute("SELECT count(*) FROM marker").fetchone()[0] == 0
+            if fails:
+                raise ValueError("synthetic import error")
+
+    if fails:
+        with pytest.raises(ValueError, match="synthetic import error"):
+            consume()
+    else:
+        consume()
+    with pytest.raises(sqlite3.ProgrammingError, match="closed"):
+        connection.execute("SELECT 1")
+    assert source_path.read_bytes() == before
 
 
 @pytest.fixture

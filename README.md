@@ -1,5 +1,11 @@
 # AdaptAI
 
+WS1 latency diagnosis: see the [I1 protocol](docs/ws1/I1-implementation-plan.md)
+and [partial baseline](docs/ws1/I1-baseline-report.md). The bounded runner at
+`scripts/measure_latency.py` defaults to simulation, imports timing-only captures,
+and probes only an explicitly selected application's public health endpoint.
+Simulated and backend-only results do not establish production user-journey latency.
+
 First backend increment: task → complexity profile → capability filtering → explained
 recommendation → user selection or override. Python 3.12, uv, FastAPI, LangChain and
 an explicit LangGraph workflow. The team's React mock retains its design and its

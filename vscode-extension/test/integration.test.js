@@ -66,17 +66,33 @@ test('Analyse (demonstration) goes through the real API and opens as a document 
   global.result = result
 })
 
-test('the Prompt Coach answers on that analysis, and the outcome is recorded once', { skip }, async () => {
+test('the Prompt Coach answers, and feedback can be saved again or changed without counting the task twice', { skip }, async () => {
   const result = global.result
   await backend.api('/api/prompt-coach/settings', 'PUT', { enabled: true })
   await analyser.coach(result, 'rewrite', true)
   assert.equal(result.error, undefined, result.error)
   assert.ok(result.coach)
+  const errorsBefore = log.error.length
+  const outcomePath = `/api/analyses/${result.analysis.id}/outcome`
   ui.quickPick = items => items.find(item => item.outcome === 'resolved')
   await analyser.taskOutcome(result.analysis.id)
   assert.match(log.info.at(-1), /saved/)
   await analyser.taskOutcome(result.analysis.id)
-  assert.match(log.error.at(-1), /409|already/i)
+  assert.match(log.info.at(-1), /saved/)
+  const repeated = await backend.api(outcomePath)
+  assert.equal(repeated.outcome, 'resolved')
+  assert.equal(repeated.changes, 0, 'a repeated save is not a change of answer')
+
+  ui.quickPick = items => items.find(item => item.outcome === 'resolved_with_refinement')
+  await analyser.taskOutcome(result.analysis.id)
+  const changed = await backend.api(outcomePath)
+  assert.equal(changed.outcome, 'resolved_with_refinement')
+  assert.equal(changed.changes, 1)
+  const summary = await backend.api('/api/progress/outcomes')
+  assert.equal(summary.tasks, 1, 'saving or changing feedback must not duplicate the task')
+  assert.equal(summary.resolved, 0)
+  assert.equal(summary.resolved_with_refinement, 1, 'only the latest answer counts')
+  assert.equal(log.error.length, errorsBefore, 'valid feedback saves show no error')
 })
 
 test('the chat streams a real answer, keeps the chat on the backend, lists it and renames it', { skip }, async () => {

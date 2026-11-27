@@ -1,5 +1,20 @@
 # Cloud hosting plan
 
+**Verified hosting update, 21 November 2026:** read-only connectors confirm the
+Render backend is Free/Docker/Frankfurt with one instance, auto-deploy and previews
+off. Its current live deploy uses commit `74d6872`, published on 17 November. Netlify
+serves production deploy `6afbb01b7f1c704d32b54bcf` from 17 November, but supplies no
+source commit. These identities supersede the historical deployment statements
+below. Sparse resource metrics and missing HTTP series do not establish a
+performance baseline. See the [I1 hosting evidence](ws1/I1-baseline-report.md#hosting-identity-and-telemetry-checked-on-2026-11-21).
+No service configuration, paid plan or keep-alive was enabled.
+
+**Measurement update, 20 November 2026:** an authenticated browser session was
+verified at the deployed Netlify site. Its exact deployed commit remains unverified.
+Current functional checks and measurement limitations are recorded in the
+[WS1 partial baseline](ws1/I1-baseline-report.md); historical provider prices and
+limits below must be checked again before selecting a hosting change.
+
 **Update, 11 November 2026:** the CI `deploy` job has since deployed `main` (`e207fd9`) to
 Render and Netlify on 7 November 2026, with the `/api/health` check passing in CI. `main` does
 not yet contain the ADR-014 work (PRs #37, #43, #47). The plan below is kept as written.
@@ -80,6 +95,23 @@ services. No paid subscription should be assumed from this proposal.
 5. Reconcile the architecture/privacy documentation and ADRs with the final design.
 
 ## Official sources checked
+
+### WS1 recheck — 24 November 2026
+
+The existing Render service is still one Free instance with auto-deploy off and
+live backend commit 74d6872. This is a control-plane readback, not new capacity
+evidence. The 22 November HTTP health burst and the 24 November extension-host
+capture are described in the [I1 baseline](ws1/I1-baseline-report.md).
+
+The current official [Markdown pricing reference](https://render.com/pricing.md#compute)
+lists web-service compute at $0/month (Free), $7/month (`0.5c-512mb`) and $25/month
+(`1c-2g`), before any additional usage, taxes or model charges. These are USD,
+not an EUR estimate. [Plan mapping](https://render.com/docs/compute-plans.md)
+and [Free limitations](https://render.com/docs/free.md) were checked the same day.
+Keep D2 free plans pending the PO decision; no upgrade or keep-alive was enabled.
+
+The following source list belongs to the earlier plan; only the Render references
+above were refreshed during this follow-up.
 
 - [Render Free limits](https://render.com/docs/free)
 - [Render Static Sites](https://render.com/docs/static-sites)

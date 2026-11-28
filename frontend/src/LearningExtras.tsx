@@ -119,6 +119,7 @@ export function LearningControls() {
         : <div role="alert"><p>Delete your levels, patterns, goals and disputes? Your feedback on tasks is kept.</p>
             <button type="button" className="button button-danger" disabled={busy} onClick={() => void act(startLearningOver)} data-learning-reset-confirm="">Start over</button>{' '}
             <button type="button" className="chat-link" disabled={busy} onClick={() => setConfirming(false)}>Cancel</button></div>)}
+      {(!settings.can_pause || !settings.can_reset) && <p className="muted" data-learning-policy="">Your organisation has turned off {[!settings.can_pause && 'pausing', !settings.can_reset && 'starting over'].filter(Boolean).join(' and ')}.</p>}
       {settings.reset_at && <p className="muted">Started over on {new Date(settings.reset_at).toLocaleDateString()}.</p>}
     </details>
   )

@@ -20,7 +20,7 @@ from fastapi import APIRouter, FastAPI, Query, Response
 from app.accounts import AuthenticatedUser
 from app.storage import Storage
 from app.team_data import MockSource
-from app.teams import ADMIN, MANAGER, members_of, require_group
+from app.teams import ADMIN, MANAGER, managed_groups, members_of, require_group
 
 MIN_GROUP_SIZE = 5
 MAX_WEEKS = 12
@@ -111,6 +111,51 @@ def install_team_dashboard(app: FastAPI, store: Storage, source=None, clock=None
     clock = clock or (lambda: datetime.now(UTC).date())
     router = APIRouter(prefix="/api")
 
+    def figures_for(members: list[dict], weeks: int) -> dict:
+        today = clock()
+        starts = week_starts(today, weeks)
+        usage, events = source.records([m["user_id"] for m in members], starts[0], today)
+        return dashboard(members, usage, events, today, weeks)
+
+    @router.get("/teams/overview")
+    def overview(
+        response: Response,
+        user: AuthenticatedUser,
+        weeks: int = Query(default=4, ge=1, le=MAX_WEEKS),
+    ):
+        """T4: every group the caller runs, on the same figures, each under the minimum size."""
+        response.headers["Cache-Control"] = "no-store"
+        with store.connect() as db:
+            groups = [
+                (dict(group), [dict(row) for row in members_of(db, group["id"])])
+                for group in managed_groups(db, user["id"])
+            ]
+            names = {
+                row["id"]: row["name"]
+                for row in db.execute(
+                    "SELECT id,name FROM organisations WHERE id = ANY(%s)",
+                    (list({group["organisation_id"] for group, _ in groups}),),
+                ).fetchall()
+            }
+        result = []
+        for group, members in groups:
+            body = figures_for(members, weeks)
+            result.append(
+                {
+                    "id": group["id"],
+                    "name": group["name"],
+                    "organisation": names[group["organisation_id"]],
+                    "enough_members": body["enough_members"],
+                    "totals": body["totals"] if body["enough_members"] else None,
+                }
+            )
+        return {
+            "source": source.name,
+            "min_group_size": MIN_GROUP_SIZE,
+            "weeks": weeks,
+            "groups": result,
+        }
+
     @router.get("/groups/{group_id}/dashboard")
     def group_dashboard(
         group_id: str,
@@ -122,14 +167,10 @@ def install_team_dashboard(app: FastAPI, store: Storage, source=None, clock=None
         with store.connect() as db:
             group = require_group(db, user["id"], group_id, {ADMIN, MANAGER})
             members = [dict(row) for row in members_of(db, group_id)]
-        today = clock()
-        starts = week_starts(today, weeks)
-        usage, events = source.records([m["user_id"] for m in members], starts[0], today)
-        body = dashboard(members, usage, events, today, weeks)
         return {
             "group": {"id": group["id"], "name": group["name"]},
             "source": source.name,
-            **body,
+            **figures_for(members, weeks),
         }
 
     app.include_router(router)

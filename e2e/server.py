@@ -234,6 +234,7 @@ def build():
     settings = Settings(
         _env_file=None,
         groq_api_key="e2e-fake-key",
+        team_member_view=True,  # WS3 T3: off by default (ADR-016)
         browser_origin=os.environ.get("E2E_WEB_ORIGIN", "http://127.0.0.1:8543"),
     )
     return create_app(

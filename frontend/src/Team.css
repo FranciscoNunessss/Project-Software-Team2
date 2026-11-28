@@ -28,3 +28,9 @@
 .team-table th, .team-table td { padding: 10px 14px; text-align: left; border-top: 1px solid var(--well-line); white-space: nowrap; }
 .team-table thead th { border-top: 0; font-weight: 600; color: var(--color-muted); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.team-check { display: flex; gap: 8px; align-items: center; font-size: 14px; margin: 4px 0; }
+.team-policy { margin: 14px 0 0; padding: 10px 12px; border: 1px solid var(--well-line); border-radius: 8px; }
+.team-policy legend { font-size: 12px; color: var(--color-muted); padding: 0 4px; }
+.team-member-body { display: grid; grid-template-columns: minmax(16rem, 22rem) 1fr; gap: 16px; align-items: start; margin-top: 8px; overflow-x: auto; }
+@media (max-width: 720px) { .team-member-body { grid-template-columns: 1fr; } }
+.team-patterns { margin: 10px 0 0; padding-left: 18px; list-style: disc; font-size: 13px; }

@@ -28,6 +28,7 @@ from app.learning_engine import DIMENSIONS, TaskRecord, compute, level_history
 from app.outcomes import owned_analysis
 from app.request_quality import guard_ceiling, reason_code
 from app.storage import Storage
+from app.team_policy import learning_policy
 
 LOGGER = logging.getLogger(__name__)
 
@@ -235,13 +236,14 @@ def learning_settings(store: Storage, user_id: str) -> dict:
         row = db.execute(
             "SELECT paused,reset_at FROM learning_settings WHERE user_id=%s", (user_id,)
         ).fetchone()
+        # Team Scope (WS3 T1b): an organisation admin can turn these off.
+        can_pause, can_reset = learning_policy(db, user_id)
     return {
-        "paused": bool(row and row["paused"]),
+        # A pause chosen before the organisation turned pausing off no longer applies.
+        "paused": bool(row and row["paused"]) and can_pause,
         "reset_at": row["reset_at"] if row else None,
-        # Team Scope (WS3 T1) will let an organisation admin turn these off; until then the
-        # user always may.
-        "can_pause": True,
-        "can_reset": True,
+        "can_pause": can_pause,
+        "can_reset": can_reset,
     }
 
 
@@ -363,7 +365,8 @@ def install_learning_experience(app: FastAPI, store: Storage, judge: Judge) -> N
 
     @app.put("/api/learning/settings")
     def put_settings(body: SettingsInput, user: AuthenticatedUser):
-        if not learning_settings(store, user["id"])["can_pause"]:
+        # Turning learning back on is always allowed.
+        if body.paused and not learning_settings(store, user["id"])["can_pause"]:
             raise HTTPException(403, "pause_not_allowed")
         with store.connect() as db:
             db.execute(

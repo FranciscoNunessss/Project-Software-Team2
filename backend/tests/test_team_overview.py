@@ -12,6 +12,12 @@ def team():
     return build_team(make_app())
 
 
+def as_demo(app):
+    """The comparison is checked on a demo organisation: every figure comes from the mock."""
+    with app.state.storage.connect() as db:
+        db.execute("UPDATE organisations SET demo=TRUE")
+
+
 def fill(app, group, count, prefix):
     """Synthetic members who use AdaptAI every week in the mock source."""
     identifiers, number = [], 0
@@ -35,6 +41,7 @@ def fill(app, group, count, prefix):
 
 def test_a_manager_compares_their_groups_on_the_dashboard_figures(team):
     fill(team["app"], team["group"], 6, "eng")
+    as_demo(team["app"])
     manager = team["manager"]
 
     body = manager.get("/api/teams/overview").json()
@@ -49,6 +56,7 @@ def test_a_manager_compares_their_groups_on_the_dashboard_figures(team):
         "id": team["second"],
         "name": "Support",
         "organisation": "Acme",
+        "source": "mock",
         "enough_members": False,
         "totals": None,
     }

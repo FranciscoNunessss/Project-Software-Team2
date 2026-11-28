@@ -7,7 +7,7 @@ import { euros, percent, tokens, type Figures } from './teamFigures'
 // the minimum size shows no number (ADR-016).
 
 type Overview = {
-  source: string; min_group_size: number; weeks: number
+  usage_source: string; min_group_size: number; weeks: number
   groups: { id: string; name: string; organisation: string; enough_members: boolean; totals: Figures | null }[]
 }
 
@@ -44,7 +44,7 @@ export function TeamOverview({ onBack }: { onBack: () => void }) {
       </select></label>
     </div>
     {error && <p className="api-error" role="alert">{error}</p>}
-    {data?.source === 'mock' && <p className="team-mock" role="note">Demo data: these numbers are synthetic until real usage records arrive (WS1 gateway).</p>}
+    {data?.usage_source === 'mock' && <p className="team-mock" role="note">Tokens and cost are demo numbers until real usage records arrive (WS1 gateway). Demo organisations are synthetic throughout.</p>}
     {data && <Card className="team-table-card">
       <table className="team-table" data-team-overview="">
         <caption className="visually-hidden">Figures by group</caption>

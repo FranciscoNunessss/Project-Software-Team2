@@ -34,3 +34,5 @@
 .team-member-body { display: grid; grid-template-columns: minmax(16rem, 22rem) 1fr; gap: 16px; align-items: start; margin-top: 8px; overflow-x: auto; }
 @media (max-width: 720px) { .team-member-body { grid-template-columns: 1fr; } }
 .team-patterns { margin: 10px 0 0; padding-left: 18px; list-style: disc; font-size: 13px; }
+.team-learning-body { display: grid; gap: 16px; justify-items: center; overflow-x: auto; }
+.team-learning-body .learning-radar { max-width: 26rem; }

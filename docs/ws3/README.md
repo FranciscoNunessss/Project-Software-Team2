@@ -141,3 +141,20 @@ subtracted from each other. ADR-016 does not cover overlapping groups; to be dec
 
 T2 on stored data, TL1 to TL5 and the web/IDE split wait for WS4 (TL0, E0b) and WS1 (I2).
 M5 to M7 run after the AI freeze. T5 and T6 (Plus) are not started.
+
+# WS3: T2 on stored data, TL1 to TL5 and the web/IDE split (prepared, waiting on other workstreams)
+
+Not ready to merge as final. What waits for whom:
+
+| Waits for | Then do |
+|---|---|
+| WS4 TL0 and TL0b | Replace `app.team_learning.group_learning` and `stored_events` (interim) with WS4's |
+| WS4 E0b (migration 014) | Nothing: `analyses.surface` and `coach_uses` are read once they exist; check the column names |
+| WS1 I2 (C1 records) | Replace `MockSource` as the token and cost source |
+| Before merge | Frozen weekly snapshots (ADR-016 rule 7); seed learning data in the demo; renumber `017_team_goals.sql` if needed; an e2e spec for the learning panels |
+
+Built: real organisations read tasks, choices, feedback and request quality from stored data, each
+figure needing 5 people; `GET /api/groups/{id}/learning` (radar medians and trend, level
+distribution, pattern shares with the Educator card, feedback response rate, Coach adoption);
+team goal (`/api/groups/{id}/goal`, `/api/progress/team-goals`, migration 017).
+Tests: `backend/tests/test_team_learning.py`.

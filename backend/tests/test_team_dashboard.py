@@ -142,6 +142,24 @@ def test_mock_records_follow_contract_c1_and_carry_no_text():
 
 # --- through the API (test database) ------------------------------------------------------------
 
+
+def add_weekly_tasks(app, owners):
+    """One stored analysis per member on each Monday of the last four weeks."""
+    starts = td.week_starts(datetime.now(UTC).date(), 4)
+    result = '{"recommendation": {"id": "a"}, "alternatives": []}'
+    with app.state.storage.connect() as db:
+        for owner in owners:
+            db.execute(
+                "INSERT INTO sessions(id,user_id,title) VALUES (%s,%s,'t')", (f"s-{owner}", owner)
+            )
+            for start in starts:
+                db.execute(
+                    "INSERT INTO analyses(id,session_id,request_json,result_json,created_at) "
+                    "VALUES (%s,%s,'{}',%s,%s)",
+                    (f"{owner}-{start}", f"s-{owner}", result, f"{start}T00:00:00.000Z"),
+                )
+
+
 PASSWORD = "correct horse battery"
 
 
@@ -179,7 +197,11 @@ def test_dashboard_totals_reconcile_with_the_c1_records_of_the_source(app):
 
     body = admin.get(f"/api/groups/{group['id']}/dashboard?weeks=4").json()
 
-    assert body["source"] == "mock" and body["min_group_size"] == td.MIN_GROUP_SIZE
+    assert body["source"] == "stored" and body["usage_source"] == "mock"
+    assert body["min_group_size"] == td.MIN_GROUP_SIZE
+    # A real group is shown from its stored activity: give each synthetic member a task a week.
+    add_weekly_tasks(app, ids)
+    body = admin.get(f"/api/groups/{group['id']}/dashboard?weeks=4").json()
     shown = [week for week in body["weeks"] if week["enough_members"]]
     assert (
         sum(week["tokens_in"] for week in shown)

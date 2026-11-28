@@ -55,6 +55,7 @@ from app.retention import install_retention
 from app.storage import Storage, history_result, stored_result
 from app.team_consent import install_team_consent
 from app.team_dashboard import install_team_dashboard
+from app.team_goals import install_team_goals
 from app.team_policy import is_paused
 from app.teams import install_teams
 from app.tokens import install_tokens
@@ -175,6 +176,7 @@ def create_app(
     )
     install_teams(app, store)
     install_team_dashboard(app, store)
+    install_team_goals(app, store)
     install_team_consent(app, store, settings.team_member_view)
     install_learning(app, store)
     install_learning_experience(app, store, lambda *args: quality_judge(*args))

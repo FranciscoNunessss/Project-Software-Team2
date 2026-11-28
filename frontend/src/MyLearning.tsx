@@ -3,6 +3,7 @@ import { api } from './api'
 import './MyLearning.css'
 import { EDUCATOR_CARDS } from './educatorCards'
 import { Achievements, LearningControls, LevelUp, WeeklyGoalCard } from './LearningExtras'
+import { MyTeamGoals } from './TeamLearning'
 
 // WS4 PR7 (L4, L7, L14): how the user frames tasks and chooses models, from
 // GET /api/progress/indicators. Always against the user's own earlier range, never other people.
@@ -215,6 +216,7 @@ export function MyLearning() {
       )}
       <div className="learning-extras">
         <WeeklyGoalCard />
+        <MyTeamGoals />
         <Achievements />
       </div>
       <LearningControls />

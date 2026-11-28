@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { api } from './api'
 import { Button, Card } from './ui'
+import { TeamLearning } from './TeamLearning'
 import { TeamOverview } from './TeamOverview'
 import { SharedMembers, SharingScreen } from './TeamSharing'
 import { euros, percent, tokens, type Figures } from './teamFigures'
@@ -17,7 +18,7 @@ type Member = { user_id: string; email: string; role: 'manager' | 'member'; join
 type PendingInvite = { id: string; email: string | null; role: string; expires_at: number }
 type Week = { week: string; open: boolean; enough_members: boolean } & Partial<Figures>
 type Dashboard = {
-  group: { id: string; name: string }; source: string; min_group_size: number; enough_members: boolean
+  group: { id: string; name: string }; source: string; usage_source: string; min_group_size: number; enough_members: boolean
   weeks: Week[]; totals: Figures | null; price_catalog_date: string | null
 }
 
@@ -258,14 +259,17 @@ function GroupDashboard({ group, onBack }: { group: Group; onBack: () => void })
       </select></label>
     </div>
     {error && <p className="api-error" role="alert">{error}</p>}
-    {data?.source === 'mock' && <p className="team-mock" role="note">Demo data: these numbers are synthetic until real usage records arrive (WS1 gateway).</p>}
+    {data?.source === 'mock' && <p className="team-mock" role="note">Demo data: these numbers are synthetic.</p>}
+    {data?.source === 'stored' && data.usage_source === 'mock' && <p className="team-mock" role="note">Tokens and cost are demo numbers until real usage records arrive (WS1 gateway). The other figures are the group's own.</p>}
     {data && !data.enough_members && <Card className="dashboard-empty"><p>Not enough members yet. Numbers appear once at least {data.min_group_size} people in this group use AdaptAI in the same week.</p></Card>}
     {totals && <>
       <div className="team-tiles">
         <Tile label="Tokens" value={tokens(totals.tokens_in + totals.tokens_out)} detail={`${tokens(totals.tokens_in)} in · ${tokens(totals.tokens_out)} out`} />
         <Tile label="Estimated cost" value={euros(totals.est_cost_eur)} detail={data?.price_catalog_date ? `Estimated at catalog prices of ${data.price_catalog_date}` : 'Estimated'} />
-        <Tile label="Resolved" value={percent(totals.resolved_rate)} detail={`${totals.feedback} answers to "Did it solve it?"`} />
+        <Tile label="Resolved" value={percent(totals.resolved_rate)} detail={totals.feedback === null ? 'Not enough members answered' : `${totals.feedback} answers to "Did it solve it?"`} />
         <Tile label="Took the recommendation" value={percent(totals.acceptance_rate)} detail={`Over-sized ${percent(totals.over_sized_rate)} · under-sized ${percent(totals.under_sized_rate)}`} />
+        {data?.source === 'stored' && <Tile label="Clearly framed" value={percent(totals.clear_rate)} detail="Share of request-quality scores that are clear" />}
+        {data?.source === 'stored' && <Tile label="Web and IDE tasks" value={totals.web_tasks === null || totals.web_tasks === undefined ? '—' : `${totals.web_tasks} / ${totals.ide_tasks}`} detail={totals.web_tasks === null || totals.web_tasks === undefined ? 'Not available yet, or too few people on one side' : 'Web / IDE'} />}
       </div>
       <div className="section-heading"><h2>By week</h2></div>
       <Card className="team-table-card">
@@ -284,6 +288,7 @@ function GroupDashboard({ group, onBack }: { group: Group; onBack: () => void })
         </table>
       </Card>
     </>}
+    <TeamLearning groupId={group.id} weeks={weeks} />
     <SharedMembers groupId={group.id} />
   </main>
 }

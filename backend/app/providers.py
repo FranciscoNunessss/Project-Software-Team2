@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     lmstudio_models: str = ""
     # Background evaluation of configured models (ADR-014); off in tests and scripts.
     evaluations_worker: bool = True
+    # ADR-016 (Proposed): the individual view with consent stays off until the client confirms.
+    team_member_view: bool = False
     # Days without activity after which a session is deleted (app/retention.py); 0 = never.
     retention_days: int = Field(default=0, ge=0)
     # The project's own OpenRouter key, only for evaluating models no public source rates

@@ -62,6 +62,12 @@ class InviteBody(BaseModel):
         return value
 
 
+class PolicyBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    allow_pause: bool
+    allow_reset: bool
+
+
 class AcceptBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     token: str = Field(min_length=len(INVITE_PREFIX) + 10, max_length=200)
@@ -144,7 +150,8 @@ def install_teams(app: FastAPI, store: Storage) -> None:
         response.headers["Cache-Control"] = "no-store"
         with store.connect() as db:
             organisations = db.execute(
-                """SELECT o.id, o.name, o.demo, m.role FROM organisations o
+                """SELECT o.id, o.name, o.demo, o.allow_pause, o.allow_reset, m.role
+                   FROM organisations o
                    JOIN organisation_members m ON m.organisation_id=o.id AND m.user_id=%s
                    ORDER BY o.sequence_id""",
                 (user["id"],),
@@ -167,11 +174,15 @@ def install_teams(app: FastAPI, store: Storage) -> None:
                         "name": organisation["name"],
                         "demo": organisation["demo"],
                         "role": organisation["role"],
+                        "allow_pause": organisation["allow_pause"],
+                        "allow_reset": organisation["allow_reset"],
                         "groups": [
                             {
                                 "id": group["id"],
                                 "name": group["name"],
                                 "role": ADMIN if admin else group["my_role"],
+                                # An admin may also be in the group: they can then share.
+                                **({"member": group["my_role"] is not None} if admin else {}),
                                 # Size is shown to those who run the group, never to members.
                                 "size": group["size"]
                                 if admin or group["my_role"] == MANAGER
@@ -204,6 +215,17 @@ def install_teams(app: FastAPI, store: Storage) -> None:
                 (identifier, user["id"], now),
             )
         return {"id": identifier, "name": body.name, "role": ADMIN, "demo": False, "groups": []}
+
+    @router.put("/organisations/{organisation_id}/learning-policy")
+    def set_learning_policy(organisation_id: str, body: PolicyBody, user: SessionUser):
+        """T1b: whether people in this organisation's groups may pause learning or start over."""
+        with store.connect() as db:
+            require_admin(db, user["id"], organisation_id)
+            db.execute(
+                "UPDATE organisations SET allow_pause=%s, allow_reset=%s WHERE id=%s",
+                (body.allow_pause, body.allow_reset, organisation_id),
+            )
+        return {"allow_pause": body.allow_pause, "allow_reset": body.allow_reset}
 
     @router.post("/organisations/{organisation_id}/groups", status_code=201)
     def create_group(organisation_id: str, body: NameBody, user: SessionUser):

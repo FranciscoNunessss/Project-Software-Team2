@@ -1,31 +1,28 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { api } from './api'
 import { Button, Card } from './ui'
+import { TeamLearning } from './TeamLearning'
+import { TeamOverview } from './TeamOverview'
+import { SharedMembers, SharingScreen } from './TeamSharing'
+import { euros, percent, tokens, type Figures } from './teamFigures'
 import './Team.css'
 
-// Team Scope (WS3 T1 and T2, ADR-016): organisations, groups, invites and the group dashboard.
-// Managers and admins see group aggregates only; a member sees the group's name and nothing else.
+// Team Scope (WS3, ADR-016): organisations, groups, invites, the group dashboard, the comparison
+// of groups (T4), the member view with consent (T3) and the learning policy (T1b).
+// Managers and admins see group aggregates, and individually only the members who opted in.
 
 type Role = 'admin' | 'manager' | 'member'
-type Group = { id: string; name: string; role: Role; size: number | null }
-type Organisation = { id: string; name: string; demo: boolean; role: 'admin' | 'member'; groups: Group[] }
+type Group = { id: string; name: string; role: Role; size: number | null; member?: boolean }
+type Organisation = { id: string; name: string; demo: boolean; role: 'admin' | 'member'; allow_pause: boolean; allow_reset: boolean; groups: Group[] }
 type Member = { user_id: string; email: string; role: 'manager' | 'member'; joined_at: number }
 type PendingInvite = { id: string; email: string | null; role: string; expires_at: number }
-type Figures = {
-  calls: number; tokens_in: number; tokens_out: number; est_cost_eur: number; tasks: number
-  acceptance_rate: number | null; over_sized_rate: number | null; under_sized_rate: number | null
-  feedback: number; resolved_rate: number | null; partly_rate: number | null
-}
 type Week = { week: string; open: boolean; enough_members: boolean } & Partial<Figures>
 type Dashboard = {
-  group: { id: string; name: string }; source: string; min_group_size: number; enough_members: boolean
+  group: { id: string; name: string }; source: string; usage_source: string; min_group_size: number; enough_members: boolean
   weeks: Week[]; totals: Figures | null; price_catalog_date: string | null
 }
 
 const message = (failure: unknown, fallback: string) => failure instanceof Error ? failure.message : fallback
-const percent = (value: number | null | undefined) => value === null || value === undefined ? '—' : `${value}%`
-const tokens = (value: number | undefined) => value === undefined ? '—' : value >= 1000 ? `${(value / 1000).toFixed(1)}k` : String(value)
-const euros = (value: number | undefined) => value === undefined ? '—' : `€${value.toFixed(value < 1 ? 4 : 2)}`
 
 // An invite link opens the app with ?invite=…. The token is taken from the address once and its
 // acceptance is shared, so a second mount (React StrictMode, or the page remounting) waits for it
@@ -50,7 +47,8 @@ export function TeamScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const [open, setOpen] = useState<{ group: Group; view: 'dashboard' | 'members' } | null>(null)
+  const [open, setOpen] = useState<{ group: Group; view: 'dashboard' | 'members' | 'sharing' } | null>(null)
+  const [comparing, setComparing] = useState(false)
   const [orgName, setOrgName] = useState('')
 
   const load = async (signal?: AbortSignal) => setOrganisations(await api<Organisation[]>('organisations', undefined, signal))
@@ -79,6 +77,9 @@ export function TeamScreen() {
     catch (failure) { setError(message(failure, 'Could not create the organisation')) }
   }
 
+  const managed = organisations.flatMap(organisation => organisation.groups).filter(group => group.role === 'admin' || group.role === 'manager')
+  if (comparing) return <TeamOverview onBack={() => setComparing(false)} />
+  if (open?.view === 'sharing') return <SharingScreen group={open.group} onBack={() => setOpen(null)} />
   if (open?.view === 'dashboard') return <GroupDashboard group={open.group} onBack={() => setOpen(null)} />
   if (open?.view === 'members') return <GroupMembers group={open.group} onBack={() => { setOpen(null); load().catch(() => undefined) }} />
 
@@ -86,8 +87,10 @@ export function TeamScreen() {
     <div className="intro"><div>
       <p className="eyebrow">Team Scope</p>
       <h1>Your teams.</h1>
-      <p>Groups, invites and how each group uses AI. Managers see group totals only, never what anyone wrote.</p>
-    </div></div>
+      <p>Groups, invites and how each group uses AI. Managers see group totals, and a person only when they opt in; never what anyone wrote.</p>
+    </div>
+      {managed.length > 1 && <Button variant="secondary" onClick={() => setComparing(true)}>Compare groups</Button>}
+    </div>
     {error && <p className="api-error" role="alert">{error}</p>}
     {notice && <p className="team-notice" role="status">{notice}</p>}
     {loading ? <div className="spinner" aria-label="Loading" /> : <>
@@ -110,7 +113,7 @@ export function TeamScreen() {
 function OrganisationCard({ organisation, onChanged, onOpen, onError }: {
   organisation: Organisation
   onChanged: () => void
-  onOpen: (group: Group, view: 'dashboard' | 'members') => void
+  onOpen: (group: Group, view: 'dashboard' | 'members' | 'sharing') => void
   onError: (text: string) => void
 }) {
   const admin = organisation.role === 'admin'
@@ -134,6 +137,10 @@ function OrganisationCard({ organisation, onChanged, onOpen, onError }: {
       setLink({ group: group.id, url: url.toString() }); setInviting(null); setEmail('')
     } catch (failure) { onError(message(failure, 'Could not create the invite')) }
   }
+  const setPolicy = async (policy: { allow_pause: boolean; allow_reset: boolean }) => {
+    try { await api(`organisations/${organisation.id}/learning-policy`, policy, undefined, 'PUT'); onChanged() }
+    catch (failure) { onError(message(failure, 'Could not change the policy')) }
+  }
   const leave = async (group: Group) => {
     if (!window.confirm(`Leave ${group.name}?`)) return
     try {
@@ -156,6 +163,7 @@ function OrganisationCard({ organisation, onChanged, onOpen, onError }: {
             {(group.role === 'admin' || group.role === 'manager') && <Button size="sm" onClick={() => onOpen(group, 'dashboard')}>Dashboard</Button>}
             {group.role === 'admin' && <Button size="sm" variant="secondary" onClick={() => onOpen(group, 'members')}>Members</Button>}
             {group.role === 'admin' && <Button size="sm" variant="secondary" onClick={() => { setInviting(inviting === group.id ? null : group.id); setLink(null) }}>Invite</Button>}
+            {(group.member ?? group.role !== 'admin') && <Button size="sm" variant="secondary" onClick={() => onOpen(group, 'sharing')}>Sharing</Button>}
             {group.role !== 'admin' && <Button size="sm" variant="ghost" onClick={() => void leave(group)}>Leave</Button>}
           </div>
         </div>
@@ -177,6 +185,11 @@ function OrganisationCard({ organisation, onChanged, onOpen, onError }: {
       <input id={`group-name-${organisation.id}`} value={name} maxLength={60} placeholder="New group name" onChange={event => setName(event.target.value)} />
       <Button type="submit" size="sm" variant="secondary" disabled={!name.trim()}>Add group</Button>
     </form>}
+    {admin && <fieldset className="team-policy">
+      <legend>Learning controls for people in these groups</legend>
+      <label className="team-check"><input type="checkbox" checked={organisation.allow_pause} onChange={event => void setPolicy({ allow_pause: event.target.checked, allow_reset: organisation.allow_reset })} data-policy-pause="" /> They can pause learning</label>
+      <label className="team-check"><input type="checkbox" checked={organisation.allow_reset} onChange={event => void setPolicy({ allow_pause: organisation.allow_pause, allow_reset: event.target.checked })} data-policy-reset="" /> They can start over</label>
+    </fieldset>}
   </Card>
 }
 
@@ -246,14 +259,17 @@ function GroupDashboard({ group, onBack }: { group: Group; onBack: () => void })
       </select></label>
     </div>
     {error && <p className="api-error" role="alert">{error}</p>}
-    {data?.source === 'mock' && <p className="team-mock" role="note">Demo data: these numbers are synthetic until real usage records arrive (WS1 gateway).</p>}
+    {data?.source === 'mock' && <p className="team-mock" role="note">Demo data: these numbers are synthetic.</p>}
+    {data?.source === 'stored' && data.usage_source === 'mock' && <p className="team-mock" role="note">Tokens and cost are demo numbers until real usage records arrive (WS1 gateway). The other figures are the group's own.</p>}
     {data && !data.enough_members && <Card className="dashboard-empty"><p>Not enough members yet. Numbers appear once at least {data.min_group_size} people in this group use AdaptAI in the same week.</p></Card>}
     {totals && <>
       <div className="team-tiles">
         <Tile label="Tokens" value={tokens(totals.tokens_in + totals.tokens_out)} detail={`${tokens(totals.tokens_in)} in · ${tokens(totals.tokens_out)} out`} />
         <Tile label="Estimated cost" value={euros(totals.est_cost_eur)} detail={data?.price_catalog_date ? `Estimated at catalog prices of ${data.price_catalog_date}` : 'Estimated'} />
-        <Tile label="Resolved" value={percent(totals.resolved_rate)} detail={`${totals.feedback} answers to "Did it solve it?"`} />
+        <Tile label="Resolved" value={percent(totals.resolved_rate)} detail={totals.feedback === null ? 'Not enough members answered' : `${totals.feedback} answers to "Did it solve it?"`} />
         <Tile label="Took the recommendation" value={percent(totals.acceptance_rate)} detail={`Over-sized ${percent(totals.over_sized_rate)} · under-sized ${percent(totals.under_sized_rate)}`} />
+        {data?.source === 'stored' && <Tile label="Clearly framed" value={percent(totals.clear_rate)} detail="Share of request-quality scores that are clear" />}
+        {data?.source === 'stored' && <Tile label="Web and IDE tasks" value={totals.web_tasks === null || totals.web_tasks === undefined ? '—' : `${totals.web_tasks} / ${totals.ide_tasks}`} detail={totals.web_tasks === null || totals.web_tasks === undefined ? 'Not available yet, or too few people on one side' : 'Web / IDE'} />}
       </div>
       <div className="section-heading"><h2>By week</h2></div>
       <Card className="team-table-card">
@@ -272,6 +288,8 @@ function GroupDashboard({ group, onBack }: { group: Group; onBack: () => void })
         </table>
       </Card>
     </>}
+    <TeamLearning groupId={group.id} weeks={weeks} />
+    <SharedMembers groupId={group.id} />
   </main>
 }
 

@@ -103,3 +103,58 @@ ADAPTAI_ENVIRONMENT=local python scripts/seed_demo.py --admin-email <your accoun
 Then open **Team** in the sidebar: Engineering and Support show the dashboard with demo data, Interns
 says "not enough members". Create an invite link, open it in another browser signed in as another
 account, and check the roles above.
+
+# WS3 after week 12: T1b, T3 and T4
+
+Prepared with AI assistance (Claude, Anthropic); human review pending.
+
+## T1b Admin policy for pause and start over (WS4 L17)
+
+An organisation admin switches each control on or off (`PUT /api/organisations/{id}/learning-policy`,
+browser session only). Both are on by default. A person is under the policy of every organisation in
+whose groups they are, and the strictest wins; leaving every group ends it. While pausing is off, a
+pause chosen earlier does not apply (new tasks count) and comes back if pausing is allowed again.
+Turning learning back on is always possible. Tests: `backend/tests/test_team_policy.py`.
+
+## T3 Member view with consent (ADR-016 rules 4 to 6)
+
+Off unless `ADAPTAI_TEAM_MEMBER_VIEW=true`: ADR-016 is still Proposed and keeps the individual view
+behind a flag until the client confirms (D1). A member opts in per group from **Team, Sharing** and
+can revoke at any time; leaving the group removes the consent. Managers and admins of that group then
+see the member's levels, radar and patterns (all from the WS4 engine, levels without hysteresis); the
+member sees the same body on their own screen. No task, text or single result. Members who did not
+opt in are not listed. Tests: `backend/tests/test_team_consent.py`, `e2e/team.spec.ts`.
+
+## T4 Multi-group overview
+
+`GET /api/teams/overview?weeks=4|8|12` gives every group the caller runs on the dashboard's totals,
+each under the minimum size. Tests: `backend/tests/test_team_overview.py`.
+
+Known limit, also true of the single dashboards: two groups that differ by one person can be
+subtracted from each other. ADR-016 does not cover overlapping groups; to be decided.
+
+## Migration
+
+`015_team_policy_consent.sql`. 014 is left for the WS4 migration (`analyses.surface`, `coach_uses`).
+
+## Not done yet
+
+T2 on stored data, TL1 to TL5 and the web/IDE split wait for WS4 (TL0, E0b) and WS1 (I2).
+M5 to M7 run after the AI freeze. T5 and T6 (Plus) are not started.
+
+# WS3: T2 on stored data, TL1 to TL5 and the web/IDE split (prepared, waiting on other workstreams)
+
+Not ready to merge as final. What waits for whom:
+
+| Waits for | Then do |
+|---|---|
+| WS4 TL0 and TL0b | Replace `app.team_learning.group_learning` and `stored_events` (interim) with WS4's |
+| WS4 E0b (migration 014) | Nothing: `analyses.surface` and `coach_uses` are read once they exist; check the column names |
+| WS1 I2 (C1 records) | Replace `MockSource` as the token and cost source |
+| Before merge | Frozen weekly snapshots (ADR-016 rule 7); seed learning data in the demo; renumber `017_team_goals.sql` if needed; an e2e spec for the learning panels |
+
+Built: real organisations read tasks, choices, feedback and request quality from stored data, each
+figure needing 5 people; `GET /api/groups/{id}/learning` (radar medians and trend, level
+distribution, pattern shares with the Educator card, feedback response rate, Coach adoption);
+team goal (`/api/groups/{id}/goal`, `/api/progress/team-goals`, migration 017).
+Tests: `backend/tests/test_team_learning.py`.

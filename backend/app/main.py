@@ -53,7 +53,10 @@ from app.request_quality import stored_row as quality_row
 from app.request_quality import summary as quality_summary
 from app.retention import install_retention
 from app.storage import Storage, history_result, stored_result
+from app.team_consent import install_team_consent
 from app.team_dashboard import install_team_dashboard
+from app.team_goals import install_team_goals
+from app.team_policy import is_paused
 from app.teams import install_teams
 from app.tokens import install_tokens
 from app.workflow import build_workflow
@@ -173,6 +176,8 @@ def create_app(
     )
     install_teams(app, store)
     install_team_dashboard(app, store)
+    install_team_goals(app, store)
+    install_team_consent(app, store, settings.team_member_view)
     install_learning(app, store)
     install_learning_experience(app, store, lambda *args: quality_judge(*args))
 
@@ -949,10 +954,7 @@ def create_app(
                 # WS4 L11: fingerprints older than the dispute window are forgotten.
                 expire_fingerprints(db)
                 # WS4 L17: while learning is paused, new tasks do not count.
-                if db.execute(
-                    "SELECT 1 FROM learning_settings WHERE user_id=%s AND paused=1",
-                    (user["id"],),
-                ).fetchone():
+                if is_paused(db, user["id"]):
                     db.execute(
                         "INSERT INTO learning_exclusions(analysis_id,user_id,kind) "
                         "VALUES (%s,%s,'paused')",
